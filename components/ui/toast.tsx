@@ -4,6 +4,7 @@ import * as React from "react";
 
 import { cva, type VariantProps } from "class-variance-authority";
 import * as ToastPrimitives from "@radix-ui/react-toast";
+import { X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
@@ -80,10 +81,7 @@ const ToastClose = React.forwardRef<
     )}
     {...props}
   >
-    <span aria-hidden="true" className="relative block h-3 w-3">
-      <span className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 rotate-45 bg-current" />
-      <span className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 -rotate-45 bg-current" />
-    </span>
+    <X className="h-3 w-3" />
     <span className="sr-only">Закрыть</span>
   </ToastPrimitives.Close>
 ));

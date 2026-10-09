@@ -3,6 +3,7 @@
 import * as React from "react";
 
 import * as SelectPrimitive from "@radix-ui/react-select";
+import { Check, ChevronDown, ChevronUp } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -26,10 +27,7 @@ const SelectTrigger = React.forwardRef<
   >
     {children}
     <SelectPrimitive.Icon asChild>
-      <span
-        aria-hidden="true"
-        className="h-3 w-3 shrink-0 rotate-45 border-l-2 border-t-2 border-current"
-      />
+      <ChevronDown className="h-4 w-4 opacity-50" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ));
@@ -48,10 +46,7 @@ const SelectScrollUpButton = React.forwardRef<
     {...props}
   >
     <SelectPrimitive.Icon asChild>
-      <span
-        aria-hidden="true"
-        className="h-3 w-3 rotate-45 border-b-2 border-r-2 border-current"
-      />
+      <ChevronUp className="h-4 w-4" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.ScrollUpButton>
 ));
@@ -70,10 +65,7 @@ const SelectScrollDownButton = React.forwardRef<
     {...props}
   >
     <SelectPrimitive.Icon asChild>
-      <span
-        aria-hidden="true"
-        className="h-3 w-3 rotate-45 border-l-2 border-t-2 border-current"
-      />
+      <ChevronDown className="h-4 w-4" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.ScrollDownButton>
 ));
@@ -138,10 +130,7 @@ const SelectItem = React.forwardRef<
   >
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
       <SelectPrimitive.ItemIndicator>
-        <span
-          aria-hidden="true"
-          className="block h-3.5 w-2 rotate-45 border-b-2 border-r-2 border-current"
-        />
+        <Check className="h-4 w-4" />
       </SelectPrimitive.ItemIndicator>
     </span>
     <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
