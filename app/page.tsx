@@ -1,4 +1,4 @@
-import { ArrowRight, Award, Flag, Globe, Image as ImageIcon, Newspaper } from "lucide-react";
+import { ArrowRight, Award, Flag, Globe, Image as ImageIcon, Newspaper, ShieldCheck, User, Wrench } from "lucide-react";
 import Link from "next/link";
 
 import { CategoryCard } from "@/components/site/category-card";
@@ -9,8 +9,9 @@ import { getPublishedPosts, toNewsItem } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
-// Placeholder links: the services themselves live in the DB and are not seeded yet.
-const categories = [
+// Highlighted main services. Placeholder links until the services are seeded
+// into the DB; gradient covers also come only from the DB.
+const featuredServices = [
   { title: "Website design", icon: Globe },
   { title: "Badge design", icon: Award },
   { title: "Poster design", icon: ImageIcon },
@@ -22,14 +23,17 @@ const features = [
     title: "Everything is confidential",
     description:
       "We do not share your information with anyone other than our partners, who help us with our work.",
+    icon: ShieldCheck,
   },
   {
     title: "Individual selection",
     description: "We take an individualized approach with each person.",
+    icon: User,
   },
   {
     title: "Ongoing tech support",
     description: "We're always here to help if the design isn't quite right.",
+    icon: Wrench,
   },
 ];
 
@@ -49,33 +53,41 @@ export default async function HomePage() {
         </p>
       </section>
 
-      <section className="bg-navy text-white">
+      {/* Highlighted main services (in the mockup these are gradient covers from the DB). */}
+      <section aria-label="Featured services" className="mx-auto max-w-7xl px-4 pb-16 sm:px-8 sm:pb-20">
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
+          {featuredServices.map(({ title, icon }) => (
+            <li key={title}>
+              <Link
+                href="#"
+                aria-label={title}
+                className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <CategoryCard
+                  title={title}
+                  icon={icon}
+                  className="border-border bg-card text-foreground"
+                />
+              </Link>
+            </li>
+          ))}
+        </ul>
+
+        <div className="mt-10 text-center sm:mt-12">
+          <Link
+            href="/shop"
+            className="inline-flex items-center gap-2 rounded-sm text-xl font-semibold underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            And other services
+            <ArrowRight aria-hidden="true" className="h-5 w-5" />
+          </Link>
+        </div>
+      </section>
+
+      {/* Quality guarantees shown as cards on navy, as in the mockup. */}
+      <section className="bg-navy">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-8 sm:py-20">
-          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 sm:gap-6">
-            {categories.map(({ title, icon }) => (
-              <li key={title}>
-                <Link
-                  href="#"
-                  aria-label={title}
-                  className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                >
-                  <CategoryCard title={title} icon={icon} />
-                </Link>
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-10 text-center sm:mt-12">
-            <Link
-              href="/shop"
-              className="inline-flex items-center gap-2 rounded-sm text-xl font-semibold underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-            >
-              And other services
-              <ArrowRight aria-hidden="true" className="h-5 w-5" />
-            </Link>
-          </div>
-
-          <div className="mt-16 sm:mt-20 [&_.border-t]:border-white/20 [&_dd]:text-white/70 [&_dt]:text-white">
+          <div className="[&_dd]:text-white/80 [&_dl]:gap-y-4 [&_dl>div]:rounded-lg [&_dl>div]:border-t-0 [&_dl>div]:bg-white/5 [&_dl>div]:px-6 [&_dl>div]:py-6 [&_dt]:text-white [&_svg]:text-green-500 sm:[&_dl]:gap-y-6">
             <FeatureTable features={features} />
           </div>
         </div>
