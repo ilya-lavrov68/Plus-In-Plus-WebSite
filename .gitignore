@@ -38,3 +38,17 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local prisma engine stub (offline workaround, not part of the project)
+/.prisma-stub/
+
+# runtime uploads from the admin panel (keep folder structure + docs via negations)
+/public/uploads/services/*
+/public/uploads/blog/*
+!/public/uploads/services/.gitkeep
+!/public/uploads/blog/.gitkeep
+!/public/uploads/services/README.md
+!/public/uploads/blog/README.md
+
+# scratch e2e harness (verification only)
+/.e2e/

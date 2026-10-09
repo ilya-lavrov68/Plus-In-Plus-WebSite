@@ -5,6 +5,13 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  // Cover upload actions accept files up to 8 MB (lib/uploads.ts).
+  // FormData adds overhead, so allow a little more at the transport layer.
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "9mb",
+    },
+  },
 };
 
 export default nextConfig;
