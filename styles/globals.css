@@ -36,6 +36,53 @@
   }
 }
 
+/* Long-form article body (blog posts come from the DB as HTML). */
+@layer components {
+  .article-content {
+    @apply text-base leading-relaxed;
+  }
+
+  .article-content h1 {
+    @apply mt-10 text-3xl font-bold tracking-tight;
+  }
+
+  .article-content h2 {
+    @apply mt-10 text-2xl font-bold tracking-tight;
+  }
+
+  .article-content h3 {
+    @apply mt-8 text-xl font-semibold tracking-tight;
+  }
+
+  .article-content p {
+    @apply mt-4 indent-6;
+  }
+
+  .article-content ul {
+    @apply mt-4 list-disc space-y-2 pl-6;
+  }
+
+  .article-content ol {
+    @apply mt-4 list-decimal space-y-2 pl-6;
+  }
+
+  .article-content a {
+    @apply underline underline-offset-4;
+  }
+
+  .article-content blockquote {
+    @apply mt-6 border-l-2 border-border pl-4 italic;
+  }
+
+  .article-content img {
+    @apply mt-6 rounded-lg;
+  }
+
+  .article-content hr {
+    @apply mt-10;
+  }
+}
+
 /* Shared motion: hover 200ms ease-out; state 250ms ease-out;
    carousel 400ms ease-in-out. The autoplay indicator is a linear clock. */
 @layer base {
