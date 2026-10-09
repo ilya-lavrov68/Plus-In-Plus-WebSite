@@ -35,3 +35,17 @@
     font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
   }
 }
+
+/* Shared motion: hover 200ms ease-out; state 250ms ease-out;
+   carousel 400ms ease-in-out. The autoplay indicator is a linear clock. */
+@layer base {
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

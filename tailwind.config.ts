@@ -17,6 +17,15 @@ const config: Config = {
       },
     },
     extend: {
+      transitionDuration: {
+        DEFAULT: "200ms",
+        200: "200ms",
+        250: "250ms",
+        400: "400ms",
+      },
+      transitionTimingFunction: {
+        DEFAULT: "cubic-bezier(0, 0, 0.2, 1)",
+      },
       fontFamily: {
         sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
       },
