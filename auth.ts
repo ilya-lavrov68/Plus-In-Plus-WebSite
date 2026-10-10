@@ -1,96 +1,59 @@
-import type { NextAuthOptions } from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
+import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
 
+import { authConfig } from "@/auth.config";
+import { isAuthConfigured } from "@/lib/auth-secret";
+import { authorizeCredentials } from "@/lib/credentials";
 import { prisma } from "@/lib/prisma";
-import {
-  checkRateLimit,
-  getClientAddress,
-  hashRateLimitIdentifier,
-} from "@/lib/rate-limit";
+import { localAvatarPath } from "@/lib/upload-policy";
+import { profileName, userProfileSelect } from "@/lib/user-profile";
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const LOGIN_WINDOW_MS = 10 * 60 * 1000;
-const DUMMY_PASSWORD_HASH = "$2b$12$qnL7tEhdPNWWPbkgx8fMpe5U3xM1IRqTjZma3qx4rlEztpzpV21QO";
-
-export const authOptions: NextAuthOptions = {
-  session: {
-    strategy: "jwt",
-  },
-  secret: process.env.NEXTAUTH_SECRET,
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   providers: [
-    CredentialsProvider({
-      name: "Credentials",
+    Credentials({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        adminMode: { label: "Admin mode", type: "text" },
       },
-      async authorize(credentials, request) {
-        const email =
-          typeof credentials?.email === "string" ? credentials.email.trim().toLowerCase() : "";
-        const password = typeof credentials?.password === "string" ? credentials.password : "";
-        const forwardedAddress =
-          request.headers?.["x-real-ip"] ?? request.headers?.["x-forwarded-for"];
-        const clientAddress = getClientAddress(forwardedAddress);
-        const addressKey = hashRateLimitIdentifier(`login-address:${clientAddress}`);
-        const accountKey = hashRateLimitIdentifier(`login-account:${clientAddress}:${email}`);
-
-        const addressLimit = checkRateLimit(addressKey, 30, LOGIN_WINDOW_MS);
-        const accountLimit = checkRateLimit(accountKey, 8, LOGIN_WINDOW_MS);
-        if (!addressLimit.allowed || !accountLimit.allowed) return null;
-
-        if (
-          !EMAIL_PATTERN.test(email) ||
-          email.length > 254 ||
-          !password ||
-          Buffer.byteLength(password, "utf8") > 72 ||
-          !prisma
-        ) {
-          if (Buffer.byteLength(password, "utf8") <= 72) {
-            await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
-          }
-          return null;
-        }
-
-        let user;
-        try {
-          user = await prisma.user.findUnique({ where: { email } });
-        } catch (error) {
-          console.error("Credential lookup failed:", error);
-          await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
-          return null;
-        }
-
-        const passwordValid = await bcrypt.compare(
-          password,
-          user?.passwordHash ?? DUMMY_PASSWORD_HASH,
-        );
-        if (!user || !passwordValid) return null;
-
-        return {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-        };
-      },
+      authorize: authorizeCredentials,
     }),
   ],
   callbacks: {
+    ...authConfig.callbacks,
     async jwt({ token, user }) {
+      if (!isAuthConfigured() || !prisma) return null;
       if (user) {
         token.id = user.id;
         token.email = user.email;
+        token.firstName = user.firstName;
+        token.lastName = user.lastName;
+        token.avatar = user.avatar;
         token.role = user.role;
+      } else {
+        if (!token.id) return null;
+        try {
+          const account = await prisma.user.findUnique({
+            where: { id: token.id },
+            select: userProfileSelect,
+          });
+          if (!account) return null;
+          token.email = account.email;
+          token.firstName = account.firstName;
+          token.lastName = account.lastName;
+          token.avatar = localAvatarPath(account.avatar);
+          // Never trust useSession().update(data), nor elevate an existing USER session
+          // when somebody promotes its account in the DB. A new admin login is required.
+          token.role = token.role === "ADMIN" && account.role === "ADMIN" ? "ADMIN" : "USER";
+        } catch (error) {
+          console.error("Session refresh failed:", error);
+          return null;
+        }
       }
+      token.name = profileName(token);
+      token.picture = localAvatarPath(token.avatar);
       return token;
     },
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id;
-        session.user.email = token.email;
-        session.user.role = token.role;
-      }
-      return session;
-    },
   },
-};
+});

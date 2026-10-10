@@ -1,0 +1,170 @@
+const assert = require("node:assert/strict");
+const { test, beforeEach } = require("node:test");
+const fs = require("node:fs");
+const path = require("node:path");
+const Module = require("node:module");
+const ts = require("typescript");
+const bcrypt = require("bcryptjs");
+require.extensions[".ts"] = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename, "utf8"), {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true, target: ts.ScriptTarget.ES2022 },
+}).outputText, filename);
+
+// All account records below exist ONLY in mocked repositories in this test process.
+let users, session, activity, signIns, signOuts, uploads, cleaned, refreshed, signinError, transactionError, duplicateError;
+let ip = 1;
+class AuthError extends Error {}
+class CredentialsSignin extends AuthError { code = "credentials"; }
+class UploadValidationError extends Error {}
+const prisma = {
+  user: {
+    findUnique: async ({ where }) => structuredClone(users.find((user) => where.id ? user.id === where.id : user.email === where.email) ?? null),
+    create: async ({ data }) => {
+      if (duplicateError) throw Object.assign(new Error("unique constraint"), { code: "P2002" });
+      const user = { id: `mock-user-${users.length + 1}`, ...data, avatar: null };
+      users.push(user); return user;
+    },
+    update: async ({ where, data }) => { const user = users.find((u) => u.id === where.id); if (!user) throw new Error("missing"); Object.assign(user, data); return user; },
+  },
+  activityLog: { create: async ({ data }) => { if (transactionError) throw new Error("simulated transaction failure"); activity.push(data); return data; } },
+  $transaction: async (callback) => {
+    const snapshot = structuredClone({ users, activity });
+    try { return await callback(prisma); } catch (error) { users = snapshot.users; activity = snapshot.activity; throw error; }
+  },
+};
+const originalLoad = Module._load;
+Module._load = function (name, parent, isMain) {
+  if (name === "next-auth") return { AuthError, CredentialsSignin };
+  if (name === "@/auth") return {
+    auth: async () => session,
+    signIn: async (provider, options) => { signIns.push({ provider, ...options }); if (signinError) throw signinError; },
+    signOut: async (options) => { signOuts.push(options); },
+  };
+  if (name === "next/headers") return { headers: async () => new Headers({ "x-real-ip": `203.0.113.${ip}` }) };
+  if (name === "next/cache") return { revalidatePath: (p) => refreshed.push(p) };
+  if (name === "@/lib/prisma") return { prisma };
+  if (name === "@/lib/uploads") return {
+    UploadValidationError,
+    saveImageUpload: async (file, kind) => { const url = `/uploads/${kind}/11111111-1111-4111-a111-111111111111.webp`; uploads.push({ file, kind, url }); return url; },
+    cleanupUpload: async (url, kind) => { if (url) cleaned.push({ url, kind }); },
+  };
+  if (name.startsWith("@/")) name = path.resolve(__dirname, "..", name.slice(2));
+  return originalLoad.call(this, name, parent, isMain);
+};
+const { registerUser, loginUser, updateUserProfile, logout } = require("../app/actions/auth.ts");
+const registration = () => ({ firstName: "  First ", lastName: " Last ", email: " PERSON@example.com ", password: "a-long-passphrase", confirmPassword: "a-long-passphrase" });
+const profileForm = () => { const f = new FormData(); f.set("firstName", "Changed"); f.set("lastName", "Name"); return f; };
+
+beforeEach(() => {
+  process.env.AUTH_SECRET = "test-secret-with-at-least-32-characters";
+  users = []; activity = []; signIns = []; signOuts = []; uploads = []; cleaned = []; refreshed = [];
+  session = null; signinError = null; transactionError = false; duplicateError = false; ip += 1;
+});
+
+test("registration ALWAYS creates USER, even the first account with malicious admin fields", async () => {
+  const input = { ...registration(), role: "ADMIN", adminMode: true, id: "chosen-id", avatar: "https://remote.test/avatar" };
+  assert.deepEqual(await registerUser(input), { ok: true });
+  assert.equal(users.length, 1);
+  assert.equal(users[0].role, "USER");
+  assert.equal(users[0].email, "person@example.com");
+  assert.equal(users[0].firstName, "First");
+  assert.equal(users[0].lastName, "Last");
+  assert.notEqual(users[0].id, input.id);
+  assert.equal(users[0].avatar, null);
+  assert.notEqual(users[0].passwordHash, input.password);
+  assert.equal(await bcrypt.compare(input.password, users[0].passwordHash), true);
+  assert.equal(users[0].password, undefined);
+  assert.equal(activity[0].action, "registered");
+  assert.equal(signIns[0].adminMode, "false");
+  assert.equal(signIns[0].redirect, false);
+});
+
+test("registration validates names, confirm password and bcrypt UTF-8 byte limits", async () => {
+  for (const changed of [{ firstName: " " }, { lastName: "x".repeat(81) }, { confirmPassword: "different" }, { password: "short", confirmPassword: "short" }, { password: "🙂".repeat(19), confirmPassword: "🙂".repeat(19) }]) {
+    ip += 1;
+    assert.equal((await registerUser({ ...registration(), ...changed })).ok, false);
+  }
+  assert.equal(users.length, 0);
+  assert.equal(signIns.length, 0);
+});
+
+test("duplicate registrations and unique-constraint races fail without automatic login", async () => {
+  users.push({ id: "existing-mock", email: "person@example.com", role: "USER" });
+  assert.equal((await registerUser(registration())).ok, false);
+  users = []; duplicateError = true;
+  assert.equal((await registerUser(registration())).ok, false);
+  assert.equal(signIns.length, 0);
+  assert.equal(activity.length, 0);
+});
+
+test("registration reports a created account if automatic login is temporarily unavailable", async () => {
+  signinError = new CredentialsSignin();
+  const result = await registerUser(registration());
+  assert.equal(result.ok, false);
+  assert.equal(result.accountCreated, true);
+  assert.equal(users[0].role, "USER");
+});
+
+test("login translates the admin-only error and chooses only the fixed admin redirect", async () => {
+  signinError = Object.assign(new CredentialsSignin(), { code: "admin_account_not_found" });
+  const result = await loginUser({ ...registration(), adminMode: true });
+  assert.equal(result.error, "Admin account not found. Please log in as a regular user.");
+  signinError = null;
+  assert.deepEqual(await loginUser({ ...registration(), adminMode: true }), { ok: true, redirectTo: "/admin/dashboard" });
+  assert.deepEqual(await loginUser({ ...registration(), adminMode: false, redirectTo: "https://evil.test" }), { ok: true });
+  assert.equal(signIns.at(-1).redirectTo, "/");
+});
+
+test("profile changes require authentication and ignore submitted id, email, role and hash", async () => {
+  const form = profileForm();
+  assert.equal((await updateUserProfile(form)).ok, false);
+  users.push({ id: "self-mock", email: "self@example.com", role: "USER", avatar: null, passwordHash: "unchanged" });
+  users.push({ id: "other-mock", firstName: "Untouched", email: "other@example.com", role: "ADMIN" });
+  session = { user: { id: "self-mock", role: "USER" } };
+  for (const [key, value] of Object.entries({ id: "other-mock", email: "attacker@example.com", role: "ADMIN", passwordHash: "injected" })) form.set(key, value);
+  assert.equal((await updateUserProfile(form)).ok, true);
+  assert.equal(users[0].firstName, "Changed");
+  assert.equal(users[0].email, "self@example.com");
+  assert.equal(users[0].role, "USER");
+  assert.equal(users[0].passwordHash, "unchanged");
+  assert.equal(users[1].firstName, "Untouched");
+  assert.equal(activity[0].actorId, "self-mock");
+});
+
+test("avatar replacement saves only in avatars and deletes the old upload after commit", async () => {
+  const old = "/uploads/avatars/22222222-2222-4222-a222-222222222222.webp";
+  users.push({ id: "self-mock", email: "self@example.com", role: "USER", avatar: old });
+  session = { user: { id: "self-mock" } };
+  const form = profileForm(); form.set("avatar", new File(["mock"], "photo.png", { type: "image/png" }));
+  assert.equal((await updateUserProfile(form)).ok, true);
+  assert.equal(uploads[0].kind, "avatars");
+  assert.equal(users[0].avatar, uploads[0].url);
+  assert.deepEqual(cleaned, [{ url: old, kind: "avatars" }]);
+});
+
+test("remote avatar paths are rejected and absent files preserve the current avatar", async () => {
+  users.push({ id: "self-mock", email: "self@example.com", role: "USER", avatar: "/uploads/avatars/existing.webp" });
+  session = { user: { id: "self-mock" } };
+  const form = profileForm(); form.set("avatar", "https://remote.test/avatar.png");
+  assert.equal((await updateUserProfile(form)).ok, false);
+  form.delete("avatar");
+  assert.equal((await updateUserProfile(form)).ok, true);
+  assert.equal(users[0].avatar, "/uploads/avatars/existing.webp");
+  assert.equal(uploads.length, 0);
+});
+
+test("failed profile transaction removes the new file, preserving the previous avatar and log", async () => {
+  users.push({ id: "self-mock", email: "self@example.com", role: "USER", avatar: "/uploads/avatars/old.webp" });
+  session = { user: { id: "self-mock" } };
+  transactionError = true;
+  const form = profileForm(); form.set("avatar", new File(["mock"], "photo.png", { type: "image/png" }));
+  const oldError = console.error; console.error = () => {};
+  try { assert.equal((await updateUserProfile(form)).ok, false); } finally { console.error = oldError; }
+  assert.equal(users[0].avatar, "/uploads/avatars/old.webp");
+  assert.deepEqual(cleaned, [{ url: uploads[0].url, kind: "avatars" }]);
+  assert.equal(activity.length, 0);
+});
+
+test("logout delegates cookie invalidation to Auth.js without an arbitrary redirect", async () => {
+  assert.deepEqual(await logout(), { ok: true });
+  assert.deepEqual(signOuts, [{ redirect: false, redirectTo: "/" }]);
+});

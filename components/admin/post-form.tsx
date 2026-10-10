@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { SafeImage } from "@/components/site/safe-image";
+import { IMAGE_ACCEPT, MAX_COVER_BYTES } from "@/lib/upload-policy";
 
 export interface PostFormProps {
   mode: "create" | "edit";
@@ -39,6 +40,7 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (pending) return;
     setError(null);
     setPending(true);
 
@@ -69,7 +71,7 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
       <div className="space-y-2">
         <Label htmlFor="post-title">Title</Label>
-        <Input id="post-title" name="title" required defaultValue={initial?.title} />
+        <Input id="post-title" name="title" maxLength={160} required defaultValue={initial?.title} />
       </div>
 
       <div className="space-y-2">
@@ -77,6 +79,7 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
         <Input
           id="post-slug"
           name="slug"
+          maxLength={120}
           required
           pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
           title="Lowercase letters, numbers and dashes"
@@ -87,12 +90,12 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
 
       <div className="space-y-2">
         <Label htmlFor="post-excerpt">Excerpt</Label>
-        <Textarea id="post-excerpt" name="excerpt" required rows={2} defaultValue={initial?.excerpt} />
+        <Textarea id="post-excerpt" name="excerpt" maxLength={500} required rows={2} defaultValue={initial?.excerpt} />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="post-content">Content (safe HTML formatting)</Label>
-        <Textarea id="post-content" name="content" required rows={12} defaultValue={initial?.content} />
+        <Textarea id="post-content" name="content" maxLength={100000} required rows={12} defaultValue={initial?.content} />
         <p className="text-xs text-muted-foreground">
           Scripts, embeds, images, and unsafe links are removed before publishing.
         </p>
@@ -105,6 +108,7 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
           name="readTime"
           type="number"
           min={1}
+          max={1440}
           required
           className="w-32"
           defaultValue={initial?.readTime ?? 5}
@@ -117,12 +121,22 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
           id="post-cover"
           name="cover"
           type="file"
-          accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
+          accept={IMAGE_ACCEPT}
           required={mode === "create"}
-          onChange={(event) => setCoverName(event.target.files?.[0]?.name ?? null)}
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            setError(null);
+            if (file && file.size > MAX_COVER_BYTES) {
+              event.target.value = "";
+              setCoverName(null);
+              setError("Cover image must be 8 MB or smaller.");
+              return;
+            }
+            setCoverName(file?.name ?? null);
+          }}
         />
         <p className="text-xs text-muted-foreground">
-          Saved to /public/uploads/blog/.{" "}
+          Up to 8 MB. Saved as WebP to /public/uploads/blog/.{" "}
           {mode === "edit" ? "Leave empty to keep the current cover." : "Required."}
           {coverName ? ` Selected: ${coverName}` : ""}
         </p>
@@ -159,6 +173,7 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
         <Button
           type="button"
           variant="outline"
+          disabled={pending}
           onClick={() => {
             router.push("/admin/blog");
             router.refresh();

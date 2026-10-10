@@ -26,7 +26,8 @@ model User {
   avatar        String?   // Путь к файлу аватарки в /public/uploads/avatars/
   role          Role      @default(USER)
   createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  updatedAt     DateTime  @default(now()) @updatedAt
+  activities    ActivityLog[]
 }
 
 model Service {
@@ -57,4 +58,18 @@ model Post {
   publishedAt   DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+}
+
+// Append-only history, including deleted content; never pre-populated.
+model ActivityLog {
+  id         String   @id @default(cuid())
+  action     String
+  entityType String
+  entityId   String
+  title      String
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
 }

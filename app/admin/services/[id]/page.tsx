@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { ServiceForm } from "@/components/admin/service-form";
-import { prisma } from "@/lib/prisma";
+import { getAdminService } from "@/lib/admin-data";
 
 export const dynamic = "force-dynamic";
 
@@ -11,11 +11,7 @@ export default async function EditServicePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  if (!prisma) {
-    notFound();
-  }
-
-  const service = await prisma.service.findUnique({ where: { id } }).catch(() => null);
+  const service = await getAdminService(id);
   if (!service) {
     notFound();
   }

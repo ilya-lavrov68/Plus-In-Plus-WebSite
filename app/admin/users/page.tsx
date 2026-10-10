@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/site/empty-state";
-import { getAllUsers } from "@/lib/data";
+import { getAllUsers } from "@/lib/admin-data";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +30,8 @@ export default async function AdminUsersPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Email</TableHead>
+                <TableHead>First name</TableHead>
+                <TableHead>Last name</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Registered</TableHead>
                 <TableHead>ID</TableHead>
@@ -39,6 +41,8 @@ export default async function AdminUsersPage() {
               {users.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.email}</TableCell>
+                  <TableCell>{user.firstName || "—"}</TableCell>
+                  <TableCell>{user.lastName || "—"}</TableCell>
                   <TableCell>
                     <Badge variant={user.role === "ADMIN" ? "default" : "secondary"}>
                       {user.role}

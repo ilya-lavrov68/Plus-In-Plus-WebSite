@@ -17,6 +17,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { SafeImage } from "@/components/site/safe-image";
+import { IMAGE_ACCEPT, MAX_COVER_BYTES } from "@/lib/upload-policy";
 
 export interface ServiceFormProps {
   mode: "create" | "edit";
@@ -49,6 +50,7 @@ export function ServiceForm({ mode, serviceId, initial }: ServiceFormProps) {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (pending) return;
     setError(null);
     setPending(true);
 
@@ -80,7 +82,7 @@ export function ServiceForm({ mode, serviceId, initial }: ServiceFormProps) {
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
       <div className="space-y-2">
         <Label htmlFor="service-title">Title</Label>
-        <Input id="service-title" name="title" required defaultValue={initial?.title} />
+        <Input id="service-title" name="title" maxLength={160} required defaultValue={initial?.title} />
       </div>
 
       <div className="space-y-2">
@@ -98,27 +100,27 @@ export function ServiceForm({ mode, serviceId, initial }: ServiceFormProps) {
 
       <div className="space-y-2">
         <Label htmlFor="service-short-desc">Short description</Label>
-        <Textarea id="service-short-desc" name="shortDesc" required rows={2} defaultValue={initial?.shortDesc} />
+        <Textarea id="service-short-desc" name="shortDesc" maxLength={500} required rows={2} defaultValue={initial?.shortDesc} />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="service-full-desc">Full description</Label>
-        <Textarea id="service-full-desc" name="fullDesc" required rows={6} defaultValue={initial?.fullDesc} />
+        <Textarea id="service-full-desc" name="fullDesc" maxLength={100000} required rows={6} defaultValue={initial?.fullDesc} />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="service-includes">What&apos;s included (one item per line)</Label>
-        <Textarea id="service-includes" name="includes" rows={4} defaultValue={initial?.includes.join("\n")} />
+        <Textarea id="service-includes" name="includes" maxLength={10000} rows={4} defaultValue={initial?.includes.join("\n")} />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="service-shapes">Shapes (one item per line)</Label>
-        <Textarea id="service-shapes" name="shapes" rows={4} defaultValue={initial?.shapes.join("\n")} />
+        <Textarea id="service-shapes" name="shapes" maxLength={10000} rows={4} defaultValue={initial?.shapes.join("\n")} />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="service-result">Result text</Label>
-        <Textarea id="service-result" name="resultText" required rows={3} defaultValue={initial?.resultText} />
+        <Textarea id="service-result" name="resultText" maxLength={10000} required rows={3} defaultValue={initial?.resultText} />
       </div>
 
       <div className="space-y-2">
@@ -127,12 +129,22 @@ export function ServiceForm({ mode, serviceId, initial }: ServiceFormProps) {
           id="service-cover"
           name="cover"
           type="file"
-          accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
+          accept={IMAGE_ACCEPT}
           required={mode === "create"}
-          onChange={(event) => setCoverName(event.target.files?.[0]?.name ?? null)}
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            setError(null);
+            if (file && file.size > MAX_COVER_BYTES) {
+              event.target.value = "";
+              setCoverName(null);
+              setError("Cover image must be 8 MB or smaller.");
+              return;
+            }
+            setCoverName(file?.name ?? null);
+          }}
         />
         <p className="text-xs text-muted-foreground">
-          Saved to /public/uploads/services/.{" "}
+          Up to 8 MB. Saved as WebP to /public/uploads/services/.{" "}
           {mode === "edit" ? "Leave empty to keep the current cover." : "Required."}
           {coverName ? ` Selected: ${coverName}` : ""}
         </p>
@@ -169,6 +181,7 @@ export function ServiceForm({ mode, serviceId, initial }: ServiceFormProps) {
         <Button
           type="button"
           variant="outline"
+          disabled={pending}
           onClick={() => {
             router.push("/admin/services");
             router.refresh();

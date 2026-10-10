@@ -1,25 +1,29 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
+import sharp from "sharp";
 
-/** Dynamic covers live only in /public/uploads/<kind>/, never in /public/assets/. */
-export type UploadKind = "services" | "blog";
+import {
+  isUploadFilename, isUploadKind, MAX_AVATAR_BYTES, MAX_COVER_BYTES, type UploadKind,
+} from "@/lib/upload-policy";
 
-const UPLOAD_ROOT = path.join(process.cwd(), "public", "uploads");
-const UPLOAD_FOLDERS: Record<UploadKind, string> = {
-  services: path.join(UPLOAD_ROOT, "services"),
-  blog: path.join(UPLOAD_ROOT, "blog"),
+export type { UploadKind } from "@/lib/upload-policy";
+
+export class UploadValidationError extends Error {}
+
+const IMAGE_TYPES: Record<string, string> = {
+  ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+  ".webp": "image/webp", ".gif": "image/gif", ".avif": "image/avif",
 };
 
-const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
-const IMAGE_TYPES: Record<string, string[]> = {
-  ".png": ["image/png"],
-  ".jpg": ["image/jpeg"],
-  ".jpeg": ["image/jpeg"],
-  ".webp": ["image/webp"],
-  ".gif": ["image/gif"],
-  ".avif": ["image/avif"],
-};
+export function uploadDirectory(kind: UploadKind): string {
+  if (!isUploadKind(kind)) throw new UploadValidationError("Unknown upload destination.");
+  return path.join(process.cwd(), "public", "uploads", kind);
+}
+
+export function uploadMimeType(filename: string): string {
+  return IMAGE_TYPES[path.extname(filename)] ?? "application/octet-stream";
+}
 
 function matchesImageSignature(bytes: Buffer, extension: string): boolean {
   switch (extension) {
@@ -40,46 +44,61 @@ function matchesImageSignature(bytes: Buffer, extension: string): boolean {
   }
 }
 
-/** Save a validated cover and return the public URL stored in the DB. */
-export async function saveCoverUpload(file: File, kind: UploadKind): Promise<string> {
-  const folder = UPLOAD_FOLDERS[kind];
-  if (!folder) throw new Error("Unknown upload destination.");
-
+/** Validate and re-encode a local raster image; strip metadata and never accept SVG/URLs. */
+export async function saveImageUpload(file: File, kind: UploadKind): Promise<string> {
+  const folder = uploadDirectory(kind);
   const extension = path.extname(file.name || "").toLowerCase();
-  const allowedMimeTypes = IMAGE_TYPES[extension];
-  if (!allowedMimeTypes?.includes(file.type)) {
-    throw new Error("Only PNG, JPEG, WebP, GIF and AVIF images can be uploaded.");
+  if (!IMAGE_TYPES[extension] || IMAGE_TYPES[extension] !== file.type) {
+    throw new UploadValidationError("Only PNG, JPEG, WebP, GIF and AVIF images can be uploaded.");
   }
-  if (!file.size || file.size > MAX_UPLOAD_BYTES) {
-    throw new Error("Image must be between 1 byte and 8 MB.");
+  const limit = kind === "avatars" ? MAX_AVATAR_BYTES : MAX_COVER_BYTES;
+  if (!file.size || file.size > limit) {
+    throw new UploadValidationError(`Image must be between 1 byte and ${limit / 1024 / 1024} MB.`);
   }
 
   const bytes = Buffer.from(await file.arrayBuffer());
   if (bytes.length !== file.size || !matchesImageSignature(bytes, extension)) {
-    throw new Error("Invalid image file.");
+    throw new UploadValidationError("Invalid image file.");
   }
 
-  const uniqueName = `${randomUUID()}${extension}`;
-  const filePath = path.join(folder, uniqueName);
+  let image: Buffer;
+  try {
+    const size = kind === "avatars" ? 256 : 2400;
+    image = await sharp(bytes, { limitInputPixels: 25_000_000, animated: false })
+      .rotate()
+      .resize({ width: size, height: size, fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 88 })
+      .toBuffer();
+  } catch {
+    throw new UploadValidationError("Invalid image file. Please choose a valid image under 25 megapixels.");
+  }
+
+  if (image.length > limit) throw new UploadValidationError("The processed image is too large. Please choose a smaller image.");
+  const name = `${randomUUID()}.webp`;
   await mkdir(folder, { recursive: true });
-  await writeFile(filePath, bytes, { flag: "wx" });
-  return `/uploads/${kind}/${uniqueName}`;
+  await writeFile(path.join(folder, name), image, { flag: "wx" });
+  return `/uploads/${kind}/${name}`;
 }
 
-/** Delete only a file produced by the uploader for the expected record kind. */
-export async function deleteCoverUpload(publicPath: string, kind: UploadKind): Promise<void> {
-  const folder = UPLOAD_FOLDERS[kind];
-  if (!folder) throw new Error("Unknown upload destination.");
+/** Only delete uploader-owned files in the expected folder, never arbitrary paths. */
+export async function deleteImageUpload(publicPath: string | null, kind: UploadKind): Promise<void> {
+  const folder = uploadDirectory(kind);
   const prefix = `/uploads/${kind}/`;
-  if (!publicPath.startsWith(prefix)) return;
-
+  if (!publicPath?.startsWith(prefix)) return;
   const name = publicPath.slice(prefix.length);
-  // Reject nested paths, traversal, query strings and arbitrary files such as README.md.
-  if (!/^[0-9a-f-]{36}\.(png|jpe?g|webp|gif|avif)$/.test(name)) return;
-
+  if (!isUploadFilename(name)) return;
   try {
     await unlink(path.join(folder, name));
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
 }
+
+/** Cleanup is best-effort and must not turn a committed DB mutation into a failure. */
+export async function cleanupUpload(publicPath: string | null, kind: UploadKind): Promise<void> {
+  await deleteImageUpload(publicPath, kind).catch((error) => console.error("Upload cleanup failed:", error));
+}
+
+// Compatibility with the original cover uploader API.
+export const saveCoverUpload = saveImageUpload;
+export const deleteCoverUpload = deleteImageUpload;

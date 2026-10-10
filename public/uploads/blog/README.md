@@ -1,11 +1,11 @@
 # Blog covers (dynamic uploads)
 
-Cover images for blog posts are uploaded through the admin panel
-(`/admin/blog`) and stored **strictly** in this folder
-(`/public/uploads/blog/`). The resulting public path
-(`/uploads/blog/<file>`) is saved in the database (`Post.coverImage`).
+ADMIN sessions upload covers through `/admin/blog`. Files are stored only in
+`public/uploads/blog/`; `Post.coverImage` stores `/uploads/blog/<uuid>.webp`.
 
-Rules:
-
-- Never put hand-made brand assets here — those live in `/public/assets/`.
-- Files in this folder are runtime data and are ignored by Git (only `.gitkeep` is tracked).
+- Input: PNG, JPEG, WebP, GIF or AVIF, up to **8 MB / 25 megapixels**.
+- Validated images are resized to at most 2400×2400 and re-encoded as static WebP
+  without metadata. Animated inputs use the first frame.
+- Uploads are runtime data, ignored by Git (only `.gitkeep` and this README are tracked).
+- Keep the folder writable and on persistent storage. Back up uploads with the DB.
+- Static brand assets belong in `public/assets/`, never here.

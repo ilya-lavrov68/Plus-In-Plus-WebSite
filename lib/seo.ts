@@ -5,7 +5,7 @@ export const DEFAULT_SITE_DESCRIPTION =
   "Plus In Plus — дизайн-студия графического и цифрового дизайна.";
 
 function resolveSiteUrl(): URL {
-  const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXTAUTH_URL;
+  const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.AUTH_URL ?? process.env.NEXTAUTH_URL;
 
   try {
     return new URL(configuredUrl ?? "http://localhost:3000");

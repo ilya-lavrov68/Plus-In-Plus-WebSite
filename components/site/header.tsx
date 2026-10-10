@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, Menu, X } from "lucide-react";
 
-import { AuthModal } from "@/components/site/auth-modal";
+import { useSession } from "next-auth/react";
+
+import { AccountModal } from "@/components/site/account-modal";
+import { UserAvatar } from "@/components/site/user-avatar";
 import { BrandMark } from "@/components/site/brand-mark";
 import { cn } from "@/lib/utils";
 
@@ -101,6 +104,7 @@ function NavigationDropdown({
 }
 
 export function Header() {
+  const { data: session, status } = useSession();
   const [scrolled, setScrolled] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -169,11 +173,18 @@ export function Header() {
             Contact
           </Link>
           <button
+            id="account-trigger"
             type="button"
             onClick={openLogin}
-            className="hidden items-center justify-center rounded-full bg-[#0a2540] px-5 py-2 text-sm font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#153c5c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a2540] focus-visible:ring-offset-2 lg:inline-flex"
+            disabled={status === "loading"}
+            aria-label={session?.user ? "Open account" : "Log in"}
+            aria-haspopup="dialog"
+            className={cn(
+              "inline-flex items-center justify-center rounded-full text-sm font-semibold transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a2540] focus-visible:ring-offset-2 disabled:opacity-60",
+              session?.user ? "p-0.5" : "bg-[#0a2540] px-4 py-2 text-white hover:bg-[#153c5c] sm:px-5",
+            )}
           >
-            Log in
+            {session?.user ? <UserAvatar user={session.user} size={36} /> : status === "loading" ? "Loading…" : "Log in"}
           </button>
           <button
             type="button"
@@ -214,15 +225,17 @@ export function Header() {
             <button
               type="button"
               onClick={openLogin}
+              disabled={status === "loading"}
+              aria-haspopup="dialog"
               className="inline-flex items-center justify-center rounded-full bg-[#0a2540] px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#153c5c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a2540]"
             >
-              Log in
+              {session?.user ? "Your account" : "Log in"}
             </button>
           </div>
         </div>
       ) : null}
 
-      {authOpen ? <AuthModal open={authOpen} onOpenChange={setAuthOpen} /> : null}
+      {authOpen ? <AccountModal open={authOpen} onOpenChange={setAuthOpen} /> : null}
     </header>
   );
 }

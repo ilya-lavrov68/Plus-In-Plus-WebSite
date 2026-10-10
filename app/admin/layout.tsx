@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Admin — Plus In Plus",
+  robots: { index: false, follow: false },
 };
 
 /**
@@ -23,7 +24,7 @@ export default async function AdminLayout({
 }>) {
   const admin = await requireAdmin();
   if (!admin) {
-    redirect("/?auth=login");
+    redirect("/");
   }
 
   return (
@@ -41,7 +42,7 @@ export default async function AdminLayout({
           <AdminNav />
         </div>
       </aside>
-      <main className="min-w-0 flex-1">{children}</main>
+      <section className="min-w-0 flex-1" aria-label="Admin content">{children}</section>
     </div>
   );
 }

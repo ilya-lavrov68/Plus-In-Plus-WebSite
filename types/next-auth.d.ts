@@ -1,28 +1,26 @@
 import type { DefaultSession } from "next-auth";
+import type { UserProfile } from "@/lib/user-profile";
+import "@auth/core/jwt";
 
-/**
- * Session carries id, email and role for every authenticated user.
- */
 declare module "next-auth" {
   interface Session {
-    user: {
-      id: string;
-      email: string;
-      role: "USER" | "ADMIN";
-    } & DefaultSession["user"];
+    user: UserProfile & DefaultSession["user"];
   }
 
-  interface User {
+  interface User extends UserProfile {
     id: string;
     email: string;
-    role: "USER" | "ADMIN";
   }
 }
 
-declare module "next-auth/jwt" {
+// Auth.js v5 defines the JWT in @auth/core; next-auth/jwt re-exports this type.
+declare module "@auth/core/jwt" {
   interface JWT {
     id: string;
     email: string;
+    firstName: string | null;
+    lastName: string | null;
+    avatar: string | null;
     role: "USER" | "ADMIN";
   }
 }
