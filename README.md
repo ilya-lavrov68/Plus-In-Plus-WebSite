@@ -153,6 +153,63 @@ hosting needs a shared persistent filesystem (not an external avatar service).
 Static brand assets remain separate in `public/assets/logos/` and
 `public/assets/gradients/`. Background gradients come from the supplied PNGs.
 
+## Inspecting the database from VS Code
+
+Every option below uses the same `DATABASE_URL` from `.env`.
+
+**Prisma Studio — built in, no extension required**
+
+```bash
+npx prisma studio                                                 # http://localhost:5555
+npx prisma studio --hostname 0.0.0.0 --port 5555 --browser none   # remote/preview host
+```
+
+It loads `prisma.config.ts`, so it connects through exactly the same driver
+adapter and `DATABASE_URL` as the application. Tables: `User`, `Service`, `Post`,
+`ActivityLog`; rows can be browsed, filtered and edited.
+
+Studio writes **directly** to PostgreSQL, so it bypasses the app's validation,
+rate limits and `ActivityLog`. That is intended for administration, with rules:
+
+- `User.passwordHash` must be a real bcrypt hash (cost 12). Never type one by hand —
+  generate it and paste the output:
+
+  ```bash
+  node -e "console.log(require('bcryptjs').hashSync('new-passphrase-2026', 12))"
+  ```
+
+- `User.avatar` must be `/uploads/avatars/<uuid>.webp`. Any other value (including
+  remote URLs) is ignored by the app, which then renders initials instead.
+- Promoting an admin through the `User.role` column is the one supported manual
+  edit (see above). It applies to the **next** login, never to a live session.
+- Manual edits do not appear in the dashboard activity feed, because
+  `ActivityLog` only records actions performed through the app.
+
+**VS Code extensions** (declared in `.vscode/extensions.json`)
+
+- **Prisma** (`Prisma.prisma`) — schema language support, formatting and
+  highlighting for `prisma/schema.prisma`.
+- **SQLTools** (`mtxr.sqltools`) + **PostgreSQL/Cockroach driver**
+  (`mtxr.sqltools-driver-pg`) — sidebar explorer and ad-hoc SQL. Run
+  *SQLTools: Add New Connection*, choose PostgreSQL and fill in host, port,
+  database, user and password from `DATABASE_URL` (for the default example:
+  `localhost`, `5432`, `plus_in_plus`, `postgres`). Keep `"askForPassword": true`
+  instead of storing the password in `.vscode/settings.json`, and do not commit
+  credentials. Studio cannot run raw SQL — use this (or `psql`) for queries.
+- Alternatives: *Database Client* (`cweijan.vscode-database-client2`) or
+  *PostgreSQL* (`ckolkman.vscode-postgres`). GUI extensions read the **VS Code
+  process** environment, not `.env`, so paste values in the connection wizard.
+
+**Terminal / one-off queries**
+
+```bash
+psql "$DATABASE_URL" -c 'select email, role, "firstName", "lastName" from "User" order by "createdAt";'
+psql "$DATABASE_URL" -c 'select action, "entityType", title, "createdAt" from "ActivityLog" order by "createdAt" desc limit 20;'
+```
+
+Prisma models map to quoted, case-sensitive table names (`"User"`, `"ActivityLog"`).
+`npx prisma migrate status` shows whether every migration was applied.
+
 ## Database migrations
 
 - `20261010000000_init`: original tables.
