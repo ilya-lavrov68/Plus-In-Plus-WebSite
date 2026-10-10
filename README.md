@@ -1,19 +1,20 @@
 # Plus In Plus — Web Site
 
-Design studio website built with Next.js 14 (App Router), Prisma 7, Tailwind CSS and
+Design studio website built with Next.js 15 (App Router), Prisma 6, Tailwind CSS 4 and
 NextAuth.js.
 
 ## Getting started
 
 ```bash
 npm install
-cp .env.example .env      # set DATABASE_URL and a long, random NEXTAUTH_SECRET
+cp .env.example .env      # set DATABASE_URL and NEXTAUTH_URL
+openssl rand -base64 32   # copy the output into NEXTAUTH_SECRET in .env
 npx prisma generate
 npx prisma migrate deploy # creates the empty User/Service/Post tables (no seed data)
 npm run dev               # http://localhost:3000
 ```
 
-Scripts: `npm run dev`, `npm run build`, `npm run start`, `npm test`.
+Scripts: `npm run dev`, `npm run build`, `npm run start`, `npm run lint`, `npm test`.
 
 The site renders empty states when the database is unreachable — it never ships
 fake/seed data.
@@ -23,8 +24,10 @@ fake/seed data.
 | Variable          | Purpose                                    |
 | ----------------- | ------------------------------------------ |
 | `DATABASE_URL`    | PostgreSQL connection string (Prisma)      |
-| `NEXTAUTH_SECRET` | JWT signing secret for NextAuth            |
-| `NEXTAUTH_URL`    | Public site URL (e.g. `http://localhost:3000`) |
+| `NEXTAUTH_SECRET` | Unique JWT signing secret; generate with `openssl rand -base64 32` |
+| `NEXTAUTH_URL`    | Public site URL (HTTPS in production) |
+
+Never commit `.env`. Admin routes fail closed when `NEXTAUTH_SECRET` is unset or shorter than 32 characters.
 
 ## Project structure
 
@@ -74,4 +77,17 @@ UPDATE "User" SET role = 'ADMIN' WHERE email = 'you@example.com';
 
 Sign out and log in again after promotion so NextAuth issues a fresh JWT with the
 new role. The server also checks the account's **current** database role on every
-admin request, so demoting or deleting an admin immediately revokes access.
+admin page render and privileged server action, so demoting or deleting an admin
+immediately revokes access.
+
+### Security notes
+
+- Login attempts and registrations are throttled in-process. The limiter uses
+  `x-real-ip` / `x-forwarded-for`; configure the trusted reverse proxy to set
+  these headers rather than trusting client-supplied values. For multiple app
+  instances, also enforce shared rate limits at a CDN/WAF.
+- Blog HTML is allowlist-sanitized before saving and again before rendering;
+  scripts, embeds, event attributes, and unsafe URL schemes are removed.
+- The app sends clickjacking, MIME-sniffing, referrer, and permissions-policy
+  headers. HSTS is enabled only for production deployments configured with an
+  HTTPS `NEXTAUTH_URL` or `NEXT_PUBLIC_SITE_URL`.

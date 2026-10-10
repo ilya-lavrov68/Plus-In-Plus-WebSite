@@ -14,9 +14,15 @@ export interface GradientBackdropProps {
   src: string;
   alt?: string;
   sizes?: string;
+  priority?: boolean;
 }
 
-export function GradientBackdrop({ src, alt = "", sizes = "100vw" }: GradientBackdropProps) {
+export function GradientBackdrop({
+  src,
+  alt = "",
+  sizes = "100vw",
+  priority = false,
+}: GradientBackdropProps) {
   const [failed, setFailed] = useState(false);
 
   if (failed) {
@@ -29,6 +35,7 @@ export function GradientBackdrop({ src, alt = "", sizes = "100vw" }: GradientBac
       alt={alt}
       fill
       sizes={sizes}
+      priority={priority}
       className="pointer-events-none object-cover"
       onError={() => setFailed(true)}
     />

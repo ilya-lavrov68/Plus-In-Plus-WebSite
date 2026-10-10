@@ -1,26 +1,39 @@
 import { Newspaper } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import { redirect } from "next/navigation";
 
 import { BreadcrumbBack } from "@/components/site/breadcrumb-back";
 import { EmptyState } from "@/components/site/empty-state";
+import { SafeImage } from "@/components/site/safe-image";
 import { NewsCarousel } from "@/components/site/news-carousel";
 import { getPublishedPosts, getPublishedService, toNewsItem } from "@/lib/data";
+import { createPageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
 interface ServicePageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
-export async function generateMetadata({ params }: ServicePageProps) {
-  const service = await getPublishedService(params.slug);
-  return { title: service ? `${service.title} — Plus In Plus` : "Shop — Plus In Plus" };
+export async function generateMetadata({ params }: ServicePageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const service = await getPublishedService(slug);
+  const title = service ? `${service.title} — Plus In Plus` : "Услуги дизайна — Plus In Plus";
+
+  return createPageMetadata({
+    title,
+    description:
+      service?.shortDesc ??
+      "Просмотрите подробности услуги и узнайте, что входит в дизайн-проект Plus In Plus.",
+    path: `/shop/${encodeURIComponent(slug)}`,
+    image: service?.coverImage,
+  });
 }
 
 export default async function ServicePage({ params }: ServicePageProps) {
-  const service = await getPublishedService(params.slug);
+  const { slug } = await params;
+  const service = await getPublishedService(slug);
   if (!service) redirect("/shop");
 
   const posts = await getPublishedPosts();
@@ -45,7 +58,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
 
         {service.coverImage && (
           <div className="relative mt-10 aspect-[16/9] overflow-hidden rounded-lg">
-            <Image
+            <SafeImage
               src={service.coverImage}
               alt=""
               fill

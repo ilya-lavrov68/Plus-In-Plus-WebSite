@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { PenTool, Plus } from "lucide-react";
 
@@ -13,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/site/empty-state";
+import { SafeImage } from "@/components/site/safe-image";
 import { deleteService } from "@/app/actions/services";
 import { getAllServices } from "@/lib/data";
 
@@ -58,7 +58,7 @@ export default async function AdminServicesPage() {
                 <TableRow key={service.id}>
                   <TableCell>
                     <div className="relative h-12 w-16 overflow-hidden rounded-md border border-border">
-                      <Image
+                      <SafeImage
                         src={service.coverImage}
                         alt=""
                         fill

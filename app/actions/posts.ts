@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { requireAdmin } from "@/lib/admin-session";
 import { prisma } from "@/lib/prisma";
+import { sanitizePostContent } from "@/lib/sanitize-post-content";
 import { deleteCoverUpload, saveCoverUpload } from "@/lib/uploads";
 
 export interface PostActionResult {
@@ -18,19 +19,23 @@ function parseCommonFields(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   const slug = String(formData.get("slug") ?? "").trim().toLowerCase();
   const excerpt = String(formData.get("excerpt") ?? "").trim();
-  const content = String(formData.get("content") ?? "").trim();
+  const rawContent = String(formData.get("content") ?? "").trim();
+  if (rawContent.length > 100_000) return { error: "Post content is too long." };
+  const content = sanitizePostContent(rawContent);
   const readTimeRaw = String(formData.get("readTime") ?? "").trim();
-  const readTime = Number.parseInt(readTimeRaw, 10);
+  const readTime = Number(readTimeRaw);
   const isPublished = formData.get("isPublished") === "true" || formData.get("isPublished") === "on";
 
   if (!title) return { error: "Title is required." };
-  if (!SLUG_PATTERN.test(slug)) {
+  if (title.length > 160) return { error: "Title is too long." };
+  if (slug.length > 120 || !SLUG_PATTERN.test(slug)) {
     return { error: "Slug must contain only lowercase letters, numbers and dashes." };
   }
   if (!excerpt) return { error: "Excerpt is required." };
-  if (!content) return { error: "Content is required." };
-  if (!Number.isInteger(readTime) || readTime <= 0) {
-    return { error: "Read time must be a positive number of minutes." };
+  if (excerpt.length > 500) return { error: "Excerpt is too long." };
+  if (!content.trim()) return { error: "Content is required after unsafe HTML is removed." };
+  if (!Number.isInteger(readTime) || readTime <= 0 || readTime > 1440) {
+    return { error: "Read time must be between 1 and 1440 minutes." };
   }
 
   return {

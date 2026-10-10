@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { KeyboardEvent, TouchEvent } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Pause, Play } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SafeImage } from "@/components/site/safe-image";
 
 export const AUTOPLAY_INTERVAL = 7000;
 const SWIPE_THRESHOLD = 50;
@@ -148,7 +148,7 @@ export function NewsCarousel({ items, label }: NewsCarouselProps) {
               <Card className="h-full overflow-hidden">
                 {item.imageSrc && (
                   <div className="relative aspect-[16/9] sm:aspect-[21/9]">
-                    <Image src={item.imageSrc} alt="" fill sizes="(min-width: 1280px) 1280px, 100vw" className="object-cover" />
+                    <SafeImage src={item.imageSrc} alt="" fill sizes="(min-width: 1280px) 1280px, 100vw" className="object-cover" />
                   </div>
                 )}
                 <CardHeader>

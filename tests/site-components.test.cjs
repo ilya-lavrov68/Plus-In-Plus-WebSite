@@ -18,6 +18,7 @@ const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
   if (name === "next/link") return ({ children, ...props }) => React.createElement("a", props, children);
   if (name === "next/image") return (props) => React.createElement("img", props);
+  if (name === "@/lib/prisma") return { prisma: null };
   if (name.startsWith("@/")) name = path.resolve(__dirname, "..", name.slice(2));
   return originalLoad.call(this, name, parent, isMain);
 };
@@ -26,6 +27,13 @@ const { NewsCarousel, AUTOPLAY_INTERVAL } = require("../components/site/news-car
 const { Header } = require("../components/site/header.tsx");
 const { CategoryCard } = require("../components/site/category-card.tsx");
 const { ServiceCard } = require("../components/site/service-card.tsx");
+const { SafeImage } = require("../components/site/safe-image.tsx");
+const { createPageMetadata, SITE_URL } = require("../lib/seo.ts");
+const { default: HomePage } = require("../app/page.tsx");
+const { default: ShopPage } = require("../app/shop/page.tsx");
+const { default: BlogPage } = require("../app/blog/page.tsx");
+const { default: sitemap } = require("../app/sitemap.ts");
+const { default: robots } = require("../app/robots.ts");
 const { ArrowRight } = require("lucide-react");
 
 function clock() {
@@ -144,6 +152,68 @@ test("category stays static; service image and arrow use 200ms hover motion", ()
   assert.match(arrow.props.className, /duration-200 ease-out group-hover:rotate-90/);
   category.unmount();
   service.unmount();
+});
+
+test("missing upload images are omitted and failed image requests are hidden", () => {
+  const empty = create(React.createElement(SafeImage, { src: "", alt: "" }));
+  assert.equal(empty.toJSON(), null);
+  act(() => empty.unmount());
+
+  let view;
+  act(() => {
+    view = create(React.createElement(SafeImage, { src: "/uploads/blog/missing.png", alt: "" }));
+  });
+  const image = view.root.findByType("img");
+  act(() => image.props.onError());
+  assert.equal(view.toJSON(), null);
+  act(() => view.unmount());
+});
+
+test("page metadata includes Open Graph and article data", () => {
+  const metadata = createPageMetadata({
+    title: "Post — Plus In Plus",
+    description: "A post summary",
+    path: "/blog/post",
+    image: "/uploads/blog/cover.png",
+    type: "article",
+    publishedTime: new Date("2026-10-09T00:00:00.000Z"),
+  });
+
+  assert.equal(metadata.title, "Post — Plus In Plus");
+  assert.equal(metadata.description, "A post summary");
+  assert.equal(metadata.openGraph.type, "article");
+  assert.equal(metadata.openGraph.url, new URL("/blog/post", SITE_URL).toString());
+  assert.equal(metadata.openGraph.images[0].url, new URL("/uploads/blog/cover.png", SITE_URL).toString());
+  assert.equal(metadata.openGraph.publishedTime, "2026-10-09T00:00:00.000Z");
+});
+
+test("home, shop, and blog render their empty states without a configured database", async () => {
+  const pages = [
+    [HomePage, ["No news yet"]],
+    [ShopPage, ["No small designs yet", "No large designs yet", "No news yet"]],
+    [BlogPage, ["The blog is empty"]],
+  ];
+
+  for (const [Page, expectedTitles] of pages) {
+    const element = await Page();
+    let view;
+    act(() => { view = create(element); });
+    const titles = view.root.findAllByType("h3").map((node) => node.children.join(""));
+    for (const title of expectedTitles) assert.ok(titles.includes(title), `${title} should be visible`);
+    act(() => view.unmount());
+  }
+});
+
+test("sitemap includes the base public pages and robots blocks admin routes", async () => {
+  const entries = await sitemap();
+  assert.deepEqual(
+    entries.map((entry) => new URL(entry.url).pathname),
+    ["/", "/shop", "/blog"],
+  );
+
+  const rules = robots();
+  assert.equal(rules.rules.disallow.includes("/admin/"), true);
+  assert.equal(rules.sitemap, new URL("/sitemap.xml", SITE_URL).toString());
 });
 
 test("manual navigation while paused resets the indicator without resuming autoplay", () => {

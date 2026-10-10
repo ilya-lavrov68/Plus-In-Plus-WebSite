@@ -15,6 +15,9 @@ export interface AdminSession {
  */
 export async function requireAdmin(): Promise<AdminSession | null> {
   try {
+    const secret = process.env.NEXTAUTH_SECRET;
+    if (!secret || secret.length < 32) return null;
+
     const session = await getServerSession(authOptions);
     const user = session?.user;
     if (!user?.id || user.role !== "ADMIN" || !prisma) {

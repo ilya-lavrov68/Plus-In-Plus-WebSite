@@ -1,12 +1,14 @@
 import { ArrowLeft, ArrowRight, Newspaper } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import { redirect } from "next/navigation";
 
 import { EmptyState } from "@/components/site/empty-state";
 import { NewsCarousel } from "@/components/site/news-carousel";
+import { SafeImage } from "@/components/site/safe-image";
 import { getPublishedPost, getPublishedPosts, toNewsItem } from "@/lib/data";
+import { createPageMetadata } from "@/lib/seo";
+import { sanitizePostContent } from "@/lib/sanitize-post-content";
 
 export const dynamic = "force-dynamic";
 
@@ -17,16 +19,28 @@ const DATE_FORMAT = new Intl.DateTimeFormat("en-US", {
 });
 
 interface BlogPostPageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
-  const post = await getPublishedPost(params.slug);
-  return { title: post ? `${post.title} — Plus In Plus` : "Blog — Plus In Plus" };
+  const { slug } = await params;
+  const post = await getPublishedPost(slug);
+  const title = post ? `${post.title} — Plus In Plus` : "Новости и статьи — Plus In Plus";
+
+  return createPageMetadata({
+    title,
+    description:
+      post?.excerpt ?? "Новости, идеи и материалы о дизайне от команды Plus In Plus.",
+    path: `/blog/${encodeURIComponent(slug)}`,
+    image: post?.coverImage,
+    type: "article",
+    publishedTime: post?.publishedAt,
+  });
 }
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
-  const post = await getPublishedPost(params.slug);
+  const { slug } = await params;
+  const post = await getPublishedPost(slug);
   if (!post) redirect("/blog");
 
   const otherPosts = (await getPublishedPosts()).filter((item) => item.slug !== post.slug);
@@ -48,7 +62,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
         {post.coverImage && (
           <div className="relative mt-10 aspect-[21/9] overflow-hidden rounded-lg">
-            <Image
+            <SafeImage
               src={post.coverImage}
               alt=""
               fill
@@ -61,7 +75,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
         <div
           className="article-content mt-8"
-          dangerouslySetInnerHTML={{ __html: post.content }}
+          dangerouslySetInnerHTML={{ __html: sanitizePostContent(post.content) }}
         />
 
         {/* Prev/next post navigation — placeholders until more posts exist. */}

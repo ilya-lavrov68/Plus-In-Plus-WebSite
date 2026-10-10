@@ -1,13 +1,13 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SafeImage } from "@/components/site/safe-image";
 
 export interface ServiceCardProps {
   title: string;
   href: string;
-  imageSrc: string;
+  imageSrc?: string | null;
 }
 
 export function ServiceCard({ title, href, imageSrc }: ServiceCardProps) {
@@ -16,7 +16,7 @@ export function ServiceCard({ title, href, imageSrc }: ServiceCardProps) {
       <Card className="h-full overflow-hidden">
         <CardContent className="p-0">
           <div className="relative aspect-[4/3] overflow-hidden">
-            <Image
+            <SafeImage
               src={imageSrc}
               alt=""
               fill

@@ -3,6 +3,15 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 
 import { prisma } from "@/lib/prisma";
+import {
+  checkRateLimit,
+  getClientAddress,
+  hashRateLimitIdentifier,
+} from "@/lib/rate-limit";
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const LOGIN_WINDOW_MS = 10 * 60 * 1000;
+const DUMMY_PASSWORD_HASH = "$2b$12$qnL7tEhdPNWWPbkgx8fMpe5U3xM1IRqTjZma3qx4rlEztpzpV21QO";
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -16,21 +25,47 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials.password || !prisma) {
+      async authorize(credentials, request) {
+        const email =
+          typeof credentials?.email === "string" ? credentials.email.trim().toLowerCase() : "";
+        const password = typeof credentials?.password === "string" ? credentials.password : "";
+        const forwardedAddress =
+          request.headers?.["x-real-ip"] ?? request.headers?.["x-forwarded-for"];
+        const clientAddress = getClientAddress(forwardedAddress);
+        const addressKey = hashRateLimitIdentifier(`login-address:${clientAddress}`);
+        const accountKey = hashRateLimitIdentifier(`login-account:${clientAddress}:${email}`);
+
+        const addressLimit = checkRateLimit(addressKey, 30, LOGIN_WINDOW_MS);
+        const accountLimit = checkRateLimit(accountKey, 8, LOGIN_WINDOW_MS);
+        if (!addressLimit.allowed || !accountLimit.allowed) return null;
+
+        if (
+          !EMAIL_PATTERN.test(email) ||
+          email.length > 254 ||
+          !password ||
+          Buffer.byteLength(password, "utf8") > 72 ||
+          !prisma
+        ) {
+          if (Buffer.byteLength(password, "utf8") <= 72) {
+            await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
+          }
           return null;
         }
 
-        const email = credentials.email.trim().toLowerCase();
-        const user = await prisma.user.findUnique({ where: { email } });
-        if (!user) {
+        let user;
+        try {
+          user = await prisma.user.findUnique({ where: { email } });
+        } catch (error) {
+          console.error("Credential lookup failed:", error);
+          await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
           return null;
         }
 
-        const passwordValid = await bcrypt.compare(credentials.password, user.passwordHash);
-        if (!passwordValid) {
-          return null;
-        }
+        const passwordValid = await bcrypt.compare(
+          password,
+          user?.passwordHash ?? DUMMY_PASSWORD_HASH,
+        );
+        if (!user || !passwordValid) return null;
 
         return {
           id: user.id,

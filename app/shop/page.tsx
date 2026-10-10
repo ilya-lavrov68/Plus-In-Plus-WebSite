@@ -5,12 +5,16 @@ import { EmptyState } from "@/components/site/empty-state";
 import { NewsCarousel } from "@/components/site/news-carousel";
 import { ServiceCard } from "@/components/site/service-card";
 import { getPublishedPosts, getPublishedServices, toNewsItem } from "@/lib/data";
+import { createPageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Shop — Plus In Plus",
-};
+export const metadata: Metadata = createPageMetadata({
+  title: "Услуги дизайна — Plus In Plus",
+  description:
+    "Каталог услуг Plus In Plus: малые и крупные дизайн-проекты с подробным описанием и примерами.",
+  path: "/shop",
+});
 
 export default async function ShopPage() {
   const [services, posts] = await Promise.all([getPublishedServices(), getPublishedPosts()]);

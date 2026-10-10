@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Newspaper, Plus } from "lucide-react";
 
@@ -13,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/site/empty-state";
+import { SafeImage } from "@/components/site/safe-image";
 import { deletePost } from "@/app/actions/posts";
 import { getAllPosts } from "@/lib/data";
 
@@ -58,7 +58,7 @@ export default async function AdminBlogPage() {
                 <TableRow key={post.id}>
                   <TableCell>
                     <div className="relative h-12 w-16 overflow-hidden rounded-md border border-border">
-                      <Image
+                      <SafeImage
                         src={post.coverImage}
                         alt=""
                         fill
