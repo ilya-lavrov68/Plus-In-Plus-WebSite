@@ -29,7 +29,7 @@ export function Footer() {
                 <li key={label}>
                   <Link
                     href={href}
-                    className="rounded-sm text-sm font-medium text-white/75 transition-colors duration-200 ease-out hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                    className="rounded-sm font-body text-sm font-medium text-white/75 transition-colors duration-200 ease-out hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                   >
                     {label}
                   </Link>
@@ -40,7 +40,7 @@ export function Footer() {
         </nav>
 
         <div aria-hidden="true" className="mt-12 border-t border-white/10 pt-8 sm:mt-16 sm:pt-10 lg:mt-20">
-          <p className="select-none whitespace-nowrap text-[clamp(4.5rem,18vw,15rem)] font-semibold leading-[0.72] tracking-[-0.085em] text-[#102e49]">
+          <p className="select-none whitespace-nowrap font-geist text-[clamp(4.5rem,18vw,15rem)] font-semibold leading-[0.72] tracking-[-0.085em] text-[#102e49]">
             Plus in Plus
           </p>
         </div>

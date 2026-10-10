@@ -54,6 +54,8 @@ beforeEach(() => {
   initialSession = null; nextSession = { user: { ...profile } }; calls = []; pushes = []; replacements = [];
   loginResult = { ok: true }; registerResult = { ok: true }; profileResult = { ok: true };
   global.window = { scrollY: 0, addEventListener() {}, removeEventListener() {} };
+  // The header's navigation dropdowns (Radix menu) attach document listeners on mount.
+  global.document = { hidden: false, addEventListener() {}, removeEventListener() {} };
 });
 function Harness({ children }) {
   const [session, change] = React.useState(initialSession); setSession = change;

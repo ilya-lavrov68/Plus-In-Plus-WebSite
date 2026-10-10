@@ -35,10 +35,10 @@ export function FeaturesSection() {
                 className="h-9 w-9 text-[#70d77a] sm:h-10 sm:w-10"
                 strokeWidth={1.7}
               />
-              <h2 className="mt-7 text-xl font-semibold tracking-[-0.025em] text-white sm:text-2xl">
+              <h2 className="mt-7 font-geist text-xl font-semibold tracking-[-0.025em] text-white sm:text-2xl">
                 {title}
               </h2>
-              <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300 sm:text-base sm:leading-7">
+              <p className="mt-3 max-w-sm font-body text-sm leading-6 text-slate-300 sm:text-base sm:leading-7">
                 {description}
               </p>
             </li>

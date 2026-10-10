@@ -27,7 +27,11 @@ const config: Config = {
         DEFAULT: "cubic-bezier(0, 0, 0.2, 1)",
       },
       fontFamily: {
-        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["Google Sans Flex", "ui-sans-serif", "system-ui", "sans-serif"],
+        "sans-flex": ["Google Sans Flex", "sans-serif"],
+        geist: ["Geist", "sans-serif"],
+        heading: ["Geist", "sans-serif"],
+        body: ["Google Sans Flex", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",

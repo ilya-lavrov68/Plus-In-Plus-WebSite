@@ -8,7 +8,14 @@ import { useSession } from "next-auth/react";
 
 import { AccountModal } from "@/components/site/account-modal";
 import { UserAvatar } from "@/components/site/user-avatar";
-import { BrandMark } from "@/components/site/brand-mark";
+import { Logo } from "@/components/site/logo";
+import { buttonVariants } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 type NavigationLink = { label: string; href: string };
@@ -56,50 +63,44 @@ function NavigationDropdown({
   onNavigate?: () => void;
 }) {
   return (
-    <details className={cn("group relative", compact && "border-b border-slate-200 last:border-b-0")}>
-      <summary
-        aria-haspopup="true"
-        className={cn(
-          "flex cursor-pointer list-none items-center gap-1.5 rounded-sm text-[0.7rem] font-semibold tracking-[0.1em] text-[#0a2540] transition-colors duration-200 ease-out hover:text-[#397248] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a2540] [&::-webkit-details-marker]:hidden",
-          compact
-            ? "justify-between py-3 text-sm"
-            : "px-2 py-2 xl:px-3"
-        )}
-      >
-        {item.label}
-        <ChevronDown
-          aria-hidden="true"
-          className="h-3.5 w-3.5 shrink-0 transition-transform duration-200 ease-out group-open:rotate-180"
-          strokeWidth={2}
-        />
-      </summary>
-      <div
-        className={cn(
-          compact
-            ? "pb-3 pl-3"
-            : "absolute left-0 top-full z-50 min-w-52 pt-3"
-        )}
-      >
-        <ul
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-haspopup="menu"
           className={cn(
-            "space-y-0.5",
-            !compact && "rounded-xl border border-slate-200 bg-white p-2 shadow-[0_12px_32px_rgba(10,37,64,0.12)]"
+            "group inline-flex items-center gap-1.5 font-body text-[13px] font-medium uppercase tracking-wide text-navy transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy",
+            compact
+              ? "w-full justify-between rounded-lg py-3 text-sm"
+              : "rounded-lg px-2.5 py-2 hover:bg-navy/[0.06] data-[state=open]:bg-navy/[0.06] xl:px-3"
           )}
         >
-          {item.links.map((link) => (
-            <li key={link.label}>
-              <Link
-                href={link.href}
-                onClick={onNavigate}
-                className="block rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-200 ease-out hover:bg-slate-50 hover:text-[#0a2540] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a2540]"
-              >
-                {link.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </details>
+          {item.label}
+          <ChevronDown
+            aria-hidden="true"
+            strokeWidth={2}
+            className="h-3.5 w-3.5 shrink-0 transition-transform duration-200 ease-out group-data-[state=open]:rotate-180"
+          />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align={compact ? "start" : "center"}
+        sideOffset={compact ? 4 : 12}
+        className="min-w-52 rounded-xl border-slate-200 p-2 font-body shadow-[0_12px_32px_rgba(10,37,64,0.12)]"
+      >
+        {item.links.map((link) => (
+          <DropdownMenuItem key={link.label} asChild>
+            <Link
+              href={link.href}
+              onClick={onNavigate}
+              className="cursor-pointer rounded-lg px-3 py-2.5 text-sm font-medium normal-case tracking-normal text-slate-700 transition-colors duration-200 ease-out hover:bg-slate-50 hover:text-navy focus:bg-slate-50 focus:text-navy"
+            >
+              {link.label}
+            </Link>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -139,36 +140,42 @@ export function Header() {
       className={cn(
         "fixed inset-x-0 top-0 z-40 h-16 border-b transition-[background-color,border-color,backdrop-filter] duration-250 ease-out",
         scrolled
-          ? "border-slate-200 bg-white/95 backdrop-blur-sm"
+          ? "border-gray-100 bg-white/95 backdrop-blur-sm"
           : "border-transparent bg-transparent"
       )}
     >
-      <div className="mx-auto flex h-full max-w-[1440px] items-center justify-between gap-4 px-4 sm:px-8 xl:px-12">
+      <div className="relative mx-auto flex h-full max-w-[1440px] items-center justify-between gap-3 px-4 sm:px-8 xl:px-12">
+        {/* Left: brand logo (customer SVG lockup: green plus + wordmark) */}
         <Link
           href="/"
           aria-label="Plus In Plus home"
-          className="shrink-0 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a2540]"
+          className="shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
         >
-          <BrandMark iconClassName="h-7 w-7" textClassName="text-base sm:text-lg" />
+          <Logo variant="header" className="h-6 w-auto sm:h-7" />
         </Link>
 
-        <nav aria-label="Main navigation" className="hidden items-center gap-1 lg:flex">
+        {/* Center: main navigation with dropdowns */}
+        <nav
+          aria-label="Main navigation"
+          className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-1 md:flex"
+        >
           {navigation.map((item) => (
             <NavigationDropdown key={item.label} item={item} />
           ))}
         </nav>
 
+        {/* Right: language switch, Contact, Log in, burger */}
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <button
             type="button"
             aria-label="Language: English"
-            className="rounded-sm border-b border-[#0a2540] px-1 pb-0.5 text-sm font-medium leading-none text-[#0a2540] hover:text-[#397248] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a2540]"
+            className="rounded-sm border-b border-navy px-1 pb-0.5 font-body text-sm font-medium leading-none text-navy transition-colors duration-200 ease-out hover:text-[#397248] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
           >
             Aa
           </button>
           <Link
             href="/contact"
-            className="hidden items-center justify-center rounded-full border border-[#0a2540]/45 px-5 py-2 text-sm font-medium text-[#0a2540] transition-colors duration-200 ease-out hover:bg-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a2540] lg:inline-flex"
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "hidden md:inline-flex")}
           >
             Contact
           </Link>
@@ -180,8 +187,10 @@ export function Header() {
             aria-label={session?.user ? "Open account" : "Log in"}
             aria-haspopup="dialog"
             className={cn(
-              "inline-flex items-center justify-center rounded-full text-sm font-semibold transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a2540] focus-visible:ring-offset-2 disabled:opacity-60",
-              session?.user ? "p-0.5" : "bg-[#0a2540] px-4 py-2 text-white hover:bg-[#153c5c] sm:px-5",
+              "disabled:opacity-60",
+              session?.user
+                ? "rounded-full p-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2"
+                : buttonVariants({ variant: "default", size: "sm" })
             )}
           >
             {session?.user ? <UserAvatar user={session.user} size={36} /> : status === "loading" ? "Loading…" : "Log in"}
@@ -192,17 +201,18 @@ export function Header() {
             aria-expanded={mobileOpen}
             aria-controls="mobile-navigation"
             onClick={() => setMobileOpen((open) => !open)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#0a2540] transition-colors duration-200 ease-out hover:bg-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a2540] lg:hidden"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-navy transition-colors duration-200 ease-out hover:bg-navy/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy md:hidden"
           >
             {mobileOpen ? <X aria-hidden="true" className="h-5 w-5" /> : <Menu aria-hidden="true" className="h-5 w-5" />}
           </button>
         </div>
       </div>
 
+      {/* Mobile navigation (<768px) */}
       {mobileOpen ? (
         <div
           id="mobile-navigation"
-          className="absolute inset-x-0 top-full max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-slate-200 bg-white px-5 pb-5 pt-2 shadow-[0_16px_36px_rgba(10,37,64,0.12)] lg:hidden"
+          className="absolute inset-x-0 top-full max-h-[calc(100vh-4rem)] overflow-y-auto border-b border-gray-100 bg-white px-5 pb-5 pt-2 font-body shadow-[0_16px_36px_rgba(10,37,64,0.12)] md:hidden"
         >
           <nav aria-label="Mobile main navigation">
             {navigation.map((item) => (
@@ -214,11 +224,11 @@ export function Header() {
               />
             ))}
           </nav>
-          <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="mt-4 grid grid-cols-2 gap-3 border-t border-gray-100 pt-4">
             <Link
               href="/contact"
               onClick={() => setMobileOpen(false)}
-              className="inline-flex items-center justify-center rounded-full border border-[#0a2540]/45 px-4 py-2.5 text-sm font-medium text-[#0a2540] transition-colors duration-200 ease-out hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a2540]"
+              className={cn(buttonVariants({ variant: "outline", size: "default" }), "h-10")}
             >
               Contact
             </Link>
@@ -227,7 +237,7 @@ export function Header() {
               onClick={openLogin}
               disabled={status === "loading"}
               aria-haspopup="dialog"
-              className="inline-flex items-center justify-center rounded-full bg-[#0a2540] px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#153c5c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a2540]"
+              className={cn(buttonVariants({ variant: "default", size: "default" }), "h-10")}
             >
               {session?.user ? "Your account" : "Log in"}
             </button>
