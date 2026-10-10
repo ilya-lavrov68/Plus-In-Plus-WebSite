@@ -29,6 +29,8 @@ const { CategoryCard } = require("../components/site/category-card.tsx");
 const { ServiceCard } = require("../components/site/service-card.tsx");
 const { SafeImage } = require("../components/site/safe-image.tsx");
 const { createPageMetadata, SITE_URL } = require("../lib/seo.ts");
+const { NewsSection } = require("../components/site/news-section.tsx");
+const { toNewsItem } = require("../lib/data.ts");
 const { default: HomePage } = require("../app/page.tsx");
 const { default: ShopPage } = require("../app/shop/page.tsx");
 const { default: BlogPage } = require("../app/blog/page.tsx");
@@ -255,4 +257,31 @@ test("reduced-motion preference disables autoplay but permits explicit play", ()
   timer.advance(7000);
   assert.equal(c.active(), 1);
   act(() => c.view.unmount());
+});
+
+test("a published post maps to a landing news item and renders its blog link", () => {
+  clock();
+  const post = {
+    id: "post-1",
+    title: "Launch day",
+    slug: "launch-day",
+    excerpt: "We launched the new site.",
+    content: "<p>Body</p>",
+    coverImage: "/uploads/blog/cover.png",
+    readTime: 3,
+    source: "Telegram",
+    publishedAt: new Date("2026-10-09T00:00:00.000Z"),
+  };
+  const item = toNewsItem(post);
+  assert.equal(item.href, "/blog/launch-day");
+  assert.equal(item.source, "telegram");
+  assert.equal(item.imageSrc, "/uploads/blog/cover.png");
+
+  let view;
+  act(() => { view = create(React.createElement(NewsSection, { items: [item] })); });
+  const links = view.root.findAll((node) => node.type === "a" && node.props.href === "/blog/launch-day");
+  assert.ok(links.length >= 1, "news card should link to the post");
+  const headings = view.root.findAllByType("h3").map((node) => node.findAllByType("a").map((a) => a.children.join("")));
+  assert.ok(headings.some((texts) => texts.includes("Launch day")), "post title should be shown");
+  act(() => view.unmount());
 });
