@@ -145,13 +145,13 @@ export function Header() {
       )}
     >
       <div className="relative mx-auto flex h-full max-w-[1440px] items-center justify-between gap-3 px-4 sm:px-8 xl:px-12">
-        {/* Left: SVG logo + wordmark */}
+        {/* Left: brand logo (customer SVG lockup: green plus + wordmark) */}
         <Link
           href="/"
           aria-label="Plus In Plus home"
           className="shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
         >
-          <Logo variant="header" />
+          <Logo variant="header" className="h-6 w-auto sm:h-7" />
         </Link>
 
         {/* Center: main navigation with dropdowns */}

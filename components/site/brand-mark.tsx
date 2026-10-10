@@ -9,15 +9,9 @@ export interface BrandMarkProps {
 
 /**
  * Shared Plus In Plus wordmark used wherever the full logo is needed.
- * Backed by the real SVG brand asset through <Logo /> (no inline text
- * placeholders). Kept for backwards compatibility with older call sites.
+ * Renders the customer-provided SVG lockup through <Logo /> — no re-drawn
+ * markup. Kept for backwards compatibility with older call sites.
  */
-export function BrandMark({ className, iconClassName, textClassName }: BrandMarkProps) {
-  return (
-    <Logo
-      variant="header"
-      className={cn("text-[1.1rem]", textClassName, className)}
-      iconClassName={cn("h-8 w-8", iconClassName)}
-    />
-  );
+export function BrandMark({ className }: BrandMarkProps) {
+  return <Logo variant="header" className={cn("h-8 w-auto", className)} />;
 }

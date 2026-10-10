@@ -7,22 +7,20 @@ export type LogoVariant = "header" | "partners" | "footer";
 export interface LogoProps {
   /** Which brand lockup to render. */
   variant?: LogoVariant;
-  /** Extra classes for the root element (the image itself for "partners"). */
+  /** Extra classes for the image element. */
   className?: string;
-  /** Extra classes for the green plus icon ("header" and "footer" only). */
-  iconClassName?: string;
 }
 
 /**
- * Brand logo renderer. All variants are backed by real SVG assets in
- * /public/assets/logos (brand files uploaded by the customer) and served
- * through next/image.
+ * Brand logo renderer. Uses ONLY the customer-provided brand assets from
+ * /public/assets/logos (never re-drawn or generated markup):
  *
- * - header: green plus icon + "Plus In Plus" wordmark (Geist, navy).
- * - partners: the combined "Plus In Plus | TS CONNECT" lockup.
- * - footer: green plus icon + white wordmark for the dark footer.
+ * - plus-in-plus.svg   (230×59): standalone lockup — green plus + wordmark.
+ *   Used for "header" and "footer" (note: the wordmark is dark navy #052B42,
+ *   so place it on light backgrounds).
+ * - pip-ts-connect.svg (683×83): combined "Plus In Plus | TS CONNECT" lockup.
  */
-export function Logo({ variant = "header", className, iconClassName }: LogoProps) {
+export function Logo({ variant = "header", className }: LogoProps) {
   if (variant === "partners") {
     return (
       <Image
@@ -35,25 +33,13 @@ export function Logo({ variant = "header", className, iconClassName }: LogoProps
     );
   }
 
-  const isFooter = variant === "footer";
-
   return (
-    <span className={cn("inline-flex items-center gap-2.5", className)}>
-      <Image
-        src="/assets/logos/plus-icon.svg"
-        alt="Plus In Plus"
-        width={24}
-        height={24}
-        className={cn("h-6 w-6 shrink-0", iconClassName)}
-      />
-      <span
-        className={cn(
-          "whitespace-nowrap font-geist text-base font-semibold tracking-tight",
-          isFooter ? "text-white" : "text-navy"
-        )}
-      >
-        Plus In Plus
-      </span>
-    </span>
+    <Image
+      src="/assets/logos/plus-in-plus.svg"
+      alt="Plus In Plus"
+      width={230}
+      height={59}
+      className={cn("h-auto w-auto", className)}
+    />
   );
 }

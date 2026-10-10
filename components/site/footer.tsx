@@ -1,7 +1,5 @@
 import Link from "next/link";
 
-import { Logo } from "@/components/site/logo";
-
 const columns = [
   [
     { label: "Servers", href: "/shop" },
@@ -24,14 +22,7 @@ export function Footer() {
   return (
     <footer className="mt-auto overflow-hidden bg-[#0a2540] text-white">
       <div className="mx-auto max-w-[1320px] px-5 pb-0 pt-12 sm:px-8 sm:pt-16 lg:px-12 lg:pt-20">
-        <Link
-          href="/"
-          aria-label="Plus In Plus home"
-          className="inline-flex rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-        >
-          <Logo variant="footer" />
-        </Link>
-        <nav aria-label="Footer navigation" className="mt-10 grid grid-cols-2 gap-x-8 gap-y-9 sm:mt-12 sm:grid-cols-3 sm:gap-10">
+        <nav aria-label="Footer navigation" className="grid grid-cols-2 gap-x-8 gap-y-9 sm:grid-cols-3 sm:gap-10">
           {columns.map((column, index) => (
             <ul key={index} className="space-y-4 sm:space-y-5">
               {column.map(({ label, href }) => (

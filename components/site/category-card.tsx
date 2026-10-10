@@ -9,13 +9,17 @@ export interface CategoryCardProps {
   href: string;
 }
 
-/** Image-led service tile. Its background is always a PNG asset, never a CSS gradient. */
+/**
+ * Image-led service tile. The card is exactly the image — no rounding, no
+ * shadow, no chrome. On hover the image desaturates/dims and the bare arrow
+ * rotates toward the bottom-right corner (200ms ease-out, like ServiceCard).
+ */
 export function CategoryCard({ title, gradientImageSrc, href }: CategoryCardProps) {
-  // Keep a resilient non-icon fallback for callers with incomplete legacy data.
+  // Keep a resilient fallback for callers with incomplete legacy data.
   if (!gradientImageSrc || !href) {
     return (
-      <div className="relative flex aspect-[3/4] items-start overflow-hidden rounded-2xl bg-[#173653] p-5 text-white sm:p-6">
-        <span className="max-w-[11ch] text-2xl font-semibold leading-tight tracking-[-0.035em] sm:text-3xl">
+      <div className="relative flex aspect-[7/10] items-start overflow-hidden bg-[#173653] p-5 text-white sm:p-6">
+        <span className="max-w-[11ch] font-geist text-2xl font-semibold leading-tight tracking-[-0.035em] sm:text-3xl">
           {title}
         </span>
       </div>
@@ -26,26 +30,25 @@ export function CategoryCard({ title, gradientImageSrc, href }: CategoryCardProp
     <Link
       href={href}
       aria-label={`${title} services`}
-      className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a2540] focus-visible:ring-offset-4"
+      className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-4"
     >
-      <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-[#173653] text-white shadow-[0_14px_28px_rgba(10,37,64,0.1)]">
+      <div className="relative aspect-[7/10] overflow-hidden bg-[#173653] text-white">
         <SafeImage
           src={gradientImageSrc}
           alt=""
           fill
           sizes="(min-width: 1280px) 280px, (min-width: 1024px) 23vw, (min-width: 640px) 46vw, 92vw"
-          className="object-cover"
+          className="object-cover transition-[filter,opacity] duration-200 ease-out group-hover:grayscale group-hover:opacity-70 group-focus-visible:grayscale group-focus-visible:opacity-70"
         />
         <div aria-hidden="true" className="absolute inset-0 bg-[#071b30]/20" />
-        <span className="absolute left-5 top-5 z-10 max-w-[11ch] text-2xl font-semibold leading-tight tracking-[-0.035em] sm:left-6 sm:top-6 sm:text-3xl">
+        <span className="absolute left-5 top-5 z-10 max-w-[11ch] font-geist text-2xl font-semibold leading-tight tracking-[-0.035em] sm:left-6 sm:top-6 sm:text-3xl">
           {title}
         </span>
-        <span
+        <ArrowUpRight
           aria-hidden="true"
-          className="absolute bottom-5 right-5 z-10 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/70 bg-white/10 backdrop-blur-sm sm:bottom-6 sm:right-6"
-        >
-          <ArrowUpRight className="h-5 w-5 transition-transform duration-200 ease-out group-hover:rotate-45" strokeWidth={1.7} />
-        </span>
+          strokeWidth={1.7}
+          className="absolute bottom-5 right-5 z-10 h-6 w-6 transition-transform duration-200 ease-out group-hover:rotate-90 group-focus-visible:rotate-90 sm:bottom-6 sm:right-6"
+        />
       </div>
     </Link>
   );
