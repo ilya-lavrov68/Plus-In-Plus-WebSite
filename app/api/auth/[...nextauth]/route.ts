@@ -1,7 +1,24 @@
-import NextAuth from "next-auth";
+import { NextRequest } from "next/server";
 
-import { authOptions } from "@/auth";
+import { handlers } from "@/auth";
+import { authRequest } from "@/lib/auth-request";
 
-const handler = NextAuth(authOptions);
+export const runtime = "nodejs";
 
-export { handler as GET, handler as POST };
+function handle(request: NextRequest, handler: (request: NextRequest) => Promise<Response>) {
+  let normalized: NextRequest;
+  try {
+    normalized = authRequest(request);
+  } catch {
+    return new Response("Invalid authentication origin.", { status: 400 });
+  }
+  return handler(normalized);
+}
+
+export function GET(request: NextRequest) {
+  return handle(request, handlers.GET);
+}
+
+export function POST(request: NextRequest) {
+  return handle(request, handlers.POST);
+}

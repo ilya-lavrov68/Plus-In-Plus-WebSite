@@ -14,7 +14,7 @@ import {
 import { EmptyState } from "@/components/site/empty-state";
 import { SafeImage } from "@/components/site/safe-image";
 import { deleteService } from "@/app/actions/services";
-import { getAllServices } from "@/lib/data";
+import { getAllServices } from "@/lib/admin-data";
 
 export const dynamic = "force-dynamic";
 

@@ -42,9 +42,12 @@ next-env.d.ts
 # local prisma engine stub (offline workaround, not part of the project)
 /.prisma-stub/
 
-# runtime uploads from the admin panel (keep folder structure + docs via negations)
+# runtime account/admin uploads (keep folder structure + docs via negations)
+/public/uploads/avatars/*
 /public/uploads/services/*
 /public/uploads/blog/*
+!/public/uploads/avatars/.gitkeep
+!/public/uploads/avatars/README.md
 !/public/uploads/services/.gitkeep
 !/public/uploads/blog/.gitkeep
 !/public/uploads/services/README.md

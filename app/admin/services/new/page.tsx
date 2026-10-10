@@ -1,8 +1,12 @@
+import { redirect } from "next/navigation";
+import { requireAdmin } from "@/lib/admin-session";
+
 import { ServiceForm } from "@/components/admin/service-form";
 
 export const dynamic = "force-dynamic";
 
-export default function NewServicePage() {
+export default async function NewServicePage() {
+  if (!(await requireAdmin())) redirect("/");
   return (
     <div>
       <h1 className="text-3xl font-bold tracking-tight">New service</h1>

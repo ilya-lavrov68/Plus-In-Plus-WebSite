@@ -19,6 +19,8 @@ Module._load = function (name, parent, isMain) {
   if (name === "next/link") return ({ children, ...props }) => React.createElement("a", props, children);
   if (name === "next/image") return (props) => React.createElement("img", props);
   if (name === "@/lib/prisma") return { prisma: null };
+  if (name === "next-auth/react") return { useSession: () => ({ data: null, status: "unauthenticated" }) };
+  if (name === "@/app/actions/auth") return {};
   if (name.startsWith("@/")) name = path.resolve(__dirname, "..", name.slice(2));
   return originalLoad.call(this, name, parent, isMain);
 };

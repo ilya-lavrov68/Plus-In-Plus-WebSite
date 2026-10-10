@@ -1,32 +1,16 @@
-import { NextResponse, type NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
+import NextAuth from "next-auth";
+import { NextResponse } from "next/server";
 
-/**
- * Protects every /admin/* route: a valid session with role === "ADMIN" is
- * required. Everyone else is sent back to the landing page with the auth
- * modal opened via ?auth=login.
- */
-function redirectToLogin(req: NextRequest) {
-  const loginUrl = new URL("/", req.url);
-  loginUrl.searchParams.set("auth", "login");
-  return NextResponse.redirect(loginUrl);
-}
+import { authConfig } from "@/auth.config";
+import { isAuthConfigured } from "@/lib/auth-secret";
 
-export async function middleware(req: NextRequest) {
-  const secret = process.env.NEXTAUTH_SECRET;
-  if (!secret || secret.length < 32) {
-    return redirectToLogin(req);
+/** JWT gate; pages/data/actions also verify the current database role. */
+export const middleware = NextAuth(authConfig).auth((request) => {
+  if (!isAuthConfigured() || !request.auth?.user?.id || request.auth.user.role !== "ADMIN") {
+    return NextResponse.redirect(new URL("/", request.url));
   }
-
-  const token = await getToken({ req, secret });
-
-  if (!token || token.role !== "ADMIN") {
-    return redirectToLogin(req);
-  }
-
   return NextResponse.next();
-}
+});
 
-export const config = {
-  matcher: ["/admin/:path*"],
-};
+// Node middleware is stable in Next 15.5 and supports Auth.js v5's JOSE runtime.
+export const config = { matcher: ["/admin/:path*"], runtime: "nodejs" };

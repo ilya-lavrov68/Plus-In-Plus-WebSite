@@ -1,12 +1,5 @@
-/**
- * Server actions for the admin panel and the auth modal.
- *
- * - auth:    registerUser
- * - services: createService, updateService, deleteService
- * - posts:   createPost, updatePost, deletePost
- */
-export { registerUser } from "@/app/actions/auth";
-export type { RegisterInput, RegisterResult } from "@/app/actions/auth";
+export { registerUser, loginUser, updateUserProfile, logout } from "@/app/actions/auth";
+export type { RegisterInput, RegisterResult, LoginInput, AuthActionResult } from "@/app/actions/auth";
 
 export { createService, updateService, deleteService } from "@/app/actions/services";
 export type { ServiceActionResult } from "@/app/actions/services";
