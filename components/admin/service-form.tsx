@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 import { createService, updateService } from "@/app/actions/services";
@@ -17,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { SafeImage } from "@/components/site/safe-image";
 
 export interface ServiceFormProps {
   mode: "create" | "edit";
@@ -138,7 +138,7 @@ export function ServiceForm({ mode, serviceId, initial }: ServiceFormProps) {
         </p>
         {mode === "edit" && initial?.coverImage ? (
           <div className="relative mt-2 h-24 w-40 overflow-hidden rounded-md border border-border">
-            <Image
+            <SafeImage
               src={initial.coverImage}
               alt="Current cover"
               fill

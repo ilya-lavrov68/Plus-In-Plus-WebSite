@@ -4,12 +4,16 @@ import type { Metadata } from "next";
 import { EmptyState } from "@/components/site/empty-state";
 import { NewsCarousel } from "@/components/site/news-carousel";
 import { getPublishedPosts, toNewsItem } from "@/lib/data";
+import { createPageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Blog — Plus In Plus",
-};
+export const metadata: Metadata = createPageMetadata({
+  title: "Новости и статьи — Plus In Plus",
+  description:
+    "Новости, идеи и материалы о дизайне от команды Plus In Plus.",
+  path: "/blog",
+});
 
 export default async function BlogPage() {
   const posts = await getPublishedPosts();

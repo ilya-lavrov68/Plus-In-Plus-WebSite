@@ -1,4 +1,5 @@
 import { ArrowRight, Award, Flag, Globe, Image as ImageIcon, Newspaper, ShieldCheck, User, Wrench } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { CategoryCard } from "@/components/site/category-card";
@@ -8,11 +9,18 @@ import { GradientBackdrop } from "@/components/site/gradient-backdrop";
 import { NewsCarousel } from "@/components/site/news-carousel";
 import { Partners } from "@/components/site/partners";
 import { getPublishedPosts, toNewsItem } from "@/lib/data";
+import { createPageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
-// Highlighted main services. Placeholder links until the services are seeded
-// into the DB; gradient covers also come only from the DB.
+export const metadata: Metadata = createPageMetadata({
+  title: "Plus In Plus — дизайн-студия",
+  description:
+    "Графический и цифровой дизайн для бизнеса, мероприятий и личных проектов: сайты, постеры и фирменные материалы.",
+  path: "/",
+});
+
+// Curated service categories shown above the empty-state-aware shop listing.
 const featuredServices = [
   { title: "Website design", icon: Globe },
   { title: "Badge design", icon: Award },
@@ -49,7 +57,7 @@ export default async function HomePage() {
           (no CSS gradients anywhere). Solid brand color is the fallback until the
           customer adds hero-gradient.png. */}
       <section className="relative overflow-hidden bg-lavender">
-        <GradientBackdrop src="/assets/gradients/hero-gradient.png" />
+        <GradientBackdrop src="/assets/gradients/hero-gradient.png" priority />
         <div className="relative z-10 mx-auto max-w-7xl px-4 pb-16 pt-16 text-center sm:px-8 sm:pb-20 sm:pt-24">
           <h1 className="mx-auto max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl">
             Order a design you won&apos;t regret

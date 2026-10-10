@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 import { createPost, updatePost } from "@/app/actions/posts";
@@ -10,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { SafeImage } from "@/components/site/safe-image";
 
 export interface PostFormProps {
   mode: "create" | "edit";
@@ -91,8 +91,11 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="post-content">Content (HTML allowed)</Label>
+        <Label htmlFor="post-content">Content (safe HTML formatting)</Label>
         <Textarea id="post-content" name="content" required rows={12} defaultValue={initial?.content} />
+        <p className="text-xs text-muted-foreground">
+          Scripts, embeds, images, and unsafe links are removed before publishing.
+        </p>
       </div>
 
       <div className="space-y-2">
@@ -125,7 +128,7 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
         </p>
         {mode === "edit" && initial?.coverImage ? (
           <div className="relative mt-2 h-24 w-40 overflow-hidden rounded-md border border-border">
-            <Image
+            <SafeImage
               src={initial.coverImage}
               alt="Current cover"
               fill

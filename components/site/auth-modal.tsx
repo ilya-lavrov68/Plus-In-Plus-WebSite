@@ -190,11 +190,14 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                   type="password"
                   autoComplete="new-password"
                   required
-                  minLength={8}
+                  minLength={12}
+                  maxLength={72}
                   value={registerPassword}
                   onChange={(event) => setRegisterPassword(event.target.value)}
                 />
-                <p className="text-xs text-muted-foreground">At least 8 characters.</p>
+                <p className="text-xs text-muted-foreground">
+                  Use at least 12 characters. Passwords are limited to 72 UTF-8 bytes.
+                </p>
               </div>
               {error ? (
                 <p role="alert" className="text-sm text-destructive">

@@ -5,12 +5,17 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-export default async function EditServicePage({ params }: { params: { id: string } }) {
+export default async function EditServicePage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
   if (!prisma) {
     notFound();
   }
 
-  const service = await prisma.service.findUnique({ where: { id: params.id } }).catch(() => null);
+  const service = await prisma.service.findUnique({ where: { id } }).catch(() => null);
   if (!service) {
     notFound();
   }
@@ -31,10 +36,10 @@ export default async function EditServicePage({ params }: { params: { id: string
             shortDesc: service.shortDesc,
             fullDesc: service.fullDesc,
             includes: Array.isArray(service.includes)
-              ? service.includes.filter((item): item is string => typeof item === "string")
+              ? service.includes.filter((item: unknown): item is string => typeof item === "string")
               : [],
             shapes: Array.isArray(service.shapes)
-              ? service.shapes.filter((item): item is string => typeof item === "string")
+              ? service.shapes.filter((item: unknown): item is string => typeof item === "string")
               : [],
             resultText: service.resultText,
             coverImage: service.coverImage,

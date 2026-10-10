@@ -6,16 +6,22 @@ import { getToken } from "next-auth/jwt";
  * required. Everyone else is sent back to the landing page with the auth
  * modal opened via ?auth=login.
  */
+function redirectToLogin(req: NextRequest) {
+  const loginUrl = new URL("/", req.url);
+  loginUrl.searchParams.set("auth", "login");
+  return NextResponse.redirect(loginUrl);
+}
+
 export async function middleware(req: NextRequest) {
-  const token = await getToken({
-    req,
-    secret: process.env.NEXTAUTH_SECRET,
-  });
+  const secret = process.env.NEXTAUTH_SECRET;
+  if (!secret || secret.length < 32) {
+    return redirectToLogin(req);
+  }
+
+  const token = await getToken({ req, secret });
 
   if (!token || token.role !== "ADMIN") {
-    const loginUrl = new URL("/", req.url);
-    loginUrl.searchParams.set("auth", "login");
-    return NextResponse.redirect(loginUrl);
+    return redirectToLogin(req);
   }
 
   return NextResponse.next();
