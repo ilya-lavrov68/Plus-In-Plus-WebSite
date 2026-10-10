@@ -47,10 +47,27 @@ headers. Client requests always use relative URLs, so local and proxied preview
 origins work without browser requests to localhost. Development accepts
 `*.e2b.app` and permits an embedded preview; production retains clickjacking headers.
 
+## Header navigation
+
+- **FOR PLAY**, **SHOP**, **ABOUT PIP** and **SOCNET** open their dropdown on
+  **hover**, implemented with plain CSS (`group-hover`), not a click-driven menu
+  library. The chevron rotates 180° and the panel stays visible for ~200 ms after
+  the pointer leaves, which is what allows the cursor to cross the 8 px gap into
+  the menu. Keyboard users get the same panel through `group-focus-within`.
+  Touch layouts use the burger menu, where every link is listed without dropdowns.
+- The dropdowns are server-rendered white cards
+  (`bg-white border border-gray-200 shadow-lg rounded-xl p-4 min-w-[200px]`) with
+  real targets: SHOP points at the `/shop` sections and SOCNET at the studio's
+  social profiles (`SOCIAL_LINKS` at the top of `components/site/header.tsx` —
+  replace the placeholder handles with the real ones).
+
 ## Account and authorization
 
 - Header **Log in** opens `components/site/account-modal.tsx`. After login it
   becomes a local avatar or initials, opening the same dialog in profile mode.
+- A successful regular login or registration closes the dialog and refreshes the
+  session (`router.refresh()`), so the header switches to the avatar immediately.
+  Admin logins close the dialog and `router.push("/admin/dashboard")`.
 - **Log in**: email, password and an **Admin mode** switch, **off by default**.
   Switching tabs or closing the dialog resets the switch. It does not appear on
   Register or in the profile view.
@@ -145,6 +162,16 @@ Static brand assets remain separate in `public/assets/logos/` and
 
 For subsequent development changes use `npx prisma migrate dev --name <change>`;
 for deployment use `npx prisma migrate deploy`. No seed script is configured.
+
+## Troubleshooting sign-in
+
+| Symptom | Cause / fix |
+| --- | --- |
+| `Login is unavailable right now.` / `Registration is unavailable right now.` | `DATABASE_URL` or a ≥32-character `AUTH_SECRET` is missing, so auth fails closed. Copy `.env.example` to `.env` and restart the dev server. |
+| Form submits, no session, no error | PostgreSQL is unreachable or migrations were never applied: run `npx prisma migrate deploy`, then check `npx prisma migrate status`. |
+| `Admin account not found. Please log in as a regular user.` | Admin mode is on, but that email is not an `ADMIN` row. Promote the account with the SQL in the section above (registration can never create admins). |
+| Login works, `/admin/*` still redirects to `/` | The session was created without admin mode. Log out, reopen **Log in**, enable **Admin mode**, and log in again. |
+| Avatar not shown after upload | Avatars live in `public/uploads/avatars/` and are served by `/uploads/avatars/<file>`; check the file exists on disk and that the deployment does not wipe that folder between releases. |
 
 ## Verification and security
 
