@@ -15,7 +15,7 @@ function createPrismaClient(): PrismaClient | null {
     return null;
   }
 
-  return new PrismaClient({ adapter: new PrismaPg(connectionString) });
+  return new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();

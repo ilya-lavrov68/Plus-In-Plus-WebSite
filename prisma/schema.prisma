@@ -1,6 +1,10 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../lib/generated/prisma"
+  provider   = "prisma-client"
+  output     = "../lib/generated/prisma"
+  // The app connects through a driver adapter (@prisma/adapter-pg),
+  // so the client is generated for the WASM query compiler ("client" engine).
+  // This keeps the generated output platform-independent (no native engine binary).
+  engineType = "client"
 }
 
 datasource db {
