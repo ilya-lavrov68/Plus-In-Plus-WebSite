@@ -158,7 +158,7 @@ export function NewsCarousel({ items, label }: NewsCarouselProps) {
                     </Link>
                   </CardTitle>
                 </CardHeader>
-                {item.description && <CardContent><p className="text-sm leading-relaxed text-muted-foreground">{item.description}</p></CardContent>}
+                {item.description && <CardContent><p className="text-sm leading-relaxed text-[#052B42]">{item.description}</p></CardContent>}
               </Card>
             </article>
           ))}

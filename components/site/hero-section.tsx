@@ -15,7 +15,7 @@ export function HeroSection() {
       <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col items-center px-5 py-28 text-center sm:px-8 sm:py-36">
         <h1
           id="hero-heading"
-          className="max-w-4xl font-geist text-balance text-4xl font-semibold leading-[1.08] tracking-[-0.055em] text-navy sm:text-6xl lg:text-[5.25rem]"
+          className="max-w-full whitespace-nowrap font-geist text-[clamp(1rem,4.8vw,3.75rem)] font-semibold leading-[1.08] tracking-[-0.055em] text-[#052B42]"
         >
           A next-generation design studio
         </h1>

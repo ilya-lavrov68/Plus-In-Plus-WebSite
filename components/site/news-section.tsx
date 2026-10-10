@@ -138,11 +138,11 @@ export function NewsSection({ items }: { items: readonly NewsSectionItem[] }) {
   };
 
   return (
-    <section id="news" aria-labelledby="news-heading" className="bg-[#e8f0fe]">
+    <section id="news" aria-labelledby="news-heading" className="bg-[#D6E4FF]">
       <div className="mx-auto max-w-[1320px] px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-24">
         <h2
           id="news-heading"
-          className="text-center text-balance text-3xl font-semibold tracking-[-0.045em] text-[#0a2540] sm:text-4xl lg:text-[3.25rem]"
+          className="text-center text-balance text-3xl font-semibold tracking-[-0.045em] text-[#052B42] sm:text-4xl lg:text-[3.25rem]"
         >
           News from Plus In Plus
         </h2>
@@ -164,7 +164,7 @@ export function NewsSection({ items }: { items: readonly NewsSectionItem[] }) {
               role="region"
               aria-roledescription="carousel"
               aria-label="Latest news articles"
-              className="overflow-hidden rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a2540] focus-visible:ring-offset-4 focus-visible:ring-offset-[#e8f0fe]"
+              className="overflow-hidden rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a2540] focus-visible:ring-offset-4 focus-visible:ring-offset-[#D6E4FF]"
               style={{ touchAction: "pan-y pinch-zoom" }}
             >
               <div
@@ -233,7 +233,7 @@ export function NewsSection({ items }: { items: readonly NewsSectionItem[] }) {
                   aria-controls={viewportId}
                   disabled={pageCount < 2}
                   onClick={() => move(-1)}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-navy transition-colors duration-200 ease-out hover:bg-white/70 disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-[#052B42] transition-colors duration-200 ease-out hover:bg-white/70 disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
                 >
                   <ArrowLeft aria-hidden="true" className="h-4 w-4" />
                 </button>
@@ -254,7 +254,7 @@ export function NewsSection({ items }: { items: readonly NewsSectionItem[] }) {
                   aria-controls={viewportId}
                   disabled={pageCount < 2}
                   onClick={() => move(1)}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-navy transition-colors duration-200 ease-out hover:bg-white/70 disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-[#052B42] transition-colors duration-200 ease-out hover:bg-white/70 disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
                 >
                   <ArrowRight aria-hidden="true" className="h-4 w-4" />
                 </button>
@@ -265,7 +265,7 @@ export function NewsSection({ items }: { items: readonly NewsSectionItem[] }) {
                   aria-controls={viewportId}
                   disabled={pageCount < 2}
                   onClick={() => setIsPlaying((playing) => !playing)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-navy text-white transition-colors duration-200 ease-out hover:bg-[#153c5c] disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2 focus-visible:ring-offset-[#e8f0fe]"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-navy text-white transition-colors duration-200 ease-out hover:bg-[#153c5c] disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2 focus-visible:ring-offset-[#D6E4FF]"
                 >
                   {isPlaying ? <Pause aria-hidden="true" className="h-4 w-4" /> : <Play aria-hidden="true" className="h-4 w-4 fill-current" />}
                 </button>
@@ -274,8 +274,8 @@ export function NewsSection({ items }: { items: readonly NewsSectionItem[] }) {
           </div>
         ) : (
           <div className="mx-auto mt-10 max-w-xl rounded-2xl border border-[#0a2540]/10 bg-white/60 px-6 py-10 text-center sm:mt-12">
-            <h3 className="text-xl font-semibold tracking-[-0.025em] text-[#0a2540]">No news yet</h3>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
+            <h3 className="text-xl font-semibold tracking-[-0.025em] text-[#052B42]">No news yet</h3>
+            <p className="mt-2 text-sm leading-6 text-[#052B42]">
               Check back later for updates.
             </p>
           </div>

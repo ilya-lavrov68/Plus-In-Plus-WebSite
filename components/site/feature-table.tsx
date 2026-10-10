@@ -19,7 +19,7 @@ export function FeatureTable({ features }: FeatureTableProps) {
             {Icon && <Icon aria-hidden="true" className="h-7 w-7 shrink-0" strokeWidth={1.5} />}
             <dt className="text-lg font-semibold tracking-tight">{title}</dt>
           </div>
-          <dd className="mt-3 text-sm leading-relaxed text-muted-foreground">{description}</dd>
+          <dd className="mt-3 text-sm leading-relaxed text-[#052B42]">{description}</dd>
         </div>
       ))}
     </dl>

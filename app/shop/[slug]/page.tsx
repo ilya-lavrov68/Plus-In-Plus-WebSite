@@ -43,7 +43,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
 
   return (
     <>
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-8 sm:py-16">
+      <div className="text-[#052B42] mx-auto max-w-7xl px-4 py-12 sm:px-8 sm:py-16">
         <div className="flex flex-wrap items-center justify-between gap-6">
           <div className="flex flex-wrap items-center gap-x-10 gap-y-4">
             <BreadcrumbBack href="/shop" label="Back" />
@@ -110,8 +110,8 @@ export default async function ServicePage({ params }: ServicePageProps) {
         )}
       </div>
 
-      <section aria-labelledby="service-other-news" className="bg-lavender">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-8 sm:py-20">
+      <section aria-labelledby="service-other-news" className="bg-[#D6E4FF] text-[#052B42]">
+        <div className="text-[#052B42] mx-auto max-w-7xl px-4 py-16 sm:px-8 sm:py-20">
           <h2
             id="service-other-news"
             className="text-center text-3xl font-bold tracking-tight sm:text-4xl"

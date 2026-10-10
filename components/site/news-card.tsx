@@ -50,15 +50,15 @@ export function NewsCard({ title, excerpt, imageSrc, source, href = "/blog" }: N
       </div>
 
       <div className="flex flex-1 flex-col px-1 pb-1 pt-4 sm:px-2 sm:pt-5">
-        <h3 className="font-geist text-lg font-semibold leading-snug tracking-[-0.025em] text-navy sm:text-xl">
+        <h3 className="font-geist text-lg font-semibold leading-snug tracking-[-0.025em] text-[#052B42] sm:text-xl">
           <Link
             href={href}
-            className="rounded-sm outline-none transition-colors duration-200 ease-out hover:text-[#397248] focus-visible:ring-2 focus-visible:ring-[#0a2540]"
+            className="rounded-sm outline-none transition-colors duration-200 ease-out hover:text-[#052B42] focus-visible:ring-2 focus-visible:ring-[#0a2540]"
           >
             {title}
           </Link>
         </h3>
-        <p className="mt-2 line-clamp-3 font-body text-sm leading-6 text-slate-500">
+        <p className="mt-2 line-clamp-3 font-body text-sm leading-6 text-[#052B42]">
           {excerpt}
         </p>
 
@@ -66,14 +66,14 @@ export function NewsCard({ title, excerpt, imageSrc, source, href = "/blog" }: N
           <span
             role="img"
             aria-label={source === "vk" ? "VK" : source === "telegram" ? "Telegram" : "YouTube"}
-            className="inline-flex h-8 min-w-8 items-center justify-center rounded-lg bg-[#0a2540]/[0.06] px-2.5 text-[#0a2540]"
+            className="inline-flex h-8 min-w-8 items-center justify-center rounded-lg bg-[#0a2540]/[0.06] px-2.5 text-[#052B42]"
           >
             <SourceIcon source={source} />
           </span>
           <Link
             href={href}
             aria-label={`Read ${title}`}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#0a2540]/15 text-[#0a2540] transition-colors duration-200 ease-out hover:border-[#0a2540] hover:bg-[#0a2540] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a2540]"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#0a2540]/15 text-[#052B42] transition-colors duration-200 ease-out hover:border-[#0a2540] hover:bg-[#0a2540] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a2540]"
           >
             <ArrowUpRight aria-hidden="true" className="h-5 w-5" strokeWidth={1.7} />
           </Link>

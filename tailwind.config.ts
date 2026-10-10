@@ -40,7 +40,7 @@ const config: Config = {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         // Brand colors from the mockups: flat fills only, no gradients.
-        navy: "#0F3550",
+        navy: "#052B42",
         lavender: "#D9E1FF",
         primary: {
           DEFAULT: "hsl(var(--primary))",

@@ -287,3 +287,140 @@ test("a published post maps to a landing news item and renders its blog link", (
   assert.ok(headings.some((texts) => texts.includes("Launch day")), "post title should be shown");
   act(() => view.unmount());
 });
+
+test("stage 7.1: hero is nowrap and category introduction is centered", () => {
+  const { HeroSection } = require("../components/site/hero-section.tsx");
+  const { CategoriesSection } = require("../components/site/categories-section.tsx");
+  const hero = create(React.createElement(HeroSection));
+  const heading = hero.root.findByType("h1");
+  assert.match(heading.props.className, /whitespace-nowrap/);
+  assert.match(heading.props.className, /text-\[clamp\(/);
+  assert.match(heading.props.className, /text-\[#052B42\]/);
+  assert.doesNotMatch(heading.props.className, /text-balance/);
+  const categories = create(React.createElement(CategoriesSection));
+  const intro = categories.root.findByProps({ id: "categories-heading" }).parent;
+  assert.match(intro.props.className, /mx-auto max-w-2xl text-center/);
+  assert.match(intro.findByType("p").props.className, /text-\[#052B42\]/);
+  hero.unmount();
+  categories.unmount();
+});
+
+test("stage 7.1: category titles have an explicit break, 3:4 ratio, grayscale and 45deg hover", () => {
+  const { ArrowUpRight } = require("lucide-react");
+  for (const title of ["Website mockup", "Badge design", "Poster design", "Banner design"]) {
+    const card = create(React.createElement(CategoryCard, { title, href: "/shop", gradientImageSrc: "/category.png" }));
+    const label = card.root.findByType("span");
+    assert.equal(label.children[0], title.split(" ")[0]);
+    assert.equal(label.children[1].type, "br");
+    assert.equal(label.children[2], title.split(" ")[1]);
+    assert.match(label.props.className, /font-geist/);
+    assert.match(label.props.className, /left-5 top-5/);
+    assert.match(label.parent.props.className, /aspect-\[3\/4\].*text-white/);
+    const arrow = card.root.findByType(ArrowUpRight);
+    assert.match(arrow.props.className, /bottom-5 right-5/);
+    assert.match(arrow.props.className, /duration-200 ease-out group-hover:rotate-45 group-focus-visible:rotate-45/);
+    assert.match(card.root.findByType("img").props.className, /duration-200 ease-out group-hover:grayscale/);
+    card.unmount();
+  }
+});
+
+test("stage 7.1: filled CTAs are white on navy, outline CTAs are navy", () => {
+  const { buttonVariants } = require("../components/ui/button.tsx");
+  for (const variant of ["default", "primary"]) {
+    assert.match(buttonVariants({ variant }), /bg-\[#052B42\] text-white/);
+    assert.doesNotMatch(buttonVariants({ variant }), /text-\[#052B42\]/);
+  }
+  assert.match(buttonVariants({ variant: "outline" }), /border-\[#052B42\].*text-\[#052B42\]/);
+  const { BreadcrumbBack } = require("../components/site/breadcrumb-back.tsx");
+  const back = create(React.createElement(BreadcrumbBack, { href: "/shop", label: "Back" }));
+  assert.match(back.root.findByType("a").props.className, /bg-\[#052B42\] text-white/);
+  const card = create(React.createElement(ServiceCard, { title: "Sign Design", href: "/shop/service" }));
+  const more = card.root.findByType("span");
+  assert.equal(more.children[0], "More");
+  assert.match(more.props.className, /bg-\[#052B42\] text-white/);
+  assert.equal(card.root.findAllByType("a").length, 1, "CTA must not create a nested link");
+  card.unmount();
+  back.unmount();
+});
+
+test("stage 7.1: dark sections retain white text, green icons and correct backgrounds", () => {
+  const { FeaturesSection } = require("../components/site/features-section.tsx");
+  const { Footer } = require("../components/site/footer.tsx");
+  const features = create(React.createElement(FeaturesSection));
+  assert.match(features.root.findByType("section").props.className, /bg-\[#0A2540\] text-white/);
+  for (const node of features.root.findAll((n) => ["h2", "p"].includes(n.type))) {
+    assert.match(node.props.className, /text-white/);
+    assert.doesNotMatch(node.props.className, /text-(navy|slate|gray)|text-\[#052B42\]/);
+  }
+  for (const icon of features.root.findAllByType("svg")) assert.match(icon.props.className, /text-green-500/);
+  const footer = create(React.createElement(Footer));
+  assert.match(footer.root.findByType("footer").props.className, /bg-\[#052B42\] text-white/);
+  for (const link of footer.root.findAllByType("a")) assert.match(link.props.className, /text-white\/60/);
+  assert.match(footer.root.findByType("p").props.className, /text-white\/10/);
+  features.unmount();
+  footer.unmount();
+});
+
+test("stage 7.1: news uses a light blue section with navy card text", () => {
+  clock();
+  let news;
+  act(() => { news = create(React.createElement(NewsSection, { items: [{ ...items[0], excerpt: "News excerpt", source: "vk" }] })); });
+  assert.match(news.root.findByType("section").props.className, /bg-\[#D6E4FF\]/);
+  for (const node of news.root.findAll((n) => ["h2", "h3", "p"].includes(n.type))) {
+    assert.match(node.props.className, /text-\[#052B42\]/);
+  }
+  act(() => news.unmount());
+});
+
+test("stage 7.1: populated service and article pages inherit navy without recoloring CTAs", async () => {
+  // Fixtures exercise the actual page markup without a database or route changes.
+  const data = require("../lib/data.ts");
+  const original = { getPublishedService: data.getPublishedService, getPublishedPost: data.getPublishedPost };
+  const { default: ServicePage } = require("../app/shop/[slug]/page.tsx");
+  const { default: BlogPostPage } = require("../app/blog/[slug]/page.tsx");
+  data.getPublishedService = async () => ({
+    id: "sign", title: "Sign Design", fullDesc: "Service description", coverImage: "",
+    includes: ["Technical expertise"], shapes: ["Classic light boxes"], resultText: "A production-ready layout",
+  });
+  data.getPublishedPost = async () => ({
+    id: "launch", slug: "launch", title: "Launch day", content: "<h2>About our work</h2><p>Article body.</p>",
+    coverImage: "", readTime: 4, publishedAt: new Date("2026-10-07T00:00:00Z"),
+  });
+  try {
+    const service = create(await ServicePage({ params: Promise.resolve({ slug: "sign" }) }));
+    const heading = service.root.findByType("h1");
+    assert.match(heading.parent.parent.parent.props.className, /text-\[#052B42\]/);
+    const order = service.root.findAllByType("a").find((link) => link.children.includes("Order"));
+    assert.match(order.props.className, /bg-\[#052B42\] text-white/);
+    const article = create(await BlogPostPage({ params: Promise.resolve({ slug: "launch" }) }));
+    assert.match(article.root.findByType("article").props.className, /text-\[#052B42\]/);
+    assert.match(article.root.findByType("header").findByType("p").props.className, /text-\[#052B42\]/);
+    const body = article.root.findAllByType("div").find((node) => node.props.dangerouslySetInnerHTML);
+    assert.match(body.props.dangerouslySetInnerHTML.__html, /<h2>About our work<\/h2>/);
+    service.unmount();
+    article.unmount();
+  } finally {
+    Object.assign(data, original);
+  }
+});
+
+test("category cards use all four bundled gradients in reference order", () => {
+  const { CategoriesSection } = require("../components/site/categories-section.tsx");
+  const view = create(React.createElement(CategoriesSection));
+  try {
+    const expected = [
+      ["Website mockup", "/assets/gradients/category-bg.png"],
+      ["Badge design", "/assets/gradients/category-bg2.png"],
+      ["Poster design", "/assets/gradients/category-bg3.png"],
+      ["Banner design", "/assets/gradients/category-bg4.png"],
+    ];
+    const cards = view.root.findAllByType(CategoryCard);
+    assert.deepEqual(cards.map(({ props }) => [props.title, props.gradientImageSrc]), expected);
+    for (const card of cards) {
+      assert.equal(card.findByType("img").props.src, card.props.gradientImageSrc);
+      assert.ok(fs.existsSync(path.join(__dirname, "..", "public", card.props.gradientImageSrc)));
+    }
+  } finally {
+    view.unmount();
+  }
+});
