@@ -69,7 +69,7 @@ function NavigationDropdown({
           type="button"
           aria-haspopup="menu"
           className={cn(
-            "group inline-flex items-center gap-1.5 font-body text-[13px] font-medium uppercase tracking-wide text-navy transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy",
+            "group inline-flex items-center gap-1.5 font-body text-[13px] font-medium uppercase tracking-wide text-[#052B42] transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy",
             compact
               ? "w-full justify-between rounded-lg py-3 text-sm"
               : "rounded-lg px-2.5 py-2 hover:bg-navy/[0.06] data-[state=open]:bg-navy/[0.06] xl:px-3"
@@ -93,7 +93,7 @@ function NavigationDropdown({
             <Link
               href={link.href}
               onClick={onNavigate}
-              className="cursor-pointer rounded-lg px-3 py-2.5 text-sm font-medium normal-case tracking-normal text-slate-700 transition-colors duration-200 ease-out hover:bg-slate-50 hover:text-navy focus:bg-slate-50 focus:text-navy"
+              className="cursor-pointer rounded-lg px-3 py-2.5 text-sm font-medium normal-case tracking-normal text-[#052B42] transition-colors duration-200 ease-out hover:bg-slate-50 hover:text-[#052B42] focus:bg-slate-50 focus:text-[#052B42]"
             >
               {link.label}
             </Link>
@@ -138,7 +138,7 @@ export function Header() {
   return (
     <header
       className={cn(
-        "fixed inset-x-0 top-0 z-40 h-16 border-b transition-[background-color,border-color,backdrop-filter] duration-250 ease-out",
+        "site-header fixed inset-x-0 top-0 z-40 h-16 w-full border-b transition-[background-color,border-color,backdrop-filter] duration-250 ease-out",
         scrolled
           ? "border-gray-100 bg-white/95 backdrop-blur-sm"
           : "border-transparent bg-transparent"
@@ -157,7 +157,7 @@ export function Header() {
         {/* Center: main navigation with dropdowns */}
         <nav
           aria-label="Main navigation"
-          className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-1 md:flex"
+          className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-1 lg:flex"
         >
           {navigation.map((item) => (
             <NavigationDropdown key={item.label} item={item} />
@@ -169,13 +169,13 @@ export function Header() {
           <button
             type="button"
             aria-label="Language: English"
-            className="rounded-sm border-b border-navy px-1 pb-0.5 font-body text-sm font-medium leading-none text-navy transition-colors duration-200 ease-out hover:text-[#397248] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
+            className="rounded-sm border-b border-navy px-1 pb-0.5 font-body text-sm font-medium leading-none text-[#052B42] transition-colors duration-200 ease-out hover:text-[#052B42] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
           >
             Aa
           </button>
           <Link
             href="/contact"
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "hidden md:inline-flex")}
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "hidden lg:inline-flex")}
           >
             Contact
           </Link>
@@ -190,7 +190,7 @@ export function Header() {
               "disabled:opacity-60",
               session?.user
                 ? "rounded-full p-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2"
-                : buttonVariants({ variant: "default", size: "sm" })
+                : buttonVariants({ variant: "default", size: "sm", className: "min-w-[6.25rem]" })
             )}
           >
             {session?.user ? <UserAvatar user={session.user} size={36} /> : status === "loading" ? "Loading…" : "Log in"}
@@ -201,18 +201,18 @@ export function Header() {
             aria-expanded={mobileOpen}
             aria-controls="mobile-navigation"
             onClick={() => setMobileOpen((open) => !open)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-navy transition-colors duration-200 ease-out hover:bg-navy/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy md:hidden"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[#052B42] transition-colors duration-200 ease-out hover:bg-navy/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy lg:hidden"
           >
             {mobileOpen ? <X aria-hidden="true" className="h-5 w-5" /> : <Menu aria-hidden="true" className="h-5 w-5" />}
           </button>
         </div>
       </div>
 
-      {/* Mobile navigation (<768px) */}
+      {/* Mobile navigation (<1024px) */}
       {mobileOpen ? (
         <div
           id="mobile-navigation"
-          className="absolute inset-x-0 top-full max-h-[calc(100vh-4rem)] overflow-y-auto border-b border-gray-100 bg-white px-5 pb-5 pt-2 font-body shadow-[0_16px_36px_rgba(10,37,64,0.12)] md:hidden"
+          className="absolute inset-x-0 top-full max-h-[calc(100vh-4rem)] overflow-y-auto border-b border-gray-100 bg-white px-5 pb-5 pt-2 font-body shadow-[0_16px_36px_rgba(10,37,64,0.12)] lg:hidden"
         >
           <nav aria-label="Mobile main navigation">
             {navigation.map((item) => (

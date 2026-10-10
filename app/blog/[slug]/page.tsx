@@ -54,10 +54,10 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
   return (
     <>
-      <article className="mx-auto max-w-4xl px-4 py-12 sm:px-8 sm:py-16">
+      <article className="text-[#052B42] mx-auto max-w-4xl px-4 py-12 sm:px-8 sm:py-16">
         <header>
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">{post.title}</h1>
-          {meta && <p className="mt-4 text-muted-foreground">{meta}</p>}
+          {meta && <p className="mt-4 text-[#052B42]">{meta}</p>}
         </header>
 
         {post.coverImage && (
@@ -100,8 +100,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         </nav>
       </article>
 
-      <section aria-labelledby="post-other-news" className="bg-lavender">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-8 sm:py-20">
+      <section aria-labelledby="post-other-news" className="bg-[#D6E4FF] text-[#052B42]">
+        <div className="text-[#052B42] mx-auto max-w-7xl px-4 py-16 sm:px-8 sm:py-20">
           <h2
             id="post-other-news"
             className="text-center text-3xl font-bold tracking-tight sm:text-4xl"

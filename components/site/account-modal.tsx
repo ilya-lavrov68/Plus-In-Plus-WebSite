@@ -84,8 +84,8 @@ function ProfilePanel({ user, onClose }: { user: UserProfile; onClose: () => voi
       <div className="flex items-center gap-4 rounded-xl bg-slate-50 p-4">
         <UserAvatar user={user} />
         <div className="min-w-0">
-          <p className="break-words text-lg font-semibold text-[#0a2540]">{profileName(user) || "Your account"}</p>
-          <p className="break-all text-sm text-muted-foreground">{user.email}</p>
+          <p className="break-words text-lg font-semibold text-[#052B42]">{profileName(user) || "Your account"}</p>
+          <p className="break-all text-sm text-[#052B42]">{user.email}</p>
           {user.role === "ADMIN" ? <p className="mt-1 text-xs font-medium text-[#397248]">Admin session</p> : null}
         </div>
       </div>
@@ -119,7 +119,7 @@ function ProfilePanel({ user, onClose }: { user: UserProfile; onClose: () => voi
                   setFilename(file?.name ?? null);
                 }}
               />
-              <p id="avatar-help" className="text-xs leading-relaxed text-muted-foreground">
+              <p id="avatar-help" className="text-xs leading-relaxed text-[#052B42]">
                 PNG, JPEG, WebP, GIF or AVIF, up to 2 MB. Stored locally. Leave empty to keep your current avatar.
                 {filename ? ` Selected: ${filename}` : ""}
               </p>
@@ -139,7 +139,7 @@ function ProfilePanel({ user, onClose }: { user: UserProfile; onClose: () => voi
             <Pencil aria-hidden="true" className="h-4 w-4" />Edit profile
           </Button>
           {user.role === "ADMIN" ? (
-            <Link href="/admin/dashboard" onClick={onClose} className="flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium text-[#0a2540] underline-offset-4 hover:underline">
+            <Link href="/admin/dashboard" onClick={onClose} className="flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium text-[#052B42] underline-offset-4 hover:underline">
               Admin dashboard<ArrowUpRight aria-hidden="true" className="h-4 w-4" />
             </Link>
           ) : null}
@@ -239,7 +239,7 @@ export function AccountModal({ open, onOpenChange }: AccountModalProps) {
         </DialogHeader>
 
         {session?.user ? <ProfilePanel user={session.user} onClose={() => onOpenChange(false)} /> : status === "loading" ? (
-          <p role="status" className="py-8 text-center text-sm text-muted-foreground">Loading your account…</p>
+          <p role="status" className="py-8 text-center text-sm text-[#052B42]">Loading your account…</p>
         ) : (
           <Tabs value={tab} onValueChange={switchTab}>
             <TabsList className="mb-3 grid w-full grid-cols-2">
@@ -260,13 +260,13 @@ export function AccountModal({ open, onOpenChange }: AccountModalProps) {
                   <div className={cn("flex items-center justify-between gap-4 rounded-lg border p-3 transition-colors", adminMode ? "border-[#397248] bg-green-50" : "border-border")}>
                     <div>
                       <Label htmlFor="admin-mode" className="flex cursor-pointer items-center gap-2"><ShieldCheck aria-hidden="true" className="h-4 w-4" />Admin mode</Label>
-                      <p id="admin-mode-help" className="mt-1 text-xs text-muted-foreground">For existing administrators only.</p>
+                      <p id="admin-mode-help" className="mt-1 text-xs text-[#052B42]">For existing administrators only.</p>
                     </div>
                     <Switch id="admin-mode" aria-describedby="admin-mode-help" checked={adminMode} onCheckedChange={(value) => { setAdminMode(value); setError(null); }} disabled={pending} />
                   </div>
                   <FormError message={error} />
                   <Button type="submit" className="w-full">{pending ? "Signing in…" : "Log in"}</Button>
-                  <button type="button" className="w-full rounded text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => switchTab("register")}>
+                  <button type="button" className="w-full rounded text-sm text-[#052B42] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => switchTab("register")}>
                     Don&apos;t have an account? Register
                   </button>
                 </fieldset>
@@ -292,7 +292,7 @@ export function AccountModal({ open, onOpenChange }: AccountModalProps) {
                   <div className="space-y-2">
                     <Label htmlFor="register-password">Password</Label>
                     <Input id="register-password" name="password" type="password" autoComplete="new-password" required minLength={12} maxLength={72} aria-describedby="password-help" />
-                    <p id="password-help" className="text-xs text-muted-foreground">At least 12 characters, at most 72 UTF-8 bytes.</p>
+                    <p id="password-help" className="text-xs text-[#052B42]">At least 12 characters, at most 72 UTF-8 bytes.</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="register-confirm-password">Confirm password</Label>

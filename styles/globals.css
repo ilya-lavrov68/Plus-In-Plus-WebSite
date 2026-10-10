@@ -62,7 +62,7 @@
   --color-accent-foreground: hsl(var(--accent-foreground));
   --color-destructive: hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
-  --color-navy: #0a2540;
+  --color-navy: #052B42;
   --color-lavender: #e8f0fe;
 
   --radius-lg: var(--radius);
@@ -77,20 +77,22 @@
 
 @layer base {
   :root {
+    /* HSL equivalent of #052B42 for the shared foreground tokens. */
+    --navy-foreground: 202.62295082 85.91549296% 13.92156863%;
     --background: 0 0% 100%;
-    --foreground: 0 0% 4%;
+    --foreground: var(--navy-foreground);
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 4%;
+    --card-foreground: var(--navy-foreground);
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 4%;
+    --popover-foreground: var(--navy-foreground);
     --primary: 0 0% 4%;
     --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 4%;
+    --secondary-foreground: var(--navy-foreground);
     --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
+    --muted-foreground: var(--navy-foreground);
     --accent: 0 0% 94%;
-    --accent-foreground: 0 0% 4%;
+    --accent-foreground: var(--navy-foreground);
     --destructive: 0 0% 4%;
     --destructive-foreground: 0 0% 100%;
     --border: 0 0% 90%;
@@ -101,6 +103,12 @@
 
   * {
     @apply border-border;
+  }
+
+  /* Reserve the scrollbar lane on short pages and while Radix locks scrolling.
+     Fixed headers then keep the same containing-block width on every route. */
+  html {
+    scrollbar-gutter: stable;
   }
 
   body {
@@ -174,5 +182,20 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
+  }
+}
+
+/* Radix already locks body scrolling. With a stable root gutter its extra
+   margin would reserve the scrollbar twice. Keep its default compensation as
+   a fallback in older browsers; never hard-code a 15px scrollbar width. */
+@supports (scrollbar-gutter: stable) {
+  html body[data-scroll-locked] {
+    margin-right: 0 !important;
+  }
+}
+
+@supports not (scrollbar-gutter: stable) {
+  body[data-scroll-locked] .site-header {
+    width: calc(100% - var(--removed-body-scroll-bar-size, 0px));
   }
 }

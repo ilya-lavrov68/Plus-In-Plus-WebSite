@@ -24,7 +24,7 @@ export default async function ShopPage() {
 
   return (
     <>
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-8">
+      <div className="text-[#052B42] mx-auto max-w-7xl px-4 py-16 sm:px-8">
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Our Services</h1>
 
         <section aria-labelledby="small-designs" className="mt-12">
@@ -64,7 +64,7 @@ export default async function ShopPage() {
             Large designs
             <ArrowRight aria-hidden="true" className="h-6 w-6" />
           </h2>
-          <p className="mt-3 text-muted-foreground">Above It All. Rough Roads, Louder Message.</p>
+          <p className="mt-3 text-[#052B42]">Above It All. Rough Roads, Louder Message.</p>
           {largeServices.length ? (
             <ul className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {largeServices.map((service) => (
@@ -87,8 +87,8 @@ export default async function ShopPage() {
         </section>
       </div>
 
-      <section aria-labelledby="shop-other-news" className="bg-lavender">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-8 sm:py-20">
+      <section aria-labelledby="shop-other-news" className="bg-[#D6E4FF] text-[#052B42]">
+        <div className="text-[#052B42] mx-auto max-w-7xl px-4 py-16 sm:px-8 sm:py-20">
           <h2
             id="shop-other-news"
             className="text-center text-3xl font-bold tracking-tight sm:text-4xl"

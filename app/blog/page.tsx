@@ -20,7 +20,7 @@ export default async function BlogPage() {
   const newsItems = posts.map(toNewsItem);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-16 sm:px-8">
+    <div className="text-[#052B42] mx-auto max-w-7xl px-4 py-16 sm:px-8">
       <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Blog</h1>
       <div className="mt-10">
         {newsItems.length ? (

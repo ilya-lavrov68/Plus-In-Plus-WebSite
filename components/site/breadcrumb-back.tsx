@@ -1,6 +1,7 @@
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export interface BreadcrumbBackProps {
@@ -16,7 +17,8 @@ export function BreadcrumbBack({ href, label, className }: BreadcrumbBackProps) 
       href={href}
       aria-label={label}
       className={cn(
-        "inline-flex shrink-0 items-center gap-1 rounded-sm text-xl font-semibold transition-colors duration-200 ease-out hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        buttonVariants({ variant: "default" }),
+        "shrink-0",
         className
       )}
     >

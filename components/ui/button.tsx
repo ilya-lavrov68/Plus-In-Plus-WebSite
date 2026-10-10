@@ -14,14 +14,14 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-navy text-white hover:bg-[#153c5c]",
-        primary: "bg-navy text-white hover:bg-[#153c5c]",
+        default: "bg-[#052B42] text-white hover:bg-[#153c5c]",
+        primary: "bg-[#052B42] text-white hover:bg-[#153c5c]",
         outline:
-          "border border-navy bg-transparent text-navy hover:bg-navy/[0.06]",
-        ghost: "bg-transparent text-navy hover:bg-navy/[0.06]",
+          "border border-[#052B42] bg-transparent text-[#052B42] hover:bg-navy/[0.06]",
+        ghost: "bg-transparent text-[#052B42] hover:bg-navy/[0.06]",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        link: "text-navy underline-offset-4 hover:underline",
+        link: "text-[#052B42] underline-offset-4 hover:underline",
       },
       size: {
         default: "h-11 px-6 rounded-xl",
