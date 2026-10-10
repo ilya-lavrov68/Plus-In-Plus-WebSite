@@ -62,7 +62,7 @@ beforeEach(() => {
 
 test("registration ALWAYS creates USER, even the first account with malicious admin fields", async () => {
   const input = { ...registration(), role: "ADMIN", adminMode: true, id: "chosen-id", avatar: "https://remote.test/avatar" };
-  assert.deepEqual(await registerUser(input), { ok: true });
+  assert.deepEqual(await registerUser(input), { ok: true, success: true, isAdmin: false });
   assert.equal(users.length, 1);
   assert.equal(users[0].role, "USER");
   assert.equal(users[0].email, "person@example.com");
@@ -87,6 +87,21 @@ test("registration validates names, confirm password and bcrypt UTF-8 byte limit
   assert.equal(signIns.length, 0);
 });
 
+test("registration accepts plain FormData (spec) and still forces the USER role", async () => {
+  const form = new FormData();
+  form.set("firstName", " Form "); form.set("lastName", "Data");
+  form.set("email", " Form@Example.com "); form.set("password", "a-long-passphrase");
+  // Extra fields a hostile payload could submit; the action reads none of them.
+  form.set("role", "ADMIN"); form.set("adminMode", "true"); form.set("id", "chosen-id");
+  assert.deepEqual(await registerUser(form), { ok: true, success: true, isAdmin: false });
+  assert.equal(users.length, 1);
+  assert.equal(users[0].role, "USER");
+  assert.equal(users[0].email, "form@example.com");
+  assert.equal(users[0].firstName, "Form");
+  assert.equal(users[0].id === "chosen-id", false);
+  assert.equal(signIns[0].adminMode, "false");
+});
+
 test("duplicate registrations and unique-constraint races fail without automatic login", async () => {
   users.push({ id: "existing-mock", email: "person@example.com", role: "USER" });
   assert.equal((await registerUser(registration())).ok, false);
@@ -104,14 +119,45 @@ test("registration reports a created account if automatic login is temporarily u
   assert.equal(users[0].role, "USER");
 });
 
-test("login translates the admin-only error and chooses only the fixed admin redirect", async () => {
+test("admin mode passes only for an existing ADMIN row and never for a regular account", async () => {
+  users.push({ id: "user-mock", email: "person@example.com", role: "USER", passwordHash: "hash" });
+  assert.deepEqual(await loginUser({ ...registration(), adminMode: true }), {
+    ok: false, success: false, error: "Admin account not found. Please log in as a regular user.",
+  });
+  // The non-admin admin-mode attempt never reaches Auth.js, so no session is created.
+  assert.equal(signIns.length, 0);
+
+  users = [{ id: "admin-mock", email: "person@example.com", role: "ADMIN", passwordHash: "hash" }];
   signinError = Object.assign(new CredentialsSignin(), { code: "admin_account_not_found" });
   const result = await loginUser({ ...registration(), adminMode: true });
   assert.equal(result.error, "Admin account not found. Please log in as a regular user.");
+
   signinError = null;
-  assert.deepEqual(await loginUser({ ...registration(), adminMode: true }), { ok: true, redirectTo: "/admin/dashboard" });
-  assert.deepEqual(await loginUser({ ...registration(), adminMode: false, redirectTo: "https://evil.test" }), { ok: true });
+  assert.deepEqual(await loginUser({ ...registration(), adminMode: true }), {
+    ok: true, success: true, isAdmin: true, redirectTo: "/admin/dashboard",
+  });
+  assert.equal(signIns.at(-1).adminMode, "true");
+  assert.deepEqual(await loginUser({ ...registration(), adminMode: false, redirectTo: "https://evil.test" }), {
+    ok: true, success: true, isAdmin: false,
+  });
+  // An admin account that does not ask for admin mode gets a regular session.
+  assert.equal(signIns.at(-1).adminMode, "false");
   assert.equal(signIns.at(-1).redirectTo, "/");
+});
+
+test("login accepts FormData with the isAdminMode flag", async () => {
+  users.push({ id: "user-mock", email: "person@example.com", role: "USER", passwordHash: "hash" });
+  const regular = new FormData();
+  regular.set("email", " Person@Example.com "); regular.set("password", "a-long-passphrase"); regular.set("isAdminMode", "false");
+  assert.deepEqual(await loginUser(regular), { ok: true, success: true, isAdmin: false });
+  assert.equal(signIns[0].adminMode, "false");
+  assert.equal(signIns[0].email, "person@example.com");
+
+  const admin = new FormData();
+  admin.set("email", "person@example.com"); admin.set("password", "a-long-passphrase"); admin.set("isAdminMode", "true");
+  assert.deepEqual(await loginUser(admin), {
+    ok: false, success: false, error: "Admin account not found. Please log in as a regular user.",
+  });
 });
 
 test("profile changes require authentication and ignore submitted id, email, role and hash", async () => {
@@ -165,6 +211,6 @@ test("failed profile transaction removes the new file, preserving the previous a
 });
 
 test("logout delegates cookie invalidation to Auth.js without an arbitrary redirect", async () => {
-  assert.deepEqual(await logout(), { ok: true });
+  assert.deepEqual(await logout(), { ok: true, success: true });
   assert.deepEqual(signOuts, [{ redirect: false, redirectTo: "/" }]);
 });

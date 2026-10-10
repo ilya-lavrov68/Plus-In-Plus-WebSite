@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { Header } from "@/components/site/header";
 import { Footer } from "@/components/site/footer";
-import { AuthSessionProvider } from "@/components/site/session-provider";
+import { Providers } from "@/app/providers";
 import { DEFAULT_SITE_DESCRIPTION, SITE_NAME, SITE_URL, absoluteUrl } from "@/lib/seo";
 
 import "@/styles/globals.css";
@@ -29,11 +29,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="flex min-h-screen flex-col">
-        <AuthSessionProvider>
+        <Providers>
           <Header />
           <main className="flex-1 pt-16">{children}</main>
           <Footer />
-        </AuthSessionProvider>
+        </Providers>
       </body>
     </html>
   );

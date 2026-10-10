@@ -17,7 +17,7 @@ for (const extension of [".ts", ".tsx"]) require.extensions[extension] = (module
   compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true, target: ts.ScriptTarget.ES2022 },
 }).outputText, filename);
 
-let initialSession, nextSession, setSession, calls, pushes, replacements, loginResult, registerResult, profileResult;
+let initialSession, nextSession, setSession, calls, pushes, replacements, openChanges, loginResult, registerResult, profileResult;
 const profile = { id: "mock-only", email: "person@example.com", firstName: "First", lastName: "Last", avatar: null, role: "USER" };
 const tag = (name) => ({ children, ...props }) => React.createElement(name, props, children);
 const originalLoad = Module._load;
@@ -30,7 +30,7 @@ Module._load = function (name, parent, isMain) {
     loginUser: async (input) => { calls.push(["login", input]); return loginResult; },
     registerUser: async (input) => { calls.push(["register", input]); return registerResult; },
     updateUserProfile: async (input) => { calls.push(["profile", input]); return profileResult; },
-    logout: async () => { calls.push(["logout"]); return { ok: true }; },
+    logout: async () => { calls.push(["logout"]); return { ok: true, success: true }; },
   };
   if (name === "@/components/ui/dialog") return {
     Dialog: ({ open, children }) => open ? React.createElement(React.Fragment, null, children) : null,
@@ -51,10 +51,12 @@ const { Header } = require("../components/site/header.tsx");
 const { UserAvatar } = require("../components/site/user-avatar.tsx");
 
 beforeEach(() => {
-  initialSession = null; nextSession = { user: { ...profile } }; calls = []; pushes = []; replacements = [];
-  loginResult = { ok: true }; registerResult = { ok: true }; profileResult = { ok: true };
+  initialSession = null; nextSession = { user: { ...profile } }; calls = []; pushes = []; replacements = []; openChanges = [];
+  loginResult = { ok: true, success: true, isAdmin: false };
+  registerResult = { ok: true, success: true, isAdmin: false };
+  profileResult = { ok: true, success: true };
   global.window = { scrollY: 0, addEventListener() {}, removeEventListener() {} };
-  // The header's navigation dropdowns (Radix menu) attach document listeners on mount.
+  // The header (hover dropdowns, scroll listener) needs a document stub when mounted.
   global.document = { hidden: false, addEventListener() {}, removeEventListener() {} };
 });
 function Harness({ children }) {
@@ -66,7 +68,7 @@ function mount(child) { let view; act(() => { view = create(React.createElement(
 const content = (node) => node.children.map((child) => typeof child === "string" ? child : content(child)).join("");
 const button = (view, label) => view.root.findAllByType("button").find((node) => content(node) === label);
 const alert = (view) => view.root.findAll((n) => n.type === "p" && n.props.role === "alert").map(content).join(" ");
-const modal = () => React.createElement(AccountModal, { open: true, onOpenChange() {} });
+const modal = () => React.createElement(AccountModal, { open: true, onOpenChange: (value) => openChanges.push(value) });
 async function submit(view, label, fields) {
   const form = new FormData(); for (const [key, value] of Object.entries(fields)) form.set(key, value);
   await act(async () => { await view.root.findByProps({ "aria-label": label }).props.onSubmit({ preventDefault() {}, currentTarget: form }); });
@@ -95,12 +97,14 @@ test("the registration link switches tabs and mismatched passwords never reach t
   act(() => view.unmount());
 });
 
-test("successful registration stays in the dialog and shows the authenticated profile", async () => {
+test("successful registration logs the user in, closes the dialog and never sends admin fields", async () => {
   const view = mount(modal());
   act(() => button(view, "Register").props.onClick());
   await submit(view, "Register", { firstName: "First", lastName: "Last", email: "person@example.com", password: "valid-passphrase", confirmPassword: "valid-passphrase" });
   assert.equal(calls[0][0], "register");
   assert.equal("adminMode" in calls[0][1], false); assert.equal("role" in calls[0][1], false);
+  // The automatic login refreshes the session, so the dialog asks to close (setOpen(false)).
+  assert.deepEqual(openChanges, [false]);
   assert.ok(button(view, "Edit profile")); assert.ok(button(view, "Log out"));
   assert.equal(view.root.findAllByProps({ role: "switch" }).length, 0);
   assert.equal(pushes.length, 0);
@@ -108,21 +112,33 @@ test("successful registration stays in the dialog and shows the authenticated pr
   act(() => view.unmount());
 });
 
-test("ordinary login shows the profile, while explicit admin login redirects", async () => {
+test("ordinary login closes the dialog, while explicit admin login redirects", async () => {
   let view = mount(modal());
   await submit(view, "Log in", { email: profile.email, password: "valid-passphrase" });
-  assert.equal(calls[0][1].adminMode, false); assert.ok(button(view, "Edit profile")); assert.equal(pushes.length, 0);
+  assert.equal(calls[0][1].adminMode, false); assert.equal(pushes.length, 0);
+  assert.deepEqual(openChanges, [false]);
   act(() => view.unmount());
-  view = mount(modal()); loginResult = { ok: true, redirectTo: "/admin/dashboard" };
+
+  // An admin account that forgets the switch stays a regular session.
+  openChanges = [];
+  view = mount(modal()); loginResult = { ok: true, success: true, isAdmin: false };
+  await submit(view, "Log in", { email: profile.email, password: "valid-passphrase" });
+  assert.deepEqual(openChanges, [false]); assert.equal(pushes.length, 0);
+  act(() => view.unmount());
+
+  openChanges = [];
+  view = mount(modal()); loginResult = { ok: true, success: true, isAdmin: true, redirectTo: "/admin/dashboard" };
   nextSession = { user: { ...profile, role: "ADMIN" } };
   act(() => view.root.findByProps({ role: "switch" }).props.onClick());
   await submit(view, "Log in", { email: profile.email, password: "valid-passphrase" });
-  assert.equal(calls.at(-1)[1].adminMode, true); assert.deepEqual(pushes, ["/admin/dashboard"]);
+  assert.equal(calls.at(-1)[1].adminMode, true);
+  assert.deepEqual(pushes, ["/admin/dashboard"]);
+  assert.deepEqual(openChanges, [false]);
   act(() => view.unmount());
 });
 
 test("failed admin lookup shows the server message without changing the session", async () => {
-  loginResult = { ok: false, error: "Admin account not found. Please log in as a regular user." };
+  loginResult = { ok: false, success: false, error: "Admin account not found. Please log in as a regular user." };
   const view = mount(modal());
   act(() => view.root.findByProps({ role: "switch" }).props.onClick());
   await submit(view, "Log in", { email: profile.email, password: "valid-passphrase" });
@@ -149,6 +165,8 @@ test("header opens the same profile dialog and profile save refreshes both avata
   assert.ok(view.root.findAllByProps({ role: "status" }).some((n) => content(n) === "Profile updated."));
   await act(async () => { await button(view, "Log out").props.onClick(); });
   assert.equal(calls.at(-1)[0], "logout");
+  // Logging out also closes the dialog (no account panel left) and the header falls back to "Log in".
+  assert.equal(button(view, "Edit profile"), undefined);
   assert.ok(view.root.findByProps({ "aria-label": "Log in", "aria-haspopup": "dialog" }));
   act(() => view.unmount());
 });

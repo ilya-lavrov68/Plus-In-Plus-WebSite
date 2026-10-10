@@ -7,6 +7,7 @@ import { signOut, useSession } from "next-auth/react";
 import { ArrowUpRight, LogOut, Pencil, ShieldCheck, Upload } from "lucide-react";
 
 import { loginUser, logout, registerUser, updateUserProfile } from "@/app/actions/auth";
+import type { AuthActionResult } from "@/app/actions/auth";
 import { UserAvatar } from "@/components/site/user-avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -70,7 +71,8 @@ function ProfilePanel({ user, onClose }: { user: UserProfile; onClose: () => voi
       if (!result.ok) { setError(result.error ?? "Unable to log out."); return; }
       // Clear Auth.js's client cache and broadcast the server-side logout to other tabs.
       await signOut({ redirect: false, redirectTo: "/" });
-      if (pathname.startsWith("/admin")) { onClose(); router.replace("/"); }
+      onClose();
+      if (pathname.startsWith("/admin")) router.replace("/");
       router.refresh();
     } catch {
       setError("Unable to log out. Please try again.");
@@ -84,7 +86,7 @@ function ProfilePanel({ user, onClose }: { user: UserProfile; onClose: () => voi
       <div className="flex items-center gap-4 rounded-xl bg-slate-50 p-4">
         <UserAvatar user={user} />
         <div className="min-w-0">
-          <p className="break-words text-lg font-semibold text-[#052B42]">{profileName(user) || "Your account"}</p>
+          <p className="break-words text-lg font-semibold text-[#052B42]">{profileName(user) || user.email}</p>
           <p className="break-all text-sm text-[#052B42]">{user.email}</p>
           {user.role === "ADMIN" ? <p className="mt-1 text-xs font-medium text-[#397248]">Admin session</p> : null}
         </div>
@@ -168,12 +170,29 @@ export function AccountModal({ open, onOpenChange }: AccountModalProps) {
     setError(null);
   }
 
-  async function finishLogin(redirectTo?: "/admin/dashboard") {
+  function handleOpenChange(value: boolean) {
+    if (!value) {
+      setAdminMode(false);
+      setError(null);
+      setTab("login");
+    }
+    onOpenChange(value);
+  }
+
+  /**
+   * Admin logins go straight to the dashboard; a regular login or a registration
+   * closes the modal and refreshes the session so the header shows the avatar.
+   */
+  async function finishLogin(result: AuthActionResult) {
     const refreshed = await update();
     if (!refreshed?.user) { setError("Unable to refresh your session. Please reload the page."); return; }
     setAdminMode(false);
-    if (redirectTo) { onOpenChange(false); router.push(redirectTo); }
-    // Regular login and registration keep the dialog open, now displaying the profile.
+    if (result.isAdmin && result.redirectTo) {
+      onOpenChange(false);
+      router.push(result.redirectTo);
+      return;
+    }
+    onOpenChange(false);
     router.refresh();
   }
 
@@ -186,7 +205,7 @@ export function AccountModal({ open, onOpenChange }: AccountModalProps) {
     try {
       const result = await loginUser({ email: String(data.get("email") ?? ""), password: String(data.get("password") ?? ""), adminMode });
       if (!result.ok) { setError(result.error ?? "Unable to log in."); return; }
-      await finishLogin(result.redirectTo);
+      await finishLogin(result);
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -214,7 +233,8 @@ export function AccountModal({ open, onOpenChange }: AccountModalProps) {
         setError(result.error ?? "Unable to register.");
         return;
       }
-      await finishLogin();
+      // Registration logs the new account in, so it closes the modal like a login.
+      await finishLogin(result);
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -223,7 +243,7 @@ export function AccountModal({ open, onOpenChange }: AccountModalProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={(value) => { if (!value) { setAdminMode(false); setError(null); } onOpenChange(value); }}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         className="max-h-[90dvh] w-[calc(100vw_-_2rem)] overflow-y-auto rounded-xl transition-none sm:max-w-md"
         onCloseAutoFocus={(event) => {

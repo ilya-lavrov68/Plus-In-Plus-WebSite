@@ -38,7 +38,13 @@ const { default: ShopPage } = require("../app/shop/page.tsx");
 const { default: BlogPage } = require("../app/blog/page.tsx");
 const { default: sitemap } = require("../app/sitemap.ts");
 const { default: robots } = require("../app/robots.ts");
-const { ArrowRight } = require("lucide-react");
+const { ArrowRight, ChevronDown } = require("lucide-react");
+const content = (node) => {
+  const children = Array.isArray(node) ? node : node?.children ?? [];
+  return (Array.isArray(children) ? children : [])
+    .map((child) => typeof child === "string" ? child : child && typeof child === "object" && child.children ? content(child) : "")
+    .join("");
+};
 
 function clock() {
   let now = 0;
@@ -140,6 +146,55 @@ test("header switches background only above 50px and removes its listener", () =
   assert.match(header(), /duration-250 ease-out/);
   act(() => view.unmount());
   assert.equal(timer.listeners.has("scroll"), false);
+});
+
+test("header navigation dropdowns open on hover (group-hover), never on click", () => {
+  const timer = clock();
+  let view;
+  act(() => { view = create(React.createElement(Header)); });
+  const groups = view.root.findAll((node) => typeof node.props?.className === "string" && node.props.className.includes("group relative"));
+  // FOR PLAY, SHOP, ABOUT PIP, SOCNET.
+  assert.equal(groups.length, 4);
+
+  for (const item of ["FOR PLAY", "SHOP", "ABOUT PIP", "SOCNET"]) {
+    const group = view.root.findAll((node) => typeof node.props?.className === "string" && node.props.className.includes("group relative"))
+      .find((node) => node.findAll((child) => child.type === "button" && content(child).startsWith(item)).length === 1);
+    assert.ok(group, `${item} dropdown is missing`);
+
+    // The trigger is a plain button with no click handler (no Radix, no onClick toggle).
+    const trigger = group.findAllByType("button")[0];
+    assert.equal(trigger.props.onClick, undefined);
+    assert.equal(trigger.props["aria-haspopup"], "true");
+    // Clicking it must not reveal the menu: only CSS hover/focus does.
+    const panel = group.findAll((node) => typeof node.props?.className === "string" && node.props.className.includes("min-w-[200px]"))[0];
+    assert.ok(panel);
+    assert.match(panel.props.className, /invisible/);
+    assert.match(panel.props.className, /opacity-0/);
+    assert.match(panel.props.className, /group-hover:visible/);
+    assert.match(panel.props.className, /group-hover:opacity-100/);
+    assert.match(panel.props.className, /bg-white/);
+    assert.match(panel.props.className, /border-gray-200/);
+    assert.match(panel.props.className, /shadow-lg/);
+    assert.match(panel.props.className, /rounded-xl/);
+    // ~200ms grace period before the panel hides, so the cursor can move into it.
+    assert.match(panel.props.className, /delay-200/);
+    assert.match(panel.props.className, /group-hover:delay-0/);
+    // Chevron rotates 180deg while hovering the group.
+    assert.match(group.findAllByType(ChevronDown)[0].props.className, /transition-transform/);
+    assert.match(group.findAllByType(ChevronDown)[0].props.className, /group-hover:rotate-180/);
+  }
+
+  // SHOP links to the real services and SOCNET to the social profiles.
+  const shop = view.root.findAll((node) => typeof node.props?.className === "string" && node.props.className.includes("group relative"))[1];
+  assert.deepEqual(shop.findAllByType("a").map((node) => content(node)), [
+    "Sign Design", "Bag Design", "Outdoor glass poster", "Banner Design",
+    "Large Billboard on a building", "Rooftop advertising", "Advertisement on the fence", "Billboard",
+  ]);
+  const socnet = view.root.findAll((node) => typeof node.props?.className === "string" && node.props.className.includes("group relative"))[3];
+  assert.deepEqual(socnet.findAllByType("a").map((node) => node.props.href), [
+    "https://vk.com/plusinplus", "https://t.me/plusinplus", "https://www.youtube.com/@plusinplus",
+  ]);
+  act(() => view.unmount());
 });
 
 test("category stays static; service image and arrow use 200ms hover motion", () => {
