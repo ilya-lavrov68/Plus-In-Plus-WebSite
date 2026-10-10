@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "test": "node --test tests/*.test.cjs",
+    "prisma:generate": "node scripts/prisma-generate.cjs",
     "postinstall": "node scripts/prisma-generate.cjs"
   },
   "dependencies": {

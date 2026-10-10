@@ -6,19 +6,21 @@ NextAuth.js.
 ## Getting started
 
 ```bash
-npm install               # also generates the Prisma client into lib/generated/prisma (gitignored)
-cp .env.example .env      # set DATABASE_URL and NEXTAUTH_URL
-openssl rand -base64 32   # copy the output into NEXTAUTH_SECRET in .env
-npx prisma migrate deploy # creates the empty User/Service/Post tables (no seed data)
+cp .env.example .env      # PowerShell: Copy-Item .env.example .env
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+# Copy the generated value into NEXTAUTH_SECRET in .env.
+npm install               # also generates the Prisma client (no running DB required)
+npx prisma migrate deploy # start PostgreSQL first; creates the empty tables (no seed data)
 npm run dev               # http://localhost:3000
 ```
 
 The Prisma client is generated automatically by the `postinstall` script
 (`scripts/prisma-generate.cjs`), so `npm run build` works on a fresh checkout.
-If generation ever fails in an offline environment, re-run `npx prisma generate`
-once you are online.
+Generation does not connect to PostgreSQL and does not require `DATABASE_URL` to
+be configured. If generation ever fails in an offline environment, re-run
+`npm run prisma:generate` once you are online.
 
-Scripts: `npm run dev`, `npm run build`, `npm run start`, `npm run lint`, `npm test`.
+Scripts: `npm run dev`, `npm run build`, `npm run start`, `npm run lint`, `npm test`, `npm run prisma:generate`.
 
 The site renders empty states when the database is unreachable — it never ships
 fake/seed data.
