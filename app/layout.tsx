@@ -31,7 +31,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru">
+    <html lang="en">
       <body className="flex min-h-screen flex-col">
         <Header />
         <main className="flex-1 pt-16">{children}</main>

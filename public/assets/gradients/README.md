@@ -7,8 +7,8 @@ Expected file names (referenced from the code):
 
 | File                | Used in                                          | Description                          |
 | ------------------- | ------------------------------------------------ | ------------------------------------ |
-| `hero-gradient.png` | Hero section, `app/page.tsx`                     | Background gradient of the hero      |
-| `category-bg.png`   | Featured-services (categories) section, `app/page.tsx` | Section background gradient    |
+| `hero-gradient.png` | Hero section, `components/site/hero-section.tsx` | Full-width hero background gradient |
+| `category-bg.png`   | Category cards, `components/site/category-card.tsx` | PNG image used behind each service tile |
 
 Rules:
 

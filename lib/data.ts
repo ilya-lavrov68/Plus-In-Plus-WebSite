@@ -28,15 +28,20 @@ export interface PostView {
   content: string;
   coverImage: string;
   readTime: number;
+  source: string;
   publishedAt: Date | null;
 }
 
-/** Shape expected by <NewsCarousel /> (structurally identical to NewsItem). */
+export type NewsSource = "vk" | "telegram" | "youtube";
+
+/** Data shared by the landing-page news cards and the legacy article carousel. */
 export interface NewsItemView {
   id: string;
   title: string;
   href: string;
   imageSrc?: string;
+  excerpt: string;
+  source: NewsSource;
   description?: string;
 }
 
@@ -68,8 +73,16 @@ function toPostView(post: PostModel): PostView {
     content: post.content,
     coverImage: post.coverImage,
     readTime: post.readTime,
+    source: post.source,
     publishedAt: post.publishedAt,
   };
+}
+
+function toNewsSource(source: string): NewsSource {
+  const normalized = source.trim().toLowerCase();
+  if (normalized === "telegram") return "telegram";
+  if (normalized === "youtube" || normalized === "you tube" || normalized === "yt") return "youtube";
+  return "vk";
 }
 
 export function toNewsItem(post: PostView): NewsItemView {
@@ -78,6 +91,8 @@ export function toNewsItem(post: PostView): NewsItemView {
     title: post.title,
     href: `/blog/${post.slug}`,
     imageSrc: post.coverImage || undefined,
+    excerpt: post.excerpt,
+    source: toNewsSource(post.source),
     description: post.excerpt || undefined,
   };
 }
