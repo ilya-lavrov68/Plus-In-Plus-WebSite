@@ -214,7 +214,7 @@ export function NewsSection({ items }: { items: readonly NewsSectionItem[] }) {
                     aria-current={pageIndex === activePage ? "page" : undefined}
                     aria-controls={viewportId}
                     onClick={() => goToPage(pageIndex)}
-                    className="group inline-flex h-8 w-8 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a2540]"
+                    className="group inline-flex h-8 w-8 items-center justify-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
                   >
                     <span
                       aria-hidden="true"
@@ -233,7 +233,7 @@ export function NewsSection({ items }: { items: readonly NewsSectionItem[] }) {
                   aria-controls={viewportId}
                   disabled={pageCount < 2}
                   onClick={() => move(-1)}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#0a2540] transition-colors duration-200 ease-out hover:bg-white/70 disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a2540]"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-navy transition-colors duration-200 ease-out hover:bg-white/70 disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
                 >
                   <ArrowLeft aria-hidden="true" className="h-4 w-4" />
                 </button>
@@ -254,7 +254,7 @@ export function NewsSection({ items }: { items: readonly NewsSectionItem[] }) {
                   aria-controls={viewportId}
                   disabled={pageCount < 2}
                   onClick={() => move(1)}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#0a2540] transition-colors duration-200 ease-out hover:bg-white/70 disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a2540]"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-navy transition-colors duration-200 ease-out hover:bg-white/70 disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
                 >
                   <ArrowRight aria-hidden="true" className="h-4 w-4" />
                 </button>
@@ -265,7 +265,7 @@ export function NewsSection({ items }: { items: readonly NewsSectionItem[] }) {
                   aria-controls={viewportId}
                   disabled={pageCount < 2}
                   onClick={() => setIsPlaying((playing) => !playing)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#0a2540] text-white transition-colors duration-200 ease-out hover:bg-[#153c5c] disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a2540] focus-visible:ring-offset-2 focus-visible:ring-offset-[#e8f0fe]"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-navy text-white transition-colors duration-200 ease-out hover:bg-[#153c5c] disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2 focus-visible:ring-offset-[#e8f0fe]"
                 >
                   {isPlaying ? <Pause aria-hidden="true" className="h-4 w-4" /> : <Play aria-hidden="true" className="h-4 w-4 fill-current" />}
                 </button>

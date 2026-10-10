@@ -42,7 +42,7 @@ export function CategoryCard({ title, gradientImageSrc, href }: CategoryCardProp
         </span>
         <span
           aria-hidden="true"
-          className="absolute bottom-5 right-5 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/70 bg-white/10 backdrop-blur-sm sm:bottom-6 sm:right-6"
+          className="absolute bottom-5 right-5 z-10 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/70 bg-white/10 backdrop-blur-sm sm:bottom-6 sm:right-6"
         >
           <ArrowUpRight className="h-5 w-5 transition-transform duration-200 ease-out group-hover:rotate-45" strokeWidth={1.7} />
         </span>

@@ -7,8 +7,10 @@ import { BreadcrumbBack } from "@/components/site/breadcrumb-back";
 import { EmptyState } from "@/components/site/empty-state";
 import { SafeImage } from "@/components/site/safe-image";
 import { NewsCarousel } from "@/components/site/news-carousel";
+import { buttonVariants } from "@/components/ui/button";
 import { getPublishedPosts, getPublishedService, toNewsItem } from "@/lib/data";
 import { createPageMetadata } from "@/lib/seo";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +52,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
           {/* No order flow yet — placeholder link. */}
           <Link
             href="#"
-            className="inline-flex h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-primary px-12 text-base font-medium text-primary-foreground transition-colors duration-200 ease-out hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className={cn(buttonVariants({ variant: "default", size: "lg" }), "shrink-0")}
           >
             Order
           </Link>

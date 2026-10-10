@@ -17,11 +17,11 @@ export function CategoriesSection() {
         <div className="max-w-3xl">
           <h2
             id="categories-heading"
-            className="text-balance text-3xl font-semibold leading-tight tracking-[-0.045em] text-[#0a2540] sm:text-4xl lg:text-[3.25rem]"
+            className="font-geist text-balance text-3xl font-semibold leading-tight tracking-[-0.045em] text-navy sm:text-4xl lg:text-[3.25rem]"
           >
             Order a design you won&apos;t regret
           </h2>
-          <p className="mt-5 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
+          <p className="mt-5 max-w-2xl font-body text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
             Have an idea but don&apos;t know how to showcase it? We&apos;ll package it in a stylish,
             clear design—from website mockups to posters and event collateral.
           </p>
@@ -38,7 +38,7 @@ export function CategoriesSection() {
         <div className="mt-9 text-center sm:mt-11">
           <Link
             href="/shop"
-            className="group inline-flex items-center gap-2 rounded-sm text-base font-semibold text-[#0a2540] underline-offset-4 transition-colors duration-200 ease-out hover:text-[#397248] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a2540]"
+            className="group inline-flex items-center gap-2 rounded-sm font-body text-base font-semibold text-navy underline-offset-4 transition-colors duration-200 ease-out hover:text-[#397248] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
           >
             And other services
             <ArrowRight

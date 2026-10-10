@@ -5,11 +5,6 @@ import { Footer } from "@/components/site/footer";
 import { AuthSessionProvider } from "@/components/site/session-provider";
 import { DEFAULT_SITE_DESCRIPTION, SITE_NAME, SITE_URL, absoluteUrl } from "@/lib/seo";
 
-import "@fontsource/inter/400.css";
-import "@fontsource/inter/500.css";
-import "@fontsource/inter/600.css";
-import "@fontsource/inter/700.css";
-
 import "@/styles/globals.css";
 
 export const metadata: Metadata = {

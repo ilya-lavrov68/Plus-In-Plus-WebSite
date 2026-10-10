@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { Logo } from "@/components/site/logo";
+
 const columns = [
   [
     { label: "Servers", href: "/shop" },
@@ -22,14 +24,21 @@ export function Footer() {
   return (
     <footer className="mt-auto overflow-hidden bg-[#0a2540] text-white">
       <div className="mx-auto max-w-[1320px] px-5 pb-0 pt-12 sm:px-8 sm:pt-16 lg:px-12 lg:pt-20">
-        <nav aria-label="Footer navigation" className="grid grid-cols-2 gap-x-8 gap-y-9 sm:grid-cols-3 sm:gap-10">
+        <Link
+          href="/"
+          aria-label="Plus In Plus home"
+          className="inline-flex rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        >
+          <Logo variant="footer" />
+        </Link>
+        <nav aria-label="Footer navigation" className="mt-10 grid grid-cols-2 gap-x-8 gap-y-9 sm:mt-12 sm:grid-cols-3 sm:gap-10">
           {columns.map((column, index) => (
             <ul key={index} className="space-y-4 sm:space-y-5">
               {column.map(({ label, href }) => (
                 <li key={label}>
                   <Link
                     href={href}
-                    className="rounded-sm text-sm font-medium text-white/75 transition-colors duration-200 ease-out hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                    className="rounded-sm font-body text-sm font-medium text-white/75 transition-colors duration-200 ease-out hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                   >
                     {label}
                   </Link>
@@ -40,7 +49,7 @@ export function Footer() {
         </nav>
 
         <div aria-hidden="true" className="mt-12 border-t border-white/10 pt-8 sm:mt-16 sm:pt-10 lg:mt-20">
-          <p className="select-none whitespace-nowrap text-[clamp(4.5rem,18vw,15rem)] font-semibold leading-[0.72] tracking-[-0.085em] text-[#102e49]">
+          <p className="select-none whitespace-nowrap font-geist text-[clamp(4.5rem,18vw,15rem)] font-semibold leading-[0.72] tracking-[-0.085em] text-[#102e49]">
             Plus in Plus
           </p>
         </div>
