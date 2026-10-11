@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ChevronDown, Menu, X } from "lucide-react";
 
 import { useSession } from "next-auth/react";
@@ -129,8 +130,17 @@ function NavigationDropdown({
   );
 }
 
+// Internal pages use the bigger logo (2x) to match the layout mockups.
+const INTERNAL_PATH_PREFIXES = ["/blog", "/shop", "/contact"];
+
+function isInternalPath(pathname: string | null) {
+  if (!pathname) return false;
+  return INTERNAL_PATH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
 export function Header() {
   const { data: session, status } = useSession();
+  const isInternal = isInternalPath(usePathname());
   const [scrolled, setScrolled] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -176,7 +186,10 @@ export function Header() {
           aria-label="Plus In Plus home"
           className="shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
         >
-          <Logo variant="header" className="h-6 w-auto sm:h-7" />
+          <Logo
+            variant="header"
+            className={isInternal ? "h-12 w-auto sm:h-14" : "h-6 w-auto sm:h-7"}
+          />
         </Link>
 
         {/* Center: main navigation, dropdowns open on hover (CSS group-hover) */}

@@ -1,18 +1,18 @@
-import { ArrowRight, Building2, Newspaper, PenTool } from "lucide-react";
+import { ArrowRight, Building2, PenTool } from "lucide-react";
 import type { Metadata } from "next";
 
 import { EmptyState } from "@/components/site/empty-state";
-import { NewsCarousel } from "@/components/site/news-carousel";
-import { ServiceCard } from "@/components/site/service-card";
+import { InternalPageContent, InternalPageHeader } from "@/components/site/internal-page-header";
+import { OtherNewsSection } from "@/components/site/other-news-section";
+import { ShopServiceCard } from "@/components/site/shop-service-card";
 import { getPublishedPosts, getPublishedServices, toNewsItem } from "@/lib/data";
 import { createPageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "Услуги дизайна — Plus In Plus",
-  description:
-    "Каталог услуг Plus In Plus: малые и крупные дизайн-проекты с подробным описанием и примерами.",
+  title: "Shop — Plus In Plus",
+  description: "Plus In Plus service catalog: small and large design projects with details and examples.",
   path: "/shop",
 });
 
@@ -24,22 +24,26 @@ export default async function ShopPage() {
 
   return (
     <>
-      <div className="text-[#052B42] mx-auto max-w-7xl px-4 py-16 sm:px-8">
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Our Services</h1>
+      <InternalPageHeader title="SHOP" />
+
+      <InternalPageContent labelledBy="shop-our-services">
+        <h2 id="shop-our-services" className="text-3xl font-bold tracking-tight sm:text-4xl">
+          Our Services
+        </h2>
 
         <section aria-labelledby="small-designs" className="mt-12">
-          <h2
+          <h3
             id="small-designs"
             className="flex items-center gap-3 text-2xl font-bold tracking-tight sm:text-3xl"
           >
             Small designs
             <ArrowRight aria-hidden="true" className="h-6 w-6" />
-          </h2>
+          </h3>
           {smallServices.length ? (
-            <ul className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <ul className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
               {smallServices.map((service) => (
                 <li key={service.id}>
-                  <ServiceCard
+                  <ShopServiceCard
                     title={service.title}
                     href={`/shop/${service.id}`}
                     imageSrc={service.coverImage}
@@ -57,19 +61,19 @@ export default async function ShopPage() {
         </section>
 
         <section aria-labelledby="large-designs" className="mt-16">
-          <h2
+          <h3
             id="large-designs"
             className="flex items-center gap-3 text-2xl font-bold tracking-tight sm:text-3xl"
           >
             Large designs
             <ArrowRight aria-hidden="true" className="h-6 w-6" />
-          </h2>
-          <p className="mt-3 text-[#052B42]">Above It All. Rough Roads, Louder Message.</p>
+          </h3>
+          <p className="mt-3 text-lg">Above It All. Rough Roads, Louder Message.</p>
           {largeServices.length ? (
-            <ul className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <ul className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
               {largeServices.map((service) => (
                 <li key={service.id}>
-                  <ServiceCard
+                  <ShopServiceCard
                     title={service.title}
                     href={`/shop/${service.id}`}
                     imageSrc={service.coverImage}
@@ -85,29 +89,9 @@ export default async function ShopPage() {
             />
           )}
         </section>
-      </div>
+      </InternalPageContent>
 
-      <section aria-labelledby="shop-other-news" className="bg-[#D6E4FF] text-[#052B42]">
-        <div className="text-[#052B42] mx-auto max-w-7xl px-4 py-16 sm:px-8 sm:py-20">
-          <h2
-            id="shop-other-news"
-            className="text-center text-3xl font-bold tracking-tight sm:text-4xl"
-          >
-            Other News
-          </h2>
-          <div className="mt-10 sm:mt-12">
-            {newsItems.length ? (
-              <NewsCarousel items={newsItems} label="Other news" />
-            ) : (
-              <EmptyState
-                icon={Newspaper}
-                title="No news yet"
-                description="Check back later for updates."
-              />
-            )}
-          </div>
-        </div>
-      </section>
+      <OtherNewsSection items={newsItems} id="shop-other-news" />
     </>
   );
 }

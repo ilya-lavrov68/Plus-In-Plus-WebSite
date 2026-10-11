@@ -1,17 +1,18 @@
 import { Newspaper } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { EmptyState } from "@/components/site/empty-state";
-import { NewsCarousel } from "@/components/site/news-carousel";
+import { InternalPageContent, InternalPageHeader } from "@/components/site/internal-page-header";
+import { OtherNewsSection } from "@/components/site/other-news-section";
 import { getPublishedPosts, toNewsItem } from "@/lib/data";
 import { createPageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "Новости и статьи — Plus In Plus",
-  description:
-    "Новости, идеи и материалы о дизайне от команды Plus In Plus.",
+  title: "Blog — Plus In Plus",
+  description: "News, ideas and design materials from the Plus In Plus team.",
   path: "/blog",
 });
 
@@ -20,11 +21,28 @@ export default async function BlogPage() {
   const newsItems = posts.map(toNewsItem);
 
   return (
-    <div className="text-[#052B42] mx-auto max-w-7xl px-4 py-16 sm:px-8">
-      <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Blog</h1>
-      <div className="mt-10">
-        {newsItems.length ? (
-          <NewsCarousel items={newsItems} label="Blog" />
+    <>
+      <InternalPageHeader title="BLOG" />
+
+      <InternalPageContent labelledBy="blog-list-heading">
+        <h2 id="blog-list-heading" className="sr-only">
+          Blog posts
+        </h2>
+        {posts.length ? (
+          // Placeholder list; will become a carousel later.
+          <ul className="space-y-6">
+            {posts.map((post) => (
+              <li key={post.id} className="border-b border-[#052B42]/10 pb-6 last:border-b-0">
+                <Link
+                  href={`/blog/${post.slug}`}
+                  className="text-2xl font-semibold tracking-tight underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
+                >
+                  {post.title}
+                </Link>
+                {post.excerpt && <p className="mt-2 text-base leading-relaxed">{post.excerpt}</p>}
+              </li>
+            ))}
+          </ul>
         ) : (
           <EmptyState
             icon={Newspaper}
@@ -32,7 +50,9 @@ export default async function BlogPage() {
             description="Our first article is coming soon."
           />
         )}
-      </div>
-    </div>
+      </InternalPageContent>
+
+      <OtherNewsSection items={newsItems} id="blog-other-news" />
+    </>
   );
 }

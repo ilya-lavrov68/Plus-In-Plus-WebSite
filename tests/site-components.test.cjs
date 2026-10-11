@@ -443,7 +443,8 @@ test("stage 7.1: populated service and article pages inherit navy without recolo
   });
   try {
     const service = create(await ServicePage({ params: Promise.resolve({ slug: "sign" }) }));
-    const heading = service.root.findByType("h1");
+    // The page has two headings: the "SHOP" hero (h1) and the service title (h2).
+    const heading = service.root.findAllByType("h2").find((node) => node.children.includes("Sign Design"));
     assert.match(heading.parent.parent.parent.props.className, /text-\[#052B42\]/);
     const order = service.root.findAllByType("a").find((link) => link.children.includes("Order"));
     assert.match(order.props.className, /bg-\[#052B42\] text-white/);
