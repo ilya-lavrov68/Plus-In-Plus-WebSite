@@ -1,0 +1,70 @@
+name: CI
+
+# Verifies every push and pull request without any secret or external service:
+# the Prisma client is generated offline, the tests use mocked repositories and a
+# throwaway SQLite file is used as the database. This is the same code path as
+# Turso in production, only with `TURSO_DATABASE_URL=file:…`.
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Tests, types, schema and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TURSO_DATABASE_URL: "file:./prisma/ci.db"
+      TURSO_AUTH_TOKEN: ""
+      # CI-only dummy values. Real deployments set their own AUTH_SECRET
+      # (at least 32 characters) in the hosting panel; nothing here is a secret.
+      AUTH_SECRET: "ci-only-secret-used-by-the-test-suite-32ch"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      # postinstall runs `prisma generate` (schema only, no database connection).
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Tests
+        run: npm test
+
+      # Proves the exact production path: push the schema into an empty database,
+      # then confirm every table and column the app expects exists.
+      - name: Apply and verify the database schema
+        run: |
+          npm run db:push
+          npm run db:check
+
+      - name: Production build
+        run: npm run build
+
+      - name: Smoke test the production server
+        run: |
+          npm start &
+          for attempt in $(seq 1 30); do
+            sleep 2
+            if curl -fsS http://127.0.0.1:3000/api/health > health.json; then break; fi
+          done
+          cat health.json
+          grep -q '"status":"ok"' health.json
+          for path in / /shop /blog /sitemap.xml; do
+            curl -fsS -o /dev/null "http://127.0.0.1:3000$path"
+          done
+          echo "Smoke test passed."

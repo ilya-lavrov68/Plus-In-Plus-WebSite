@@ -3,17 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node scripts/dev.cjs",
     "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "test": "node --test tests/*.test.cjs",
-    "db:push": "node scripts/db-push.cjs",
     "db:check": "node scripts/db-check.cjs",
-    "prisma:generate": "node scripts/prisma-generate.cjs",
-    "postinstall": "node scripts/prisma-generate.cjs",
+    "db:load-dump": "node scripts/load-dump.cjs",
+    "db:migrate-from-postgres": "node scripts/migrate-from-postgres.cjs",
     "db:promote-admin": "node scripts/promote-admin.cjs",
-    "db:migrate-from-postgres": "node scripts/migrate-from-postgres.cjs"
+    "db:push": "node scripts/db-push.cjs",
+    "deploy:verify": "node scripts/verify-deployment.cjs",
+    "dev": "node scripts/dev.cjs",
+    "lint": "next lint",
+    "postinstall": "node scripts/prisma-generate.cjs",
+    "prisma:generate": "node scripts/prisma-generate.cjs",
+    "start": "next start",
+    "test": "node --test tests/*.test.cjs"
   },
   "dependencies": {
     "@fontsource-variable/google-sans-flex": "^5.3.1",

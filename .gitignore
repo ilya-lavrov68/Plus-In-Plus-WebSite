@@ -60,3 +60,8 @@ next-env.d.ts
 
 # scratch e2e harness (verification only)
 /.e2e/
+
+# local database dumps/backups (data, never source)
+/dump.sql
+/backup-*.sql
+*.dump

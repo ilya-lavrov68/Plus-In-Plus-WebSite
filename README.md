@@ -27,7 +27,13 @@ can also be run manually. If Prisma's engine download host is unavailable and no
 client exists yet, generation fails explicitly rather than leaving a broken build.
 
 Scripts: `npm run dev`, `npm run build`, `npm run start`, `npm run lint`, `npm test`,
+`npm run db:push`, `npm run db:check`, `npm run db:promote-admin`, `npm run deploy:verify`,
 `npm run prisma:generate`. `npx tsc --noEmit` checks types.
+
+Production setup (Turso database, hosting variables, schema push, verification,
+backups) is a step-by-step list in **[DEPLOYMENT.md](DEPLOYMENT.md)**, in copy-paste
+order. CI (`.github/workflows/ci.yml`) runs lint, types, tests, schema push/check,
+build and a production smoke test with no secrets at all.
 
 Public data sections display empty states if the database is unreachable. Admin
 queries are protected at the data-access layer and report database failures,
@@ -241,6 +247,8 @@ An empty `TURSO_DATABASE_URL` (or `file:./prisma/dev.db`) uses a plain SQLite fi
 | `npm run db:push` | create/update every table from `prisma/schema.prisma` |
 | `npm run db:check` | verify connection + every table/column; exits 1 with the missing names |
 | `npm run db:promote-admin` | list accounts / grant or revoke the ADMIN role |
+| `npm run db:load-dump` | load a Turso/SQLite dump (e.g. production) into this database |
+| `npm run deploy:verify` | check a running deployment: `/api/health` + public pages |
 | `npm run dev` | checks the schema, pushes only when needed, then starts Next |
 | `npm run db:migrate-from-postgres` | one-off data import from the old PostgreSQL database |
 
@@ -342,6 +350,11 @@ JSON-in-TEXT helpers, the zod validation schemas and the assumption that the Pri
 schema stays libSQL/SQLite (provider, `@@map` names, `slug`, JSON columns). Account/role scenarios use **mocked
 repositories**, not database users or admin seeds. Upload tests create and remove
 only temporary image files. Public-page regression tests are retained.
+
+`.github/workflows/ci.yml` repeats the important checks on every push and pull
+request without any secret: lint, `tsc --noEmit`, `npm test`, `npm run db:push` plus
+`db:check` against a throwaway SQLite file, `npm run build`, and a smoke test of
+`next start` (health endpoint and public pages).
 
 Login, registration and profile changes are throttled in-process. For multiple
 instances, also enforce shared rate limits at your trusted proxy/CDN. Blog HTML is
