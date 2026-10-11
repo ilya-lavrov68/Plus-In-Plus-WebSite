@@ -252,6 +252,51 @@ An empty `TURSO_DATABASE_URL` (or `file:./prisma/dev.db`) uses a plain SQLite fi
 | `npm run dev` | checks the schema, pushes only when needed, then starts Next |
 | `npm run db:migrate-from-postgres` | one-off data import from the old PostgreSQL database |
 
+### Adding a column (or a table)
+
+The schema file is the only thing you edit — there are no SQL migration files to
+write and nothing to apply by hand:
+
+```bash
+# 1. Edit prisma/schema.prisma, e.g. add to model User:
+#      phone String?          → nullable, safe on a database that already has rows
+#      visits Int @default(0) → required, but safe because of the default
+# 2. Apply it (local prisma/dev.db by default, Turso when TURSO_* are set):
+npm run db:push
+# 3. Verify:
+npm run db:check
+```
+
+`db:push` also regenerates the Prisma client, so `prisma.user.update({ data: { phone } })`
+type-checks immediately afterwards. Then wire the field through the app: a Zod
+schema in `lib/validators.ts`, the server action (`app/actions/*.ts`), the admin
+form and the list page.
+
+Automated — you usually do not run these commands at all:
+
+| When | What happens |
+| --- | --- |
+| `npm install` | `postinstall` → `prisma generate` (no database needed) |
+| `npm run dev` | compares `prisma/schema.prisma` with the live database and runs `prisma db push` **only** if a table or column is missing |
+| CI (`.github/workflows/ci.yml`) | `npm run db:push` + `npm run db:check` against an empty `file:./prisma/ci.db` on every push |
+| `GET /api/health` | reports the configured database and whether every table exists |
+
+Rules for this SQLite/libSQL database (enforced by `tests/database.test.cjs`):
+
+- No enums and no `Json` columns. A role is a `String` checked by the app; a list is
+  a JSON-encoded `String` read/written through `lib/db-helpers.ts`.
+- Adding a **required column without a default** to a table that already has rows is
+  refused, not silently forced:
+  `Added the required column "x" to the "users" table without a default value. There are N rows in this table…`
+  Give it `@default(…)` or make it nullable (`String?`).
+- Dropping a column that holds data needs an explicit confirmation. Flags after `--`
+  are passed through to the Prisma CLI:
+  `npm run db:push -- --accept-data-loss` (keep the other tables),
+  `npm run db:push -- --force-reset` (recreate the whole database, all data lost).
+- The same push applies to production, once per schema change:
+  `TURSO_DATABASE_URL="libsql://…" TURSO_AUTH_TOKEN="…" npm run db:push`
+  Run `turso db dump` first — `db push` has no undo.
+
 `prisma db push` prints its result after a few hundred milliseconds but keeps its
 adapter connection open for about a minute before the CLI exits (Prisma 6.19 +
 `@prisma/adapter-libsql`). `scripts/lib/prisma-cli.cjs` therefore stops the CLI as
