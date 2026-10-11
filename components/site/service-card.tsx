@@ -13,8 +13,8 @@ export interface ServiceCardProps {
 
 export function ServiceCard({ title, href, imageSrc }: ServiceCardProps) {
   return (
-    <Link href={href} className="group block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-      <Card className="flex h-full flex-col overflow-hidden text-[#052B42]">
+    <Link href={href} className="group block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2">
+      <Card className="flex h-full flex-col overflow-hidden border-navy/15 bg-white text-navy">
         <CardContent className="p-0">
           <div className="relative aspect-[4/3] overflow-hidden">
             <SafeImage
@@ -27,8 +27,13 @@ export function ServiceCard({ title, href, imageSrc }: ServiceCardProps) {
           </div>
         </CardContent>
         <CardHeader className="flex-row items-center justify-between gap-4 space-y-0">
-          <CardTitle>{title}</CardTitle>
-          <ArrowRight aria-hidden="true" className="h-5 w-5 shrink-0 transition-transform duration-200 ease-out group-hover:rotate-90 group-focus-visible:rotate-90" />
+          <CardTitle className="font-heading text-[1.6875rem] font-semibold leading-tight tracking-tight text-navy">
+            {title}
+          </CardTitle>
+          <ArrowRight
+            aria-hidden="true"
+            className="h-5 w-5 shrink-0 transition-transform duration-200 ease-out group-hover:rotate-90 group-focus-visible:rotate-90"
+          />
         </CardHeader>
         <CardContent className="mt-auto">
           <span className={buttonVariants({ variant: "default", className: "w-full" })}>

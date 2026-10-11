@@ -19,7 +19,7 @@ export function ContactForm() {
   };
 
   return (
-    <form onSubmit={onSubmit} className="grid max-w-3xl gap-6 sm:grid-cols-2">
+    <form onSubmit={onSubmit} className="mx-auto grid w-full max-w-xl grid-cols-1 gap-4 sm:grid-cols-2">
       <label className="block text-sm font-semibold">
         First name
         <input name="firstName" type="text" autoComplete="given-name" required className={FIELD_CLASS} />
@@ -36,14 +36,14 @@ export function ContactForm() {
         Message
         <textarea name="message" rows={6} required className={`${FIELD_CLASS} resize-y`} />
       </label>
-      <div className="flex flex-wrap items-center gap-4 sm:col-span-2">
+      <div className="flex flex-col items-center gap-4 sm:col-span-2">
         <button
           type="submit"
-          className="inline-flex h-12 min-w-32 items-center justify-center rounded-xl bg-[#052B42] px-8 font-body text-sm font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#153c5c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2"
+          className="mx-auto inline-flex h-12 min-w-32 items-center justify-center rounded-xl bg-[#052B42] px-8 font-body text-sm font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#153c5c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2"
         >
           Send
         </button>
-        <p role="status" className="text-sm text-[#052B42]/80">
+        <p role="status" className="text-center text-sm text-[#052B42]/80">
           {status === "pending" ? "Message sending is not connected yet." : ""}
         </p>
       </div>

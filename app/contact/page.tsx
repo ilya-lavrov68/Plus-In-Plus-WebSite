@@ -16,10 +16,10 @@ export default function ContactPage() {
       <InternalPageHeader title="CONTACT" />
 
       <InternalPageContent labelledBy="contact-heading">
-        <h2 id="contact-heading" className="text-3xl font-bold tracking-tight sm:text-4xl">
+        <h2 id="contact-heading" className="text-center font-heading text-3xl font-bold tracking-tight text-navy sm:text-4xl">
           Contact us
         </h2>
-        <p className="mt-4 max-w-2xl text-lg leading-relaxed">
+        <p className="mx-auto mt-4 max-w-2xl text-center text-lg leading-relaxed">
           Have an idea? Tell us about your project and we will get back to you.
         </p>
         <div className="mt-10">
