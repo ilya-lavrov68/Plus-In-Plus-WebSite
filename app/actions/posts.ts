@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePost } from "@/lib/revalidate-content";
 import { sanitizePostContent } from "@/lib/sanitize-post-content";
 import { cleanupUpload, saveImageUpload, UploadValidationError } from "@/lib/uploads";
+import { createPostSchema, firstIssueMessage } from "@/lib/validators";
 
 export interface PostActionResult {
   ok: boolean;
@@ -19,22 +20,22 @@ function text(form: FormData, name: string): string {
 }
 
 function parseCommonFields(form: FormData) {
-  const title = text(form, "title");
-  const slug = text(form, "slug").toLowerCase();
-  const excerpt = text(form, "excerpt");
   const rawContent = text(form, "content");
   if (rawContent.length > 100_000) return { error: "Post content is too long." };
+  // Unsafe HTML is removed before validation, so a post is never stored (or
+  // counted) as non-empty because of a script tag.
   const content = sanitizePostContent(rawContent);
-  const readTime = Number(text(form, "readTime"));
-  const isPublished = form.get("isPublished") === "true" || form.get("isPublished") === "on";
-  if (!title || title.length > 160) return { error: "Title is required and must be at most 160 characters." };
-  if (slug.length > 120 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
-    return { error: "Slug must contain only lowercase letters, numbers and dashes (up to 120 characters)." };
-  }
-  if (!excerpt || excerpt.length > 500) return { error: "Excerpt is required (up to 500 characters)." };
-  if (!content.trim()) return { error: "Content is required after unsafe HTML is removed." };
-  if (!Number.isInteger(readTime) || readTime <= 0 || readTime > 1440) return { error: "Read time must be between 1 and 1440 minutes." };
-  return { data: { title, slug, excerpt, content, readTime, isPublished, publishedAt: isPublished ? new Date() : null } };
+  const result = createPostSchema.safeParse({
+    title: text(form, "title"),
+    slug: text(form, "slug"),
+    excerpt: text(form, "excerpt"),
+    content,
+    readTime: Number(text(form, "readTime")),
+    isPublished: form.get("isPublished") === "true" || form.get("isPublished") === "on",
+  });
+  if (!result.success) return { error: firstIssueMessage(result.error) };
+  const { isPublished } = result.data;
+  return { data: { ...result.data, publishedAt: isPublished ? new Date() : null } };
 }
 
 function coverFile(form: FormData): File | null {

@@ -31,6 +31,11 @@ yarn-error.log*
 
 # prisma
 /lib/generated/
+# local libSQL/SQLite database (development only)
+/prisma/dev.db
+/prisma/dev.db-*
+/prisma/*.db
+/prisma/*.db-*
 
 # vercel
 .vercel
@@ -55,3 +60,8 @@ next-env.d.ts
 
 # scratch e2e harness (verification only)
 /.e2e/
+
+# local database dumps/backups (data, never source)
+/dump.sql
+/backup-*.sql
+*.dump

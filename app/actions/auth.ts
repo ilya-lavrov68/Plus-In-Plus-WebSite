@@ -11,6 +11,7 @@ import { isAuthConfigured } from "@/lib/auth-secret";
 import { prisma } from "@/lib/prisma";
 import { getClientAddress, checkRateLimit, hashRateLimitIdentifier } from "@/lib/rate-limit";
 import { cleanupUpload, saveImageUpload, UploadValidationError } from "@/lib/uploads";
+import { firstIssueMessage, loginSchema, profileSchema, registerSchema } from "@/lib/validators";
 
 export interface LoginInput {
   email: string;
@@ -88,16 +89,10 @@ function readRegisterSubmission(input: RegisterSubmission): RegisterInput {
   };
 }
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const WINDOW_MS = 10 * 60 * 1000;
 
 function isUniqueViolation(error: unknown): boolean {
   return typeof error === "object" && error !== null && (error as { code?: string }).code === "P2002";
-}
-
-function validName(value: unknown, required: boolean): value is string {
-  return typeof value === "string" && (!required || value.trim().length > 0) &&
-    value.trim().length <= 80 && !/[\u0000-\u001f\u007f]/.test(value);
 }
 
 export async function loginUser(input: LoginSubmission): Promise<AuthActionResult> {
@@ -105,13 +100,18 @@ export async function loginUser(input: LoginSubmission): Promise<AuthActionResul
     return { ok: false, success: false, error: "Login is unavailable right now. Try again later." };
   }
   const submission = readLoginSubmission(input);
-  const email = submission.email.trim().toLowerCase();
-  const password = submission.password;
+  const credentials = loginSchema.safeParse({ email: submission.email, password: submission.password });
+  if (!credentials.success) {
+    // Never confirm which part of a credential pair was wrong.
+    console.warn("Rejected malformed login input:", firstIssueMessage(credentials.error));
+    return { ok: false, success: false, error: "Invalid email or password." };
+  }
+  const { email, password } = credentials.data;
   const adminMode = submission.adminMode === true;
 
   // Admin mode is a privilege opt-in, not a role mutation: it passes only for an
   // existing ADMIN row (registration always creates USER accounts).
-  let account: { role: "USER" | "ADMIN" } | null;
+  let account: { role: string } | null;
   try {
     account = await prisma.user.findUnique({ where: { email }, select: { role: true } });
   } catch (error) {
@@ -158,18 +158,13 @@ export async function registerUser(input: RegisterSubmission): Promise<RegisterR
   if (!checkRateLimit(hashRateLimitIdentifier(`register-address:${address}`), 5, WINDOW_MS).allowed) {
     return { ok: false, success: false, error: "Too many registration attempts. Try again later." };
   }
-  const submission = readRegisterSubmission(input);
-  const email = submission.email.trim().toLowerCase();
-  const password = submission.password;
-  if (!validName(submission.firstName, true) || !validName(submission.lastName, true)) {
-    return { ok: false, success: false, error: "Please enter your first and last name (up to 80 characters each)." };
+  const submitted = readRegisterSubmission(input);
+  const result = registerSchema.safeParse(submitted);
+  if (!result.success) {
+    return { ok: false, success: false, error: firstIssueMessage(result.error) };
   }
-  if (!EMAIL_PATTERN.test(email) || email.length > 254) {
-    return { ok: false, success: false, error: "Please enter a valid email address." };
-  }
-  if (password.length < 12) return { ok: false, success: false, error: "Password must be at least 12 characters long." };
-  if (Buffer.byteLength(password, "utf8") > 72) return { ok: false, success: false, error: "Password must not exceed 72 UTF-8 bytes." };
-  if (password !== submission.confirmPassword) return { ok: false, success: false, error: "Passwords do not match." };
+  // Only the allowlisted fields survive validation.
+  const { email, password, firstName, lastName } = result.data;
   if (!prisma || !isAuthConfigured()) {
     return { ok: false, success: false, error: "Registration is unavailable right now. Try again later." };
   }
@@ -180,7 +175,7 @@ export async function registerUser(input: RegisterSubmission): Promise<RegisterR
     const passwordHash = await bcrypt.hash(password, 12);
     await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
-        data: { email, passwordHash, firstName: submission.firstName.trim(), lastName: submission.lastName.trim(), role: "USER" },
+        data: { email, passwordHash, firstName, lastName, role: "USER" },
         select: { id: true, email: true },
       });
       await recordActivity(tx, { action: "registered", entityType: "user", entityId: user.id, title: user.email, actorId: user.id });
@@ -213,11 +208,12 @@ export async function updateUserProfile(formData: FormData): Promise<AuthActionR
     if (!checkRateLimit(hashRateLimitIdentifier(`profile:${session.user.id}`), 20, WINDOW_MS).allowed) {
       return { ok: false, success: false, error: "Too many profile updates. Try again later." };
     }
-    const firstName = formData.get("firstName");
-    const lastName = formData.get("lastName");
-    if (!validName(firstName, false) || !validName(lastName, false)) {
-      return { ok: false, success: false, error: "Names must be at most 80 characters and contain no control characters." };
-    }
+    const profile = profileSchema.safeParse({
+      firstName: readString(formData.get("firstName")),
+      lastName: readString(formData.get("lastName")),
+    });
+    if (!profile.success) return { ok: false, success: false, error: firstIssueMessage(profile.error) };
+    const { firstName, lastName } = profile.data;
     const existing = await prisma.user.findUnique({
       where: { id: session.user.id }, select: { id: true, avatar: true, email: true },
     });
@@ -231,7 +227,7 @@ export async function updateUserProfile(formData: FormData): Promise<AuthActionR
       await tx.user.update({
         // The id comes ONLY from the verified session, never from formData.
         where: { id: existing.id },
-        data: { firstName: firstName.trim() || null, lastName: lastName.trim() || null, ...(newAvatar ? { avatar: newAvatar } : {}) },
+        data: { firstName: firstName || null, lastName: lastName || null, ...(newAvatar ? { avatar: newAvatar } : {}) },
         select: { id: true },
       });
       await recordActivity(tx, { action: "updated profile", entityType: "user", entityId: existing.id, title: existing.email, actorId: existing.id });

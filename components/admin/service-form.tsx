@@ -24,6 +24,7 @@ export interface ServiceFormProps {
   serviceId?: string;
   initial?: {
     title: string;
+    slug: string;
     category: string;
     shortDesc: string;
     fullDesc: string;
@@ -86,6 +87,22 @@ export function ServiceForm({ mode, serviceId, initial }: ServiceFormProps) {
       </div>
 
       <div className="space-y-2">
+        <Label htmlFor="service-slug">URL slug</Label>
+        <Input
+          id="service-slug"
+          name="slug"
+          maxLength={120}
+          pattern="[a-z0-9]+(-[a-z0-9]+)*"
+          placeholder="sign-design"
+          defaultValue={initial?.slug}
+        />
+        <p className="text-xs text-muted-foreground">
+          Lowercase letters, numbers and dashes. Public URL: /shop/&lt;slug&gt;. Leave empty to
+          derive it from the title. Existing services keep their current slug.
+        </p>
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="service-category">Category</Label>
         <Select value={category} onValueChange={setCategory}>
           <SelectTrigger id="service-category" className="w-full sm:w-56">
@@ -110,12 +127,12 @@ export function ServiceForm({ mode, serviceId, initial }: ServiceFormProps) {
 
       <div className="space-y-2">
         <Label htmlFor="service-includes">What&apos;s included (one item per line)</Label>
-        <Textarea id="service-includes" name="includes" maxLength={10000} rows={4} defaultValue={initial?.includes.join("\n")} />
+        <Textarea id="service-includes" name="includes" maxLength={10000} required rows={4} defaultValue={initial?.includes.join("\n")} />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="service-shapes">Shapes (one item per line)</Label>
-        <Textarea id="service-shapes" name="shapes" maxLength={10000} rows={4} defaultValue={initial?.shapes.join("\n")} />
+        <Textarea id="service-shapes" name="shapes" maxLength={10000} required rows={4} defaultValue={initial?.shapes.join("\n")} />
       </div>
 
       <div className="space-y-2">

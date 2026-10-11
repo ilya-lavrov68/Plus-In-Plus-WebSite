@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-import { getPublishedPosts, getPublishedServices } from "@/lib/data";
+import { getPublishedPosts, getPublishedServices, serviceHref } from "@/lib/data";
 import { absoluteUrl } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +28,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     },
     ...services.map((service) => ({
-      url: absoluteUrl(`/shop/${encodeURIComponent(service.id)}`),
+      url: absoluteUrl(serviceHref(service)),
       changeFrequency: "monthly" as const,
       priority: 0.6,
     })),

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { ServiceForm } from "@/components/admin/service-form";
 import { getAdminService } from "@/lib/admin-data";
+import { parseJsonArray } from "@/lib/db-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -28,15 +29,13 @@ export default async function EditServicePage({
           serviceId={service.id}
           initial={{
             title: service.title,
+            slug: service.slug,
             category: service.category,
             shortDesc: service.shortDesc,
             fullDesc: service.fullDesc,
-            includes: Array.isArray(service.includes)
-              ? service.includes.filter((item: unknown): item is string => typeof item === "string")
-              : [],
-            shapes: Array.isArray(service.shapes)
-              ? service.shapes.filter((item: unknown): item is string => typeof item === "string")
-              : [],
+            // JSON-encoded in SQLite; the helper tolerates legacy array values too.
+            includes: parseJsonArray(service.includes),
+            shapes: parseJsonArray(service.shapes),
             resultText: service.resultText,
             coverImage: service.coverImage,
             isPublished: service.isPublished,

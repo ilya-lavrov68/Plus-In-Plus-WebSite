@@ -1,7 +1,10 @@
 import { revalidatePath } from "next/cache";
 
-export function revalidateService(id: string) {
-  for (const path of ["/", "/shop", `/shop/${id}`, "/admin/services", `/admin/services/${id}`, "/admin/dashboard", "/sitemap.xml"]) {
+/** Public service URLs accept the slug (canonical) and, for legacy links, the id. */
+export function revalidateService(id: string, slug?: string) {
+  const paths = ["/", "/shop", `/shop/${id}`, "/admin/services", `/admin/services/${id}`, "/admin/dashboard", "/sitemap.xml"];
+  if (slug) paths.push(`/shop/${slug}`);
+  for (const path of new Set(paths)) {
     revalidatePath(path);
   }
 }

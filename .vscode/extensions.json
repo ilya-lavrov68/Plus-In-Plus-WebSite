@@ -2,7 +2,7 @@
   "recommendations": [
     "Prisma.prisma",
     "mtxr.sqltools",
-    "mtxr.sqltools-driver-pg",
+    "mtxr.sqltools-driver-sqlite",
     "mikestead.dotenv"
   ],
   "unwantedRecommendations": []
