@@ -9,7 +9,7 @@ export interface CategoryCardProps {
   href: string;
 }
 
-/** Image-led category tile: two-line Geist label and a 45-degree arrow hover.
+/** Image-led category tile: two-line Geist label and a 90-degree arrow hover.
  * Like service cards, the artwork desaturates on hover or keyboard focus. */
 export function CategoryCard({ title, gradientImageSrc, href }: CategoryCardProps) {
   const [firstWord, ...remainingWords] = title.trim().split(/\s+/);
@@ -49,7 +49,7 @@ export function CategoryCard({ title, gradientImageSrc, href }: CategoryCardProp
         <ArrowUpRight
           aria-hidden="true"
           strokeWidth={1.7}
-          className="absolute bottom-5 right-5 z-10 h-6 w-6 transition-transform duration-200 ease-out group-hover:rotate-45 group-focus-visible:rotate-45 sm:bottom-6 sm:right-6"
+          className="absolute bottom-5 right-5 z-10 h-6 w-6 transition-transform duration-200 ease-out group-hover:rotate-90 group-focus-visible:rotate-90 sm:bottom-6 sm:right-6"
         />
       </div>
     </Link>

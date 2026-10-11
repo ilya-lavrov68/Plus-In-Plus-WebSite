@@ -73,6 +73,19 @@
   --duration-250: 250ms;
   --duration-400: 400ms;
   --default-transition-duration: 200ms;
+
+  /* One shared entrance animation for every header dropdown panel, so all
+     of them appear identically (same fade, same timing, same easing). */
+  --animate-dropdown-in: dropdown-in 160ms ease-out;
+
+  @keyframes dropdown-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
 }
 
 @layer base {

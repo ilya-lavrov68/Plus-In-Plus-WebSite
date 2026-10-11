@@ -113,7 +113,7 @@ const navigation: NavigationItem[] = [
 
 function dropdownPanelClass(align: "start" | "center") {
   return cn(
-    "absolute top-full z-20 -mt-1 min-w-[220px] rounded-t-sm rounded-b-xl border border-t-0 border-navy/15 bg-white p-4 shadow-lg transition-all duration-200 ease-out",
+    "absolute top-full z-20 -mt-1 min-w-[220px] animate-dropdown-in rounded-t-sm rounded-b-xl border border-t-0 border-navy/15 bg-white p-4 shadow-lg",
     align === "center" ? "left-1/2 -translate-x-1/2" : "left-0",
   );
 }
@@ -135,6 +135,38 @@ function NavigationDropdown({
   const panelId = `navigation-dropdown-${item.id}`;
   const linkClassName = "flex items-center gap-3 whitespace-nowrap rounded-lg px-3 py-2 font-body text-sm font-medium text-navy transition-colors duration-200 ease-out hover:bg-navy/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy";
 
+  // Panels with more than 4 items grow horizontally: items fill vertical
+  // columns of at most 4, then continue in the next column to the right.
+  const isWide = item.links.length > 4;
+  const columns = isWide ? Math.ceil(item.links.length / 4) : 1;
+  const rows = isWide ? Math.ceil(item.links.length / columns) : item.links.length;
+
+  const renderedLinks = item.links.map((link) => {
+    const Icon = link.icon;
+    const content = (
+      <>
+        <Icon aria-hidden="true" className="h-4 w-4 shrink-0 text-navy/70" />
+        <span>{link.label}</span>
+      </>
+    );
+
+    return link.external ? (
+      <a
+        key={link.label}
+        href={link.href}
+        target="_blank"
+        rel="noreferrer noopener"
+        className={linkClassName}
+      >
+        {content}
+      </a>
+    ) : (
+      <Link key={link.label} href={link.href} className={linkClassName}>
+        {content}
+      </Link>
+    );
+  });
+
   return (
     <div
       className="relative"
@@ -147,13 +179,17 @@ function NavigationDropdown({
         }
       }}
     >
+      {/* `relative z-30` keeps the trigger above the open panel (z-20), so
+          the button and the panel read as one continuous surface instead of
+          the panel's shadow/edge painting over the button. Both share the
+          same white background and the same hover tint. */}
       <button
         type="button"
         aria-haspopup="true"
         aria-expanded={isActive}
         aria-controls={panelId}
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 font-body text-[13px] font-medium uppercase tracking-wide text-navy transition-colors duration-200 ease-out hover:bg-navy/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy xl:px-3",
+          "relative z-30 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 font-body text-[13px] font-medium uppercase tracking-wide text-navy transition-colors duration-200 ease-out hover:bg-navy/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy xl:px-3",
           isActive && "rounded-b-none bg-white hover:bg-white",
         )}
       >
@@ -169,33 +205,16 @@ function NavigationDropdown({
       </button>
       {isActive ? (
         <div id={panelId} className={dropdownPanelClass(align)}>
-          <div className="flex flex-col gap-1">
-            {item.links.map((link) => {
-              const Icon = link.icon;
-              const content = (
-                <>
-                  <Icon aria-hidden="true" className="h-4 w-4 shrink-0 text-navy/70" />
-                  <span>{link.label}</span>
-                </>
-              );
-
-              return link.external ? (
-                <a
-                  key={link.label}
-                  href={link.href}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className={linkClassName}
-                >
-                  {content}
-                </a>
-              ) : (
-                <Link key={link.label} href={link.href} className={linkClassName}>
-                  {content}
-                </Link>
-              );
-            })}
-          </div>
+          {isWide ? (
+            <div
+              className="grid grid-flow-col items-start gap-x-10 gap-y-1"
+              style={{ gridTemplateRows: `repeat(${rows}, minmax(0, auto))` }}
+            >
+              {renderedLinks}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1">{renderedLinks}</div>
+          )}
         </div>
       ) : null}
     </div>
