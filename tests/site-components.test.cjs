@@ -165,7 +165,7 @@ test("header shows only the hovered dropdown and closes it after 150ms", async (
 
   // Nav is below the right-side controls in the stacking order.
   assert.match(view.root.findByProps({ "aria-label": "Main navigation" }).props.className, /z-10/);
-  const rightSide = view.root.findAll((node) => typeof node.props?.className === "string" && node.props.className.includes("z-30"))[0];
+  const rightSide = view.root.findAll((node) => typeof node.props?.className === "string" && node.props.className.includes("relative z-30 flex"))[0];
   assert.ok(rightSide);
   const contact = rightSide.findAllByType("a").find((link) => content(link) === "Contact");
   const login = rightSide.findAllByType("button").find((button) => content(button) === "Log in");
@@ -207,9 +207,18 @@ test("header shows only the hovered dropdown and closes it after 150ms", async (
     assert.match(panel.props.className, /border-navy\/15/);
     assert.match(panel.props.className, /bg-white/);
     assert.match(panel.props.className, /shadow-lg/);
+    // Every panel appears with the same fade animation.
+    assert.match(panel.props.className, /animate-dropdown-in/);
+    // The trigger paints above the panel (z-30 > z-20), so button and panel
+    // read as one continuous surface; the open trigger keeps the panel's
+    // white fill instead of a different hover tint.
+    const triggerClass = activeGroup.findByType("button").props.className;
+    assert.match(triggerClass, /relative z-30/);
+    assert.match(triggerClass, /bg-white hover:bg-white/);
     assert.match(activeGroup.findByType("button").props.className, /rounded-b-none/);
     assert.equal(panel.findAllByType("svg").length, panel.findAllByType("a").length);
     for (const link of panel.findAllByType("a")) {
+      assert.match(link.props.className, /hover:bg-navy\/\[0\.05\]/);
       assert.match(link.findByType("svg").props.className, /h-4 w-4 shrink-0 text-navy\/70/);
     }
     assert.match(activeGroup.findByType(ChevronDown).props.className, /transition-transform/);
@@ -222,11 +231,19 @@ test("header shows only the hovered dropdown and closes it after 150ms", async (
     "Sign Design", "Bag Design", "Outdoor glass poster", "Banner Design",
     "Large Billboard on a building", "Rooftop advertising", "Advertisement on the fence", "Billboard",
   ]);
+  // More than 4 items: links flow horizontally into columns of at most 4.
+  const shopPanel = panelFor(shop);
+  const shopList = shopPanel.children[0];
+  assert.match(shopList.props.className, /grid grid-flow-col/);
+  assert.equal(shopList.props.style.gridTemplateRows, "repeat(4, minmax(0, auto))");
   act(() => groupFor("SOCNET").props.onMouseEnter());
   const socials = groupFor("SOCNET");
   assert.deepEqual(socials.findAllByType("a").map((link) => link.props.href), [
     "https://vk.com/plusinplus", "https://t.me/plusinplus", "https://www.youtube.com/@plusinplus",
   ]);
+  // 4 items or fewer stay in a single vertical column.
+  const socialsList = panelFor(socials).children[0];
+  assert.match(socialsList.props.className, /flex flex-col gap-1/);
 
   act(() => socials.props.onMouseLeave());
   assert.equal(dropdowns().filter(panelFor).length, 1, "leave delay keeps the menu available briefly");
@@ -442,7 +459,7 @@ test("stage 7.1: hero is nowrap and category introduction is centered", () => {
   categories.unmount();
 });
 
-test("stage 7.1: category titles have an explicit break, 3:4 ratio, grayscale and 45deg hover", () => {
+test("stage 7.1: category titles have an explicit break, 3:4 ratio, grayscale and 90deg hover", () => {
   const { ArrowUpRight } = require("lucide-react");
   for (const title of ["Website mockup", "Badge design", "Poster design", "Banner design"]) {
     const card = create(React.createElement(CategoryCard, { title, href: "/shop", gradientImageSrc: "/category.png" }));
@@ -455,7 +472,7 @@ test("stage 7.1: category titles have an explicit break, 3:4 ratio, grayscale an
     assert.match(label.parent.props.className, /aspect-\[3\/4\].*text-white/);
     const arrow = card.root.findByType(ArrowUpRight);
     assert.match(arrow.props.className, /bottom-5 right-5/);
-    assert.match(arrow.props.className, /duration-200 ease-out group-hover:rotate-45 group-focus-visible:rotate-45/);
+    assert.match(arrow.props.className, /duration-200 ease-out group-hover:rotate-90 group-focus-visible:rotate-90/);
     assert.match(card.root.findByType("img").props.className, /duration-200 ease-out group-hover:grayscale/);
     card.unmount();
   }
