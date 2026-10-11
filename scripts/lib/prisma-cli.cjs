@@ -17,10 +17,16 @@ function cliAvailable() {
   return fs.existsSync(prismaCli);
 }
 
-/** Runs `prisma db push --skip-generate` and stops the lingering CLI once it is done. */
-function pushSchema({ env, useWatchdog = true }) {
+/**
+ * Runs `prisma db push --skip-generate` and stops the lingering CLI once it is done.
+ *
+ * `extraArgs` is appended verbatim, so a caller can reach the real Prisma flags —
+ * e.g. `npm run db:push -- --accept-data-loss` for a destructive column change or
+ * `npm run db:push -- --force-reset` for an empty database from scratch.
+ */
+function pushSchema({ env, useWatchdog = true, extraArgs = [] }) {
   return new Promise((resolve) => {
-    const child = spawn(process.execPath, [prismaCli, "db", "push", "--skip-generate"], {
+    const child = spawn(process.execPath, [prismaCli, "db", "push", "--skip-generate", ...extraArgs], {
       cwd: rootDir,
       env,
       stdio: useWatchdog ? ["ignore", "pipe", "pipe"] : "inherit",

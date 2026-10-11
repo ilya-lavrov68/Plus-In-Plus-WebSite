@@ -1,7 +1,8 @@
 // Synchronizes the libSQL/SQLite schema with prisma/schema.prisma.
 //
-//   npm run db:push                      → the database from .env (Turso in production)
-//   npm run db:push -- --force-reset     → extra flags are forwarded to the Prisma CLI
+//   npm run db:push                          → the database from .env (Turso in production)
+//   npm run db:push -- --accept-data-loss    → extra flags are forwarded to the Prisma CLI
+//   npm run db:push -- --force-reset
 //
 // There are no migration files on purpose: `prisma db push` is idempotent, so the
 // very same command works on an empty local file and on a Turso database. That is
@@ -44,7 +45,9 @@ async function main() {
   const env = { ...process.env, TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL?.trim() || config.url };
   console.log(`[db:push] Target: ${describeDatabaseUrl(config.url)} (${config.remote ? "Turso/libSQL over the network" : "local file"})`);
 
-  const push = await pushSchema({ env });
+  // Everything after `--` goes to the Prisma CLI, e.g. --accept-data-loss.
+  const extraArgs = process.argv.slice(2);
+  const push = await pushSchema({ env, extraArgs });
   if (!push.ok) {
     fail(`prisma db push failed (exit code ${push.code ?? "unknown"}).`);
   }
@@ -54,7 +57,7 @@ async function main() {
   let status = await checkSchema({ url: config.url, authToken: config.authToken, schemaPath: undefined });
   if (!status.ok && push.finished) {
     console.log("[db:push] Verifying with the full Prisma CLI (this can take up to a minute)…");
-    const retry = await pushSchema({ env, useWatchdog: false });
+    const retry = await pushSchema({ env, useWatchdog: false, extraArgs });
     if (!retry.ok) fail(`prisma db push failed (exit code ${retry.code ?? "unknown"}).`);
     status = await checkSchema({ url: config.url, authToken: config.authToken, schemaPath: undefined });
   }
