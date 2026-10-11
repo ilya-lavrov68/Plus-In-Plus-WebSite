@@ -4,10 +4,10 @@ import { ArrowRight } from "lucide-react";
 import { CategoryCard } from "@/components/site/category-card";
 
 const categories = [
-  { title: "Website mockup", gradientImageSrc: "/assets/gradients/category-bg.png" },
-  { title: "Badge design", gradientImageSrc: "/assets/gradients/category-bg2.png" },
-  { title: "Poster design", gradientImageSrc: "/assets/gradients/category-bg3.png" },
-  { title: "Banner design", gradientImageSrc: "/assets/gradients/category-bg4.png" },
+  { title: "Website mockup", gradientImageSrc: "/assets/gradients/category-bg.svg" },
+  { title: "Badge design", gradientImageSrc: "/assets/gradients/category-bg2.svg" },
+  { title: "Poster design", gradientImageSrc: "/assets/gradients/category-bg3.svg" },
+  { title: "Banner design", gradientImageSrc: "/assets/gradients/category-bg4.svg" },
 ];
 
 export function CategoriesSection() {
