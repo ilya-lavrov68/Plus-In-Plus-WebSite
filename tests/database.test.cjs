@@ -50,7 +50,10 @@ test("the runtime client uses the libSQL adapter and no PostgreSQL driver remain
   assert.equal(packageJson.dependencies["@prisma/adapter-libsql"], "6.19.3");
   assert.ok(packageJson.dependencies["@libsql/client"]);
   assert.ok(packageJson.dependencies.zod);
-  for (const script of ["db:push", "db:check"]) assert.ok(packageJson.scripts[script], script);
+  for (const script of ["db:push", "db:check", "db:promote-admin", "db:migrate-from-postgres"]) {
+    assert.ok(packageJson.scripts[script], script);
+    assert.ok(fs.existsSync(path.join(rootDir, packageJson.scripts[script].split(" ")[1])), script);
+  }
 });
 
 test("database resolution prefers Turso and falls back to the local file in development", () => {

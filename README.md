@@ -105,12 +105,19 @@ Register your **own real account**, then promote it directly in the database (or
 Prisma Studio). No accounts are created by installation or schema pushes:
 
 ```bash
-# Turso Cloud
-turso db shell plus-in-plus "update users set role = 'ADMIN' where email = 'your-real-email@example.com';"
-
-# local file database
-node -e "const {createClient}=require('@libsql/client');const c=createClient({url:'file:./prisma/dev.db'});c.execute(\"update users set role='ADMIN' where email='your-real-email@example.com'\").then(()=>c.close())"
+npm run db:promote-admin                             # list accounts (id, email, role)
+npm run db:promote-admin -- you@example.com          # → ADMIN
+npm run db:promote-admin -- you@example.com --revoke # → USER again
 ```
+
+The same command with the production variables promotes the account on Turso:
+
+```bash
+TURSO_DATABASE_URL="libsql://…" TURSO_AUTH_TOKEN="…" npm run db:promote-admin -- you@example.com
+```
+
+Equivalent raw SQL (`turso db shell plus-in-plus "update users set role = 'ADMIN' where email = '…';"`)
+works too, but the script checks that the account exists and is idempotent.
 
 Table and column names are exactly the ones in `prisma/schema.prisma`
 (`users`, `services`, `posts`, `activity_logs` via `@@map`).
@@ -233,6 +240,7 @@ An empty `TURSO_DATABASE_URL` (or `file:./prisma/dev.db`) uses a plain SQLite fi
 | --- | --- |
 | `npm run db:push` | create/update every table from `prisma/schema.prisma` |
 | `npm run db:check` | verify connection + every table/column; exits 1 with the missing names |
+| `npm run db:promote-admin` | list accounts / grant or revoke the ADMIN role |
 | `npm run dev` | checks the schema, pushes only when needed, then starts Next |
 | `npm run db:migrate-from-postgres` | one-off data import from the old PostgreSQL database |
 

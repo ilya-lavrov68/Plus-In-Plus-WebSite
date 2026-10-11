@@ -11,7 +11,9 @@
     "db:push": "node scripts/db-push.cjs",
     "db:check": "node scripts/db-check.cjs",
     "prisma:generate": "node scripts/prisma-generate.cjs",
-    "postinstall": "node scripts/prisma-generate.cjs"
+    "postinstall": "node scripts/prisma-generate.cjs",
+    "db:promote-admin": "node scripts/promote-admin.cjs",
+    "db:migrate-from-postgres": "node scripts/migrate-from-postgres.cjs"
   },
   "dependencies": {
     "@fontsource-variable/google-sans-flex": "^5.3.1",
