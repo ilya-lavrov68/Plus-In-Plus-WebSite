@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { AnnouncementBar } from "@/components/site/announcement-bar";
 import { Header } from "@/components/site/header";
 import { Footer } from "@/components/site/footer";
 import { Providers } from "@/app/providers";
@@ -30,6 +31,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="flex min-h-screen flex-col">
         <Providers>
+          <AnnouncementBar />
           <Header />
           <main className="flex-1 pt-16">{children}</main>
           <Footer />

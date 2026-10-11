@@ -27,6 +27,7 @@ Module._load = function (name, parent, isMain) {
 
 const { NewsCarousel, AUTOPLAY_INTERVAL } = require("../components/site/news-carousel.tsx");
 const { Header } = require("../components/site/header.tsx");
+const { AnnouncementBar } = require("../components/site/announcement-bar.tsx");
 const { CategoryCard } = require("../components/site/category-card.tsx");
 const { CategoriesSection } = require("../components/site/categories-section.tsx");
 const { ServiceCard } = require("../components/site/service-card.tsx");
@@ -150,22 +151,16 @@ test("header switches background only above 50px and removes its listener", () =
   assert.equal(timer.listeners.has("scroll"), false);
 });
 
-test("header shows only the hovered dropdown and closes it after 150ms", async () => {
+test("header opens one large multi-column menu on hover and supports mobile accordions", async () => {
   clock();
   let view;
   act(() => { view = create(React.createElement(Header)); });
-  const dropdowns = () => view.root.findAll((node) =>
-    node.type === "div" &&
-    node.props.className === "relative" &&
-    typeof node.props.onMouseEnter === "function",
-  );
-  const groupFor = (label) => dropdowns().find((group) => content(group.findByType("button")).startsWith(label));
-  const panelFor = (group) => group.findAll((node) => node.props?.id?.startsWith("navigation-dropdown-"))[0];
-  const labels = ["FOR PLAY", "SHOP", "ABOUT PIP", "SOCNET"];
 
-  // Nav is below the right-side controls in the stacking order.
-  assert.match(view.root.findByProps({ "aria-label": "Main navigation" }).props.className, /z-10/);
-  const rightSide = view.root.findAll((node) => typeof node.props?.className === "string" && node.props.className.includes("relative z-30 flex"))[0];
+  const mainNav = view.root.findByProps({ "aria-label": "Main navigation" });
+  assert.match(mainNav.props.className, /md:flex/);
+  const rightSide = view.root.findAll((node) =>
+    typeof node.props?.className === "string" && node.props.className.includes("relative z-30 flex"),
+  )[0];
   assert.ok(rightSide);
   const contact = rightSide.findAllByType("a").find((link) => content(link) === "Contact");
   const login = rightSide.findAllByType("button").find((button) => content(button) === "Log in");
@@ -174,84 +169,134 @@ test("header shows only the hovered dropdown and closes it after 150ms", async (
   for (const control of [contact, login]) {
     assert.match(control.props.className, /rounded-full/);
     assert.match(control.props.className, /h-9/);
-    assert.match(control.props.className, /px-5/);
     assert.match(control.props.className, /font-body/);
   }
   assert.match(contact.props.className, /border-navy/);
   assert.match(login.props.className, /bg-navy/);
-  const logo = view.root.findAllByType("img").find((image) => image.props.alt === "Plus In Plus");
-  assert.equal(logo.props.className, "h-9 w-auto sm:h-[42px]");
 
-  assert.equal(dropdowns().length, 4);
-  assert.equal(dropdowns().filter(panelFor).length, 0);
+  const logo = view.root.findByProps({ "aria-label": "Plus In Plus home" });
+  const logoImage = logo.findByType("img");
+  assert.equal(logoImage.props.src, "/assets/logos/plus-in-plus.svg");
+  assert.equal(logoImage.props.alt, "Plus In Plus");
+  assert.equal(logoImage.props.className, "h-9 w-auto sm:h-[42px]");
 
-  for (const label of labels) {
-    const group = groupFor(label);
-    assert.ok(group, `${label} dropdown is missing`);
-    const trigger = group.findByType("button");
-    assert.equal(trigger.props.onClick, undefined);
-    assert.equal(trigger.props["aria-haspopup"], "true");
+  const triggerFor = (label) => mainNav.findAllByType("button").find((button) =>
+    button.props["aria-haspopup"] === "true" && content(button).startsWith(label),
+  );
+  const panelNodes = () => view.root.findAll((node) =>
+    node.type === "div" && typeof node.props?.id === "string" && node.props.id.startsWith("navigation-dropdown-"),
+  );
+  const panelFor = (label) => panelNodes().find((node) => node.props.id === `navigation-dropdown-${label}`);
+  const labels = ["FOR PLAY", "SHOP", "ABOUT PIP", "SOCNET"];
+  assert.equal(mainNav.findAllByType("button").filter((button) => button.props["aria-haspopup"] === "true").length, 4);
+  assert.equal(panelNodes().length, 0);
 
-    act(() => group.props.onMouseEnter());
+  for (const [index, label] of labels.entries()) {
+    const trigger = triggerFor(label);
+    assert.ok(trigger, `${label} trigger is missing`);
+    assert.equal(trigger.props.onClick, undefined, "desktop dropdowns must not open on click");
+    assert.equal(trigger.props["aria-expanded"], false);
+    assert.ok(trigger.props["aria-controls"]);
 
-    const activeGroup = groupFor(label);
-    const panel = panelFor(activeGroup);
-    assert.ok(panel, `${label} menu should open on hover`);
-    assert.equal(dropdowns().filter(panelFor).length, 1, "only one dropdown panel may be mounted");
-    assert.equal(activeGroup.findByType("button").props["aria-expanded"], true);
-    assert.match(panel.props.className, /z-20/);
-    assert.match(panel.props.className, /-mt-1/);
-    assert.match(panel.props.className, /border-t-0/);
-    assert.match(panel.props.className, /rounded-t-sm/);
-    assert.match(panel.props.className, /rounded-b-xl/);
-    assert.match(panel.props.className, /border-navy\/15/);
-    assert.match(panel.props.className, /bg-white/);
-    assert.match(panel.props.className, /shadow-lg/);
-    // Every panel appears with the same fade animation.
+    act(() => trigger.props.onMouseEnter());
+    const activeId = ["for-play", "shop", "about-pip", "socnet"][index];
+    const panel = panelFor(activeId);
+    assert.ok(panel, `${label} mega menu should open on hover`);
+    assert.equal(panelNodes().length, 1, "only one mega menu may be mounted at once");
+    assert.equal(triggerFor(label).props["aria-expanded"], true);
+    assert.match(panel.props.className, /z-30/);
+    assert.match(panel.props.className, /min-w-\[700px\]/);
     assert.match(panel.props.className, /animate-dropdown-in/);
-    // The trigger paints above the panel (z-30 > z-20), so button and panel
-    // read as one continuous surface; the open trigger keeps the panel's
-    // white fill instead of a different hover tint.
-    const triggerClass = activeGroup.findByType("button").props.className;
-    assert.match(triggerClass, /relative z-30/);
-    assert.match(triggerClass, /bg-white hover:bg-white/);
-    assert.match(activeGroup.findByType("button").props.className, /rounded-b-none/);
-    assert.equal(panel.findAllByType("svg").length, panel.findAllByType("a").length);
-    for (const link of panel.findAllByType("a")) {
-      assert.match(link.props.className, /hover:bg-navy\/\[0\.05\]/);
-      assert.match(link.findByType("svg").props.className, /h-4 w-4 shrink-0 text-navy\/70/);
-    }
-    assert.match(activeGroup.findByType(ChevronDown).props.className, /transition-transform/);
-    assert.match(activeGroup.findByType(ChevronDown).props.className, /rotate-180/);
+
+    const frame = panel.findAllByType("div").find((node) => node.props.className?.includes("rounded-2xl"));
+    assert.ok(frame);
+    assert.match(frame.props.className, /rounded-2xl/);
+    assert.match(frame.props.className, /border-gray-100/);
+    assert.match(frame.props.className, /bg-white/);
+    assert.match(frame.props.className, /shadow-xl/);
+    assert.deepEqual(panel.findAllByType("h2").map(content), ["Services", "Catalog", "Company", "Social"]);
+
+    const order = panel.findAllByType("a").find((link) => content(link).startsWith("Order a design"));
+    assert.ok(order);
+    assert.match(order.props.className, /rounded-xl/);
+    assert.match(order.props.className, /hover:bg-gray-50/);
+    assert.match(order.children[0].props.className, /h-8 w-8/);
+    assert.match(order.children[0].props.className, /bg-green-100/);
+    assert.match(order.children[1].children[1].props.className, /text-xs/);
+    assert.ok(panel.findAllByType("img").some((image) => image.props.src === "/assets/gradients/hero-gradient.svg"));
+    assert.ok(panel.findAllByType("a").some((link) => content(link).includes("Inside the Plus In Plus studio")));
   }
 
-  act(() => groupFor("SHOP").props.onMouseEnter());
-  const shop = groupFor("SHOP");
-  assert.deepEqual(shop.findAllByType("a").map((link) => content(link)), [
-    "Sign Design", "Bag Design", "Outdoor glass poster", "Banner Design",
-    "Large Billboard on a building", "Rooftop advertising", "Advertisement on the fence", "Billboard",
-  ]);
-  // More than 4 items: links flow horizontally into columns of at most 4.
-  const shopPanel = panelFor(shop);
-  const shopList = shopPanel.children[0];
-  assert.match(shopList.props.className, /grid grid-flow-col/);
-  assert.equal(shopList.props.style.gridTemplateRows, "repeat(4, minmax(0, auto))");
-  act(() => groupFor("SOCNET").props.onMouseEnter());
-  const socials = groupFor("SOCNET");
-  assert.deepEqual(socials.findAllByType("a").map((link) => link.props.href), [
-    "https://vk.com/plusinplus", "https://t.me/plusinplus", "https://www.youtube.com/@plusinplus",
-  ]);
-  // 4 items or fewer stay in a single vertical column.
-  const socialsList = panelFor(socials).children[0];
-  assert.match(socialsList.props.className, /flex flex-col gap-1/);
+  act(() => triggerFor("SHOP").props.onMouseEnter());
+  const shopPanel = panelFor("shop");
+  const shopLabels = ["Sign Design", "Bag Design", "Outdoor glass poster", "Banner Design", "Large Billboard", "Rooftop advertising"];
+  for (const label of shopLabels) {
+    assert.ok(shopPanel.findAllByType("a").some((link) => content(link).startsWith(label)), `${label} is missing`);
+  }
+  const socials = panelFor("shop").findAllByType("a");
+  assert.ok(socials.some((link) => link.props.href === "https://vk.com/plusinplus"));
+  assert.ok(socials.some((link) => link.props.href === "https://t.me/plusinplus"));
+  assert.ok(socials.some((link) => link.props.href === "https://www.youtube.com/@plusinplus"));
 
-  act(() => socials.props.onMouseLeave());
-  assert.equal(dropdowns().filter(panelFor).length, 1, "leave delay keeps the menu available briefly");
+  act(() => mainNav.props.onMouseLeave());
+  assert.equal(panelNodes().length, 1, "the menu stays open during the 150ms leave grace period");
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 175));
   });
-  assert.equal(dropdowns().filter(panelFor).length, 0);
+  assert.equal(panelNodes().length, 0);
+
+  const burger = view.root.findByProps({ "aria-label": "Open menu" });
+  act(() => burger.props.onClick());
+  const mobileNav = view.root.findByProps({ "aria-label": "Mobile main navigation" });
+  const shopAccordion = mobileNav.findAllByType("button").find((button) => content(button).startsWith("SHOP"));
+  assert.ok(shopAccordion);
+  assert.equal(shopAccordion.props["aria-expanded"], false);
+  act(() => shopAccordion.props.onClick());
+  const mobileCatalog = view.root.findByProps({ id: "mobile-navigation-section-shop" });
+  assert.ok(mobileCatalog.findAllByType("a").some((link) => content(link).startsWith("Large Billboard")));
+  assert.ok(view.root.findAllByType("a").some((link) => content(link) === "Contact"));
+  assert.ok(view.root.findAllByType("button").some((button) => content(button) === "Log in"));
+  act(() => view.root.findByProps({ "aria-label": "Close menu" }).props.onClick());
+  assert.equal(view.root.findAllByProps({ "aria-label": "Mobile main navigation" }).length, 0);
   act(() => view.unmount());
+});
+
+test("announcement bar can be dismissed and remembers its choice in localStorage", () => {
+  const previousWindow = global.window;
+  const previousCustomEvent = global.CustomEvent;
+  const values = new Map();
+  const events = [];
+  global.window = {
+    localStorage: {
+      getItem: (key) => values.get(key) ?? null,
+      setItem: (key, value) => values.set(key, value),
+    },
+    dispatchEvent: (event) => { events.push(event); return true; },
+  };
+  global.CustomEvent = class CustomEvent {
+    constructor(type, init) { this.type = type; this.detail = init?.detail; }
+  };
+
+  let view;
+  try {
+    act(() => { view = create(React.createElement(AnnouncementBar)); });
+    assert.match(content(view.toJSON()), /Plus In Plus — A next-generation design studio/);
+    assert.equal(view.root.findByProps({ "aria-label": "Dismiss announcement" }).type, "button");
+
+    act(() => view.root.findByProps({ "aria-label": "Dismiss announcement" }).props.onClick());
+    assert.equal(view.toJSON(), null);
+    assert.equal(values.get("pip-announcement-dismissed"), "true");
+    assert.equal(events.at(-1).detail.visible, false);
+
+    let restored;
+    act(() => { restored = create(React.createElement(AnnouncementBar)); });
+    assert.equal(restored.toJSON(), null, "a dismissed announcement remains hidden on the next visit");
+    act(() => restored.unmount());
+  } finally {
+    if (view) act(() => view.unmount());
+    global.window = previousWindow;
+    global.CustomEvent = previousCustomEvent;
+  }
 });
 
 test("category stays static; service image and arrow use 200ms hover motion", () => {
@@ -566,10 +611,10 @@ test("category cards use all four bundled gradients in reference order", () => {
   const view = create(React.createElement(CategoriesSection));
   try {
     const expected = [
-      ["Website mockup", "/assets/gradients/category-bg.png"],
-      ["Badge design", "/assets/gradients/category-bg2.png"],
-      ["Poster design", "/assets/gradients/category-bg3.png"],
-      ["Banner design", "/assets/gradients/category-bg4.png"],
+      ["Website mockup", "/assets/gradients/category-bg.svg"],
+      ["Badge design", "/assets/gradients/category-bg2.svg"],
+      ["Poster design", "/assets/gradients/category-bg3.svg"],
+      ["Banner design", "/assets/gradients/category-bg4.svg"],
     ];
     const cards = view.root.findAllByType(CategoryCard);
     assert.deepEqual(cards.map(({ props }) => [props.title, props.gradientImageSrc]), expected);
