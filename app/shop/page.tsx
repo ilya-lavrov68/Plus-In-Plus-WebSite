@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/site/empty-state";
 import { InternalPageContent, InternalPageHeader } from "@/components/site/internal-page-header";
 import { OtherNewsSection } from "@/components/site/other-news-section";
 import { ShopServiceCard } from "@/components/site/shop-service-card";
-import { getPublishedPosts, getPublishedServices, toNewsItem } from "@/lib/data";
+import { getPublishedPosts, getPublishedServices, serviceHref, toNewsItem } from "@/lib/data";
 import { createPageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
@@ -45,7 +45,7 @@ export default async function ShopPage() {
                 <li key={service.id}>
                   <ShopServiceCard
                     title={service.title}
-                    href={`/shop/${service.id}`}
+                    href={serviceHref(service)}
                     imageSrc={service.coverImage}
                   />
                 </li>
@@ -75,7 +75,7 @@ export default async function ShopPage() {
                 <li key={service.id}>
                   <ShopServiceCard
                     title={service.title}
-                    href={`/shop/${service.id}`}
+                    href={serviceHref(service)}
                     imageSrc={service.coverImage}
                   />
                 </li>

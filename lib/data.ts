@@ -1,5 +1,6 @@
 import type { PostModel, ServiceModel } from "@/lib/generated/prisma/models";
 
+import { parseJsonArray } from "@/lib/db-helpers";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -11,6 +12,7 @@ import { prisma } from "@/lib/prisma";
 export interface ServiceView {
   id: string;
   title: string;
+  slug: string;
   category: string;
   shortDesc: string;
   fullDesc: string;
@@ -45,20 +47,16 @@ export interface NewsItemView {
   description?: string;
 }
 
-const toStringArray = (value: unknown): string[] =>
-  Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === "string")
-    : [];
-
 function toServiceView(service: ServiceModel): ServiceView {
   return {
     id: service.id,
     title: service.title,
+    slug: service.slug,
     category: service.category,
     shortDesc: service.shortDesc,
     fullDesc: service.fullDesc,
-    includes: toStringArray(service.includes),
-    shapes: toStringArray(service.shapes),
+    includes: parseJsonArray(service.includes),
+    shapes: parseJsonArray(service.shapes),
     resultText: service.resultText,
     coverImage: service.coverImage,
   };
@@ -113,21 +111,29 @@ export async function getPublishedServices(): Promise<ServiceView[]> {
 }
 
 /**
- * The Service model has no slug column, so the dynamic `/shop/[slug]`
- * segment carries the service id.
+ * `/shop/[slug]` accepts the service slug (canonical) or, for links created before
+ * slugs existed, the service id.
  */
-export async function getPublishedService(id: string): Promise<ServiceView | null> {
+export async function getPublishedService(slugOrId: string): Promise<ServiceView | null> {
   if (!prisma) return null;
 
   try {
     const service = await prisma.service.findFirst({
-      where: { id, isPublished: true },
+      where: {
+        isPublished: true,
+        OR: [{ slug: slugOrId }, { id: slugOrId }],
+      },
     });
     return service ? toServiceView(service) : null;
   } catch (error) {
     console.error("Failed to load the service from the database:", error);
     return null;
   }
+}
+
+/** Public URL of a service row; falls back to the id for legacy rows. */
+export function serviceHref(service: Pick<ServiceView, "id" | "slug">): string {
+  return `/shop/${encodeURIComponent(service.slug || service.id)}`;
 }
 
 export async function getPublishedPosts(): Promise<PostView[]> {

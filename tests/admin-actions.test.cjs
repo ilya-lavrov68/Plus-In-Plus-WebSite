@@ -81,7 +81,10 @@ test("service create/update/delete commits data and audit entries, replaces and 
   const created = await services.createService(serviceForm());
   assert.equal(created.ok, true);
   const firstCover = store.service.get(created.id).coverImage;
-  assert.deepEqual(store.service.get(created.id).includes, ["One", "Two"]);
+  // SQLite has no JSON column: lists are stored as JSON strings (lib/db-helpers.ts).
+  assert.deepEqual(JSON.parse(store.service.get(created.id).includes), ["One", "Two"]);
+  assert.deepEqual(JSON.parse(store.service.get(created.id).shapes), ["Square"]);
+  assert.match(store.service.get(created.id).slug, /^[a-z0-9-]+$/);
   assert.equal(uploads[0].kind, "services");
   const edit = serviceForm(); edit.set("title", "Updated title"); edit.set("isPublished", "false"); edit.set("category", "large");
   assert.equal((await services.updateService(created.id, edit)).ok, true);

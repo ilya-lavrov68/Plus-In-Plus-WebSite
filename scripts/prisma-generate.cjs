@@ -4,7 +4,7 @@
 // `prisma generate` before `next build` can resolve `@/lib/generated/prisma/client`.
 // Running it from postinstall keeps local dev, CI and Vercel builds working
 // without a manual step. Prisma generation only reads the schema; it does not
-// connect to PostgreSQL, so it must also work before DATABASE_URL is configured.
+// connect to the database, so it must also work before .env is configured.
 //
 // Offline fallback: if `prisma generate` fails (e.g. no network access to
 // binaries.prisma.sh) but a previously generated client already exists, keep it
@@ -14,17 +14,19 @@ const { spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const DEFAULT_DATABASE_URL =
-  "postgresql://postgres:postgres@localhost:5432/plus_in_plus?schema=public";
+// prisma.config.ts reads TURSO_DATABASE_URL and connects through the libSQL driver
+// adapter. Generation never opens that connection, so a local file path is enough
+// to satisfy the schema's `env("TURSO_DATABASE_URL")` on a fresh clone.
+const DEFAULT_TURSO_DATABASE_URL = `file:${path.join(__dirname, "..", "prisma", "dev.db")}`;
 
 function createGenerateEnv(sourceEnv = process.env) {
   const generateEnv = { ...sourceEnv };
 
-  // prisma.config.ts uses env("DATABASE_URL"), which otherwise makes `prisma generate`
-  // fail on a fresh clone before the user has copied .env.example. The URL is only
-  // used to satisfy config loading; Prisma generate never opens a DB connection.
-  if (!generateEnv.DATABASE_URL?.trim()) {
-    generateEnv.DATABASE_URL = DEFAULT_DATABASE_URL;
+  // prisma.config.ts uses env("TURSO_DATABASE_URL"), which otherwise makes `prisma
+  // generate` fail on a fresh clone before the user has copied .env.example. The URL
+  // is only used to satisfy config loading; generate never opens a DB connection.
+  if (!generateEnv.TURSO_DATABASE_URL?.trim()) {
+    generateEnv.TURSO_DATABASE_URL = DEFAULT_TURSO_DATABASE_URL;
   }
 
   return generateEnv;
