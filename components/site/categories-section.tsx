@@ -17,7 +17,7 @@ export function CategoriesSection() {
         <div className="mx-auto max-w-2xl text-center">
           <h2
             id="categories-heading"
-            className="font-geist text-balance text-3xl font-semibold leading-tight tracking-[-0.045em] text-[#052B42] sm:text-4xl lg:text-[3.25rem]"
+            className="whitespace-nowrap font-geist text-[clamp(1rem,5.5vw,1.5rem)] font-semibold leading-tight tracking-[-0.045em] text-[#052B42] sm:text-2xl md:text-3xl lg:text-4xl"
           >
             Order a design you won&apos;t regret
           </h2>

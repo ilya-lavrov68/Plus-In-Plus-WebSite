@@ -16,7 +16,7 @@ require.extensions[".tsx"] = (module, filename) => {
 require.extensions[".ts"] = require.extensions[".tsx"];
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "next/link") return ({ children, ...props }) => React.createElement("a", props, children);
+  if (name === "next/link") return React.forwardRef(({ children, ...props }, ref) => React.createElement("a", { ...props, ref }, children));
   if (name === "next/image") return (props) => React.createElement("img", props);
   if (name === "@/lib/prisma") return { prisma: null };
   if (name === "next-auth/react") return { useSession: () => ({ data: null, status: "unauthenticated" }) };
@@ -28,12 +28,14 @@ Module._load = function (name, parent, isMain) {
 const { NewsCarousel, AUTOPLAY_INTERVAL } = require("../components/site/news-carousel.tsx");
 const { Header } = require("../components/site/header.tsx");
 const { CategoryCard } = require("../components/site/category-card.tsx");
+const { CategoriesSection } = require("../components/site/categories-section.tsx");
 const { ServiceCard } = require("../components/site/service-card.tsx");
 const { SafeImage } = require("../components/site/safe-image.tsx");
 const { createPageMetadata, SITE_URL } = require("../lib/seo.ts");
 const { NewsSection } = require("../components/site/news-section.tsx");
 const { toNewsItem } = require("../lib/data.ts");
 const { default: HomePage } = require("../app/page.tsx");
+const { default: ContactPage } = require("../app/contact/page.tsx");
 const { default: ShopPage } = require("../app/shop/page.tsx");
 const { default: BlogPage } = require("../app/blog/page.tsx");
 const { default: sitemap } = require("../app/sitemap.ts");
@@ -148,52 +150,90 @@ test("header switches background only above 50px and removes its listener", () =
   assert.equal(timer.listeners.has("scroll"), false);
 });
 
-test("header navigation dropdowns open on hover (group-hover), never on click", () => {
-  const timer = clock();
+test("header shows only the hovered dropdown and closes it after 150ms", async () => {
+  clock();
   let view;
   act(() => { view = create(React.createElement(Header)); });
-  const groups = view.root.findAll((node) => typeof node.props?.className === "string" && node.props.className.includes("group relative"));
-  // FOR PLAY, SHOP, ABOUT PIP, SOCNET.
-  assert.equal(groups.length, 4);
+  const dropdowns = () => view.root.findAll((node) =>
+    node.type === "div" &&
+    node.props.className === "relative" &&
+    typeof node.props.onMouseEnter === "function",
+  );
+  const groupFor = (label) => dropdowns().find((group) => content(group.findByType("button")).startsWith(label));
+  const panelFor = (group) => group.findAll((node) => node.props?.id?.startsWith("navigation-dropdown-"))[0];
+  const labels = ["FOR PLAY", "SHOP", "ABOUT PIP", "SOCNET"];
 
-  for (const item of ["FOR PLAY", "SHOP", "ABOUT PIP", "SOCNET"]) {
-    const group = view.root.findAll((node) => typeof node.props?.className === "string" && node.props.className.includes("group relative"))
-      .find((node) => node.findAll((child) => child.type === "button" && content(child).startsWith(item)).length === 1);
-    assert.ok(group, `${item} dropdown is missing`);
+  // Nav is below the right-side controls in the stacking order.
+  assert.match(view.root.findByProps({ "aria-label": "Main navigation" }).props.className, /z-10/);
+  const rightSide = view.root.findAll((node) => typeof node.props?.className === "string" && node.props.className.includes("z-30"))[0];
+  assert.ok(rightSide);
+  const contact = rightSide.findAllByType("a").find((link) => content(link) === "Contact");
+  const login = rightSide.findAllByType("button").find((button) => content(button) === "Log in");
+  assert.ok(contact);
+  assert.ok(login);
+  for (const control of [contact, login]) {
+    assert.match(control.props.className, /rounded-full/);
+    assert.match(control.props.className, /h-9/);
+    assert.match(control.props.className, /px-5/);
+    assert.match(control.props.className, /font-body/);
+  }
+  assert.match(contact.props.className, /border-navy/);
+  assert.match(login.props.className, /bg-navy/);
+  const logo = view.root.findAllByType("img").find((image) => image.props.alt === "Plus In Plus");
+  assert.equal(logo.props.className, "h-9 w-auto sm:h-[42px]");
 
-    // The trigger is a plain button with no click handler (no Radix, no onClick toggle).
-    const trigger = group.findAllByType("button")[0];
+  assert.equal(dropdowns().length, 4);
+  assert.equal(dropdowns().filter(panelFor).length, 0);
+
+  for (const label of labels) {
+    const group = groupFor(label);
+    assert.ok(group, `${label} dropdown is missing`);
+    const trigger = group.findByType("button");
     assert.equal(trigger.props.onClick, undefined);
     assert.equal(trigger.props["aria-haspopup"], "true");
-    // Clicking it must not reveal the menu: only CSS hover/focus does.
-    const panel = group.findAll((node) => typeof node.props?.className === "string" && node.props.className.includes("min-w-[200px]"))[0];
-    assert.ok(panel);
-    assert.match(panel.props.className, /invisible/);
-    assert.match(panel.props.className, /opacity-0/);
-    assert.match(panel.props.className, /group-hover:visible/);
-    assert.match(panel.props.className, /group-hover:opacity-100/);
+
+    act(() => group.props.onMouseEnter());
+
+    const activeGroup = groupFor(label);
+    const panel = panelFor(activeGroup);
+    assert.ok(panel, `${label} menu should open on hover`);
+    assert.equal(dropdowns().filter(panelFor).length, 1, "only one dropdown panel may be mounted");
+    assert.equal(activeGroup.findByType("button").props["aria-expanded"], true);
+    assert.match(panel.props.className, /z-20/);
+    assert.match(panel.props.className, /-mt-1/);
+    assert.match(panel.props.className, /border-t-0/);
+    assert.match(panel.props.className, /rounded-t-sm/);
+    assert.match(panel.props.className, /rounded-b-xl/);
+    assert.match(panel.props.className, /border-navy\/15/);
     assert.match(panel.props.className, /bg-white/);
-    assert.match(panel.props.className, /border-gray-200/);
     assert.match(panel.props.className, /shadow-lg/);
-    assert.match(panel.props.className, /rounded-xl/);
-    // ~200ms grace period before the panel hides, so the cursor can move into it.
-    assert.match(panel.props.className, /delay-200/);
-    assert.match(panel.props.className, /group-hover:delay-0/);
-    // Chevron rotates 180deg while hovering the group.
-    assert.match(group.findAllByType(ChevronDown)[0].props.className, /transition-transform/);
-    assert.match(group.findAllByType(ChevronDown)[0].props.className, /group-hover:rotate-180/);
+    assert.match(activeGroup.findByType("button").props.className, /rounded-b-none/);
+    assert.equal(panel.findAllByType("svg").length, panel.findAllByType("a").length);
+    for (const link of panel.findAllByType("a")) {
+      assert.match(link.findByType("svg").props.className, /h-4 w-4 shrink-0 text-navy\/70/);
+    }
+    assert.match(activeGroup.findByType(ChevronDown).props.className, /transition-transform/);
+    assert.match(activeGroup.findByType(ChevronDown).props.className, /rotate-180/);
   }
 
-  // SHOP links to the real services and SOCNET to the social profiles.
-  const shop = view.root.findAll((node) => typeof node.props?.className === "string" && node.props.className.includes("group relative"))[1];
-  assert.deepEqual(shop.findAllByType("a").map((node) => content(node)), [
+  act(() => groupFor("SHOP").props.onMouseEnter());
+  const shop = groupFor("SHOP");
+  assert.deepEqual(shop.findAllByType("a").map((link) => content(link)), [
     "Sign Design", "Bag Design", "Outdoor glass poster", "Banner Design",
     "Large Billboard on a building", "Rooftop advertising", "Advertisement on the fence", "Billboard",
   ]);
-  const socnet = view.root.findAll((node) => typeof node.props?.className === "string" && node.props.className.includes("group relative"))[3];
-  assert.deepEqual(socnet.findAllByType("a").map((node) => node.props.href), [
+  act(() => groupFor("SOCNET").props.onMouseEnter());
+  const socials = groupFor("SOCNET");
+  assert.deepEqual(socials.findAllByType("a").map((link) => link.props.href), [
     "https://vk.com/plusinplus", "https://t.me/plusinplus", "https://www.youtube.com/@plusinplus",
   ]);
+
+  act(() => socials.props.onMouseLeave());
+  assert.equal(dropdowns().filter(panelFor).length, 1, "leave delay keeps the menu available briefly");
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 175));
+  });
+  assert.equal(dropdowns().filter(panelFor).length, 0);
   act(() => view.unmount());
 });
 
@@ -207,10 +247,52 @@ test("category stays static; service image and arrow use 200ms hover motion", ()
   assert.equal(image.props.src, "/from-props.png");
   assert.match(image.props.className, /duration-200 ease-out/);
   assert.match(image.props.className, /group-hover:grayscale group-hover:opacity-70/);
+  const title = service.root.findByType("h3");
+  assert.match(title.props.className, /font-heading/);
+  assert.match(title.props.className, /text-\[1\.6875rem\]/);
+  assert.match(title.props.className, /text-navy/);
   const arrow = service.root.findByType(ArrowRight);
-  assert.match(arrow.props.className, /duration-200 ease-out group-hover:rotate-90/);
+  assert.match(arrow.props.className, /transition-transform duration-200 ease-out group-hover:rotate-90/);
+  assert.doesNotMatch(arrow.props.className, /rotate-45/);
   category.unmount();
   service.unmount();
+});
+
+test("categories heading stays on one line without changing its subtitle", () => {
+  const section = create(React.createElement(CategoriesSection));
+  const heading = section.root.findByProps({ id: "categories-heading" });
+  assert.match(heading.props.className, /whitespace-nowrap/);
+  assert.match(heading.props.className, /text-\[clamp\(1rem,5\.5vw,1\.5rem\)\]/);
+
+  const subtitle = section.root.findByType("p");
+  assert.match(content(subtitle), /^Have an idea but don.t know how to showcase it\?/);
+  assert.match(content(subtitle), /clear design—from website mockups to posters and event collateral\./);
+  assert.equal(
+    subtitle.props.className,
+    "mx-auto mt-5 max-w-2xl text-center font-body text-base leading-7 text-[#052B42] sm:text-lg sm:leading-8",
+  );
+  section.unmount();
+});
+
+test("contact form is centered and Send retains its rounded-xl style", () => {
+  const page = create(React.createElement(ContactPage));
+  const heading = page.root.findByProps({ id: "contact-heading" });
+  assert.match(heading.props.className, /text-center/);
+  assert.match(heading.props.className, /font-heading/);
+
+  const form = page.root.findByType("form");
+  assert.match(form.props.className, /mx-auto/);
+  assert.match(form.props.className, /max-w-xl/);
+  for (const input of form.findAllByType("input")) {
+    assert.match(input.props.className, /w-full/);
+  }
+  assert.match(form.findByType("textarea").props.className, /w-full/);
+
+  const send = form.findByType("button");
+  assert.match(send.props.className, /mx-auto/);
+  assert.match(send.props.className, /rounded-xl/);
+  assert.doesNotMatch(send.props.className, /rounded-full/);
+  page.unmount();
 });
 
 test("missing upload images are omitted and failed image requests are hidden", () => {
@@ -383,9 +465,11 @@ test("stage 7.1: filled CTAs are white on navy, outline CTAs are navy", () => {
   const { buttonVariants } = require("../components/ui/button.tsx");
   for (const variant of ["default", "primary"]) {
     assert.match(buttonVariants({ variant }), /bg-\[#052B42\] text-white/);
+    assert.match(buttonVariants({ variant }), /rounded-xl/);
     assert.doesNotMatch(buttonVariants({ variant }), /text-\[#052B42\]/);
   }
   assert.match(buttonVariants({ variant: "outline" }), /border-\[#052B42\].*text-\[#052B42\]/);
+  assert.match(buttonVariants({ variant: "outline" }), /rounded-xl/);
   const { BreadcrumbBack } = require("../components/site/breadcrumb-back.tsx");
   const back = create(React.createElement(BreadcrumbBack, { href: "/shop", label: "Back" }));
   assert.match(back.root.findByType("a").props.className, /bg-\[#052B42\] text-white/);
