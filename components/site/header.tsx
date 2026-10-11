@@ -176,7 +176,7 @@ export function Header() {
           aria-label="Plus In Plus home"
           className="shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
         >
-          <Logo variant="header" className="h-6 w-auto sm:h-7" />
+          <Logo variant="header" className="h-12 w-auto sm:h-14" />
         </Link>
 
         {/* Center: main navigation, dropdowns open on hover (CSS group-hover) */}
