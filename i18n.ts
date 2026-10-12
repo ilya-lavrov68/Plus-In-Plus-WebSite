@@ -1,5 +1,3 @@
-import { getRequestConfig } from "next-intl/server";
-
 import en from "@/messages/en.json";
 import ru from "@/messages/ru.json";
 
@@ -57,9 +55,3 @@ export function formatPublishedDate(value: Date | string, locale: Locale): strin
 }
 
 export const messages = { en, ru } as const;
-
-export default getRequestConfig(async ({ requestLocale }) => {
-  const requested = await requestLocale;
-  const locale = isLocale(requested) ? requested : defaultLocale;
-  return { locale, messages: messages[locale] };
-});

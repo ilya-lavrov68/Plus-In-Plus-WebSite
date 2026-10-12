@@ -22,6 +22,8 @@ const profile = { id: "mock-only", email: "person@example.com", firstName: "Firs
 const tag = (name) => ({ children, ...props }) => React.createElement(name, props, children);
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
+  if (name === "next-intl") return require("./next-intl-stub.cjs");
+  if (name === "next-intl/server") return require("./next-intl-stub.cjs");
   if (name === "next/link") return tag("a");
   if (name === "next/image") return (props) => React.createElement("img", props);
   if (name === "next/navigation") return { useRouter: () => ({ push: (p) => pushes.push(p), replace: (p) => replacements.push(p), refresh() {} }), usePathname: () => "/" };

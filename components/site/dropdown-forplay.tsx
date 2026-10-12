@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import {
-  Building,
-  Palette,
-  ShoppingBag,
-  Tag,
-} from "lucide-react";
+import { Building, Palette, ShoppingBag, Tag } from "lucide-react";
+import { useTranslations } from "next-intl";
 
+import {
+  navigationDescription,
+  navigationLabel,
+} from "@/components/site/nav-dropdown";
 import { DropdownFeatured, type FeaturedPostData } from "@/components/site/dropdown-featured";
 
 export interface DropdownForPlayProps {
@@ -18,35 +18,12 @@ export interface DropdownForPlayProps {
   featuredPost?: FeaturedPostData | null;
 }
 
-const SERVICES_ITEMS = [
-  {
-    label: "Order a design",
-    description: "Get a professional design for your brand.",
-    href: "/shop",
-    icon: ShoppingBag,
-    iconBg: "bg-[#00C56D]",
-  },
-  {
-    label: "Design services",
-    description: "Thoughtful visuals for every kind of project.",
-    href: "/shop",
-    icon: Palette,
-    iconBg: "bg-[#00C56D]",
-  },
-  {
-    label: "Small designs",
-    description: "Clear, eye-catching details for your brand.",
-    href: "/shop#small-designs",
-    icon: Tag,
-    iconBg: "bg-[#00C56D]",
-  },
-  {
-    label: "Large designs",
-    description: "Big-format ideas built to be noticed.",
-    href: "/shop#large-designs",
-    icon: Building,
-    iconBg: "bg-[#00C56D]",
-  },
+/** Keys of `nav.items.*`; every label and description comes from `messages/*.json`. */
+export const SERVICES_ITEMS = [
+  { key: "orderDesign", href: "/shop", icon: ShoppingBag },
+  { key: "designServices", href: "/shop", icon: Palette },
+  { key: "smallDesigns", href: "/shop#small-designs", icon: Tag },
+  { key: "largeDesigns", href: "/shop#large-designs", icon: Building },
 ];
 
 export function DropdownForPlay({
@@ -56,11 +33,13 @@ export function DropdownForPlay({
   onLinkClick,
   featuredPost,
 }: DropdownForPlayProps) {
+  const t = useTranslations("nav");
+  const th = useTranslations("header");
   return (
     <div
       id={`navigation-dropdown-${id}`}
       role="region"
-      aria-label="FOR PLAY navigation menu"
+      aria-label={t("aria", { section: th("forPlay") })}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       className="absolute left-1/2 top-[calc(100%+0.75rem)] z-30 w-[min(1120px,calc(100vw-1rem))] min-w-[700px] -translate-x-1/2 animate-dropdown-in"
@@ -73,14 +52,14 @@ export function DropdownForPlay({
                 id="forplay-section-services"
                 className="px-3 text-xs font-semibold uppercase tracking-[0.12em] text-gray-500"
               >
-                Services
+                {t("sections.services")}
               </h2>
               <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                 {SERVICES_ITEMS.map((item) => {
                   const Icon = item.icon;
                   return (
                     <Link
-                      key={item.label}
+                      key={navigationLabel(t, item)}
                       href={item.href}
                       onClick={onLinkClick}
                       className="group flex min-w-0 items-start gap-3 rounded-xl p-3 text-left transition-colors duration-200 ease-out hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
@@ -90,10 +69,10 @@ export function DropdownForPlay({
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-medium leading-5 text-navy group-hover:text-[#0A4366]">
-                          {item.label}
+                          {navigationLabel(t, item)}
                         </span>
                         <span className="mt-0.5 block line-clamp-2 text-xs leading-4 text-gray-500">
-                          {item.description}
+                          {navigationDescription(t, item)}
                         </span>
                       </span>
                     </Link>

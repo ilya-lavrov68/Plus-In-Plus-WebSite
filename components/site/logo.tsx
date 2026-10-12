@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 
@@ -21,11 +24,12 @@ export interface LogoProps {
  * - pip-ts-connect.svg (683×83): combined "Plus In Plus | TS CONNECT" lockup.
  */
 export function Logo({ variant = "header", className }: LogoProps) {
+  const t = useTranslations("common");
   if (variant === "partners") {
     return (
       <Image
         src="/assets/logos/pip-ts-connect.svg"
-        alt="Plus In Plus and TS Connect"
+        alt={t("partnersLogoAlt")}
         width={683}
         height={83}
         className={cn("h-auto w-auto max-w-full", className)}

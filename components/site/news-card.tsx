@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { ArrowUpRight, Send } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
 import { SafeImage } from "@/components/site/safe-image";
 
 export type NewsSource = "vk" | "telegram" | "youtube" | "manual";
-export type NewsLocale = "en" | "ru";
 
 export interface NewsCardProps {
   title: string;
@@ -16,7 +16,6 @@ export interface NewsCardProps {
   href?: string;
   imagesCount?: number;
   publishedAt?: string | null;
-  locale?: NewsLocale;
   isActive?: boolean;
 }
 
@@ -52,7 +51,7 @@ function isSafeExternalUrl(value?: string | null): value is string {
   }
 }
 
-function formatCardDate(value: string, locale: NewsLocale) {
+function formatCardDate(value: string, locale: string) {
   return new Intl.DateTimeFormat(locale === "ru" ? "ru-RU" : "en-US", {
     year: "numeric",
     month: "short",
@@ -71,9 +70,10 @@ export function NewsCard({
   href,
   imagesCount,
   publishedAt,
-  locale = "en",
   isActive = true,
 }: NewsCardProps) {
+  const t = useTranslations("news");
+  const locale = useLocale();
   const targetPostUrl = postUrl ?? href;
   const validSource = source === "vk" || source === "telegram" || source === "youtube";
   const showSource = Boolean(validSource && isSafeExternalUrl(sourceUrl));
@@ -86,7 +86,7 @@ export function NewsCard({
     >
       <div className="relative aspect-[350/273] w-full shrink-0 overflow-hidden bg-[#F0F0F0]">
         <span className="absolute inset-0 z-0 flex items-center justify-center bg-[#E93838] font-body text-sm font-semibold text-white">
-          photo of article
+          {t("photoPlaceholder")}
         </span>
         {imageSrc ? (
           <SafeImage
@@ -138,7 +138,7 @@ export function NewsCard({
                 target="_blank"
                 rel="noopener noreferrer"
                 tabIndex={isActive ? 0 : -1}
-                aria-label={`Source on ${source === "vk" ? "VK" : source === "telegram" ? "Telegram" : "YouTube"}`}
+                aria-label={t("sourceOn", { source: source === "vk" ? "VK" : source === "telegram" ? "Telegram" : "YouTube" })}
                 className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#052B42]/20 bg-white text-[#052B42] transition-colors duration-200 ease-out hover:bg-[#052B42]/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42]"
               >
                 <SourceIcon source={source} />
@@ -148,7 +148,7 @@ export function NewsCard({
             {showArrow && targetPostUrl ? (
               <Link
                 href={targetPostUrl}
-                aria-label={`Read ${title}`}
+                aria-label={t("readArticle", { title })}
                 tabIndex={isActive ? 0 : -1}
                 className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#052B42]/20 bg-white text-[#052B42] transition-colors duration-200 ease-out hover:bg-[#052B42]/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42]"
               >

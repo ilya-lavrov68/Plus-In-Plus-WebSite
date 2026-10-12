@@ -23,12 +23,7 @@ import {
   Store,
   Tag,
 } from "lucide-react";
-
-import { DropdownForPlay } from "@/components/site/dropdown-forplay";
-import { DropdownShop } from "@/components/site/dropdown-shop";
-import { DropdownAbout } from "@/components/site/dropdown-about";
-import { DropdownSocnet } from "@/components/site/dropdown-socnet";
-import type { FeaturedPostData } from "@/components/site/dropdown-featured";
+import { useTranslations } from "next-intl";
 
 export function YouTubeIcon(props: LucideProps) {
   return (
@@ -52,9 +47,16 @@ export function VkIcon(props: LucideProps) {
 
 export type NavigationIcon = LucideIcon | typeof YouTubeIcon | typeof VkIcon;
 
+/**
+ * A navigation entry. Copy lives in `messages/*.json` under `nav.items.<key>`.
+ * Brand names stay literal on purpose: VK, Telegram and YouTube are never
+ * translated, so they carry a `label` instead of a `key`.
+ */
 export interface NavigationMenuLink {
-  label: string;
-  description: string;
+  /** Key inside the `nav.items` namespace, e.g. `orderDesign`. */
+  key?: string;
+  /** Literal label for brand names and social networks. */
+  label?: string;
   href: string;
   icon: NavigationIcon;
   iconBg?: string;
@@ -62,256 +64,225 @@ export interface NavigationMenuLink {
 }
 
 export interface NavigationSubSection {
-  title: string;
+  /** Key inside the `nav.sections` namespace. */
+  titleKey: string;
   items: NavigationMenuLink[];
 }
 
 export interface NavigationSection {
   id: string;
-  title: string;
+  /** Key inside the `nav.sections` namespace. */
+  titleKey: string;
   subsections?: NavigationSubSection[];
   items: NavigationMenuLink[];
 }
 
 export interface NavigationItem {
   id: string;
-  label: string;
+  /** Key inside the `header` namespace (the four mega-menu triggers). */
+  labelKey: string;
   sectionId: string;
 }
 
 export const NAVIGATION_ITEMS: NavigationItem[] = [
-  { id: "for-play", label: "FOR PLAY", sectionId: "for-play" },
-  { id: "shop", label: "SHOP", sectionId: "shop" },
-  { id: "about-pip", label: "ABOUT PIP", sectionId: "about-pip" },
-  { id: "socnet", label: "SOCNET", sectionId: "socnet" },
+  { id: "for-play", labelKey: "forPlay", sectionId: "for-play" },
+  { id: "shop", labelKey: "shop", sectionId: "shop" },
+  { id: "about-pip", labelKey: "about", sectionId: "about-pip" },
+  { id: "socnet", labelKey: "socnet", sectionId: "socnet" },
 ];
+
+const GREEN = "bg-[#00C56D]";
 
 export const NAVIGATION_SECTIONS: NavigationSection[] = [
   {
     id: "for-play",
-    title: "FOR PLAY",
+    titleKey: "services",
     subsections: [
       {
-        title: "Services",
+        titleKey: "services",
         items: [
-          { label: "Order a design", description: "Get a professional design for your brand.", href: "/shop", icon: ShoppingBag, iconBg: "bg-[#00C56D]" },
-          { label: "Design services", description: "Thoughtful visuals for every kind of project.", href: "/shop", icon: Palette, iconBg: "bg-[#00C56D]" },
-          { label: "Small designs", description: "Clear, eye-catching details for your brand.", href: "/shop#small-designs", icon: Tag, iconBg: "bg-[#00C56D]" },
-          { label: "Large designs", description: "Big-format ideas built to be noticed.", href: "/shop#large-designs", icon: Building, iconBg: "bg-[#00C56D]" },
+          { key: "orderDesign", href: "/shop", icon: ShoppingBag, iconBg: GREEN },
+          { key: "designServices", href: "/shop", icon: Palette, iconBg: GREEN },
+          { key: "smallDesigns", href: "/shop#small-designs", icon: Tag, iconBg: GREEN },
+          { key: "largeDesigns", href: "/shop#large-designs", icon: Building, iconBg: GREEN },
         ],
       },
     ],
     items: [
-      { label: "Order a design", description: "Get a professional design for your brand.", href: "/shop", icon: ShoppingBag, iconBg: "bg-[#00C56D]" },
-      { label: "Design services", description: "Thoughtful visuals for every kind of project.", href: "/shop", icon: Palette, iconBg: "bg-[#00C56D]" },
-      { label: "Small designs", description: "Clear, eye-catching details for your brand.", href: "/shop#small-designs", icon: Tag, iconBg: "bg-[#00C56D]" },
-      { label: "Large designs", description: "Big-format ideas built to be noticed.", href: "/shop#large-designs", icon: Building, iconBg: "bg-[#00C56D]" },
+      { key: "orderDesign", href: "/shop", icon: ShoppingBag, iconBg: GREEN },
+      { key: "designServices", href: "/shop", icon: Palette, iconBg: GREEN },
+      { key: "smallDesigns", href: "/shop#small-designs", icon: Tag, iconBg: GREEN },
+      { key: "largeDesigns", href: "/shop#large-designs", icon: Building, iconBg: GREEN },
     ],
   },
   {
     id: "shop",
-    title: "SHOP",
+    titleKey: "smallDesigns",
     subsections: [
       {
-        title: "Small designs",
+        titleKey: "smallDesigns",
         items: [
-          { label: "Sign Design", description: "Signage that makes your space stand out.", href: "/shop#small-designs", icon: Store, iconBg: "bg-[#00C56D]" },
-          { label: "Bag Design", description: "Branded bags with a memorable look.", href: "/shop#small-designs", icon: ShoppingBag, iconBg: "bg-[#00C56D]" },
-          { label: "Outdoor glass poster", description: "A crisp message for glass and storefronts.", href: "/shop#small-designs", icon: ImageIcon, iconBg: "bg-[#00C56D]" },
-          { label: "Banner Design", description: "Flexible visuals for campaigns and events.", href: "/shop#small-designs", icon: Flag, iconBg: "bg-[#00C56D]" },
+          { key: "signDesign", href: "/shop#small-designs", icon: Store, iconBg: GREEN },
+          { key: "bagDesign", href: "/shop#small-designs", icon: ShoppingBag, iconBg: GREEN },
+          { key: "outdoorGlassPoster", href: "/shop#small-designs", icon: ImageIcon, iconBg: GREEN },
+          { key: "bannerDesign", href: "/shop#small-designs", icon: Flag, iconBg: GREEN },
         ],
       },
       {
-        title: "Large designs",
+        titleKey: "largeDesigns",
         items: [
-          { label: "Large Billboard on a building", description: "Make a bold impression at city scale.", href: "/shop#large-designs", icon: Building2, iconBg: "bg-[#00C56D]" },
-          { label: "Rooftop advertising", description: "Bring your message above the skyline.", href: "/shop#large-designs", icon: Home, iconBg: "bg-[#00C56D]" },
-          { label: "Advertisement on the fence", description: "High-visibility street-level perimeter branding.", href: "/shop#large-designs", icon: RectangleHorizontal, iconBg: "bg-[#00C56D]" },
-          { label: "Billboard", description: "Unmissable outdoor branding on arterial roads.", href: "/shop#large-designs", icon: Megaphone, iconBg: "bg-[#00C56D]" },
+          { key: "largeBillboard", href: "/shop#large-designs", icon: Building2, iconBg: GREEN },
+          { key: "rooftopAdvertising", href: "/shop#large-designs", icon: Home, iconBg: GREEN },
+          { key: "advertisementOnTheFence", href: "/shop#large-designs", icon: RectangleHorizontal, iconBg: GREEN },
+          { key: "billboard", href: "/shop#large-designs", icon: Megaphone, iconBg: GREEN },
         ],
       },
     ],
     items: [
-      { label: "Sign Design", description: "Signage that makes your space stand out.", href: "/shop#small-designs", icon: Store, iconBg: "bg-[#00C56D]" },
-      { label: "Bag Design", description: "Branded bags with a memorable look.", href: "/shop#small-designs", icon: ShoppingBag, iconBg: "bg-[#00C56D]" },
-      { label: "Outdoor glass poster", description: "A crisp message for glass and storefronts.", href: "/shop#small-designs", icon: ImageIcon, iconBg: "bg-[#00C56D]" },
-      { label: "Banner Design", description: "Flexible visuals for campaigns and events.", href: "/shop#small-designs", icon: Flag, iconBg: "bg-[#00C56D]" },
-      { label: "Large Billboard on a building", description: "Make a bold impression at city scale.", href: "/shop#large-designs", icon: Building2, iconBg: "bg-[#00C56D]" },
-      { label: "Rooftop advertising", description: "Bring your message above the skyline.", href: "/shop#large-designs", icon: Home, iconBg: "bg-[#00C56D]" },
-      { label: "Advertisement on the fence", description: "High-visibility street-level perimeter branding.", href: "/shop#large-designs", icon: RectangleHorizontal, iconBg: "bg-[#00C56D]" },
-      { label: "Billboard", description: "Unmissable outdoor branding on arterial roads.", href: "/shop#large-designs", icon: Megaphone, iconBg: "bg-[#00C56D]" },
+      { key: "signDesign", href: "/shop#small-designs", icon: Store, iconBg: GREEN },
+      { key: "bagDesign", href: "/shop#small-designs", icon: ShoppingBag, iconBg: GREEN },
+      { key: "outdoorGlassPoster", href: "/shop#small-designs", icon: ImageIcon, iconBg: GREEN },
+      { key: "bannerDesign", href: "/shop#small-designs", icon: Flag, iconBg: GREEN },
+      { key: "largeBillboard", href: "/shop#large-designs", icon: Building2, iconBg: GREEN },
+      { key: "rooftopAdvertising", href: "/shop#large-designs", icon: Home, iconBg: GREEN },
+      { key: "advertisementOnTheFence", href: "/shop#large-designs", icon: RectangleHorizontal, iconBg: GREEN },
+      { key: "billboard", href: "/shop#large-designs", icon: Megaphone, iconBg: GREEN },
     ],
   },
   {
     id: "about-pip",
-    title: "ABOUT PIP",
+    titleKey: "company",
     subsections: [
       {
-        title: "Company",
+        titleKey: "company",
         items: [
-          { label: "How we work", description: "A clear process, from first idea to final design.", href: "/#features", icon: Briefcase, iconBg: "bg-[#00C56D]" },
-          { label: "Our partners", description: "Meet the people we build great work with.", href: "/#partners", icon: Handshake, iconBg: "bg-[#00C56D]" },
-          { label: "Studio news", description: "The latest from the Plus In Plus studio.", href: "/#news", icon: Newspaper, iconBg: "bg-[#00C56D]" },
-          { label: "Blog", description: "Ideas, inspiration, and design stories.", href: "/blog", icon: BookOpen, iconBg: "bg-[#00C56D]" },
+          { key: "howWeWork", href: "/#features", icon: Briefcase, iconBg: GREEN },
+          { key: "ourPartners", href: "/#partners", icon: Handshake, iconBg: GREEN },
+          { key: "studioNews", href: "/#news", icon: Newspaper, iconBg: GREEN },
+          { key: "blog", href: "/blog", icon: BookOpen, iconBg: GREEN },
         ],
       },
       {
-        title: "Resources",
+        titleKey: "resources",
         items: [
-          { label: "Case studies", description: "Deep dives into client work and design systems.", href: "/blog", icon: FolderOpen, iconBg: "bg-[#00C56D]" },
-          { label: "Design systems", description: "Scalable UI foundations and brand guidelines.", href: "/blog", icon: Layers, iconBg: "bg-[#00C56D]" },
-            ],
+          { key: "caseStudies", href: "/blog", icon: FolderOpen, iconBg: GREEN },
+          { label: "Design systems", href: "/blog", icon: Layers, iconBg: GREEN },
+        ],
       },
     ],
     items: [
-      { label: "How we work", description: "A clear process, from first idea to final design.", href: "/#features", icon: Briefcase, iconBg: "bg-[#00C56D]" },
-      { label: "Our partners", description: "Meet the people we build great work with.", href: "/#partners", icon: Handshake, iconBg: "bg-[#00C56D]" },
-      { label: "Studio news", description: "The latest from the Plus In Plus studio.", href: "/#news", icon: Newspaper, iconBg: "bg-[#00C56D]" },
-      { label: "Blog", description: "Ideas, inspiration, and design stories.", href: "/blog", icon: BookOpen, iconBg: "bg-[#00C56D]" },
-      { label: "Case studies", description: "Deep dives into client work and design systems.", href: "/blog", icon: FolderOpen, iconBg: "bg-[#00C56D]" },
-      { label: "Design systems", description: "Scalable UI foundations and brand guidelines.", href: "/blog", icon: Layers, iconBg: "bg-[#00C56D]" },
+      { key: "howWeWork", href: "/#features", icon: Briefcase, iconBg: GREEN },
+      { key: "ourPartners", href: "/#partners", icon: Handshake, iconBg: GREEN },
+      { key: "studioNews", href: "/#news", icon: Newspaper, iconBg: GREEN },
+      { key: "blog", href: "/blog", icon: BookOpen, iconBg: GREEN },
+      { key: "caseStudies", href: "/blog", icon: FolderOpen, iconBg: GREEN },
+      { label: "Design systems", href: "/blog", icon: Layers, iconBg: GREEN },
     ],
   },
   {
     id: "socnet",
-    title: "SOCNET",
+    titleKey: "social",
     subsections: [
       {
-        title: "Social",
+        titleKey: "social",
         items: [
-          { label: "VK", description: "Follow Plus In Plus on VK.", href: "https://vk.com/plusinplus", icon: VkIcon, iconBg: "bg-[#00C56D]", external: true },
-          { label: "Telegram", description: "Studio updates, straight to your feed.", href: "https://t.me/plusinplus", icon: Send, iconBg: "bg-[#00C56D]", external: true },
-          { label: "YouTube", description: "Watch ideas take shape in the studio.", href: "https://www.youtube.com/@plusinplus", icon: YouTubeIcon, iconBg: "bg-[#00C56D]", external: true },
+          { key: "vk", label: "VK", href: "https://vk.com/plusinplus", icon: VkIcon, iconBg: GREEN, external: true },
+          { key: "telegram", label: "Telegram", href: "https://t.me/plusinplus", icon: Send, iconBg: GREEN, external: true },
+          { key: "youtube", label: "YouTube", href: "https://www.youtube.com/@plusinplus", icon: YouTubeIcon, iconBg: GREEN, external: true },
         ],
       },
       {
-        title: "Contact",
+        titleKey: "contact",
         items: [
-          { label: "Contact us", description: "Get in touch with our team today.", href: "/contact", icon: Mail, iconBg: "bg-[#00C56D]" },
-          { label: "Order", description: "Place a request for your next design.", href: "/shop", icon: ShoppingBag, iconBg: "bg-[#00C56D]" },
+          { key: "contactUs", href: "/contact", icon: Mail, iconBg: GREEN },
+          { key: "order", href: "/shop", icon: ShoppingBag, iconBg: GREEN },
         ],
       },
     ],
     items: [
-      { label: "VK", description: "Follow Plus In Plus on VK.", href: "https://vk.com/plusinplus", icon: VkIcon, iconBg: "bg-[#00C56D]", external: true },
-      { label: "Telegram", description: "Studio updates, straight to your feed.", href: "https://t.me/plusinplus", icon: Send, iconBg: "bg-[#00C56D]", external: true },
-      { label: "YouTube", description: "Watch ideas take shape in the studio.", href: "https://www.youtube.com/@plusinplus", icon: YouTubeIcon, iconBg: "bg-[#00C56D]", external: true },
-      { label: "Contact us", description: "Get in touch with our team today.", href: "/contact", icon: Mail, iconBg: "bg-[#00C56D]" },
-      { label: "Order", description: "Place a request for your next design.", href: "/shop", icon: ShoppingBag, iconBg: "bg-[#00C56D]" },
+      { key: "vk", label: "VK", href: "https://vk.com/plusinplus", icon: VkIcon, iconBg: GREEN, external: true },
+      { key: "telegram", label: "Telegram", href: "https://t.me/plusinplus", icon: Send, iconBg: GREEN, external: true },
+      { key: "youtube", label: "YouTube", href: "https://www.youtube.com/@plusinplus", icon: YouTubeIcon, iconBg: GREEN, external: true },
+      { key: "contactUs", href: "/contact", icon: Mail, iconBg: GREEN },
+      { key: "order", href: "/shop", icon: ShoppingBag, iconBg: GREEN },
     ],
   },
 ];
 
-export function getNavigationSection(sectionId: string) {
-  const normalized = sectionId === "services" ? "for-play" : sectionId === "catalog" ? "shop" : sectionId === "company" ? "about-pip" : sectionId === "social" ? "socnet" : sectionId;
-  return NAVIGATION_SECTIONS.find((section) => section.id === normalized || section.id === sectionId);
+/**
+ * Locale-aware label of a navigation entry. Exception terms (brand names such as
+ * VK, Telegram, YouTube and technical names such as "Design systems") carry a
+ * literal `label` and are never looked up as a message.
+ */
+export function navigationLabel(
+  t: (key: string) => string,
+  item: { key?: string; label?: string },
+): string {
+  if (item.label) return item.label;
+  return item.key ? t(`items.${item.key}.label`) : "";
 }
 
+export function navigationDescription(
+  t: (key: string) => string,
+  item: { key?: string },
+): string {
+  return item.key ? t(`items.${item.key}.description`) : "";
+}
+
+export function getNavigationSection(id: string): NavigationSection | undefined {
+  return NAVIGATION_SECTIONS.find((section) => section.id === id);
+}
+
+/**
+ * One entry of the enlarged mobile menu: icon, label, description
+ * (and an external-link marker for social networks).
+ */
 export function NavigationMenuEntry({
   item,
-  compact = false,
   onSelect,
 }: {
   item: NavigationMenuLink;
-  compact?: boolean;
   onSelect?: () => void;
 }) {
+  const t = useTranslations("nav");
   const Icon = item.icon;
-  const className = compact
-    ? "group flex min-w-0 items-start gap-3 rounded-xl p-2.5 text-left transition-colors duration-200 ease-out hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
-    : "group flex min-w-0 items-start gap-3 rounded-xl p-3 text-left transition-colors duration-200 ease-out hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy";
-
-  const iconClassName = "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#00C56D] text-[#052B42]";
-
-  const content = (
+  const label = navigationLabel(t, item);
+  const description = navigationDescription(t, item);
+  const className =
+    "group flex min-w-0 items-start gap-3 rounded-xl p-3 text-left transition-colors duration-200 ease-out hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy";
+  const body = (
     <>
-      <span className={iconClassName}>
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#00C56D] text-[#052B42]">
         <Icon aria-hidden="true" className="h-4 w-4 text-[#052B42]" strokeWidth={2} />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-medium leading-5 text-navy group-hover:text-[#0A4366]">{item.label}</span>
-        {item.description ? (
-          <span className="mt-0.5 block line-clamp-2 text-xs leading-4 text-gray-500">
-            {item.description}
-          </span>
+        <span className="block text-sm font-medium leading-5 text-navy group-hover:text-[#0A4366]">
+          {label}
+        </span>
+        {description ? (
+          <span className="mt-0.5 block line-clamp-2 text-xs leading-4 text-gray-500">{description}</span>
         ) : null}
       </span>
     </>
   );
 
-  return item.external ? (
-    <a
-      href={item.href}
-      target="_blank"
-      rel="noreferrer noopener"
-      onClick={onSelect}
-      className={className}
-    >
-      {content}
-    </a>
-  ) : (
+  if (item.external) {
+    return (
+      <a
+        href={item.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={onSelect}
+        className={className}
+      >
+        {body}
+      </a>
+    );
+  }
+
+  return (
     <Link href={item.href} onClick={onSelect} className={className}>
-      {content}
+      {body}
     </Link>
   );
-}
-
-export function NavDropdown({
-  id,
-  onMouseEnter,
-  onMouseLeave,
-  onLinkClick,
-  featuredPost,
-}: {
-  id: string;
-  onMouseEnter: () => void;
-  onMouseLeave: () => void;
-  onLinkClick?: () => void;
-  featuredPost?: FeaturedPostData | null;
-}) {
-  if (id === "forplay" || id === "for-play") {
-    return (
-      <DropdownForPlay
-        id={id}
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
-        onLinkClick={onLinkClick}
-        featuredPost={featuredPost}
-      />
-    );
-  }
-  if (id === "shop") {
-    return (
-      <DropdownShop
-        id={id}
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
-        onLinkClick={onLinkClick}
-        featuredPost={featuredPost}
-      />
-    );
-  }
-  if (id === "about" || id === "about-pip") {
-    return (
-      <DropdownAbout
-        id={id}
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
-        onLinkClick={onLinkClick}
-        featuredPost={featuredPost}
-      />
-    );
-  }
-  if (id === "socnet") {
-    return (
-      <DropdownSocnet
-        id={id}
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
-        onLinkClick={onLinkClick}
-        featuredPost={featuredPost}
-      />
-    );
-  }
-  return null;
 }

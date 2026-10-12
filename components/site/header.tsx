@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { useTranslations } from "next-intl";
 
 import {
   ANNOUNCEMENT_BAR_HEIGHT,
@@ -37,10 +37,11 @@ function isAnnouncementDismissed() {
 }
 
 function BrandWordmark() {
+  const t = useTranslations("header");
   return (
     <Link
       href="/"
-      aria-label="Plus In Plus home"
+      aria-label={t("home")}
       className="shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
     >
       <Logo variant="header" className="h-9 w-auto sm:h-[42px]" />
@@ -50,11 +51,9 @@ function BrandWordmark() {
 
 export function Header() {
   const { data: session, status } = useSession();
-  const pathname = usePathname() || "/";
-  const locale = pathname.split("/")[1] === "ru" ? "ru" : "en";
-  const labels = locale === "ru"
-    ? { "for-play": "ДЛЯ PLAY", shop: "МАГАЗИН", "about-pip": "О PIP", socnet: "СОЦСЕТИ", contact: "Связаться", login: "Войти" }
-    : { "for-play": "FOR PLAY", shop: "SHOP", "about-pip": "ABOUT PIP", socnet: "SOCNET", contact: "Contact", login: "Log in" };
+  const t = useTranslations("header");
+  const tc = useTranslations("common");
+  const tnav = useTranslations("nav");
   const [scrolled, setScrolled] = useState(false);
   const [pageScrollY, setPageScrollY] = useState(0);
   const [announcementVisible, setAnnouncementVisible] = useState(true);
@@ -192,7 +191,7 @@ export function Header() {
         <BrandWordmark />
 
         <nav
-          aria-label="Main navigation"
+          aria-label={tc("mainNavigation")}
           className="absolute left-1/2 top-1/2 z-20 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-0 md:flex"
           onMouseEnter={clearDropdownCloseTimeout}
           onMouseLeave={scheduleDropdownClose}
@@ -224,7 +223,7 @@ export function Header() {
                   isActive && "bg-white/70",
                 )}
               >
-                {labels[item.id as keyof typeof labels] ?? item.label}
+                {t(item.labelKey)}
                 <ChevronDown
                   aria-hidden="true"
                   strokeWidth={2}
@@ -275,16 +274,16 @@ export function Header() {
             variant="outline"
             className="hidden px-3 md:inline-flex lg:px-5"
           >
-            {labels.contact}
+            {t("contact")}
           </HeaderButtonLink>
           {session?.user ? (
             <button
               id="account-trigger"
               type="button"
               onClick={openLogin}
-              aria-label="Open account"
+              aria-label={t("openAccount")}
               aria-haspopup="dialog"
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2"
+              className="font-medium inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2"
             >
               <UserAvatar user={session.user} size={36} />
             </button>
@@ -295,20 +294,20 @@ export function Header() {
               type="button"
               onClick={openLogin}
               disabled={status === "loading"}
-              aria-label="Log in"
+              aria-label={t("login")}
               aria-haspopup="dialog"
               className="min-w-[5rem] px-3 sm:px-4 lg:px-5"
             >
-              {status === "loading" ? "Loading…" : labels.login}
+              {status === "loading" ? tc("loading") : t("login")}
             </HeaderButton>
           )}
           <button
             type="button"
-            aria-label={mobileOpen ? "Close menu" : "Open menu"}
+            aria-label={mobileOpen ? tc("closeMenu") : tc("openMenu")}
             aria-expanded={mobileOpen}
             aria-controls="mobile-navigation"
             onClick={() => setMobileOpen((open) => !open)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-navy transition-colors duration-200 ease-out hover:bg-navy/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy md:hidden"
+            className="font-medium inline-flex h-10 w-10 items-center justify-center rounded-lg text-navy transition-colors duration-200 ease-out hover:bg-navy/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy md:hidden"
           >
             {mobileOpen ? <X aria-hidden="true" className="h-5 w-5" /> : <Menu aria-hidden="true" className="h-5 w-5" />}
           </button>
@@ -322,7 +321,7 @@ export function Header() {
           style={{ top: `${headerTop + 64}px` }}
         >
           <div className="mx-auto flex min-h-full w-full max-w-2xl flex-col px-5 pb-8 pt-3">
-            <nav aria-label="Mobile main navigation" className="divide-y divide-gray-100">
+            <nav aria-label={tc("mobileMainNavigation")} className="divide-y divide-gray-100">
               {NAVIGATION_ITEMS.map((item) => {
                 const section = getNavigationSection(item.sectionId);
                 if (!section) return null;
@@ -338,7 +337,7 @@ export function Header() {
                       onClick={() => setMobileAccordion(expanded ? null : item.id)}
                       className="flex w-full items-center justify-between gap-4 rounded-lg px-3 py-4 text-left font-body text-sm font-semibold uppercase tracking-[0.08em] text-navy transition-colors duration-200 ease-out hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
                     >
-                      {item.label}
+                      {t(item.labelKey)}
                       <ChevronDown
                         aria-hidden="true"
                         className={cn("h-4 w-4 shrink-0 transition-transform duration-200 ease-out", expanded && "rotate-180")}
@@ -349,16 +348,15 @@ export function Header() {
                         {section.subsections ? (
                           <div className="space-y-4">
                             {section.subsections.map((sub) => (
-                              <div key={sub.title}>
+                              <div key={sub.titleKey}>
                                 <h2 className="px-3 pb-2 text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
-                                  {sub.title}
+                                  {tnav(`sections.${sub.titleKey}`)}
                                 </h2>
                                 <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
                                   {sub.items.map((menuItem) => (
                                     <NavigationMenuEntry
                                       key={menuItem.label}
                                       item={menuItem}
-                                      compact
                                       onSelect={closeMobileMenu}
                                     />
                                   ))}
@@ -369,14 +367,13 @@ export function Header() {
                         ) : (
                           <>
                             <h2 className="px-3 pb-2 text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
-                              {section.title}
+                              {tnav(`sections.${section.titleKey}`)}
                             </h2>
                             <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
                               {section.items.map((menuItem) => (
                                 <NavigationMenuEntry
                                   key={menuItem.label}
                                   item={menuItem}
-                                  compact
                                   onSelect={closeMobileMenu}
                                 />
                               ))}
@@ -397,7 +394,7 @@ export function Header() {
                 onClick={closeMobileMenu}
                 className="h-10 w-full px-4"
               >
-                {labels.contact}
+                {t("contact")}
               </HeaderButtonLink>
               <HeaderButton
                 type="button"
@@ -407,7 +404,7 @@ export function Header() {
                 aria-haspopup="dialog"
                 className="h-10 w-full px-4"
               >
-                {session?.user ? "Your account" : status === "loading" ? "Loading…" : labels.login}
+                {session?.user ? t("yourAccount") : status === "loading" ? tc("loading") : t("login")}
               </HeaderButton>
             </div>
           </div>

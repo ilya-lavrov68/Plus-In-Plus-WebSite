@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { SafeImage } from "@/components/site/safe-image";
 
@@ -11,6 +12,7 @@ export interface CategoryCardProps {
 
 /** Brand artwork with a two-line label and clear color/arrow hover feedback. */
 export function CategoryCard({ title, gradientImageSrc, href }: CategoryCardProps) {
+  const t = useTranslations("categories");
   const [firstWord, ...remainingWords] = title.trim().split(/\s+/);
   const label = remainingWords.length ? (
     <>
@@ -33,7 +35,7 @@ export function CategoryCard({ title, gradientImageSrc, href }: CategoryCardProp
   return (
     <Link
       href={href}
-      aria-label={`${title} services`}
+      aria-label={t("cardLabel", { title })}
       className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42] focus-visible:ring-offset-4"
     >
       <div className="relative aspect-[7/10] overflow-hidden bg-[#0A4366] text-white">

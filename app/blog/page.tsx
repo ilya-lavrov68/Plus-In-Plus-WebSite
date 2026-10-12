@@ -8,26 +8,35 @@ import { getPublishedPosts } from "@/lib/data";
 import { createPageMetadata } from "@/lib/seo";
 import { formatPostDate, type Locale } from "@/i18n";
 import { getRequestLocale } from "@/lib/request-locale";
+import { getRequestTranslations } from "@/lib/server-i18n";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = createPageMetadata({
-  title: "Blog — Plus In Plus",
-  description: "News, ideas and design materials from the Plus In Plus team.",
-  path: "/blog",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getRequestTranslations("metadata");
+  const locale = await getRequestLocale();
+  return createPageMetadata({
+    title: t("blog"),
+    description: t("blogDescription"),
+    path: "/blog",
+    locale,
+  });
+}
 
 export default async function BlogPage() {
-  const posts = await getPublishedPosts();
-  const locale: Locale = await getRequestLocale();
+  const [posts, t, locale] = await Promise.all([
+    getPublishedPosts(),
+    getRequestTranslations("blog"),
+    getRequestLocale() as Promise<Locale>,
+  ]);
 
   return (
     <>
-      <InternalPageHeader title="BLOG" />
+      <InternalPageHeader title={t("pageTitle")} />
 
       <InternalPageContent labelledBy="blog-list-heading">
-        <h2 id="blog-list-heading" className="sr-only">
-          Blog posts
+        <h2 id="blog-list-heading" className="sr-only font-semibold">
+          {t("listHeading")}
         </h2>
         {posts.length ? (
           <ul className="divide-y divide-[#052B42]/15">
@@ -45,7 +54,7 @@ export default async function BlogPage() {
                     </h3>
                     {post.publishedAt || post.createdAt ? (
                       <time dateTime={(post.publishedAt ?? post.createdAt).toISOString()} className="font-body text-sm text-[#052B42]/75">
-                        {formatPostDate(post.publishedAt ?? post.createdAt, locale)} · {post.readTime}-minute read
+                        {formatPostDate(post.publishedAt ?? post.createdAt, locale)} · {t("readTime", { count: post.readTime })}
                       </time>
                     ) : null}
                   </div>
@@ -57,8 +66,8 @@ export default async function BlogPage() {
         ) : (
           <EmptyState
             icon={Newspaper}
-            title="The blog is empty"
-            description="Our first article is coming soon."
+            title={t("empty.title")}
+            description={t("empty.description")}
           />
         )}
       </InternalPageContent>

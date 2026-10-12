@@ -6,6 +6,14 @@ import { z } from "zod";
  * These schemas are the single source of truth for the accepted shapes; they are
  * deliberately stricter than the database columns, mirroring the limits of the
  * admin forms and the bcrypt/UTF-8 constraints.
+ *
+ * Messages are **translation keys** of the `actions.validation.*` namespace in
+ * `messages/en.json` and `messages/ru.json` (for example `validation.titleRequired`).
+ * The server actions translate them with `getActionTranslator()` before the text
+ * reaches the interface, so a validation error is shown in the visitor's language.
+ * The numeric limits in those messages mirror the exported constants below
+ * (`MIN_PASSWORD_LENGTH`, `MAX_PASSWORD_BYTES`, `MAX_NAME_LENGTH`, `MAX_SLUG_LENGTH`);
+ * `tests/i18n.test.cjs` fails when the two drift apart.
  */
 
 export const MAX_EMAIL_LENGTH = 254;
@@ -27,38 +35,38 @@ export const emailSchema = z
   .string()
   .trim()
   .toLowerCase()
-  .min(1, "Please enter a valid email address.")
-  .max(MAX_EMAIL_LENGTH, "Please enter a valid email address.")
-  .refine((value) => EMAIL_PATTERN.test(value), "Please enter a valid email address.");
+  .min(1, "validation.email")
+  .max(MAX_EMAIL_LENGTH, "validation.email")
+  .refine((value) => EMAIL_PATTERN.test(value), "validation.email");
 
 export const passwordSchema = z
   .string()
-  .min(MIN_PASSWORD_LENGTH, `Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`)
+  .min(MIN_PASSWORD_LENGTH, "validation.passwordTooShort")
   .refine(
     (value) => utf8Bytes(value) <= MAX_PASSWORD_BYTES,
-    `Password must not exceed ${MAX_PASSWORD_BYTES} UTF-8 bytes.`,
+    "validation.passwordTooLong",
   );
 
 /** Optional human names: no control characters, no runaway length. */
 export const optionalNameSchema = z
   .string()
   .trim()
-  .max(MAX_NAME_LENGTH, `Names must be at most ${MAX_NAME_LENGTH} characters.`)
-  .refine((value) => !/[\u0000-\u001f\u007f]/.test(value), `Names must be at most ${MAX_NAME_LENGTH} characters.`);
+  .max(MAX_NAME_LENGTH, "validation.nameTooLong")
+  .refine((value) => !/[\u0000-\u001f\u007f]/.test(value), "validation.nameTooLong");
 
 export const requiredNameSchema = optionalNameSchema.refine(
   (value) => value.length > 0,
-  `Please enter your first and last name (up to ${MAX_NAME_LENGTH} characters each).`,
+  "validation.nameRequired",
 );
 
 export const slugSchema = z
   .string()
   .trim()
   .toLowerCase()
-  .max(MAX_SLUG_LENGTH, `Slug must be at most ${MAX_SLUG_LENGTH} characters.`)
+  .max(MAX_SLUG_LENGTH, "validation.slugTooLong")
   .refine(
     (value) => SLUG_PATTERN.test(value),
-    "Slug must contain only lowercase letters, numbers and dashes.",
+    "validation.slugPattern",
   );
 
 export const registerSchema = z
@@ -67,16 +75,16 @@ export const registerSchema = z
     lastName: requiredNameSchema,
     email: emailSchema,
     password: passwordSchema,
-    confirmPassword: z.string().min(1, "Passwords do not match."),
+    confirmPassword: z.string().min(1, "validation.passwordsDoNotMatch"),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match.",
+    message: "validation.passwordsDoNotMatch",
     path: ["confirmPassword"],
   });
 
 export const loginSchema = z.object({
   email: emailSchema,
-  password: z.string().min(1, "Required"),
+  password: z.string().min(1, "validation.required"),
 });
 
 export const profileSchema = z.object({
@@ -86,41 +94,41 @@ export const profileSchema = z.object({
 
 const text = (max: number, message: string) => z.string().trim().min(1, message).max(max, message);
 const jsonList = (message: string) =>
-  z.array(z.string().trim().min(1).max(500)).min(1, message).max(100, "Use no more than 100 items per list.");
+  z.array(z.string().trim().min(1).max(500)).min(1, message).max(100, "validation.listTooLong");
 
 export const createServiceSchema = z.object({
-  title: text(160, "Title is required and must be at most 160 characters."),
+  title: text(160, "validation.titleRequired"),
   /** Optional: derived from the title when the form does not provide one. */
   slug: slugSchema.optional(),
   category: z.enum(["small", "large"], {
-    message: 'Category must be "small" or "large".',
+    message: "validation.categoryInvalid",
   }),
-  shortDesc: text(500, "Short description is required (up to 500 characters)."),
-  fullDesc: text(100_000, "Full description is required (up to 100,000 characters)."),
-  includes: jsonList("Add at least one item to the includes list."),
-  shapes: jsonList("Add at least one item to the shapes list."),
-  resultText: text(10_000, "Result text is required (up to 10,000 characters)."),
+  shortDesc: text(500, "validation.shortDescriptionRequired"),
+  fullDesc: text(100_000, "validation.fullDescriptionRequired"),
+  includes: jsonList("validation.includesRequired"),
+  shapes: jsonList("validation.shapesRequired"),
+  resultText: text(10_000, "validation.resultRequired"),
   isPublished: z.boolean(),
 });
 
 export const createPostSchema = z.object({
-  title: text(160, "Title is required and must be at most 160 characters."),
+  title: text(160, "validation.titleRequired"),
   slug: slugSchema,
-  excerpt: text(500, "Excerpt is required (up to 500 characters)."),
+  excerpt: text(500, "validation.excerptRequired"),
   content: z
     .string()
     .trim()
-    .min(1, "Content is required after unsafe HTML is removed.")
-    .max(100_000, "Post content is too long."),
+    .min(1, "validation.contentRequired")
+    .max(100_000, "validation.contentTooLong"),
   readTime: z
     .number()
-    .int("Read time must be between 1 and 1440 minutes.")
-    .min(1, "Read time must be between 1 and 1440 minutes.")
-    .max(1440, "Read time must be between 1 and 1440 minutes."),
+    .int("validation.readTimeRange")
+    .min(1, "validation.readTimeRange")
+    .max(1440, "validation.readTimeRange"),
   isPublished: z.boolean(),
   isFeatured: z.boolean().optional().default(false),
   source: z.string().max(50).optional().default("manual"),
-  sourceUrl: z.string().max(1000).refine((value) => /^https?:\/\//i.test(value), "Source URL must use http or https.").nullable().optional(),
+  sourceUrl: z.string().max(1000).refine((value) => /^https?:\/\//i.test(value), "validation.sourceUrlProtocol").nullable().optional(),
   images: z.string().nullable().optional(),
   publishedAt: z.date().nullable().optional(),
 });
@@ -130,8 +138,11 @@ export type LoginData = z.infer<typeof loginSchema>;
 export type CreateServiceData = z.infer<typeof createServiceSchema>;
 export type CreatePostData = z.infer<typeof createPostSchema>;
 
-/** First issue message, so the forms keep showing one human-readable error. */
-export function firstIssueMessage(error: z.ZodError, fallback = "Invalid data."): string {
+/**
+ * First issue as a translation key (`validation.*`), so the forms keep showing
+ * one human-readable error in the language of the request.
+ */
+export function firstIssueMessage(error: z.ZodError, fallback = "validation.invalidData"): string {
   return error.issues[0]?.message ?? fallback;
 }
 

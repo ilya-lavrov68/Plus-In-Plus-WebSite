@@ -67,6 +67,9 @@ export function middleware(
   rewriteUrl.pathname = internalPath;
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-pip-locale", segment);
+  // next-intl reads this header for `requestLocale`, the locale every server
+  // component and `generateMetadata` of the rewritten page resolves.
+  requestHeaders.set("X-NEXT-INTL-LOCALE", segment);
   const response = NextResponse.rewrite(rewriteUrl, { request: { headers: requestHeaders } });
   response.cookies.set("pip-locale", segment, { path: "/", maxAge: 60 * 60 * 24 * 365 });
   return response;

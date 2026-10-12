@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,8 @@ export interface DeleteButtonProps {
 }
 
 export function DeleteButton({ label, id, onDelete, redirectTo }: DeleteButtonProps) {
+  const t = useTranslations("admin");
+  const tc = useTranslations("common");
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -35,14 +38,14 @@ export function DeleteButton({ label, id, onDelete, redirectTo }: DeleteButtonPr
     try {
       const result = await onDelete(id);
       if (!result.ok) {
-        setError(result.error ?? "Delete failed.");
+        setError(result.error ?? t("actionFailed"));
         return;
       }
       setConfirmOpen(false);
       if (redirectTo) router.push(redirectTo);
       router.refresh();
     } catch {
-      setError("Delete failed.");
+      setError(t("actionFailed"));
     } finally {
       setPending(false);
     }
@@ -50,20 +53,20 @@ export function DeleteButton({ label, id, onDelete, redirectTo }: DeleteButtonPr
 
   return (
     <div className="flex items-center gap-2">
-      <Button type="button" variant="outline" size="sm" onClick={() => setConfirmOpen(true)} disabled={pending} aria-label={`Delete ${label}`}>
+      <Button type="button" variant="outline" size="sm" onClick={() => setConfirmOpen(true)} disabled={pending} aria-label={t("deleteItem", { label })}>
         <Trash2 aria-hidden="true" className="h-4 w-4" />
-        <span className="ml-2">{pending ? "Deleting…" : "Delete"}</span>
+        <span className="ml-2">{pending ? tc("deleting") : tc("delete")}</span>
       </Button>
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete this item?</DialogTitle>
-            <DialogDescription>“{label}” will be permanently removed. This action cannot be undone.</DialogDescription>
+            <DialogTitle>{t("deleteThisItem")}</DialogTitle>
+            <DialogDescription>{t("deleteConfirmation", { label })}</DialogDescription>
           </DialogHeader>
           {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setConfirmOpen(false)} disabled={pending}>Cancel</Button>
-            <Button type="button" onClick={handleDelete} disabled={pending} className="bg-[#052B42] text-white hover:bg-[#0A4366]">{pending ? "Deleting…" : "Delete"}</Button>
+            <Button type="button" variant="outline" onClick={() => setConfirmOpen(false)} disabled={pending}>{tc("cancel")}</Button>
+            <Button type="button" onClick={handleDelete} disabled={pending} className="bg-[#052B42] text-white hover:bg-[#0A4366]">{pending ? tc("deleting") : tc("delete")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

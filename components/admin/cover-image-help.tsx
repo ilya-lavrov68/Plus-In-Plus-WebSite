@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { COVER_IMAGE_GUIDES, MAX_COVER_BYTES, MAX_COVER_INPUT_PIXELS } from "@/lib/upload-policy";
 
@@ -21,6 +22,7 @@ export function CoverImageHelp({
   file: File | null;
   mode: "create" | "edit";
 }) {
+  const t = useTranslations("admin");
   const [dimensions, setDimensions] = useState<ImageDimensions>(null);
   const guide = COVER_IMAGE_GUIDES[kind];
 
@@ -54,16 +56,23 @@ export function CoverImageHelp({
   return (
     <>
       <p className="text-xs leading-relaxed text-muted-foreground">
-        Up to {MAX_COVER_BYTES / (1024 * 1024)} MB and {MAX_COVER_INPUT_PIXELS / 1_000_000} megapixels. For a sharp fit, use {guide.recommended} ({guide.aspectRatio}).{" "}
-        Suggested minimum: {guide.minimum}; maximum after optimization: {guide.maximumAfterProcessing}.{" "}
-        Full HD (1,920 × 1,080 px) is accepted and displayed in full; a different aspect ratio may leave empty margins, but covers are never cropped.{" "}
-        Saved as WebP. {mode === "edit" ? "Leave empty to keep the current cover." : "Required."}
+        {t("upload.limit", { size: MAX_COVER_BYTES / (1024 * 1024), megapixels: MAX_COVER_INPUT_PIXELS / 1_000_000 })}{" "}
+        {t("upload.recommended", { recommended: guide.recommended, aspectRatio: guide.aspectRatio })}{" "}
+        {t("upload.minimum", { minimum: guide.minimum, maximum: guide.maximumAfterProcessing })}{" "}
+        {t("upload.fullHd")}{" "}
+        {t("upload.savedAsWebp")} {mode === "edit" ? t("upload.keepCurrent") : t("upload.required")}
       </p>
       {file ? (
         <p role="status" aria-live="polite" className="text-xs text-muted-foreground">
-          Selected: {file.name} — {dimensions && dimensions !== "error"
-            ? `${dimensions.width} × ${dimensions.height} px`
-            : dimensions === "error" ? "could not read image dimensions" : "reading image dimensions…"}
+          {t("upload.selected", {
+            name: file.name,
+            dimensions:
+              dimensions && dimensions !== "error"
+                ? `${dimensions.width} × ${dimensions.height} px`
+                : dimensions === "error"
+                  ? t("upload.unreadableDimensions")
+                  : t("upload.readingDimensions"),
+          })}
           {` · ${formatFileSize(file.size)}`}
         </p>
       ) : null}

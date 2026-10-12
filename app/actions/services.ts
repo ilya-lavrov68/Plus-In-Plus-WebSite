@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { getActionTranslator } from "@/lib/action-i18n";
 import { recordActivity } from "@/lib/activity-log";
 import { requireAdmin } from "@/lib/admin-session";
 import { parseLineList, toJsonArray } from "@/lib/db-helpers";
@@ -10,6 +11,7 @@ import { revalidateService } from "@/lib/revalidate-content";
 import { slugify, withNumericSuffix } from "@/lib/slug";
 import { cleanupUpload, saveImageUpload, UploadValidationError } from "@/lib/uploads";
 import { createServiceSchema, firstIssueMessage } from "@/lib/validators";
+import type { MessageTranslator } from "@/lib/i18n-messages";
 
 export interface ServiceActionResult {
   ok: boolean;
@@ -22,7 +24,7 @@ function text(form: FormData, name: string): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function parseCommonFields(form: FormData) {
+function parseCommonFields(form: FormData, t: MessageTranslator) {
   const result = createServiceSchema.safeParse({
     title: text(form, "title"),
     slug: text(form, "slug") || undefined,
@@ -34,7 +36,7 @@ function parseCommonFields(form: FormData) {
     resultText: text(form, "resultText"),
     isPublished: form.get("isPublished") === "true" || form.get("isPublished") === "on",
   });
-  if (!result.success) return { error: firstIssueMessage(result.error) };
+  if (!result.success) return { error: t(firstIssueMessage(result.error)) };
   return { data: result.data };
 }
 
@@ -55,10 +57,10 @@ async function resolveServiceSlug(base: string, excludeId?: string): Promise<str
   return withNumericSuffix(base, Date.now() % 1000 + 50);
 }
 
-function coverFile(form: FormData): File | null {
+function coverFile(form: FormData, t: MessageTranslator): File | null {
   const file = form.get("cover");
-  if (typeof file === "string" && file) throw new UploadValidationError("Please upload a local cover image.");
-  if (file instanceof File && file.name && file.size === 0) throw new UploadValidationError("Image must not be empty.");
+  if (typeof file === "string" && file) throw new UploadValidationError(t("uploadLocalCover"));
+  if (file instanceof File && file.name && file.size === 0) throw new UploadValidationError(t("emptyImage"));
   return file instanceof File && file.size > 0 ? file : null;
 }
 
@@ -67,17 +69,18 @@ function isUniqueViolation(error: unknown): boolean {
 }
 
 export async function createService(formData: FormData): Promise<ServiceActionResult> {
+  const t = await getActionTranslator();
   const admin = await requireAdmin();
-  if (!admin || !prisma) return { ok: false, error: "Unauthorized." };
-  if (!(formData instanceof FormData)) return { ok: false, error: "Invalid form." };
-  const parsed = parseCommonFields(formData);
+  if (!admin || !prisma) return { ok: false, error: t("unauthorized") };
+  if (!(formData instanceof FormData)) return { ok: false, error: t("invalidForm") };
+  const parsed = parseCommonFields(formData, t);
   if ("error" in parsed) return { ok: false, error: parsed.error };
   let coverImage: string | null = null;
   let id: string;
   let slug = parsed.data.slug ?? slugify(parsed.data.title, "service");
   try {
-    const cover = coverFile(formData);
-    if (!cover) return { ok: false, error: "Cover image is required." };
+    const cover = coverFile(formData, t);
+    if (!cover) return { ok: false, error: t("coverRequired") };
     slug = await resolveServiceSlug(slug);
     coverImage = await saveImageUpload(cover, "services");
     const service = await prisma.$transaction(async (tx) => {
@@ -98,30 +101,31 @@ export async function createService(formData: FormData): Promise<ServiceActionRe
   } catch (error) {
     await cleanupUpload(coverImage, "services");
     if (error instanceof UploadValidationError) return { ok: false, error: error.message };
-    if (isUniqueViolation(error)) return { ok: false, error: "A service with this slug already exists." };
+    if (isUniqueViolation(error)) return { ok: false, error: t("slugExistsService") };
     console.error("Failed to create service:", error);
-    return { ok: false, error: "Failed to create the service." };
+    return { ok: false, error: t("createServiceFailed") };
   }
   revalidateService(id, slug);
   return { ok: true, id };
 }
 
 export async function updateService(id: string, formData: FormData): Promise<ServiceActionResult> {
+  const t = await getActionTranslator();
   const admin = await requireAdmin();
-  if (!admin || !prisma) return { ok: false, error: "Unauthorized." };
-  if (typeof id !== "string" || !id || id.length > 128 || !(formData instanceof FormData)) return { ok: false, error: "Invalid request." };
-  const parsed = parseCommonFields(formData);
+  if (!admin || !prisma) return { ok: false, error: t("unauthorized") };
+  if (typeof id !== "string" || !id || id.length > 128 || !(formData instanceof FormData)) return { ok: false, error: t("invalidRequest") };
+  const parsed = parseCommonFields(formData, t);
   if ("error" in parsed) return { ok: false, error: parsed.error };
   let newCover: string | null = null;
   let oldCover: string | null = null;
   let slug = parsed.data.slug ?? "";
   try {
     const existing = await prisma.service.findUnique({ where: { id } });
-    if (!existing) return { ok: false, error: "Service not found." };
+    if (!existing) return { ok: false, error: t("serviceNotFound") };
     oldCover = existing.coverImage;
     // An existing service keeps its URL unless the form explicitly sends a new slug.
     slug = parsed.data.slug ? await resolveServiceSlug(parsed.data.slug, id) : existing.slug;
-    const cover = coverFile(formData);
+    const cover = coverFile(formData, t);
     if (cover) newCover = await saveImageUpload(cover, "services");
     await prisma.$transaction(async (tx) => {
       await tx.service.update({
@@ -139,9 +143,9 @@ export async function updateService(id: string, formData: FormData): Promise<Ser
   } catch (error) {
     await cleanupUpload(newCover, "services");
     if (error instanceof UploadValidationError) return { ok: false, error: error.message };
-    if (isUniqueViolation(error)) return { ok: false, error: "A service with this slug already exists." };
+    if (isUniqueViolation(error)) return { ok: false, error: t("slugExistsService") };
     console.error("Failed to update service:", error);
-    return { ok: false, error: "Failed to update the service." };
+    return { ok: false, error: t("updateServiceFailed") };
   }
   if (newCover) await cleanupUpload(oldCover, "services");
   revalidateService(id, slug);
@@ -149,10 +153,11 @@ export async function updateService(id: string, formData: FormData): Promise<Ser
 }
 
 export async function bulkUpdateServices(ids: string[], action: "publish" | "unpublish" | "delete"): Promise<ServiceActionResult> {
+  const t = await getActionTranslator();
   const admin = await requireAdmin();
-  if (!admin || !prisma) return { ok: false, error: "Unauthorized." };
+  if (!admin || !prisma) return { ok: false, error: t("unauthorized") };
   if (!Array.isArray(ids) || ids.length === 0 || ids.length > 100 || ids.some((id) => typeof id !== "string" || !id || id.length > 128)) {
-    return { ok: false, error: "Select at least one valid service." };
+    return { ok: false, error: t("selectValidService") };
   }
   const removedCovers: string[] = [];
   try {
@@ -172,7 +177,7 @@ export async function bulkUpdateServices(ids: string[], action: "publish" | "unp
     });
   } catch (error) {
     console.error("Failed to update services in bulk:", error);
-    return { ok: false, error: "The selected services could not be updated." };
+    return { ok: false, error: t("bulkUpdateServicesFailed") };
   }
   await Promise.all(removedCovers.map((cover) => cleanupUpload(cover, "services")));
   ids.forEach((id) => revalidateService(id));
@@ -181,12 +186,13 @@ export async function bulkUpdateServices(ids: string[], action: "publish" | "unp
 }
 
 export async function duplicateService(id: string): Promise<ServiceActionResult> {
+  const t = await getActionTranslator();
   const admin = await requireAdmin();
-  if (!admin || !prisma) return { ok: false, error: "Unauthorized." };
-  if (typeof id !== "string" || !id || id.length > 128) return { ok: false, error: "Invalid service id." };
+  if (!admin || !prisma) return { ok: false, error: t("unauthorized") };
+  if (typeof id !== "string" || !id || id.length > 128) return { ok: false, error: t("invalidServiceId") };
   try {
     const source = await prisma.service.findUnique({ where: { id } });
-    if (!source) return { ok: false, error: "Service not found." };
+    if (!source) return { ok: false, error: t("serviceNotFound") };
     const slug = await resolveServiceSlug(`${source.slug}-copy`);
     const copy = await prisma.$transaction(async (tx) => {
       const created = await tx.service.create({
@@ -211,14 +217,15 @@ export async function duplicateService(id: string): Promise<ServiceActionResult>
     return { ok: true, id: copy.id };
   } catch (error) {
     console.error("Failed to duplicate service:", error);
-    return { ok: false, error: "The service could not be duplicated." };
+    return { ok: false, error: t("duplicateServiceFailed") };
   }
 }
 
 export async function deleteService(id: string): Promise<ServiceActionResult> {
+  const t = await getActionTranslator();
   const admin = await requireAdmin();
-  if (!admin || !prisma) return { ok: false, error: "Unauthorized." };
-  if (typeof id !== "string" || !id || id.length > 128) return { ok: false, error: "Invalid service id." };
+  if (!admin || !prisma) return { ok: false, error: t("unauthorized") };
+  if (typeof id !== "string" || !id || id.length > 128) return { ok: false, error: t("invalidServiceId") };
   let cover: string | null = null;
   let slug = "";
   try {
@@ -230,7 +237,7 @@ export async function deleteService(id: string): Promise<ServiceActionResult> {
     });
   } catch (error) {
     console.error("Failed to delete service:", error);
-    return { ok: false, error: "Service could not be deleted. It may have already been removed." };
+    return { ok: false, error: t("deleteServiceFailed") };
   }
   await cleanupUpload(cover, "services");
   revalidateService(id, slug);

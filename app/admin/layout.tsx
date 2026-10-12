@@ -6,13 +6,14 @@ import { AdminNav } from "@/components/admin/admin-nav";
 import { AdminBreadcrumbs } from "@/components/admin/admin-breadcrumbs";
 import { Separator } from "@/components/ui/separator";
 import { requireAdmin } from "@/lib/admin-session";
+import { getRequestTranslations } from "@/lib/server-i18n";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Admin — Plus In Plus",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getRequestTranslations("metadata");
+  return { title: t("admin"), robots: { index: false, follow: false } };
+}
 
 /**
  * Admin shell: sidebar (Dashboard, Services, Blog, Users) + content.
@@ -23,7 +24,7 @@ export default async function AdminLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const admin = await requireAdmin();
+  const [admin, t] = await Promise.all([requireAdmin(), getRequestTranslations("admin")]);
   if (!admin) {
     redirect("/");
   }
@@ -36,14 +37,14 @@ export default async function AdminLayout({
             href="/admin/dashboard"
             className="inline-block rounded-sm text-lg font-semibold tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            Plus In Plus — Admin
+            {t("brand")}
           </Link>
           <p className="mt-1 text-sm text-muted-foreground">{admin.email}</p>
           <Separator className="my-5" />
           <AdminNav />
         </div>
       </aside>
-      <section className="min-w-0 flex-1" aria-label="Admin content">
+      <section className="min-w-0 flex-1" aria-label={t("content")}>
         <AdminBreadcrumbs />
         {children}
       </section>

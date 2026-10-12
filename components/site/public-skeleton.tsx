@@ -1,6 +1,12 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+
 import { Skeleton } from "@/components/ui/skeleton";
 
-export function PublicPageSkeleton({ label = "Loading page" }: { label?: string }) {
+export function PublicPageSkeleton() {
+  const t = useTranslations("common");
+  const label = t("loadingPage");
   return (
     <div role="status" aria-label={label} className="space-y-8 px-5 py-8 sm:px-8 lg:px-12">
       <span className="sr-only">{label}…</span>
@@ -12,7 +18,9 @@ export function PublicPageSkeleton({ label = "Loading page" }: { label?: string 
   );
 }
 
-export function ContentPageSkeleton({ label = "Loading content" }: { label?: string }) {
+export function ContentPageSkeleton() {
+  const t = useTranslations("common");
+  const label = t("loadingContent");
   return (
     <div role="status" aria-label={label} className="mx-auto w-full max-w-[1440px] space-y-8 px-5 py-10 sm:px-8 lg:px-12">
       <span className="sr-only">{label}…</span>

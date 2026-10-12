@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, TouchEvent } from "react";
 import { ArrowLeft, ArrowRight, Pause, Play } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { NewsCard } from "@/components/site/news-card";
-import type { NewsLocale, NewsSource } from "@/components/site/news-card";
+import type { NewsSource } from "@/components/site/news-card";
 
 export const AUTOPLAY_INTERVAL = 7000;
 const SWIPE_THRESHOLD = 50;
@@ -22,7 +23,6 @@ export interface NewsItem {
   source?: NewsSource;
   imagesCount?: number;
   publishedAt?: string | null;
-  locale?: NewsLocale;
 }
 
 export interface NewsCarouselProps {
@@ -40,6 +40,7 @@ function getCardsPerPage() {
 }
 
 export function NewsCarousel({ items, label }: NewsCarouselProps) {
+  const t = useTranslations("news");
   const [cardsPerPage, setCardsPerPage] = useState(5);
   const [activePage, setActivePage] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
@@ -170,7 +171,7 @@ export function NewsCarousel({ items, label }: NewsCarouselProps) {
         }}
         role="region"
         aria-roledescription="carousel"
-        aria-label={`${label} articles`}
+        aria-label={t("regionLabel", { label })}
         className="overflow-hidden rounded-[1.75rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42] focus-visible:ring-offset-4 focus-visible:ring-offset-[#CFE0FF]"
         style={{ touchAction: "pan-y pinch-zoom" }}
       >
@@ -188,7 +189,7 @@ export function NewsCarousel({ items, label }: NewsCarouselProps) {
               key={page[0]?.id ?? pageIndex}
               role="group"
               aria-roledescription="slide"
-              aria-label={`${pageIndex + 1} of ${pageCount}`}
+              aria-label={t("slidesCount", { current: pageIndex + 1, total: pageCount })}
               aria-hidden={pageIndex !== activePage}
               className="shrink-0 px-0.5"
               style={{ width: `${100 / pageCount}%` }}
@@ -206,7 +207,6 @@ export function NewsCarousel({ items, label }: NewsCarouselProps) {
                       href={item.href}
                       imagesCount={item.imagesCount}
                       publishedAt={item.publishedAt}
-                      locale={item.locale}
                       isActive={pageIndex === activePage}
                     />
                   </li>
@@ -222,17 +222,17 @@ export function NewsCarousel({ items, label }: NewsCarouselProps) {
           <div
             role="group"
             className="flex h-8 w-[min(357px,78vw)] max-w-full items-center justify-between gap-1 overflow-x-auto rounded-full bg-white px-3"
-            aria-label="News pages"
+            aria-label={t("pages")}
           >
             {pages.map((page, pageIndex) => (
               <button
                 key={page[0]?.id ?? pageIndex}
                 type="button"
-                aria-label={`Go to news page ${pageIndex + 1}`}
+                aria-label={t("goToPage", { page: pageIndex + 1 })}
                 aria-current={pageIndex === activePage ? "page" : undefined}
                 aria-controls={viewportId}
                 onClick={() => goToPage(pageIndex)}
-                className="group inline-flex h-7 min-w-4 items-center justify-center rounded-full px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42]"
+                className="font-medium group inline-flex h-7 min-w-4 items-center justify-center rounded-full px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42]"
               >
                 <span
                   aria-hidden="true"
@@ -253,18 +253,18 @@ export function NewsCarousel({ items, label }: NewsCarouselProps) {
 
           <button
             type="button"
-            aria-label={isPlaying ? "Pause autoplay" : "Start autoplay"}
+            aria-label={isPlaying ? t("pauseAutoplay") : t("startAutoplay")}
             aria-pressed={isPlaying}
             aria-controls={viewportId}
             onClick={() => setIsPlaying((playing) => !playing)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-[#052B42] transition-colors duration-200 ease-out hover:bg-[#052B42] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42]"
+            className="font-medium inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-[#052B42] transition-colors duration-200 ease-out hover:bg-[#052B42] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42]"
           >
             {isPlaying ? <Pause aria-hidden="true" className="h-4 w-4" /> : <Play aria-hidden="true" className="h-4 w-4 fill-current" />}
           </button>
-          <button type="button" aria-label="Previous slide" aria-controls={viewportId} onClick={() => move(-1)} className="sr-only">
+          <button type="button" aria-label={t("previousSlide")} aria-controls={viewportId} onClick={() => move(-1)} className="sr-only font-medium">
             <ArrowLeft aria-hidden="true" />
           </button>
-          <button type="button" aria-label="Next slide" aria-controls={viewportId} onClick={() => move(1)} className="sr-only">
+          <button type="button" aria-label={t("nextSlide")} aria-controls={viewportId} onClick={() => move(1)} className="sr-only font-medium">
             <ArrowRight aria-hidden="true" />
           </button>
         </div>

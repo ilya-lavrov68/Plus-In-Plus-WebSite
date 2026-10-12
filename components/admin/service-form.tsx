@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 import { createService, updateService } from "@/app/actions/services";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,8 @@ export interface ServiceFormProps {
  * server actions; the path is stored in the DB.
  */
 export function ServiceForm({ mode, serviceId, initial }: ServiceFormProps) {
+  const t = useTranslations("admin");
+  const tc = useTranslations("common");
   const router = useRouter();
   const [category, setCategory] = useState(initial?.category ?? "small");
   const [isPublished, setIsPublished] = useState(initial?.isPublished ?? false);
@@ -68,17 +71,17 @@ export function ServiceForm({ mode, serviceId, initial }: ServiceFormProps) {
           : await updateService(serviceId ?? "", formData);
 
       if (!result.ok) {
-        const message = result.error ?? "Saving failed.";
+        const message = result.error ?? t("form.saveFailed");
         setError(message);
-        toast({ title: "Could not save service", description: message, variant: "destructive" });
+        toast({ title: t("form.couldNotSaveService"), description: message, variant: "destructive" });
         return;
       }
 
-      toast({ title: mode === "create" ? "Service created" : "Service updated", description: "The service list has been refreshed." });
+      toast({ title: mode === "create" ? t("form.serviceCreated") : t("form.serviceUpdated"), description: t("form.serviceListRefreshed") });
       router.push("/admin/services");
       router.refresh();
     } catch {
-      setError("Saving failed.");
+      setError(t("form.saveFailed"));
     } finally {
       setPending(false);
     }
@@ -87,12 +90,12 @@ export function ServiceForm({ mode, serviceId, initial }: ServiceFormProps) {
   return (
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="service-title">Title</Label>
+        <Label htmlFor="service-title">{tc("title")}</Label>
         <Input id="service-title" name="title" maxLength={160} required defaultValue={initial?.title} />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="service-slug">URL slug</Label>
+        <Label htmlFor="service-slug">{t("form.urlSlug")}</Label>
         <Input
           id="service-slug"
           name="slug"
@@ -102,51 +105,50 @@ export function ServiceForm({ mode, serviceId, initial }: ServiceFormProps) {
           defaultValue={initial?.slug}
         />
         <p className="text-xs text-muted-foreground">
-          Lowercase letters, numbers and dashes. Public URL: /shop/&lt;slug&gt;. Leave empty to
-          derive it from the title. Existing services keep their current slug.
+          {t("form.slugHelp")}
         </p>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="service-category">Category</Label>
+        <Label htmlFor="service-category">{tc("category")}</Label>
         <Select value={category} onValueChange={setCategory}>
           <SelectTrigger id="service-category" className="w-full sm:w-56">
-            <SelectValue placeholder="Category" />
+            <SelectValue placeholder={t("form.selectCategory")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="small">Small design</SelectItem>
-            <SelectItem value="large">Large design</SelectItem>
+            <SelectItem value="small">{t("form.smallDesign")}</SelectItem>
+            <SelectItem value="large">{t("form.largeDesign")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="service-short-desc">Short description</Label>
+        <Label htmlFor="service-short-desc">{t("form.shortDescription")}</Label>
         <Textarea id="service-short-desc" name="shortDesc" maxLength={500} required rows={2} defaultValue={initial?.shortDesc} />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="service-full-desc">Full description</Label>
+        <Label htmlFor="service-full-desc">{t("form.fullDescription")}</Label>
         <Textarea id="service-full-desc" name="fullDesc" maxLength={100000} required rows={6} defaultValue={initial?.fullDesc} />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="service-includes">What&apos;s included (one item per line)</Label>
+        <Label htmlFor="service-includes">{t("form.whatsIncluded")}</Label>
         <Textarea id="service-includes" name="includes" maxLength={10000} required rows={4} defaultValue={initial?.includes.join("\n")} />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="service-shapes">Shapes (one item per line)</Label>
+        <Label htmlFor="service-shapes">{t("form.shapes")}</Label>
         <Textarea id="service-shapes" name="shapes" maxLength={10000} required rows={4} defaultValue={initial?.shapes.join("\n")} />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="service-result">Result text</Label>
+        <Label htmlFor="service-result">{t("form.resultText")}</Label>
         <Textarea id="service-result" name="resultText" maxLength={10000} required rows={3} defaultValue={initial?.resultText} />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="service-cover">Cover image</Label>
+        <Label htmlFor="service-cover">{t("form.coverImage")}</Label>
         <Input
           id="service-cover"
           name="cover"
@@ -159,7 +161,7 @@ export function ServiceForm({ mode, serviceId, initial }: ServiceFormProps) {
             if (file && file.size > MAX_COVER_BYTES) {
               event.target.value = "";
               setCoverFile(null);
-              setError("Cover image must be 8 MB or smaller.");
+              setError(t("form.coverTooLarge"));
               return;
             }
             setCoverFile(file ?? null);
@@ -170,7 +172,7 @@ export function ServiceForm({ mode, serviceId, initial }: ServiceFormProps) {
           <div className="relative mt-2 h-24 w-40 overflow-hidden rounded-md border border-border bg-[#F0F0F0]">
             <SafeImage
               src={initial.coverImage}
-              alt="Current cover"
+              alt={t("currentCover")}
               fill
               sizes="160px"
               className="object-contain"
@@ -182,7 +184,7 @@ export function ServiceForm({ mode, serviceId, initial }: ServiceFormProps) {
       <div className="flex items-center gap-3">
         <Switch id="service-published" checked={isPublished} onCheckedChange={setIsPublished} />
         <Label htmlFor="service-published" className="cursor-pointer">
-          {isPublished ? "Published" : "Draft"}
+          {isPublished ? t("published") : t("draft")}
         </Label>
       </div>
 
@@ -194,7 +196,7 @@ export function ServiceForm({ mode, serviceId, initial }: ServiceFormProps) {
 
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={pending}>
-          {pending ? "Saving…" : mode === "create" ? "Create service" : "Save changes"}
+          {pending ? tc("saving") : mode === "create" ? t("form.createService") : t("form.saveChanges")}
         </Button>
         <Button
           type="button"
@@ -205,7 +207,7 @@ export function ServiceForm({ mode, serviceId, initial }: ServiceFormProps) {
             router.refresh();
           }}
         >
-          Cancel
+          {tc("cancel")}
         </Button>
       </div>
     </form>

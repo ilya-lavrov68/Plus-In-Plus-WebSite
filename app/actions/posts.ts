@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { getActionTranslator } from "@/lib/action-i18n";
 import { recordActivity } from "@/lib/activity-log";
 import { requireAdmin } from "@/lib/admin-session";
 import { prisma } from "@/lib/prisma";
@@ -10,6 +11,7 @@ import { sanitizePostContent } from "@/lib/sanitize-post-content";
 import * as uploadModule from "@/lib/uploads";
 import { cleanupUpload, saveImageUpload, UploadValidationError } from "@/lib/uploads";
 import { createPostSchema, firstIssueMessage } from "@/lib/validators";
+import type { MessageTranslator } from "@/lib/i18n-messages";
 
 export interface PostActionResult {
   ok: boolean;
@@ -29,9 +31,9 @@ function scheduledDate(form: FormData): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-function parseCommonFields(form: FormData) {
+function parseCommonFields(form: FormData, t: MessageTranslator) {
   const rawContent = text(form, "content");
-  if (rawContent.length > 100_000) return { error: "Post content is too long." };
+  if (rawContent.length > 100_000) return { error: t("postTooLong") };
   // Unsafe HTML is removed before validation, so a post is never stored (or
   // counted) as non-empty because of a script tag.
   const content = sanitizePostContent(rawContent);
@@ -66,7 +68,7 @@ function parseCommonFields(form: FormData) {
     images: imagesJson,
     publishedAt: scheduledDate(form),
   });
-  if (!result.success) return { error: firstIssueMessage(result.error) };
+  if (!result.success) return { error: t(firstIssueMessage(result.error)) };
   const { isPublished } = result.data;
   return {
     data: {
@@ -103,10 +105,10 @@ async function processAlbumFiles(form: FormData, initialImagesJson: string | nul
   return imagesList.length > 0 ? JSON.stringify(imagesList) : null;
 }
 
-function coverFile(form: FormData): File | null {
+function coverFile(form: FormData, t: MessageTranslator): File | null {
   const file = form.get("cover");
-  if (typeof file === "string" && file) throw new UploadValidationError("Please upload a local cover image.");
-  if (file instanceof File && file.name && file.size === 0) throw new UploadValidationError("Image must not be empty.");
+  if (typeof file === "string" && file) throw new UploadValidationError(t("uploadLocalCover"));
+  if (file instanceof File && file.name && file.size === 0) throw new UploadValidationError(t("emptyImage"));
   return file instanceof File && file.size > 0 ? file : null;
 }
 
@@ -115,16 +117,17 @@ function isUniqueViolation(error: unknown): boolean {
 }
 
 export async function createPost(formData: FormData): Promise<PostActionResult> {
+  const t = await getActionTranslator();
   const admin = await requireAdmin();
-  if (!admin || !prisma) return { ok: false, error: "Unauthorized." };
-  if (!(formData instanceof FormData)) return { ok: false, error: "Invalid form." };
-  const parsed = parseCommonFields(formData);
+  if (!admin || !prisma) return { ok: false, error: t("unauthorized") };
+  if (!(formData instanceof FormData)) return { ok: false, error: t("invalidForm") };
+  const parsed = parseCommonFields(formData, t);
   if ("error" in parsed) return { ok: false, error: parsed.error };
   let coverImage: string | null = null;
   let id: string;
   try {
-    const cover = coverFile(formData);
-    if (!cover) return { ok: false, error: "Cover image is required." };
+    const cover = coverFile(formData, t);
+    if (!cover) return { ok: false, error: t("coverRequired") };
     coverImage = await saveImageUpload(cover, "blog");
     const finalImages = await processAlbumFiles(formData, parsed.data.images ?? null);
 
@@ -143,29 +146,30 @@ export async function createPost(formData: FormData): Promise<PostActionResult> 
   } catch (error) {
     await cleanupUpload(coverImage, "blog");
     if (error instanceof UploadValidationError) return { ok: false, error: error.message };
-    if (isUniqueViolation(error)) return { ok: false, error: "A post with this slug already exists." };
+    if (isUniqueViolation(error)) return { ok: false, error: t("slugExistsPost") };
     console.error("Failed to create post:", error);
-    return { ok: false, error: "Failed to create the post." };
+    return { ok: false, error: t("createPostFailed") };
   }
   revalidatePost(id, parsed.data.slug);
   return { ok: true, id };
 }
 
 export async function updatePost(id: string, formData: FormData): Promise<PostActionResult> {
+  const t = await getActionTranslator();
   const admin = await requireAdmin();
-  if (!admin || !prisma) return { ok: false, error: "Unauthorized." };
-  if (typeof id !== "string" || !id || id.length > 128 || !(formData instanceof FormData)) return { ok: false, error: "Invalid request." };
-  const parsed = parseCommonFields(formData);
+  if (!admin || !prisma) return { ok: false, error: t("unauthorized") };
+  if (typeof id !== "string" || !id || id.length > 128 || !(formData instanceof FormData)) return { ok: false, error: t("invalidRequest") };
+  const parsed = parseCommonFields(formData, t);
   if ("error" in parsed) return { ok: false, error: parsed.error };
   let newCover: string | null = null;
   let oldCover: string | null = null;
   let oldSlug = parsed.data.slug;
   try {
     const existing = await prisma.post.findUnique({ where: { id } });
-    if (!existing) return { ok: false, error: "Post not found." };
+    if (!existing) return { ok: false, error: t("postNotFound") };
     oldCover = existing.coverImage;
     oldSlug = existing.slug;
-    const cover = coverFile(formData);
+    const cover = coverFile(formData, t);
     if (cover) newCover = await saveImageUpload(cover, "blog");
     const finalImages = await processAlbumFiles(formData, parsed.data.images ?? null);
     const hasScheduledDate = Boolean(text(formData, "publishedAt"));
@@ -190,9 +194,9 @@ export async function updatePost(id: string, formData: FormData): Promise<PostAc
   } catch (error) {
     await cleanupUpload(newCover, "blog");
     if (error instanceof UploadValidationError) return { ok: false, error: error.message };
-    if (isUniqueViolation(error)) return { ok: false, error: "A post with this slug already exists." };
+    if (isUniqueViolation(error)) return { ok: false, error: t("slugExistsPost") };
     console.error("Failed to update post:", error);
-    return { ok: false, error: "Failed to update the post." };
+    return { ok: false, error: t("updatePostFailed") };
   }
   if (newCover) await cleanupUpload(oldCover, "blog");
   revalidatePost(id, oldSlug, parsed.data.slug);
@@ -200,10 +204,11 @@ export async function updatePost(id: string, formData: FormData): Promise<PostAc
 }
 
 export async function bulkUpdatePosts(ids: string[], action: "publish" | "unpublish" | "delete"): Promise<PostActionResult> {
+  const t = await getActionTranslator();
   const admin = await requireAdmin();
-  if (!admin || !prisma) return { ok: false, error: "Unauthorized." };
+  if (!admin || !prisma) return { ok: false, error: t("unauthorized") };
   if (!Array.isArray(ids) || ids.length === 0 || ids.length > 100 || ids.some((id) => typeof id !== "string" || !id || id.length > 128)) {
-    return { ok: false, error: "Select at least one valid post." };
+    return { ok: false, error: t("selectValidPost") };
   }
   const removedCovers: string[] = [];
   try {
@@ -223,7 +228,7 @@ export async function bulkUpdatePosts(ids: string[], action: "publish" | "unpubl
     });
   } catch (error) {
     console.error("Failed to update posts in bulk:", error);
-    return { ok: false, error: "The selected posts could not be updated." };
+    return { ok: false, error: t("bulkUpdatePostsFailed") };
   }
   await Promise.all(removedCovers.map((cover) => cleanupUpload(cover, "blog")));
   ids.forEach((id) => revalidatePost(id));
@@ -232,12 +237,13 @@ export async function bulkUpdatePosts(ids: string[], action: "publish" | "unpubl
 }
 
 export async function duplicatePost(id: string): Promise<PostActionResult> {
+  const t = await getActionTranslator();
   const admin = await requireAdmin();
-  if (!admin || !prisma) return { ok: false, error: "Unauthorized." };
-  if (typeof id !== "string" || !id || id.length > 128) return { ok: false, error: "Invalid post id." };
+  if (!admin || !prisma) return { ok: false, error: t("unauthorized") };
+  if (typeof id !== "string" || !id || id.length > 128) return { ok: false, error: t("invalidPostId") };
   try {
     const source = await prisma.post.findUnique({ where: { id } });
-    if (!source) return { ok: false, error: "Post not found." };
+    if (!source) return { ok: false, error: t("postNotFound") };
     const baseSlug = `${source.slug}-copy`;
     let slug = baseSlug;
     for (let index = 2; index < 100; index += 1) {
@@ -269,14 +275,15 @@ export async function duplicatePost(id: string): Promise<PostActionResult> {
     return { ok: true, id: copy.id };
   } catch (error) {
     console.error("Failed to duplicate post:", error);
-    return { ok: false, error: "The post could not be duplicated." };
+    return { ok: false, error: t("duplicatePostFailed") };
   }
 }
 
 export async function deletePost(id: string): Promise<PostActionResult> {
+  const t = await getActionTranslator();
   const admin = await requireAdmin();
-  if (!admin || !prisma) return { ok: false, error: "Unauthorized." };
-  if (typeof id !== "string" || !id || id.length > 128) return { ok: false, error: "Invalid post id." };
+  if (!admin || !prisma) return { ok: false, error: t("unauthorized") };
+  if (typeof id !== "string" || !id || id.length > 128) return { ok: false, error: t("invalidPostId") };
   let cover: string | null = null;
   let slug = "";
   try {
@@ -288,7 +295,7 @@ export async function deletePost(id: string): Promise<PostActionResult> {
     });
   } catch (error) {
     console.error("Failed to delete post:", error);
-    return { ok: false, error: "Post could not be deleted. It may have already been removed." };
+    return { ok: false, error: t("deletePostFailed") };
   }
   await cleanupUpload(cover, "blog");
   revalidatePost(id, slug);

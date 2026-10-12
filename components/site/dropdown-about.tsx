@@ -10,6 +10,12 @@ import {
   Newspaper,
 } from "lucide-react";
 
+import { useTranslations } from "next-intl";
+
+import {
+  navigationDescription,
+  navigationLabel,
+} from "@/components/site/nav-dropdown";
 import { DropdownFeatured, type FeaturedPostData } from "@/components/site/dropdown-featured";
 
 export interface DropdownAboutProps {
@@ -21,51 +27,16 @@ export interface DropdownAboutProps {
 }
 
 const COMPANY_ITEMS = [
-  {
-    label: "How we work",
-    description: "A clear process, from first idea to final design.",
-    href: "/#features",
-    icon: Briefcase,
-    iconBg: "bg-[#00C56D]",
-  },
-  {
-    label: "Our partners",
-    description: "Meet the people we build great work with.",
-    href: "/#partners",
-    icon: Handshake,
-    iconBg: "bg-[#00C56D]",
-  },
-  {
-    label: "Studio news",
-    description: "The latest from the Plus In Plus studio.",
-    href: "/#news",
-    icon: Newspaper,
-    iconBg: "bg-[#00C56D]",
-  },
-  {
-    label: "Blog",
-    description: "Ideas, inspiration, and design stories.",
-    href: "/blog",
-    icon: BookOpen,
-    iconBg: "bg-[#00C56D]",
-  },
+  { key: "howWeWork", href: "/#features", icon: Briefcase },
+  { key: "ourPartners", href: "/#partners", icon: Handshake },
+  { key: "studioNews", href: "/#news", icon: Newspaper },
+  { key: "blog", href: "/blog", icon: BookOpen },
 ];
 
 const RESOURCES_ITEMS = [
-  {
-    label: "Case studies",
-    description: "Deep dives into client work and design systems.",
-    href: "/blog",
-    icon: FolderOpen,
-    iconBg: "bg-[#00C56D]",
-  },
-  {
-    label: "Design systems",
-    description: "Scalable UI foundations and brand guidelines.",
-    href: "/blog",
-    icon: Layers,
-    iconBg: "bg-[#00C56D]",
-  },
+  { key: "caseStudies", href: "/blog", icon: FolderOpen },
+  // Tech term: rendered literally, never translated.
+  { label: "Design systems", href: "/blog", icon: Layers },
 ];
 
 export function DropdownAbout({
@@ -75,11 +46,13 @@ export function DropdownAbout({
   onLinkClick,
   featuredPost,
 }: DropdownAboutProps) {
+  const t = useTranslations("nav");
+  const th = useTranslations("header");
   return (
     <div
       id={`navigation-dropdown-${id}`}
       role="region"
-      aria-label="ABOUT PIP navigation menu"
+      aria-label={t("aria", { section: th("about") })}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       className="absolute left-1/2 top-[calc(100%+0.75rem)] z-30 w-[min(1120px,calc(100vw-1rem))] min-w-[700px] -translate-x-1/2 animate-dropdown-in"
@@ -92,14 +65,14 @@ export function DropdownAbout({
                 id="about-section-company"
                 className="px-3 text-xs font-semibold uppercase tracking-[0.12em] text-gray-500"
               >
-                Company
+                {t("sections.company")}
               </h2>
               <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                 {COMPANY_ITEMS.map((item) => {
                   const Icon = item.icon;
                   return (
                     <Link
-                      key={item.label}
+                      key={navigationLabel(t, item)}
                       href={item.href}
                       onClick={onLinkClick}
                       className="group flex min-w-0 items-start gap-3 rounded-xl p-3 text-left transition-colors duration-200 ease-out hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
@@ -111,10 +84,10 @@ export function DropdownAbout({
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-medium leading-5 text-navy group-hover:text-[#0A4366]">
-                          {item.label}
+                          {navigationLabel(t, item)}
                         </span>
                         <span className="mt-0.5 block line-clamp-2 text-xs leading-4 text-gray-500">
-                          {item.description}
+                          {navigationDescription(t, item)}
                         </span>
                       </span>
                     </Link>
@@ -128,14 +101,14 @@ export function DropdownAbout({
                 id="about-section-resources"
                 className="px-3 text-xs font-semibold uppercase tracking-[0.12em] text-gray-500"
               >
-                Resources
+                {t("sections.resources")}
               </h2>
               <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                 {RESOURCES_ITEMS.map((item) => {
                   const Icon = item.icon;
                   return (
                     <Link
-                      key={item.label}
+                      key={navigationLabel(t, item)}
                       href={item.href}
                       onClick={onLinkClick}
                       className="group flex min-w-0 items-start gap-3 rounded-xl p-3 text-left transition-colors duration-200 ease-out hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
@@ -147,10 +120,10 @@ export function DropdownAbout({
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-medium leading-5 text-navy group-hover:text-[#0A4366]">
-                          {item.label}
+                          {navigationLabel(t, item)}
                         </span>
                         <span className="mt-0.5 block line-clamp-2 text-xs leading-4 text-gray-500">
-                          {item.description}
+                          {navigationDescription(t, item)}
                         </span>
                       </span>
                     </Link>

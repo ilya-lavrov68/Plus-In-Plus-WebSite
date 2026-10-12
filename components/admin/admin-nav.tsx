@@ -6,19 +6,22 @@ import { logout } from "@/app/actions/auth";
 import { usePathname } from "next/navigation";
 import { BookOpen, LayoutDashboard, LogOut, Palette, Settings, Users } from "lucide-react";
 import { signOut } from "next-auth/react";
+import { useTranslations } from "next-intl";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const links = [
-  { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-  { label: "Services", href: "/admin/services", icon: Palette },
-  { label: "Blog", href: "/admin/blog", icon: BookOpen },
-  { label: "Users", href: "/admin/users", icon: Users },
-  { label: "Settings", href: "/admin/settings", icon: Settings },
+  { key: "dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+  { key: "services", href: "/admin/services", icon: Palette },
+  { key: "blog", href: "/admin/blog", icon: BookOpen },
+  { key: "users", href: "/admin/users", icon: Users },
+  { key: "settings", href: "/admin/settings", icon: Settings },
 ];
 
 export function AdminNav() {
+  const t = useTranslations("admin");
+  const ta = useTranslations("auth");
   const pathname = usePathname();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,22 +31,22 @@ export function AdminNav() {
     setError(null);
     try {
       const result = await logout();
-      if (!result.ok) { setError(result.error ?? "Unable to log out."); return; }
+      if (!result.ok) { setError(result.error ?? ta("logoutFailed")); return; }
       await signOut({ redirectTo: "/" });
     } catch {
-      setError("Unable to log out. Please try again.");
+      setError(ta("logoutRetry"));
     } finally {
       setPending(false);
     }
   }
 
   return (
-    <nav aria-label="Admin navigation" className="flex flex-col gap-1">
-      {links.map(({ label, href, icon: Icon }) => {
+    <nav aria-label={t("navigation")} className="flex flex-col gap-1">
+      {links.map(({ key, href, icon: Icon }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
         return (
           <Link
-            key={label}
+            key={key}
             href={href}
             aria-current={active ? "page" : undefined}
             className={cn(
@@ -53,7 +56,7 @@ export function AdminNav() {
             )}
           >
             <Icon aria-hidden="true" className="h-4 w-4" />
-            {label}
+            {t(key)}
           </Link>
         );
       })}
@@ -67,7 +70,7 @@ export function AdminNav() {
         )}
       >
         <LogOut aria-hidden="true" className="h-4 w-4" />
-        {pending ? "Logging out…" : "Log out"}
+        {pending ? ta("loggingOut") : ta("logout")}
       </button>
       {error ? <p role="alert" className="mt-2 text-sm text-red-800">{error}</p> : null}
     </nav>

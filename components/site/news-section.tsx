@@ -1,9 +1,10 @@
 import { Newspaper } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { EmptyState } from "@/components/site/empty-state";
 import { NewsCarousel } from "@/components/site/news-carousel";
 import type { NewsItem } from "@/components/site/news-carousel";
-import type { NewsLocale, NewsSource } from "@/components/site/news-card";
+import type { NewsSource } from "@/components/site/news-card";
 
 export const NEWS_AUTOPLAY_INTERVAL = 7000;
 
@@ -20,7 +21,8 @@ export interface NewsSectionItem {
   publishedAt?: string | null;
 }
 
-export function NewsSection({ items, locale = "en" }: { items: readonly NewsSectionItem[]; locale?: NewsLocale }) {
+export function NewsSection({ items }: { items: readonly NewsSectionItem[] }) {
+  const t = useTranslations("news");
   const carouselItems: NewsItem[] = items.map((item) => ({
     id: item.id,
     title: item.title,
@@ -32,7 +34,6 @@ export function NewsSection({ items, locale = "en" }: { items: readonly NewsSect
     sourceUrl: item.sourceUrl,
     imagesCount: item.imagesCount,
     publishedAt: item.publishedAt,
-    locale,
   }));
 
   return (
@@ -42,17 +43,17 @@ export function NewsSection({ items, locale = "en" }: { items: readonly NewsSect
           id="news-heading"
           className="text-center text-balance font-geist text-3xl font-semibold tracking-[-0.045em] text-[#052B42] sm:text-4xl lg:text-[3rem]"
         >
-          News from Plus In Plus
+          {t("title")}
         </h2>
 
         <div className="mt-10 sm:mt-12 lg:mt-[88px]">
           {carouselItems.length ? (
-            <NewsCarousel items={carouselItems} label="Latest news" />
+            <NewsCarousel items={carouselItems} label={t("latestNewsLabel")} />
           ) : (
             <EmptyState
               icon={Newspaper}
-              title="No news yet"
-              description="Check back later for updates."
+              title={t("noNewsYet")}
+              description={t("checkBack")}
             />
           )}
         </div>

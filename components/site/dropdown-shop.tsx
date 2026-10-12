@@ -12,6 +12,12 @@ import {
   Store,
 } from "lucide-react";
 
+import { useTranslations } from "next-intl";
+
+import {
+  navigationDescription,
+  navigationLabel,
+} from "@/components/site/nav-dropdown";
 import { DropdownFeatured, type FeaturedPostData } from "@/components/site/dropdown-featured";
 
 export interface DropdownShopProps {
@@ -23,65 +29,17 @@ export interface DropdownShopProps {
 }
 
 const SMALL_DESIGNS_ITEMS = [
-  {
-    label: "Sign Design",
-    description: "Signage that makes your space stand out.",
-    href: "/shop#small-designs",
-    icon: Store,
-    iconBg: "bg-[#00C56D]",
-  },
-  {
-    label: "Bag Design",
-    description: "Branded bags with a memorable look.",
-    href: "/shop#small-designs",
-    icon: ShoppingBag,
-    iconBg: "bg-[#00C56D]",
-  },
-  {
-    label: "Outdoor glass poster",
-    description: "A crisp message for glass and storefronts.",
-    href: "/shop#small-designs",
-    icon: ImageIcon,
-    iconBg: "bg-[#00C56D]",
-  },
-  {
-    label: "Banner Design",
-    description: "Flexible visuals for campaigns and events.",
-    href: "/shop#small-designs",
-    icon: Flag,
-    iconBg: "bg-[#00C56D]",
-  },
+  { key: "signDesign", href: "/shop#small-designs", icon: Store },
+  { key: "bagDesign", href: "/shop#small-designs", icon: ShoppingBag },
+  { key: "outdoorGlassPoster", href: "/shop#small-designs", icon: ImageIcon },
+  { key: "bannerDesign", href: "/shop#small-designs", icon: Flag },
 ];
 
 const LARGE_DESIGNS_ITEMS = [
-  {
-    label: "Large Billboard on a building",
-    description: "Make a bold impression at city scale.",
-    href: "/shop#large-designs",
-    icon: Building2,
-    iconBg: "bg-[#00C56D]",
-  },
-  {
-    label: "Rooftop advertising",
-    description: "Bring your message above the skyline.",
-    href: "/shop#large-designs",
-    icon: Home,
-    iconBg: "bg-[#00C56D]",
-  },
-  {
-    label: "Advertisement on the fence",
-    description: "High-visibility street-level perimeter branding.",
-    href: "/shop#large-designs",
-    icon: RectangleHorizontal,
-    iconBg: "bg-[#00C56D]",
-  },
-  {
-    label: "Billboard",
-    description: "Unmissable outdoor branding on arterial roads.",
-    href: "/shop#large-designs",
-    icon: Megaphone,
-    iconBg: "bg-[#00C56D]",
-  },
+  { key: "largeBillboard", href: "/shop#large-designs", icon: Building2 },
+  { key: "rooftopAdvertising", href: "/shop#large-designs", icon: Home },
+  { key: "advertisementOnTheFence", href: "/shop#large-designs", icon: RectangleHorizontal },
+  { key: "billboard", href: "/shop#large-designs", icon: Megaphone },
 ];
 
 export function DropdownShop({
@@ -91,11 +49,13 @@ export function DropdownShop({
   onLinkClick,
   featuredPost,
 }: DropdownShopProps) {
+  const t = useTranslations("nav");
+  const th = useTranslations("header");
   return (
     <div
       id={`navigation-dropdown-${id}`}
       role="region"
-      aria-label="SHOP navigation menu"
+      aria-label={t("aria", { section: th("shop") })}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       className="absolute left-1/2 top-[calc(100%+0.75rem)] z-30 w-[min(1120px,calc(100vw-1rem))] min-w-[700px] -translate-x-1/2 animate-dropdown-in"
@@ -108,14 +68,14 @@ export function DropdownShop({
                 id="shop-section-small"
                 className="px-3 text-xs font-semibold uppercase tracking-[0.12em] text-gray-500"
               >
-                Small designs
+                {t("sections.smallDesigns")}
               </h2>
               <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                 {SMALL_DESIGNS_ITEMS.map((item) => {
                   const Icon = item.icon;
                   return (
                     <Link
-                      key={item.label}
+                      key={navigationLabel(t, item)}
                       href={item.href}
                       onClick={onLinkClick}
                       className="group flex min-w-0 items-start gap-3 rounded-xl p-3 text-left transition-colors duration-200 ease-out hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
@@ -127,10 +87,10 @@ export function DropdownShop({
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-medium leading-5 text-navy group-hover:text-[#0A4366]">
-                          {item.label}
+                          {navigationLabel(t, item)}
                         </span>
                         <span className="mt-0.5 block line-clamp-2 text-xs leading-4 text-gray-500">
-                          {item.description}
+                          {navigationDescription(t, item)}
                         </span>
                       </span>
                     </Link>
@@ -144,14 +104,14 @@ export function DropdownShop({
                 id="shop-section-large"
                 className="px-3 text-xs font-semibold uppercase tracking-[0.12em] text-gray-500"
               >
-                Large designs
+                {t("sections.largeDesigns")}
               </h2>
               <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                 {LARGE_DESIGNS_ITEMS.map((item) => {
                   const Icon = item.icon;
                   return (
                     <Link
-                      key={item.label}
+                      key={navigationLabel(t, item)}
                       href={item.href}
                       onClick={onLinkClick}
                       className="group flex min-w-0 items-start gap-3 rounded-xl p-3 text-left transition-colors duration-200 ease-out hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
@@ -163,10 +123,10 @@ export function DropdownShop({
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-medium leading-5 text-navy group-hover:text-[#0A4366]">
-                          {item.label}
+                          {navigationLabel(t, item)}
                         </span>
                         <span className="mt-0.5 block line-clamp-2 text-xs leading-4 text-gray-500">
-                          {item.description}
+                          {navigationDescription(t, item)}
                         </span>
                       </span>
                     </Link>

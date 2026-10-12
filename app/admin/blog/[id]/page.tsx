@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { PostForm } from "@/components/admin/post-form";
 import { getAdminPost } from "@/lib/admin-data";
+import { getRequestTranslations } from "@/lib/server-i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -11,17 +12,15 @@ export default async function EditPostPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const post = await getAdminPost(id);
+  const [post, t] = await Promise.all([getAdminPost(id), getRequestTranslations("admin")]);
   if (!post) {
     notFound();
   }
 
   return (
     <div>
-      <h1 className="text-3xl font-bold tracking-tight">Edit post</h1>
-      <p className="mt-2 text-muted-foreground">
-        The cover is uploaded to /public/uploads/blog/ and album images to /public/uploads/blog/albums/.
-      </p>
+      <h1 className="text-3xl font-bold tracking-tight">{t("editPost")}</h1>
+      <p className="mt-2 text-muted-foreground">{t("form.editPostSubtitle")}</p>
       <div className="mt-8">
         <PostForm
           mode="edit"
