@@ -38,7 +38,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             where: { id: token.id },
             select: userProfileSelect,
           });
-          if (!account) return null;
+          if (!account || account.isBlocked) return null;
           token.email = account.email;
           token.firstName = account.firstName;
           token.lastName = account.lastName;

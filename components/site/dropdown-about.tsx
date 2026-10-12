@@ -4,7 +4,6 @@ import Link from "next/link";
 import {
   BookOpen,
   Briefcase,
-  Code,
   FolderOpen,
   Handshake,
   Layers,
@@ -12,7 +11,6 @@ import {
 } from "lucide-react";
 
 import { DropdownFeatured, type FeaturedPostData } from "@/components/site/dropdown-featured";
-import { cn } from "@/lib/utils";
 
 export interface DropdownAboutProps {
   id?: string;
@@ -28,28 +26,28 @@ const COMPANY_ITEMS = [
     description: "A clear process, from first idea to final design.",
     href: "/#features",
     icon: Briefcase,
-    iconBg: "bg-blue-500",
+    iconBg: "bg-[#00C56D]",
   },
   {
     label: "Our partners",
     description: "Meet the people we build great work with.",
     href: "/#partners",
     icon: Handshake,
-    iconBg: "bg-emerald-500",
+    iconBg: "bg-[#00C56D]",
   },
   {
     label: "Studio news",
     description: "The latest from the Plus In Plus studio.",
     href: "/#news",
     icon: Newspaper,
-    iconBg: "bg-purple-500",
+    iconBg: "bg-[#00C56D]",
   },
   {
     label: "Blog",
     description: "Ideas, inspiration, and design stories.",
     href: "/blog",
     icon: BookOpen,
-    iconBg: "bg-orange-500",
+    iconBg: "bg-[#00C56D]",
   },
 ];
 
@@ -59,21 +57,14 @@ const RESOURCES_ITEMS = [
     description: "Deep dives into client work and design systems.",
     href: "/blog",
     icon: FolderOpen,
-    iconBg: "bg-amber-500",
+    iconBg: "bg-[#00C56D]",
   },
   {
     label: "Design systems",
     description: "Scalable UI foundations and brand guidelines.",
     href: "/blog",
     icon: Layers,
-    iconBg: "bg-indigo-500",
-  },
-  {
-    label: "Front-end development",
-    description: "Engineering design into production code.",
-    href: "/blog",
-    icon: Code,
-    iconBg: "bg-rose-500",
+    iconBg: "bg-[#00C56D]",
   },
 ];
 
@@ -114,12 +105,9 @@ export function DropdownAbout({
                       className="group flex min-w-0 items-start gap-3 rounded-xl p-3 text-left transition-colors duration-200 ease-out hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
                     >
                       <span
-                        className={cn(
-                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg shadow-sm text-white transition-transform duration-200 ease-out group-hover:scale-105",
-                          item.iconBg,
-                        )}
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#00C56D] text-[#052B42]"
                       >
-                        <Icon aria-hidden="true" className="h-4 w-4 text-white" strokeWidth={2} />
+                        <Icon aria-hidden="true" className="h-4 w-4 text-[#052B42]" strokeWidth={2} />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-medium leading-5 text-navy group-hover:text-[#0A4366]">
@@ -153,12 +141,9 @@ export function DropdownAbout({
                       className="group flex min-w-0 items-start gap-3 rounded-xl p-3 text-left transition-colors duration-200 ease-out hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
                     >
                       <span
-                        className={cn(
-                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg shadow-sm text-white transition-transform duration-200 ease-out group-hover:scale-105",
-                          item.iconBg,
-                        )}
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#00C56D] text-[#052B42]"
                       >
-                        <Icon aria-hidden="true" className="h-4 w-4 text-white" strokeWidth={2} />
+                        <Icon aria-hidden="true" className="h-4 w-4 text-[#052B42]" strokeWidth={2} />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-medium leading-5 text-navy group-hover:text-[#0A4366]">

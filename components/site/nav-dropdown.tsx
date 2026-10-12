@@ -7,10 +7,8 @@ import {
   Briefcase,
   Building,
   Building2,
-  Code,
   Flag,
   FolderOpen,
-  GraduationCap,
   Handshake,
   Home,
   Image as ImageIcon,
@@ -20,12 +18,10 @@ import {
   Newspaper,
   Palette,
   RectangleHorizontal,
-  Rocket,
   Send,
   ShoppingBag,
   Store,
   Tag,
-  Users,
 } from "lucide-react";
 
 import { DropdownForPlay } from "@/components/site/dropdown-forplay";
@@ -33,7 +29,6 @@ import { DropdownShop } from "@/components/site/dropdown-shop";
 import { DropdownAbout } from "@/components/site/dropdown-about";
 import { DropdownSocnet } from "@/components/site/dropdown-socnet";
 import type { FeaturedPostData } from "@/components/site/dropdown-featured";
-import { cn } from "@/lib/utils";
 
 export function YouTubeIcon(props: LucideProps) {
   return (
@@ -99,29 +94,18 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
       {
         title: "Services",
         items: [
-          { label: "Order a design", description: "Get a professional design for your brand.", href: "/shop", icon: ShoppingBag, iconBg: "bg-emerald-500" },
-          { label: "Design services", description: "Thoughtful visuals for every kind of project.", href: "/shop", icon: Palette, iconBg: "bg-blue-500" },
-          { label: "Small designs", description: "Clear, eye-catching details for your brand.", href: "/shop#small-designs", icon: Tag, iconBg: "bg-purple-500" },
-          { label: "Large designs", description: "Big-format ideas built to be noticed.", href: "/shop#large-designs", icon: Building, iconBg: "bg-orange-500" },
-        ],
-      },
-      {
-        title: "Programs",
-        items: [
-          { label: "Nebius Fellows", description: "Supporting exceptional researchers and engineers.", href: "/#programs", icon: Users, iconBg: "bg-indigo-500" },
-          { label: "Startup program", description: "Design acceleration for high-growth tech startups.", href: "/#programs", icon: Rocket, iconBg: "bg-rose-500" },
-          { label: "Research grants", description: "Fueling scientific discovery and academic work.", href: "/#programs", icon: GraduationCap, iconBg: "bg-amber-500" },
+          { label: "Order a design", description: "Get a professional design for your brand.", href: "/shop", icon: ShoppingBag, iconBg: "bg-[#00C56D]" },
+          { label: "Design services", description: "Thoughtful visuals for every kind of project.", href: "/shop", icon: Palette, iconBg: "bg-[#00C56D]" },
+          { label: "Small designs", description: "Clear, eye-catching details for your brand.", href: "/shop#small-designs", icon: Tag, iconBg: "bg-[#00C56D]" },
+          { label: "Large designs", description: "Big-format ideas built to be noticed.", href: "/shop#large-designs", icon: Building, iconBg: "bg-[#00C56D]" },
         ],
       },
     ],
     items: [
-      { label: "Order a design", description: "Get a professional design for your brand.", href: "/shop", icon: ShoppingBag, iconBg: "bg-emerald-500" },
-      { label: "Design services", description: "Thoughtful visuals for every kind of project.", href: "/shop", icon: Palette, iconBg: "bg-blue-500" },
-      { label: "Small designs", description: "Clear, eye-catching details for your brand.", href: "/shop#small-designs", icon: Tag, iconBg: "bg-purple-500" },
-      { label: "Large designs", description: "Big-format ideas built to be noticed.", href: "/shop#large-designs", icon: Building, iconBg: "bg-orange-500" },
-      { label: "Nebius Fellows", description: "Supporting exceptional researchers and engineers.", href: "/#programs", icon: Users, iconBg: "bg-indigo-500" },
-      { label: "Startup program", description: "Design acceleration for high-growth tech startups.", href: "/#programs", icon: Rocket, iconBg: "bg-rose-500" },
-      { label: "Research grants", description: "Fueling scientific discovery and academic work.", href: "/#programs", icon: GraduationCap, iconBg: "bg-amber-500" },
+      { label: "Order a design", description: "Get a professional design for your brand.", href: "/shop", icon: ShoppingBag, iconBg: "bg-[#00C56D]" },
+      { label: "Design services", description: "Thoughtful visuals for every kind of project.", href: "/shop", icon: Palette, iconBg: "bg-[#00C56D]" },
+      { label: "Small designs", description: "Clear, eye-catching details for your brand.", href: "/shop#small-designs", icon: Tag, iconBg: "bg-[#00C56D]" },
+      { label: "Large designs", description: "Big-format ideas built to be noticed.", href: "/shop#large-designs", icon: Building, iconBg: "bg-[#00C56D]" },
     ],
   },
   {
@@ -131,31 +115,31 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
       {
         title: "Small designs",
         items: [
-          { label: "Sign Design", description: "Signage that makes your space stand out.", href: "/shop#small-designs", icon: Store, iconBg: "bg-emerald-500" },
-          { label: "Bag Design", description: "Branded bags with a memorable look.", href: "/shop#small-designs", icon: ShoppingBag, iconBg: "bg-blue-500" },
-          { label: "Outdoor glass poster", description: "A crisp message for glass and storefronts.", href: "/shop#small-designs", icon: ImageIcon, iconBg: "bg-purple-500" },
-          { label: "Banner Design", description: "Flexible visuals for campaigns and events.", href: "/shop#small-designs", icon: Flag, iconBg: "bg-amber-500" },
+          { label: "Sign Design", description: "Signage that makes your space stand out.", href: "/shop#small-designs", icon: Store, iconBg: "bg-[#00C56D]" },
+          { label: "Bag Design", description: "Branded bags with a memorable look.", href: "/shop#small-designs", icon: ShoppingBag, iconBg: "bg-[#00C56D]" },
+          { label: "Outdoor glass poster", description: "A crisp message for glass and storefronts.", href: "/shop#small-designs", icon: ImageIcon, iconBg: "bg-[#00C56D]" },
+          { label: "Banner Design", description: "Flexible visuals for campaigns and events.", href: "/shop#small-designs", icon: Flag, iconBg: "bg-[#00C56D]" },
         ],
       },
       {
         title: "Large designs",
         items: [
-          { label: "Large Billboard on a building", description: "Make a bold impression at city scale.", href: "/shop#large-designs", icon: Building2, iconBg: "bg-orange-500" },
-          { label: "Rooftop advertising", description: "Bring your message above the skyline.", href: "/shop#large-designs", icon: Home, iconBg: "bg-rose-500" },
-          { label: "Advertisement on the fence", description: "High-visibility street-level perimeter branding.", href: "/shop#large-designs", icon: RectangleHorizontal, iconBg: "bg-indigo-500" },
-          { label: "Billboard", description: "Unmissable outdoor branding on arterial roads.", href: "/shop#large-designs", icon: Megaphone, iconBg: "bg-emerald-500" },
+          { label: "Large Billboard on a building", description: "Make a bold impression at city scale.", href: "/shop#large-designs", icon: Building2, iconBg: "bg-[#00C56D]" },
+          { label: "Rooftop advertising", description: "Bring your message above the skyline.", href: "/shop#large-designs", icon: Home, iconBg: "bg-[#00C56D]" },
+          { label: "Advertisement on the fence", description: "High-visibility street-level perimeter branding.", href: "/shop#large-designs", icon: RectangleHorizontal, iconBg: "bg-[#00C56D]" },
+          { label: "Billboard", description: "Unmissable outdoor branding on arterial roads.", href: "/shop#large-designs", icon: Megaphone, iconBg: "bg-[#00C56D]" },
         ],
       },
     ],
     items: [
-      { label: "Sign Design", description: "Signage that makes your space stand out.", href: "/shop#small-designs", icon: Store, iconBg: "bg-emerald-500" },
-      { label: "Bag Design", description: "Branded bags with a memorable look.", href: "/shop#small-designs", icon: ShoppingBag, iconBg: "bg-blue-500" },
-      { label: "Outdoor glass poster", description: "A crisp message for glass and storefronts.", href: "/shop#small-designs", icon: ImageIcon, iconBg: "bg-purple-500" },
-      { label: "Banner Design", description: "Flexible visuals for campaigns and events.", href: "/shop#small-designs", icon: Flag, iconBg: "bg-amber-500" },
-      { label: "Large Billboard on a building", description: "Make a bold impression at city scale.", href: "/shop#large-designs", icon: Building2, iconBg: "bg-orange-500" },
-      { label: "Rooftop advertising", description: "Bring your message above the skyline.", href: "/shop#large-designs", icon: Home, iconBg: "bg-rose-500" },
-      { label: "Advertisement on the fence", description: "High-visibility street-level perimeter branding.", href: "/shop#large-designs", icon: RectangleHorizontal, iconBg: "bg-indigo-500" },
-      { label: "Billboard", description: "Unmissable outdoor branding on arterial roads.", href: "/shop#large-designs", icon: Megaphone, iconBg: "bg-emerald-500" },
+      { label: "Sign Design", description: "Signage that makes your space stand out.", href: "/shop#small-designs", icon: Store, iconBg: "bg-[#00C56D]" },
+      { label: "Bag Design", description: "Branded bags with a memorable look.", href: "/shop#small-designs", icon: ShoppingBag, iconBg: "bg-[#00C56D]" },
+      { label: "Outdoor glass poster", description: "A crisp message for glass and storefronts.", href: "/shop#small-designs", icon: ImageIcon, iconBg: "bg-[#00C56D]" },
+      { label: "Banner Design", description: "Flexible visuals for campaigns and events.", href: "/shop#small-designs", icon: Flag, iconBg: "bg-[#00C56D]" },
+      { label: "Large Billboard on a building", description: "Make a bold impression at city scale.", href: "/shop#large-designs", icon: Building2, iconBg: "bg-[#00C56D]" },
+      { label: "Rooftop advertising", description: "Bring your message above the skyline.", href: "/shop#large-designs", icon: Home, iconBg: "bg-[#00C56D]" },
+      { label: "Advertisement on the fence", description: "High-visibility street-level perimeter branding.", href: "/shop#large-designs", icon: RectangleHorizontal, iconBg: "bg-[#00C56D]" },
+      { label: "Billboard", description: "Unmissable outdoor branding on arterial roads.", href: "/shop#large-designs", icon: Megaphone, iconBg: "bg-[#00C56D]" },
     ],
   },
   {
@@ -165,29 +149,27 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
       {
         title: "Company",
         items: [
-          { label: "How we work", description: "A clear process, from first idea to final design.", href: "/#features", icon: Briefcase, iconBg: "bg-blue-500" },
-          { label: "Our partners", description: "Meet the people we build great work with.", href: "/#partners", icon: Handshake, iconBg: "bg-emerald-500" },
-          { label: "Studio news", description: "The latest from the Plus In Plus studio.", href: "/#news", icon: Newspaper, iconBg: "bg-purple-500" },
-          { label: "Blog", description: "Ideas, inspiration, and design stories.", href: "/blog", icon: BookOpen, iconBg: "bg-orange-500" },
+          { label: "How we work", description: "A clear process, from first idea to final design.", href: "/#features", icon: Briefcase, iconBg: "bg-[#00C56D]" },
+          { label: "Our partners", description: "Meet the people we build great work with.", href: "/#partners", icon: Handshake, iconBg: "bg-[#00C56D]" },
+          { label: "Studio news", description: "The latest from the Plus In Plus studio.", href: "/#news", icon: Newspaper, iconBg: "bg-[#00C56D]" },
+          { label: "Blog", description: "Ideas, inspiration, and design stories.", href: "/blog", icon: BookOpen, iconBg: "bg-[#00C56D]" },
         ],
       },
       {
         title: "Resources",
         items: [
-          { label: "Case studies", description: "Deep dives into client work and design systems.", href: "/blog", icon: FolderOpen, iconBg: "bg-amber-500" },
-          { label: "Design systems", description: "Scalable UI foundations and brand guidelines.", href: "/blog", icon: Layers, iconBg: "bg-indigo-500" },
-          { label: "Front-end development", description: "Engineering design into production code.", href: "/blog", icon: Code, iconBg: "bg-rose-500" },
-        ],
+          { label: "Case studies", description: "Deep dives into client work and design systems.", href: "/blog", icon: FolderOpen, iconBg: "bg-[#00C56D]" },
+          { label: "Design systems", description: "Scalable UI foundations and brand guidelines.", href: "/blog", icon: Layers, iconBg: "bg-[#00C56D]" },
+            ],
       },
     ],
     items: [
-      { label: "How we work", description: "A clear process, from first idea to final design.", href: "/#features", icon: Briefcase, iconBg: "bg-blue-500" },
-      { label: "Our partners", description: "Meet the people we build great work with.", href: "/#partners", icon: Handshake, iconBg: "bg-emerald-500" },
-      { label: "Studio news", description: "The latest from the Plus In Plus studio.", href: "/#news", icon: Newspaper, iconBg: "bg-purple-500" },
-      { label: "Blog", description: "Ideas, inspiration, and design stories.", href: "/blog", icon: BookOpen, iconBg: "bg-orange-500" },
-      { label: "Case studies", description: "Deep dives into client work and design systems.", href: "/blog", icon: FolderOpen, iconBg: "bg-amber-500" },
-      { label: "Design systems", description: "Scalable UI foundations and brand guidelines.", href: "/blog", icon: Layers, iconBg: "bg-indigo-500" },
-      { label: "Front-end development", description: "Engineering design into production code.", href: "/blog", icon: Code, iconBg: "bg-rose-500" },
+      { label: "How we work", description: "A clear process, from first idea to final design.", href: "/#features", icon: Briefcase, iconBg: "bg-[#00C56D]" },
+      { label: "Our partners", description: "Meet the people we build great work with.", href: "/#partners", icon: Handshake, iconBg: "bg-[#00C56D]" },
+      { label: "Studio news", description: "The latest from the Plus In Plus studio.", href: "/#news", icon: Newspaper, iconBg: "bg-[#00C56D]" },
+      { label: "Blog", description: "Ideas, inspiration, and design stories.", href: "/blog", icon: BookOpen, iconBg: "bg-[#00C56D]" },
+      { label: "Case studies", description: "Deep dives into client work and design systems.", href: "/blog", icon: FolderOpen, iconBg: "bg-[#00C56D]" },
+      { label: "Design systems", description: "Scalable UI foundations and brand guidelines.", href: "/blog", icon: Layers, iconBg: "bg-[#00C56D]" },
     ],
   },
   {
@@ -197,25 +179,25 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
       {
         title: "Social",
         items: [
-          { label: "VK", description: "Follow Plus In Plus on VK.", href: "https://vk.com/plusinplus", icon: VkIcon, iconBg: "bg-blue-600", external: true },
-          { label: "Telegram", description: "Studio updates, straight to your feed.", href: "https://t.me/plusinplus", icon: Send, iconBg: "bg-sky-500", external: true },
-          { label: "YouTube", description: "Watch ideas take shape in the studio.", href: "https://www.youtube.com/@plusinplus", icon: YouTubeIcon, iconBg: "bg-red-500", external: true },
+          { label: "VK", description: "Follow Plus In Plus on VK.", href: "https://vk.com/plusinplus", icon: VkIcon, iconBg: "bg-[#00C56D]", external: true },
+          { label: "Telegram", description: "Studio updates, straight to your feed.", href: "https://t.me/plusinplus", icon: Send, iconBg: "bg-[#00C56D]", external: true },
+          { label: "YouTube", description: "Watch ideas take shape in the studio.", href: "https://www.youtube.com/@plusinplus", icon: YouTubeIcon, iconBg: "bg-[#00C56D]", external: true },
         ],
       },
       {
         title: "Contact",
         items: [
-          { label: "Contact us", description: "Get in touch with our team today.", href: "/contact", icon: Mail, iconBg: "bg-emerald-500" },
-          { label: "Order", description: "Place a request for your next design.", href: "/shop", icon: ShoppingBag, iconBg: "bg-purple-500" },
+          { label: "Contact us", description: "Get in touch with our team today.", href: "/contact", icon: Mail, iconBg: "bg-[#00C56D]" },
+          { label: "Order", description: "Place a request for your next design.", href: "/shop", icon: ShoppingBag, iconBg: "bg-[#00C56D]" },
         ],
       },
     ],
     items: [
-      { label: "VK", description: "Follow Plus In Plus on VK.", href: "https://vk.com/plusinplus", icon: VkIcon, iconBg: "bg-blue-600", external: true },
-      { label: "Telegram", description: "Studio updates, straight to your feed.", href: "https://t.me/plusinplus", icon: Send, iconBg: "bg-sky-500", external: true },
-      { label: "YouTube", description: "Watch ideas take shape in the studio.", href: "https://www.youtube.com/@plusinplus", icon: YouTubeIcon, iconBg: "bg-red-500", external: true },
-      { label: "Contact us", description: "Get in touch with our team today.", href: "/contact", icon: Mail, iconBg: "bg-emerald-500" },
-      { label: "Order", description: "Place a request for your next design.", href: "/shop", icon: ShoppingBag, iconBg: "bg-purple-500" },
+      { label: "VK", description: "Follow Plus In Plus on VK.", href: "https://vk.com/plusinplus", icon: VkIcon, iconBg: "bg-[#00C56D]", external: true },
+      { label: "Telegram", description: "Studio updates, straight to your feed.", href: "https://t.me/plusinplus", icon: Send, iconBg: "bg-[#00C56D]", external: true },
+      { label: "YouTube", description: "Watch ideas take shape in the studio.", href: "https://www.youtube.com/@plusinplus", icon: YouTubeIcon, iconBg: "bg-[#00C56D]", external: true },
+      { label: "Contact us", description: "Get in touch with our team today.", href: "/contact", icon: Mail, iconBg: "bg-[#00C56D]" },
+      { label: "Order", description: "Place a request for your next design.", href: "/shop", icon: ShoppingBag, iconBg: "bg-[#00C56D]" },
     ],
   },
 ];
@@ -239,16 +221,12 @@ export function NavigationMenuEntry({
     ? "group flex min-w-0 items-start gap-3 rounded-xl p-2.5 text-left transition-colors duration-200 ease-out hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
     : "group flex min-w-0 items-start gap-3 rounded-xl p-3 text-left transition-colors duration-200 ease-out hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy";
 
-  const iconBg = item.iconBg || "bg-emerald-500";
-  const iconClassName = cn(
-    "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg shadow-sm text-white transition-transform duration-200 ease-out group-hover:scale-105",
-    iconBg,
-  );
+  const iconClassName = "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#00C56D] text-[#052B42]";
 
   const content = (
     <>
       <span className={iconClassName}>
-        <Icon aria-hidden="true" className="h-4 w-4 text-white" strokeWidth={2} />
+        <Icon aria-hidden="true" className="h-4 w-4 text-[#052B42]" strokeWidth={2} />
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-medium leading-5 text-navy group-hover:text-[#0A4366]">{item.label}</span>

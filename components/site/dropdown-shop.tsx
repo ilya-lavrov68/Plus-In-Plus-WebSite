@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 
 import { DropdownFeatured, type FeaturedPostData } from "@/components/site/dropdown-featured";
-import { cn } from "@/lib/utils";
 
 export interface DropdownShopProps {
   id?: string;
@@ -29,28 +28,28 @@ const SMALL_DESIGNS_ITEMS = [
     description: "Signage that makes your space stand out.",
     href: "/shop#small-designs",
     icon: Store,
-    iconBg: "bg-emerald-500",
+    iconBg: "bg-[#00C56D]",
   },
   {
     label: "Bag Design",
     description: "Branded bags with a memorable look.",
     href: "/shop#small-designs",
     icon: ShoppingBag,
-    iconBg: "bg-blue-500",
+    iconBg: "bg-[#00C56D]",
   },
   {
     label: "Outdoor glass poster",
     description: "A crisp message for glass and storefronts.",
     href: "/shop#small-designs",
     icon: ImageIcon,
-    iconBg: "bg-purple-500",
+    iconBg: "bg-[#00C56D]",
   },
   {
     label: "Banner Design",
     description: "Flexible visuals for campaigns and events.",
     href: "/shop#small-designs",
     icon: Flag,
-    iconBg: "bg-amber-500",
+    iconBg: "bg-[#00C56D]",
   },
 ];
 
@@ -60,28 +59,28 @@ const LARGE_DESIGNS_ITEMS = [
     description: "Make a bold impression at city scale.",
     href: "/shop#large-designs",
     icon: Building2,
-    iconBg: "bg-orange-500",
+    iconBg: "bg-[#00C56D]",
   },
   {
     label: "Rooftop advertising",
     description: "Bring your message above the skyline.",
     href: "/shop#large-designs",
     icon: Home,
-    iconBg: "bg-rose-500",
+    iconBg: "bg-[#00C56D]",
   },
   {
     label: "Advertisement on the fence",
     description: "High-visibility street-level perimeter branding.",
     href: "/shop#large-designs",
     icon: RectangleHorizontal,
-    iconBg: "bg-indigo-500",
+    iconBg: "bg-[#00C56D]",
   },
   {
     label: "Billboard",
     description: "Unmissable outdoor branding on arterial roads.",
     href: "/shop#large-designs",
     icon: Megaphone,
-    iconBg: "bg-emerald-500",
+    iconBg: "bg-[#00C56D]",
   },
 ];
 
@@ -122,12 +121,9 @@ export function DropdownShop({
                       className="group flex min-w-0 items-start gap-3 rounded-xl p-3 text-left transition-colors duration-200 ease-out hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
                     >
                       <span
-                        className={cn(
-                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg shadow-sm text-white transition-transform duration-200 ease-out group-hover:scale-105",
-                          item.iconBg,
-                        )}
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#00C56D] text-[#052B42]"
                       >
-                        <Icon aria-hidden="true" className="h-4 w-4 text-white" strokeWidth={2} />
+                        <Icon aria-hidden="true" className="h-4 w-4 text-[#052B42]" strokeWidth={2} />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-medium leading-5 text-navy group-hover:text-[#0A4366]">
@@ -161,12 +157,9 @@ export function DropdownShop({
                       className="group flex min-w-0 items-start gap-3 rounded-xl p-3 text-left transition-colors duration-200 ease-out hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
                     >
                       <span
-                        className={cn(
-                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg shadow-sm text-white transition-transform duration-200 ease-out group-hover:scale-105",
-                          item.iconBg,
-                        )}
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#00C56D] text-[#052B42]"
                       >
-                        <Icon aria-hidden="true" className="h-4 w-4 text-white" strokeWidth={2} />
+                        <Icon aria-hidden="true" className="h-4 w-4 text-[#052B42]" strokeWidth={2} />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-medium leading-5 text-navy group-hover:text-[#0A4366]">

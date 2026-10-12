@@ -8,6 +8,7 @@ import { ShopServiceCard } from "@/components/site/shop-service-card";
 import { getPublishedPosts, getPublishedServices, serviceHref, toNewsItem } from "@/lib/data";
 import { getServiceArtwork } from "@/lib/shop-assets";
 import { createPageMetadata } from "@/lib/seo";
+import { getRequestLocale } from "@/lib/request-locale";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,7 @@ export default async function ShopPage() {
   const smallServices = services.filter((service) => service.category === "small");
   const largeServices = services.filter((service) => service.category === "large");
   const newsItems = posts.map(toNewsItem);
+  const locale = await getRequestLocale();
 
   return (
     <>
@@ -112,7 +114,7 @@ export default async function ShopPage() {
         </div>
       </section>
 
-      <OtherNewsSection items={newsItems} id="shop-other-news" />
+      <OtherNewsSection items={newsItems} id="shop-other-news" locale={locale} />
     </>
   );
 }

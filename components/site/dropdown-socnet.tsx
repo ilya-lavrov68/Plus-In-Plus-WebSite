@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Mail, Send, ShoppingBag } from "lucide-react";
 
 import { DropdownFeatured, type FeaturedPostData } from "@/components/site/dropdown-featured";
-import { cn } from "@/lib/utils";
 
 export interface DropdownSocnetProps {
   id?: string;
@@ -41,7 +40,7 @@ const SOCIAL_ITEMS = [
     description: "Follow Plus In Plus on VK.",
     href: "https://vk.com/plusinplus",
     icon: VkIcon,
-    iconBg: "bg-blue-600",
+    iconBg: "bg-[#00C56D]",
     external: true,
   },
   {
@@ -49,7 +48,7 @@ const SOCIAL_ITEMS = [
     description: "Studio updates, straight to your feed.",
     href: "https://t.me/plusinplus",
     icon: Send,
-    iconBg: "bg-sky-500",
+    iconBg: "bg-[#00C56D]",
     external: true,
   },
   {
@@ -57,7 +56,7 @@ const SOCIAL_ITEMS = [
     description: "Watch ideas take shape in the studio.",
     href: "https://www.youtube.com/@plusinplus",
     icon: YouTubeIcon,
-    iconBg: "bg-red-500",
+    iconBg: "bg-[#00C56D]",
     external: true,
   },
 ];
@@ -68,14 +67,14 @@ const CONTACT_ITEMS = [
     description: "Get in touch with our team today.",
     href: "/contact",
     icon: Mail,
-    iconBg: "bg-emerald-500",
+    iconBg: "bg-[#00C56D]",
   },
   {
     label: "Order",
     description: "Place a request for your next design.",
     href: "/shop",
     icon: ShoppingBag,
-    iconBg: "bg-purple-500",
+    iconBg: "bg-[#00C56D]",
   },
 ];
 
@@ -118,12 +117,9 @@ export function DropdownSocnet({
                       className="group flex min-w-0 items-start gap-3 rounded-xl p-3 text-left transition-colors duration-200 ease-out hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
                     >
                       <span
-                        className={cn(
-                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg shadow-sm text-white transition-transform duration-200 ease-out group-hover:scale-105",
-                          item.iconBg,
-                        )}
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#00C56D] text-[#052B42]"
                       >
-                        <Icon aria-hidden="true" className="h-4 w-4 text-white" />
+                        <Icon aria-hidden="true" className="h-4 w-4 text-[#052B42]" />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-medium leading-5 text-navy group-hover:text-[#0A4366]">
@@ -157,12 +153,9 @@ export function DropdownSocnet({
                       className="group flex min-w-0 items-start gap-3 rounded-xl p-3 text-left transition-colors duration-200 ease-out hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
                     >
                       <span
-                        className={cn(
-                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg shadow-sm text-white transition-transform duration-200 ease-out group-hover:scale-105",
-                          item.iconBg,
-                        )}
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#00C56D] text-[#052B42]"
                       >
-                        <Icon aria-hidden="true" className="h-4 w-4 text-white" strokeWidth={2} />
+                        <Icon aria-hidden="true" className="h-4 w-4 text-[#052B42]" strokeWidth={2} />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-medium leading-5 text-navy group-hover:text-[#0A4366]">

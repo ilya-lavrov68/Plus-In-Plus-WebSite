@@ -3,6 +3,7 @@ import { Newspaper } from "lucide-react";
 import { EmptyState } from "@/components/site/empty-state";
 import { NewsCarousel } from "@/components/site/news-carousel";
 import type { NewsItem } from "@/components/site/news-carousel";
+import type { NewsLocale } from "@/components/site/news-card";
 import type { NewsItemView } from "@/lib/data";
 
 export interface OtherNewsSectionProps {
@@ -12,7 +13,7 @@ export interface OtherNewsSectionProps {
 }
 
 /** Shared light-blue carousel block used below internal-page content cards. */
-export function OtherNewsSection({ items, id }: OtherNewsSectionProps) {
+export function OtherNewsSection({ items, id, locale = "en" }: OtherNewsSectionProps & { locale?: NewsLocale }) {
   const carouselItems: NewsItem[] = items.map((item) => ({
     id: item.id,
     title: item.title,
@@ -23,6 +24,8 @@ export function OtherNewsSection({ items, id }: OtherNewsSectionProps) {
     excerpt: item.excerpt,
     source: item.source,
     imagesCount: item.imagesCount,
+    publishedAt: item.publishedAt,
+    locale,
   }));
 
   return (

@@ -90,7 +90,7 @@ export function PostGallery({ images }: PostGalleryProps) {
               alt=""
               fill
               sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-              className="object-cover transition-transform duration-300 ease-out group-hover:scale-105"
+              className="object-cover transition-opacity duration-200 ease-out group-hover:opacity-90"
             />
             <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all duration-200 group-hover:bg-black/30 group-hover:opacity-100">
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-navy shadow-sm">

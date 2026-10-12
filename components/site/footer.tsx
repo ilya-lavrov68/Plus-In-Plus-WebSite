@@ -93,7 +93,11 @@ const FOOTER_LINK_CLASS =
  * the legal row with the copyright, and the oversized decorative wordmark
  * as a watermark on the light-blue brand background.
  */
-export function Footer() {
+export function Footer({ locale = "en" }: { locale?: "en" | "ru" } = {}) {
+  const copy = locale === "ru"
+    ? { cta: "Начните путь с Plus In Plus", order: "Заказать дизайн", talk: "Связаться с нами" }
+    : { cta: FOOTER_CTA_HEADING, order: "Order a design", talk: "Talk to us" };
+
   return (
     <footer className="mt-auto overflow-hidden border-t border-navy/20 bg-[#D6E4FF] text-navy">
       <div className="mx-auto w-full max-w-[1440px] px-5 sm:px-8 xl:px-12">
@@ -102,17 +106,17 @@ export function Footer() {
             id="footer-cta-heading"
             className="mx-auto max-w-[760px] text-balance font-geist text-3xl font-semibold tracking-[-0.03em] text-navy sm:text-4xl"
           >
-            {FOOTER_CTA_HEADING}
+            {copy.cta}
           </h2>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 lg:mt-10 lg:flex-row lg:gap-4">
             <Link href="/shop" className={`${CTA_BUTTON_CLASS} bg-navy text-white hover:bg-[#0A4366]`}>
-              Order a design
+              {copy.order}
             </Link>
             <Link
               href="/contact"
               className={`${CTA_BUTTON_CLASS} border border-navy bg-transparent text-navy hover:bg-navy/[0.06]`}
             >
-              Talk to us
+              {copy.talk}
             </Link>
           </div>
         </section>

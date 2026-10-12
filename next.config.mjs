@@ -1,3 +1,5 @@
+import createNextIntlPlugin from "next-intl/plugin";
+
 /** @type {import('next').NextConfig} */
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -27,4 +29,6 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+const withNextIntl = createNextIntlPlugin("./i18n.ts");
+
+export default withNextIntl(nextConfig);

@@ -35,6 +35,7 @@ export interface PostView {
   sourceUrl?: string | null;
   isFeatured?: boolean;
   publishedAt: Date | null;
+  createdAt: Date;
 }
 
 export type NewsSource = "vk" | "telegram" | "youtube" | "manual";
@@ -51,6 +52,7 @@ export interface NewsItemView {
   source: NewsSource;
   description?: string;
   imagesCount?: number;
+  publishedAt?: string | null;
 }
 
 function toServiceView(service: ServiceModel): ServiceView {
@@ -80,8 +82,9 @@ function toPostView(post: PostModel): PostView {
     readTime: post.readTime,
     source: post.source,
     sourceUrl: post.sourceUrl ?? null,
-    isFeatured: post.isFeatured ?? false,
+      isFeatured: post.isFeatured ?? false,
     publishedAt: post.publishedAt,
+    createdAt: post.createdAt,
   };
 }
 
@@ -106,6 +109,7 @@ export function toNewsItem(post: PostView): NewsItemView {
     source: toNewsSource(post.source),
     description: post.excerpt || undefined,
     imagesCount: additionalImages.length,
+    publishedAt: (post.publishedAt ?? post.createdAt).toISOString(),
   };
 }
 
@@ -154,8 +158,12 @@ export async function getPublishedPosts(): Promise<PostView[]> {
   if (!prisma) return [];
 
   try {
+    const now = new Date();
     const posts = await prisma.post.findMany({
-      where: { isPublished: true },
+      where: {
+        isPublished: true,
+        OR: [{ publishedAt: null }, { publishedAt: { lte: now } }],
+      },
       orderBy: [{ publishedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
     });
     return posts.map(toPostView);
@@ -170,7 +178,11 @@ export async function getPublishedPost(slug: string): Promise<PostView | null> {
 
   try {
     const post = await prisma.post.findFirst({
-      where: { slug, isPublished: true },
+      where: {
+        slug,
+        isPublished: true,
+        OR: [{ publishedAt: null }, { publishedAt: { lte: new Date() } }],
+      },
     });
     return post ? toPostView(post) : null;
   } catch (error) {
@@ -184,12 +196,12 @@ export async function getFeaturedPost(): Promise<PostView | null> {
 
   try {
     let post = await prisma.post.findFirst({
-      where: { isPublished: true, isFeatured: true },
+      where: { isPublished: true, isFeatured: true, OR: [{ publishedAt: null }, { publishedAt: { lte: new Date() } }] },
       orderBy: [{ publishedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
     });
     if (!post) {
       post = await prisma.post.findFirst({
-        where: { isPublished: true },
+        where: { isPublished: true, OR: [{ publishedAt: null }, { publishedAt: { lte: new Date() } }] },
         orderBy: [{ publishedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
       });
     }

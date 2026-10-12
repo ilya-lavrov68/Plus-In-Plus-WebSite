@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, ArrowUpRight, Play } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, Send } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -9,18 +9,13 @@ import { OtherNewsSection } from "@/components/site/other-news-section";
 import { PostGallery } from "@/components/site/post-gallery";
 import { getPublishedPost, getPublishedPosts, toNewsItem } from "@/lib/data";
 import { SAMPLE_ARTICLE } from "@/lib/blog-sample-article";
-import { createPageMetadata } from "@/lib/seo";
+import { createPageMetadata, SITE_URL } from "@/lib/seo";
 import { sanitizePostContent } from "@/lib/sanitize-post-content";
+import { formatPublishedDate, type Locale } from "@/i18n";
+import { getRequestLocale } from "@/lib/request-locale";
 
 export const dynamic = "force-dynamic";
 
-const DATE_FORMAT = new Intl.DateTimeFormat("en-US", {
-  year: "numeric",
-  month: "long",
-  day: "numeric",
-  timeZone: "UTC",
-});
-const REFERENCE_ARTICLE_DATE = new Date("2026-10-07T00:00:00.000Z");
 
 interface BlogPostPageProps {
   params: Promise<{ slug: string }>;
@@ -47,18 +42,71 @@ function isReferenceArticle(post: { title: string; slug: string }) {
   return title === SAMPLE_ARTICLE.title.toLowerCase() || ["we-re-up-and-running", "were-up-and-running"].includes(slug);
 }
 
-function ArticleTitleRow({ title, meta, dateTime }: { title: string; meta: string; dateTime?: string }) {
+function SourceIcon({ source }: { source: "vk" | "telegram" | "youtube" }) {
+  if (source === "telegram") return <Send aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={1.9} />;
+  if (source === "youtube") {
+    return (
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="h-[18px] w-[18px]">
+        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+      </svg>
+    );
+  }
+  return <span aria-hidden="true" className="text-sm font-extrabold lowercase tracking-[-0.08em]">vk</span>;
+}
+
+function safeExternalUrl(value?: string | null): value is string {
+  if (!value) return false;
+  try {
+    const url = new URL(value);
+    return (url.protocol === "http:" || url.protocol === "https:") && url.origin !== SITE_URL.origin;
+  } catch {
+    return false;
+  }
+}
+
+function ArticleTitleRow({
+  title,
+  meta,
+  dateTime,
+  source,
+  sourceUrl,
+}: {
+  title: string;
+  meta: string;
+  dateTime?: string;
+  source?: string;
+  sourceUrl?: string | null;
+}) {
+  const normalizedSource = source?.trim().toLowerCase();
+  const socialSource = normalizedSource === "vk" || normalizedSource === "telegram" || normalizedSource === "youtube"
+    ? normalizedSource
+    : null;
+  const externalSourceUrl = safeExternalUrl(sourceUrl) ? sourceUrl : null;
   return (
     <header className="mx-auto flex w-full max-w-[1760px] flex-wrap items-center gap-x-5 gap-y-3 px-5 sm:px-8 lg:px-10">
-      <span aria-hidden="true" className="flex shrink-0 items-center gap-2">
-        <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#052B42] sm:h-12 sm:w-12 lg:h-[60px] lg:w-[60px]">
-          <span className="inline-flex h-[13px] w-[18px] items-center justify-center rounded-[4px] bg-[#052B42] lg:h-[18px] lg:w-6">
-            <Play className="h-2.5 w-2.5 fill-white text-white lg:h-3 lg:w-3" />
-          </span>
-        </span>
-        <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#052B42] sm:h-12 sm:w-12 lg:h-[60px] lg:w-[60px]">
-          <ArrowUpRight className="h-4 w-4 lg:h-7 lg:w-7" strokeWidth={1.8} />
-        </span>
+      <span className="flex shrink-0 items-center gap-2" aria-label="Original post links">
+        {socialSource && externalSourceUrl ? (
+          <a
+            href={externalSourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Open ${socialSource} source`}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#052B42]/20 bg-white text-[#052B42] transition-colors duration-200 ease-out hover:bg-[#052B42]/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42]"
+          >
+            <SourceIcon source={socialSource} />
+          </a>
+        ) : null}
+        {externalSourceUrl ? (
+          <a
+            href={externalSourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Open original post"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#052B42]/20 bg-white text-[#052B42] transition-colors duration-200 ease-out hover:bg-[#052B42]/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42]"
+          >
+            <ArrowUpRight aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={1.8} />
+          </a>
+        ) : null}
       </span>
       <h2 className="min-w-0 flex-1 font-geist text-[clamp(2rem,4vw,4.5rem)] font-medium leading-[1.05] tracking-[-0.05em] text-[#052B42]">
         {title}
@@ -109,10 +157,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const newer = index > 0 ? allPosts[index - 1] : null;
   const older = index >= 0 && index < allPosts.length - 1 ? allPosts[index + 1] : null;
   const newsItems = allPosts.filter((item) => item.slug !== post.slug).map(toNewsItem);
-  const date = referenceArticle ? REFERENCE_ARTICLE_DATE : post.publishedAt;
+  const locale: Locale = await getRequestLocale();
+  const date = post.publishedAt ?? post.createdAt;
   const readTime = referenceArticle ? 4 : post.readTime;
-  const meta = [date ? DATE_FORMAT.format(date) : "", `${readTime}-minute read`].filter(Boolean).join(" · ");
-  const dateTime = date?.toISOString().slice(0, 10);
+  const meta = [date ? formatPublishedDate(date, locale) : "", `${readTime}-minute read`].filter(Boolean).join(" · ");
+  const dateTime = date?.toISOString();
   const hasBody = post.content.trim().length > 0;
 
   const navigation = (
@@ -127,7 +176,13 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       <InternalPageHeader title="BLOG" />
 
       <section className="rounded-t-[3.5rem] bg-[#CFE0FF] pb-0 pt-[clamp(4rem,9.55vw,11.5rem)] text-[#052B42] sm:rounded-t-[4rem] lg:rounded-t-[100px]">
-        <ArticleTitleRow title={displayTitle} meta={meta} dateTime={dateTime} />
+        <ArticleTitleRow
+          title={displayTitle}
+          meta={meta}
+          dateTime={dateTime}
+          source={post.source}
+          sourceUrl={post.sourceUrl}
+        />
 
         <article className="mx-auto mt-5 w-full max-w-[1920px] rounded-[2.5rem] bg-white px-5 py-7 text-[#052B42] sm:mt-6 sm:rounded-[3.5rem] sm:px-10 sm:py-10 lg:rounded-[100px] lg:px-[4.2%] lg:py-12">
           {showReferenceCopy ? (
@@ -170,7 +225,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         </article>
       </section>
 
-      <OtherNewsSection items={newsItems} id="post-other-news" />
+      <OtherNewsSection items={newsItems} id="post-other-news" locale={locale} />
     </>
   );
 }

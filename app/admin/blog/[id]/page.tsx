@@ -37,6 +37,7 @@ export default async function EditPostPage({
             isFeatured: post.isFeatured,
             source: post.source,
             sourceUrl: post.sourceUrl,
+            publishedAt: post.publishedAt,
             isPublished: post.isPublished,
           }}
         />

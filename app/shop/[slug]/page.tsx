@@ -10,6 +10,7 @@ import { getPublishedPosts, getPublishedService, toNewsItem } from "@/lib/data";
 import { createPageMetadata } from "@/lib/seo";
 import { getServiceArtwork, getServiceGallery, isSignDesignService } from "@/lib/shop-assets";
 import { SIGN_DESIGN_COPY } from "@/lib/shop-service-copy";
+import { getRequestLocale } from "@/lib/request-locale";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
 
   const posts = await getPublishedPosts();
   const newsItems = posts.map(toNewsItem);
+  const locale = await getRequestLocale();
   const isReferenceSign = isSignDesignService(service);
   const content = isReferenceSign
     ? SIGN_DESIGN_COPY
@@ -159,7 +161,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
         </article>
       </InternalPageContent>
 
-      <OtherNewsSection items={newsItems} id="service-other-news" />
+      <OtherNewsSection items={newsItems} id="service-other-news" locale={locale} />
     </>
   );
 }

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { logout } from "@/app/actions/auth";
 import { usePathname } from "next/navigation";
-import { BookOpen, LayoutDashboard, LogOut, Palette, Users } from "lucide-react";
+import { BookOpen, LayoutDashboard, LogOut, Palette, Settings, Users } from "lucide-react";
 import { signOut } from "next-auth/react";
 
 import { buttonVariants } from "@/components/ui/button";
@@ -15,6 +15,7 @@ const links = [
   { label: "Services", href: "/admin/services", icon: Palette },
   { label: "Blog", href: "/admin/blog", icon: BookOpen },
   { label: "Users", href: "/admin/users", icon: Users },
+  { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
 export function AdminNav() {

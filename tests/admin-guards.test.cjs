@@ -27,7 +27,7 @@ const data = require("../lib/admin-data.ts");
 
 test("middleware redirects every non-admin or missing session to /", () => {
   process.env.AUTH_SECRET = "test-secret-with-at-least-32-characters";
-  assert.deepEqual(config.matcher, ["/admin/:path*"]);
+  assert.deepEqual(config.matcher, ["/((?!_next|api|uploads|.*\\..*).*)", "/admin/:path*"]);
   for (const auth of [null, { user: { id: "test", role: "USER" } }, { user: { role: "ADMIN" } }]) {
     const response = middleware({ url: "https://preview.example/admin/services/new", auth });
     assert.equal(response.status, 307);

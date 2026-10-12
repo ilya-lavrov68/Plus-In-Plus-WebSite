@@ -3,7 +3,7 @@ import { Newspaper } from "lucide-react";
 import { EmptyState } from "@/components/site/empty-state";
 import { NewsCarousel } from "@/components/site/news-carousel";
 import type { NewsItem } from "@/components/site/news-carousel";
-import type { NewsSource } from "@/components/site/news-card";
+import type { NewsLocale, NewsSource } from "@/components/site/news-card";
 
 export const NEWS_AUTOPLAY_INTERVAL = 7000;
 
@@ -17,9 +17,10 @@ export interface NewsSectionItem {
   postUrl?: string;
   sourceUrl?: string | null;
   imagesCount?: number;
+  publishedAt?: string | null;
 }
 
-export function NewsSection({ items }: { items: readonly NewsSectionItem[] }) {
+export function NewsSection({ items, locale = "en" }: { items: readonly NewsSectionItem[]; locale?: NewsLocale }) {
   const carouselItems: NewsItem[] = items.map((item) => ({
     id: item.id,
     title: item.title,
@@ -30,6 +31,8 @@ export function NewsSection({ items }: { items: readonly NewsSectionItem[] }) {
     postUrl: item.postUrl ?? item.href,
     sourceUrl: item.sourceUrl,
     imagesCount: item.imagesCount,
+    publishedAt: item.publishedAt,
+    locale,
   }));
 
   return (

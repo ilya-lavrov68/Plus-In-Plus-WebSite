@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { useSession } from "next-auth/react";
 
@@ -22,6 +23,7 @@ import {
   NavigationMenuEntry,
 } from "@/components/site/nav-dropdown";
 import { UserAvatar } from "@/components/site/user-avatar";
+import { LanguageSwitcher } from "@/components/site/language-switcher";
 import { Logo } from "@/components/site/logo";
 import { HeaderButton, HeaderButtonLink } from "@/components/ui/header-button";
 import { cn } from "@/lib/utils";
@@ -48,6 +50,11 @@ function BrandWordmark() {
 
 export function Header() {
   const { data: session, status } = useSession();
+  const pathname = usePathname() || "/";
+  const locale = pathname.split("/")[1] === "ru" ? "ru" : "en";
+  const labels = locale === "ru"
+    ? { "for-play": "ДЛЯ PLAY", shop: "МАГАЗИН", "about-pip": "О PIP", socnet: "СОЦСЕТИ", contact: "Связаться", login: "Войти" }
+    : { "for-play": "FOR PLAY", shop: "SHOP", "about-pip": "ABOUT PIP", socnet: "SOCNET", contact: "Contact", login: "Log in" };
   const [scrolled, setScrolled] = useState(false);
   const [pageScrollY, setPageScrollY] = useState(0);
   const [announcementVisible, setAnnouncementVisible] = useState(true);
@@ -217,7 +224,7 @@ export function Header() {
                   isActive && "bg-white/70",
                 )}
               >
-                {item.label}
+                {labels[item.id as keyof typeof labels] ?? item.label}
                 <ChevronDown
                   aria-hidden="true"
                   strokeWidth={2}
@@ -262,19 +269,13 @@ export function Header() {
         </nav>
 
         <div className="relative z-30 flex shrink-0 items-center gap-2 sm:gap-3">
-          <button
-            type="button"
-            aria-label="Language: English"
-            className="hidden rounded-sm border-b border-navy px-1 pb-0.5 font-body text-sm font-medium leading-none text-navy transition-colors duration-200 ease-out hover:text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy lg:inline-flex"
-          >
-            Aa
-          </button>
+          <LanguageSwitcher />
           <HeaderButtonLink
             href="/contact"
             variant="outline"
             className="hidden px-3 md:inline-flex lg:px-5"
           >
-            Contact
+            {labels.contact}
           </HeaderButtonLink>
           {session?.user ? (
             <button
@@ -298,7 +299,7 @@ export function Header() {
               aria-haspopup="dialog"
               className="min-w-[5rem] px-3 sm:px-4 lg:px-5"
             >
-              {status === "loading" ? "Loading…" : "Log in"}
+              {status === "loading" ? "Loading…" : labels.login}
             </HeaderButton>
           )}
           <button
@@ -396,7 +397,7 @@ export function Header() {
                 onClick={closeMobileMenu}
                 className="h-10 w-full px-4"
               >
-                Contact
+                {labels.contact}
               </HeaderButtonLink>
               <HeaderButton
                 type="button"
@@ -406,7 +407,7 @@ export function Header() {
                 aria-haspopup="dialog"
                 className="h-10 w-full px-4"
               >
-                {session?.user ? "Your account" : status === "loading" ? "Loading…" : "Log in"}
+                {session?.user ? "Your account" : status === "loading" ? "Loading…" : labels.login}
               </HeaderButton>
             </div>
           </div>

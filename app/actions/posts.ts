@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { recordActivity } from "@/lib/activity-log";
 import { requireAdmin } from "@/lib/admin-session";
 import { prisma } from "@/lib/prisma";
@@ -18,6 +20,13 @@ export interface PostActionResult {
 function text(form: FormData, name: string): string {
   const value = form.get(name);
   return typeof value === "string" ? value.trim() : "";
+}
+
+function scheduledDate(form: FormData): Date | null {
+  const value = text(form, "publishedAt");
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 function parseCommonFields(form: FormData) {
@@ -55,10 +64,17 @@ function parseCommonFields(form: FormData) {
     source: rawSource,
     sourceUrl: rawSourceUrl || null,
     images: imagesJson,
+    publishedAt: scheduledDate(form),
   });
   if (!result.success) return { error: firstIssueMessage(result.error) };
   const { isPublished } = result.data;
-  return { data: { ...result.data, publishedAt: isPublished ? new Date() : null } };
+  return {
+    data: {
+      ...result.data,
+      // A selected datetime is kept for scheduling. Publishing without one is immediate.
+      publishedAt: isPublished ? result.data.publishedAt ?? new Date() : null,
+    },
+  };
 }
 
 async function processAlbumFiles(form: FormData, initialImagesJson: string | null): Promise<string | null> {
@@ -152,7 +168,12 @@ export async function updatePost(id: string, formData: FormData): Promise<PostAc
     const cover = coverFile(formData);
     if (cover) newCover = await saveImageUpload(cover, "blog");
     const finalImages = await processAlbumFiles(formData, parsed.data.images ?? null);
-    const publishedAt = parsed.data.isPublished && existing.publishedAt ? existing.publishedAt : parsed.data.publishedAt;
+    const hasScheduledDate = Boolean(text(formData, "publishedAt"));
+    const publishedAt = parsed.data.isPublished
+      ? hasScheduledDate
+        ? parsed.data.publishedAt ?? new Date()
+        : existing.publishedAt ?? new Date()
+      : null;
 
     await prisma.$transaction(async (tx) => {
       await tx.post.update({
@@ -176,6 +197,80 @@ export async function updatePost(id: string, formData: FormData): Promise<PostAc
   if (newCover) await cleanupUpload(oldCover, "blog");
   revalidatePost(id, oldSlug, parsed.data.slug);
   return { ok: true, id };
+}
+
+export async function bulkUpdatePosts(ids: string[], action: "publish" | "unpublish" | "delete"): Promise<PostActionResult> {
+  const admin = await requireAdmin();
+  if (!admin || !prisma) return { ok: false, error: "Unauthorized." };
+  if (!Array.isArray(ids) || ids.length === 0 || ids.length > 100 || ids.some((id) => typeof id !== "string" || !id || id.length > 128)) {
+    return { ok: false, error: "Select at least one valid post." };
+  }
+  const removedCovers: string[] = [];
+  try {
+    await prisma.$transaction(async (tx) => {
+      for (const id of ids) {
+        const post = await tx.post.findUnique({ where: { id } });
+        if (!post) continue;
+        if (action === "delete") {
+          if (post.coverImage) removedCovers.push(post.coverImage);
+          await tx.post.delete({ where: { id } });
+          await recordActivity(tx, { action: "deleted", entityType: "post", entityId: id, title: post.title, actorId: admin.id });
+        } else {
+          await tx.post.update({ where: { id }, data: { isPublished: action === "publish", publishedAt: action === "publish" ? post.publishedAt ?? new Date() : null } });
+          await recordActivity(tx, { action: action === "publish" ? "published" : "unpublished", entityType: "post", entityId: id, title: post.title, actorId: admin.id });
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Failed to update posts in bulk:", error);
+    return { ok: false, error: "The selected posts could not be updated." };
+  }
+  await Promise.all(removedCovers.map((cover) => cleanupUpload(cover, "blog")));
+  ids.forEach((id) => revalidatePost(id));
+  revalidatePath("/admin/blog");
+  return { ok: true };
+}
+
+export async function duplicatePost(id: string): Promise<PostActionResult> {
+  const admin = await requireAdmin();
+  if (!admin || !prisma) return { ok: false, error: "Unauthorized." };
+  if (typeof id !== "string" || !id || id.length > 128) return { ok: false, error: "Invalid post id." };
+  try {
+    const source = await prisma.post.findUnique({ where: { id } });
+    if (!source) return { ok: false, error: "Post not found." };
+    const baseSlug = `${source.slug}-copy`;
+    let slug = baseSlug;
+    for (let index = 2; index < 100; index += 1) {
+      const existing = await prisma.post.findUnique({ where: { slug } });
+      if (!existing) break;
+      slug = `${baseSlug}-${index}`;
+    }
+    const copy = await prisma.$transaction(async (tx) => {
+      const created = await tx.post.create({
+        data: {
+          title: `${source.title} (Copy)`,
+          slug,
+          excerpt: source.excerpt,
+          content: source.content,
+          coverImage: source.coverImage,
+          images: source.images,
+          readTime: source.readTime,
+          source: source.source,
+          sourceUrl: source.sourceUrl,
+          isFeatured: false,
+          isPublished: false,
+          publishedAt: null,
+        },
+      });
+      await recordActivity(tx, { action: "duplicated", entityType: "post", entityId: created.id, title: created.title, actorId: admin.id });
+      return created;
+    });
+    revalidatePath("/admin/blog");
+    return { ok: true, id: copy.id };
+  } catch (error) {
+    console.error("Failed to duplicate post:", error);
+    return { ok: false, error: "The post could not be duplicated." };
+  }
 }
 
 export async function deletePost(id: string): Promise<PostActionResult> {
@@ -204,12 +299,12 @@ export async function getFeaturedPostAction() {
   if (!prisma) return null;
   try {
     let post = await prisma.post.findFirst({
-      where: { isPublished: true, isFeatured: true },
+      where: { isPublished: true, isFeatured: true, OR: [{ publishedAt: null }, { publishedAt: { lte: new Date() } }] },
       orderBy: [{ publishedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
     });
     if (!post) {
       post = await prisma.post.findFirst({
-        where: { isPublished: true },
+        where: { isPublished: true, OR: [{ publishedAt: null }, { publishedAt: { lte: new Date() } }] },
         orderBy: [{ publishedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
       });
     }

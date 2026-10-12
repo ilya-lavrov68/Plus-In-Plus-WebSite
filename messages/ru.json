@@ -1,0 +1,27 @@
+{
+  "header": {
+    "forPlay": "ДЛЯ PLAY",
+    "shop": "МАГАЗИН",
+    "about": "О PIP",
+    "socnet": "СОЦСЕТИ",
+    "contact": "Связаться",
+    "login": "Войти",
+    "language": "Язык"
+  },
+  "hero": {
+    "title": "Дизайн-студия нового поколения",
+    "order": "Заказать",
+    "contactUs": "Связаться с нами"
+  },
+  "footer": {
+    "servers": "Серверы",
+    "socnet": "Соцсети",
+    "aboutPip": "О PIP"
+  },
+  "common": {
+    "previous": "Назад",
+    "next": "Далее",
+    "minuteRead": "минут чтения",
+    "publishedAt": "Опубликовано"
+  }
+}
