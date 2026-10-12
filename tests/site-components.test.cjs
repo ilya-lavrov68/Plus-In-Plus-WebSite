@@ -555,7 +555,6 @@ test("stage 7.1: filled CTAs are white on navy, outline CTAs are navy", () => {
 
 test("stage 7.1: dark sections retain white text, green icons and correct backgrounds", () => {
   const { FeaturesSection } = require("../components/site/features-section.tsx");
-  const { Footer } = require("../components/site/footer.tsx");
   const features = create(React.createElement(FeaturesSection));
   assert.match(features.root.findByType("section").props.className, /bg-\[#052B42\] text-white/);
   for (const node of features.root.findAll((n) => ["h2", "p"].includes(n.type))) {
@@ -563,12 +562,151 @@ test("stage 7.1: dark sections retain white text, green icons and correct backgr
     assert.doesNotMatch(node.props.className, /text-(navy|slate|gray)|text-\[#052B42\]/);
   }
   for (const icon of features.root.findAllByType("svg")) assert.match(icon.props.className, /text-\[#05F07E\]/);
-  const footer = create(React.createElement(Footer));
-  assert.match(footer.root.findByType("footer").props.className, /bg-\[#052B42\] text-white/);
-  for (const link of footer.root.findAllByType("a")) assert.match(link.props.className, /text-white\/60/);
-  assert.match(footer.root.findByType("p").props.className, /text-\[#0A4366\]/);
   features.unmount();
-  footer.unmount();
+});
+
+test("footer: light-blue Nebius-style layout with CTA, five columns, legal row and watermark", () => {
+  const { Footer } = require("../components/site/footer.tsx");
+  let footer;
+  act(() => { footer = create(React.createElement(Footer)); });
+  const root = footer.root;
+
+  // Step 1: the footer is light blue (#D6E4FF) with navy text, never navy-on-white.
+  const shell = root.findByType("footer");
+  assert.match(shell.props.className, /bg-\[#D6E4FF\]/);
+  assert.match(shell.props.className, /\btext-navy\b/);
+  assert.doesNotMatch(shell.props.className, /bg-\[#052B42\]/);
+
+  // Step 2: CTA block on top with the heading and the two centred buttons.
+  const heading = root.findByProps({ id: "footer-cta-heading" });
+  assert.equal(content(heading), "Start your journey with Plus In Plus");
+  assert.match(heading.props.className, /font-geist/);
+  assert.match(heading.props.className, /font-semibold/);
+  assert.match(heading.props.className, /text-3xl/);
+  assert.match(heading.props.className, /sm:text-4xl/);
+  assert.match(heading.parent.props.className, /py-16/);
+  assert.match(heading.parent.props.className, /sm:py-20/);
+
+  const ctaLinks = root.findAllByType("a").filter((node) => ["Order a design", "Talk to us"].includes(content(node)));
+  assert.equal(ctaLinks.length, 2);
+  const [order, talk] = ctaLinks;
+  assert.equal(order.props.href, "/shop");
+  assert.match(order.props.className, /bg-navy text-white/);
+  assert.match(order.props.className, /rounded-xl/);
+  assert.equal(talk.props.href, "/contact");
+  assert.match(talk.props.className, /border border-navy/);
+  assert.match(talk.props.className, /rounded-xl/);
+  assert.doesNotMatch(talk.props.className, /\btext-white\b/);
+  // Stacked through tablet, inline from 1024px up.
+  for (const button of ctaLinks) {
+    assert.match(button.props.className, /w-full max-w-sm/);
+    assert.match(button.props.className, /lg:w-auto/);
+  }
+  const ctaRow = heading.parent.findAllByType("div")[0];
+  assert.match(ctaRow.props.className, /flex-col items-center/);
+  assert.match(ctaRow.props.className, /lg:flex-row/);
+
+  // Step 3: five link columns with the requested labels.
+  const nav = root.findByProps({ "aria-label": "Footer" });
+  assert.match(nav.props.className, /grid-cols-2/);
+  assert.match(nav.props.className, /sm:grid-cols-3/);
+  assert.match(nav.props.className, /lg:grid-cols-5/);
+  const columns = nav.findAllByType("h3").map((columnHeading) => ({
+    title: content(columnHeading),
+    heading: columnHeading.props.className,
+    links: columnHeading.parent.findAllByType("a").map((link) => ({
+      label: content(link),
+      href: link.props.href,
+      className: link.props.className,
+    })),
+  }));
+  const expectedColumns = {
+    Services: ["Website design", "Badge design", "Poster design", "Banner mockup design", "Sign Design", "Bag Design", "Large Billboard", "Rooftop advertising"],
+    About: ["How we work", "Our partners", "TS Connect", "Studio news", "Blog"],
+    Resources: ["Case studies", "Design systems", "Front-end development", "Ozone project", "Plus For Play"],
+    Legal: ["Privacy Policy", "User Agreement", "Offer", "Terms of use"],
+    Company: ["Account", "Collaboration", "Partners", "Contact us", "Careers"],
+  };
+  assert.deepEqual(columns.map((column) => column.title), Object.keys(expectedColumns));
+  assert.deepEqual(
+    Object.fromEntries(columns.map((column) => [column.title, column.links.map((link) => link.label)])),
+    expectedColumns,
+  );
+  for (const column of columns) {
+    assert.match(column.heading, /text-sm/);
+    assert.match(column.heading, /font-semibold/);
+    assert.match(column.heading, /text-navy/);
+    assert.match(column.heading, /mb-4/);
+    for (const link of column.links) {
+      assert.match(link.className, /text-sm text-navy\/70/);
+      assert.match(link.className, /hover:text-navy/);
+      assert.match(link.className, /transition-colors duration-200/);
+      assert.ok(link.href.length > 0, `${link.label} needs a target`);
+    }
+  }
+
+  // Step 4: newsletter form on the left, all fields opt-in by default.
+  const form = root.findByType("form");
+  assert.equal(content(form.findByType("h3")), "Subscribe to updates");
+  const fields = Object.fromEntries(form.findAllByType("input").map((input) => [input.props.name, input.props]));
+  assert.deepEqual(Object.keys(fields).sort(), ["designInsights", "email", "firstName", "lastName", "plusInPlusNews"]);
+  assert.equal(fields.email.type, "email");
+  assert.equal(fields.email.required, true);
+  assert.match(fields.email.className, /border border-navy\/30/);
+  assert.match(fields.email.className, /rounded-lg/);
+  assert.match(fields.email.className, /bg-white\/50/);
+  for (const name of ["plusInPlusNews", "designInsights"]) {
+    assert.equal(fields[name].type, "checkbox");
+    assert.equal(fields[name].defaultChecked, true);
+  }
+  assert.match(content(form), /I agree to receive marketing communications from Plus In Plus, subject to the Privacy Policy\./);
+  const subscribe = form.findByType("button");
+  assert.equal(content(subscribe), "Subscribe");
+  assert.equal(subscribe.props.type, "submit");
+  assert.match(subscribe.props.className, /bg-navy/);
+  assert.match(subscribe.props.className, /text-white/);
+  assert.match(subscribe.props.className, /rounded-lg/);
+  assert.match(subscribe.props.className, /text-sm/);
+
+  // Step 5: legal links on one line plus the copyright.
+  const copyright = root.findAllByType("p").find((node) => content(node) === "© 2026 Plus In Plus. All rights reserved.");
+  assert.ok(copyright, "the copyright line must stay in the footer");
+  assert.match(copyright.props.className, /text-xs text-navy\/60/);
+  const bottomRow = copyright.parent;
+  assert.match(bottomRow.props.className, /flex/);
+  assert.match(bottomRow.props.className, /border-t border-navy\/20/);
+  const bottomLinks = bottomRow.findAllByType("a");
+  assert.deepEqual(
+    bottomLinks.map((node) => content(node)),
+    ["Plus In Plus Group", "Legal documents", "Terms of use", "Privacy policy", "Cookie policy"],
+  );
+  for (const link of bottomLinks) {
+    assert.match(link.props.className, /text-xs text-navy\/60/);
+    assert.match(link.props.className, /hover:text-navy/);
+  }
+
+  // Step 6: the oversized wordmark is a decorative watermark, not a link.
+  const wordmark = root.findAllByType("p").find((node) => content(node) === "Plus in Plus");
+  assert.ok(wordmark, "the oversized Plus in Plus wordmark must stay in the footer");
+  assert.match(wordmark.props.className, /text-navy\/10/);
+  assert.match(wordmark.props.className, /font-geist/);
+  assert.match(wordmark.props.className, /font-bold/);
+  assert.match(wordmark.props.className, /tracking-tighter/);
+  assert.match(wordmark.props.className, /leading-none/);
+  assert.match(wordmark.props.className, /whitespace-nowrap/);
+  assert.match(wordmark.props.className, /text-\[clamp\(3rem,16.5vw,16rem\)\]/);
+  assert.equal(wordmark.parent.props["aria-hidden"], "true");
+  assert.equal(wordmark.parent.findAllByType("a").length, 0, "the wordmark must not be clickable");
+
+  // Step 7: dividers, and no white footer links anywhere outside the filled CTA.
+  const dividers = root.findAll((node) => typeof node.props?.className === "string" && /border-t border-navy\/20/.test(node.props.className));
+  assert.equal(dividers.length, 3);
+  for (const link of root.findAllByType("a")) {
+    if (content(link) === "Order a design") continue;
+    assert.doesNotMatch(link.props.className, /text-white/);
+  }
+
+  act(() => footer.unmount());
 });
 
 test("stage 7.1: news uses a light blue section with navy card text", () => {
