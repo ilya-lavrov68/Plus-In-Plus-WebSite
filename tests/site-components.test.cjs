@@ -192,7 +192,7 @@ test("header opens one large multi-column menu on hover and supports mobile acco
   assert.equal(panelNodes().length, 0);
 
   const expectedSections = [
-    ["Services", "Programs"],
+    ["Services"],
     ["Small designs", "Large designs"],
     ["Company", "Resources"],
     ["Social", "Contact"],
@@ -236,7 +236,8 @@ test("header opens one large multi-column menu on hover and supports mobile acco
   assert.match(order.props.className, /rounded-xl/);
   assert.match(order.props.className, /hover:bg-gray-50/);
   assert.match(order.children[0].props.className, /h-8 w-8/);
-  assert.match(order.children[0].props.className, /bg-emerald-500/);
+  assert.match(order.children[0].props.className, /bg-\[#00C56D\]/);
+  assert.match(order.children[0].props.className, /text-\[#052B42\]/);
   assert.match(order.children[1].children[1].props.className, /text-xs/);
 
   act(() => triggerFor("SHOP").props.onMouseEnter());
@@ -554,9 +555,11 @@ test("stage 7.1: hero is oversized and category introduction is centered", () =>
   const heroButtons = hero.root.findAllByType("a").filter((link) => ["Order", "Contact us"].includes(content(link)));
   assert.equal(heroButtons.length, 2);
   for (const button of heroButtons) {
-    assert.match(button.props.className, /h-\[42px\].*w-\[min\(206px,31\.5vw\)\]/);
-    assert.match(button.props.className, /rounded-none/);
-    assert.match(button.props.className, /text-xs/);
+    assert.match(button.props.className, /rounded-xl/);
+    assert.match(button.props.className, /px-8 py-3/);
+    assert.match(button.props.className, /font-medium/);
+    assert.match(button.props.className, /text-base/);
+    assert.doesNotMatch(button.props.className, /scale|zoom/);
   }
   const categories = create(React.createElement(CategoriesSection));
   const intro = categories.root.findByProps({ id: "categories-heading" }).parent;

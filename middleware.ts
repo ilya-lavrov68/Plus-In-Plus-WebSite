@@ -5,8 +5,14 @@ import { authConfig } from "@/auth.config";
 import { isAuthConfigured } from "@/lib/auth-secret";
 import { defaultLocale, isLocale, locales } from "@/i18n";
 
+const requestPathname = (request: { nextUrl?: { pathname?: string }; url?: string }) => {
+  if (request.nextUrl?.pathname) return request.nextUrl.pathname;
+  if (request.url) return new URL(request.url).pathname;
+  return "/";
+};
+
 const authMiddleware = NextAuth(authConfig).auth((request) => {
-  const pathname = request.nextUrl.pathname;
+  const pathname = requestPathname(request);
   if (!pathname.startsWith("/admin")) return NextResponse.next();
 
   if (!isAuthConfigured() || !request.auth?.user?.id || request.auth.user.role !== "ADMIN") {
@@ -33,7 +39,7 @@ export function middleware(
   request: Parameters<typeof authMiddleware>[0],
   event: Parameters<typeof authMiddleware>[1],
 ) {
-  const { pathname } = request.nextUrl;
+  const pathname = requestPathname(request);
   const isAdmin = pathname === "/admin" || pathname.startsWith("/admin/");
   if (isAdmin) return authMiddleware(request, event);
 
