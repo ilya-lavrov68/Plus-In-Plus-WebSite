@@ -180,10 +180,8 @@ export function Header() {
   return (
     <header
       className={cn(
-        "site-header fixed inset-x-0 z-40 h-16 w-full border-b transition-[top,background-color,border-color,backdrop-filter] duration-250 ease-out",
-        scrolled
-          ? "border-gray-100 bg-white/95 backdrop-blur-sm"
-          : "border-transparent bg-transparent",
+        "site-header fixed inset-x-0 z-40 h-16 w-full border-b transition-[top,background-color,border-color,backdrop-filter,box-shadow] duration-250 ease-out",
+        scrolled ? "site-header--glass" : "border-transparent bg-transparent",
       )}
       style={{ top: `${headerTop}px` }}
     >
