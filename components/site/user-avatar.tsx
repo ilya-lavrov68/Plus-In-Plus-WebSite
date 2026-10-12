@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { localAvatarPath } from "@/lib/upload-policy";
 import { profileInitials, profileName, type UserProfile } from "@/lib/user-profile";
@@ -12,6 +13,7 @@ export function UserAvatar({ user, size = 64, className }: {
   size?: 36 | 64;
   className?: string;
 }) {
+  const t = useTranslations("account");
   const [failedSource, setFailedSource] = useState<string | null>(null);
   const src = localAvatarPath(user.avatar);
   const name = profileName(user) || user.email;
@@ -25,7 +27,7 @@ export function UserAvatar({ user, size = 64, className }: {
         className,
       )}
       role="img"
-      aria-label={`${name}'s avatar`}
+      aria-label={t("avatarLabel", { name })}
     >
       {src && failedSource !== src ? (
         <Image

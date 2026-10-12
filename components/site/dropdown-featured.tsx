@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export interface FeaturedPostData {
   id: string;
@@ -20,11 +21,12 @@ export function DropdownFeatured({
   featuredPost?: FeaturedPostData | null;
   onLinkClick?: () => void;
 }) {
+  const t = useTranslations("news");
   const post = featuredPost || {
     id: "default",
-    title: "Inside the Plus In Plus studio",
+    title: t("defaultPostTitle"),
     slug: "",
-    excerpt: "A closer look at the ideas, process, and people behind the work.",
+    excerpt: t("defaultPostExcerpt"),
     coverImage: "/assets/gradients/hero-gradient.svg",
     isFeatured: false,
   };
@@ -35,7 +37,7 @@ export function DropdownFeatured({
   return (
     <aside className="hidden min-h-0 overflow-y-auto border-l border-gray-100 bg-[#FAFCFB] p-5 md:block lg:p-6">
       <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
-        Featured
+        {t("featuredHeading")}
       </p>
       <Link
         href={href}
@@ -52,7 +54,7 @@ export function DropdownFeatured({
           />
           <div className="absolute inset-0 flex items-end justify-between bg-[#052B42]/10 p-3">
             <span className="rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-navy">
-              {post.isFeatured ? "Featured" : "Studio journal"}
+              {post.isFeatured ? t("featured") : t("studioJournal")}
             </span>
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#00C56D] text-[#052B42]">
               <ArrowUpRight aria-hidden="true" className="h-4 w-4 text-[#052B42]" />
@@ -66,7 +68,7 @@ export function DropdownFeatured({
           {post.excerpt}
         </p>
         <span className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-navy group-hover:underline">
-          Explore the blog
+          {t("exploreBlog")}
           <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" />
         </span>
       </Link>

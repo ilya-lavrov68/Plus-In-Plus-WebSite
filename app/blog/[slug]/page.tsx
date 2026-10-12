@@ -8,11 +8,13 @@ import { InternalPageHeader } from "@/components/site/internal-page-header";
 import { OtherNewsSection } from "@/components/site/other-news-section";
 import { PostGallery } from "@/components/site/post-gallery";
 import { getPublishedPost, getPublishedPosts, toNewsItem } from "@/lib/data";
-import { SAMPLE_ARTICLE } from "@/lib/blog-sample-article";
+import { isSampleArticle, sampleArticleCopy } from "@/lib/blog-sample-article";
 import { createPageMetadata, SITE_URL } from "@/lib/seo";
 import { sanitizePostContent } from "@/lib/sanitize-post-content";
 import { formatPublishedDate, type Locale } from "@/i18n";
 import { getRequestLocale } from "@/lib/request-locale";
+import { getRequestTranslations } from "@/lib/server-i18n";
+import type { MessageTranslator } from "@/lib/i18n-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -23,23 +25,22 @@ interface BlogPostPageProps {
 
 export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const post = await getPublishedPost(slug);
-  const title = post ? `${post.title} — Plus In Plus` : "Blog — Plus In Plus";
+  const [post, t, locale] = await Promise.all([
+    getPublishedPost(slug),
+    getRequestTranslations("metadata"),
+    getRequestLocale(),
+  ]);
+  const title = post ? `${post.title} — Plus In Plus` : t("blog");
 
   return createPageMetadata({
     title,
-    description: post?.excerpt || "News, ideas and design materials from the Plus In Plus team.",
+    description: post?.excerpt || t("blogDescription"),
     path: `/blog/${encodeURIComponent(slug)}`,
     image: post?.coverImage,
     type: "article",
     publishedTime: post?.publishedAt,
+    locale,
   });
-}
-
-function isReferenceArticle(post: { title: string; slug: string }) {
-  const title = post.title.trim().replace(/[’‘]/g, "'").toLowerCase();
-  const slug = post.slug.trim().toLowerCase();
-  return title === SAMPLE_ARTICLE.title.toLowerCase() || ["we-re-up-and-running", "were-up-and-running"].includes(slug);
 }
 
 function SourceIcon({ source }: { source: "vk" | "telegram" | "youtube" }) {
@@ -65,12 +66,14 @@ function safeExternalUrl(value?: string | null): value is string {
 }
 
 function ArticleTitleRow({
+  t,
   title,
   meta,
   dateTime,
   source,
   sourceUrl,
 }: {
+  t: MessageTranslator;
   title: string;
   meta: string;
   dateTime?: string;
@@ -84,13 +87,13 @@ function ArticleTitleRow({
   const externalSourceUrl = safeExternalUrl(sourceUrl) ? sourceUrl : null;
   return (
     <header className="mx-auto flex w-full max-w-[1760px] flex-wrap items-center gap-x-5 gap-y-3 px-5 sm:px-8 lg:px-10">
-      <span className="flex shrink-0 items-center gap-2" aria-label="Original post links">
+      <span className="flex shrink-0 items-center gap-2" aria-label={t("originalPostLinks")}>
         {socialSource && externalSourceUrl ? (
           <a
             href={externalSourceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label={`Open ${socialSource} source`}
+            aria-label={t("openSource", { source: socialSource === "vk" ? "VK" : socialSource === "telegram" ? "Telegram" : "YouTube" })}
             className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#052B42]/20 bg-white text-[#052B42] transition-colors duration-200 ease-out hover:bg-[#052B42]/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42]"
           >
             <SourceIcon source={socialSource} />
@@ -101,7 +104,7 @@ function ArticleTitleRow({
             href={externalSourceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="Open original post"
+            aria-label={t("openOriginalPost")}
             className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#052B42]/20 bg-white text-[#052B42] transition-colors duration-200 ease-out hover:bg-[#052B42]/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42]"
           >
             <ArrowUpRight aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={1.8} />
@@ -146,13 +149,18 @@ function PostNavLink({
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const { slug } = await params;
-  const [post, allPosts] = await Promise.all([getPublishedPost(slug), getPublishedPosts()]);
+  const [post, allPosts, t] = await Promise.all([
+    getPublishedPost(slug),
+    getPublishedPosts(),
+    getRequestTranslations("blog"),
+  ]);
   if (!post) redirect("/blog");
 
-  const referenceArticle = isReferenceArticle(post);
+  const referenceArticle = isSampleArticle(post);
   // The design's canonical article copy is used only for its matching published post.
   const showReferenceCopy = referenceArticle;
-  const displayTitle = referenceArticle ? SAMPLE_ARTICLE.title : post.title;
+  const sampleArticle = sampleArticleCopy(t);
+  const displayTitle = referenceArticle ? sampleArticle.title : post.title;
   const index = allPosts.findIndex((item) => item.slug === post.slug);
   const newer = index > 0 ? allPosts[index - 1] : null;
   const older = index >= 0 && index < allPosts.length - 1 ? allPosts[index + 1] : null;
@@ -160,23 +168,24 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const locale: Locale = await getRequestLocale();
   const date = post.publishedAt ?? post.createdAt;
   const readTime = referenceArticle ? 4 : post.readTime;
-  const meta = [date ? formatPublishedDate(date, locale) : "", `${readTime}-minute read`].filter(Boolean).join(" · ");
+  const meta = [date ? formatPublishedDate(date, locale) : "", t("readTime", { count: readTime })].filter(Boolean).join(" · ");
   const dateTime = date?.toISOString();
   const hasBody = post.content.trim().length > 0;
 
   const navigation = (
-    <nav aria-label="Post navigation" className="mt-10 flex items-center justify-between gap-4 border-t border-[#052B42]/10 pt-6 sm:mt-12">
-      <PostNavLink href={older ? `/blog/${older.slug}` : null} direction="prev">Previous</PostNavLink>
-      <PostNavLink href={newer ? `/blog/${newer.slug}` : null} direction="next">Next</PostNavLink>
+    <nav aria-label={t("postNavigation")} className="mt-10 flex items-center justify-between gap-4 border-t border-[#052B42]/10 pt-6 sm:mt-12">
+      <PostNavLink href={older ? `/blog/${older.slug}` : null} direction="prev">{t("previous")}</PostNavLink>
+      <PostNavLink href={newer ? `/blog/${newer.slug}` : null} direction="next">{t("next")}</PostNavLink>
     </nav>
   );
 
   return (
     <>
-      <InternalPageHeader title="BLOG" />
+      <InternalPageHeader title={t("pageTitle")} />
 
       <section className="rounded-t-[3.5rem] bg-[#CFE0FF] pb-0 pt-[clamp(4rem,9.55vw,11.5rem)] text-[#052B42] sm:rounded-t-[4rem] lg:rounded-t-[100px]">
         <ArticleTitleRow
+          t={t}
           title={displayTitle}
           meta={meta}
           dateTime={dateTime}
@@ -187,8 +196,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         <article className="mx-auto mt-5 w-full max-w-[1920px] rounded-[2.5rem] bg-white px-5 py-7 text-[#052B42] sm:mt-6 sm:rounded-[3.5rem] sm:px-10 sm:py-10 lg:rounded-[100px] lg:px-[4.2%] lg:py-12">
           {showReferenceCopy ? (
             <div className="space-y-5 font-body text-sm leading-[1.4] sm:text-base sm:leading-[1.45]">
-              <p>{SAMPLE_ARTICLE.lead}</p>
-              {SAMPLE_ARTICLE.sections.map((section) => (
+              <p>{sampleArticle.lead}</p>
+              {sampleArticle.sections.map((section) => (
                 <section key={section.title} aria-label={section.title}>
                   <h3 className="font-geist text-base font-semibold leading-snug sm:text-lg">
                     {section.title}
@@ -199,7 +208,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                   ))}
                 </section>
               ))}
-              <p className="pt-1 text-base font-medium sm:text-lg">{SAMPLE_ARTICLE.closing}</p>
+              <p className="pt-1 text-base font-medium sm:text-lg">{sampleArticle.closing}</p>
             </div>
           ) : hasBody ? (
             <>
@@ -214,8 +223,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           ) : (
             <EmptyState
               icon={ArrowUpRight}
-              title="This article is being prepared"
-              description="Please check back soon for the full article."
+              title={t("preparing.title")}
+              description={t("preparing.description")}
             />
           )}
 
@@ -225,7 +234,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         </article>
       </section>
 
-      <OtherNewsSection items={newsItems} id="post-other-news" locale={locale} />
+      <OtherNewsSection items={newsItems} id="post-other-news" />
     </>
   );
 }

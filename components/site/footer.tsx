@@ -1,15 +1,20 @@
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 import { FooterSubscribeForm } from "@/components/site/footer-subscribe-form";
 
 export interface FooterLink {
-  label: string;
+  /** Key inside `footer.*`; brand names use `label` instead and stay untranslated. */
+  labelKey?: string;
+  /** Literal label for brand names such as TS Connect that are never translated. */
+  label?: string;
   /** "#" marks a placeholder: the page is not built yet, replace it with the real route. */
   href: string;
 }
 
 export interface FooterColumn {
-  title: string;
+  /** Keys inside `footer.*`, resolved at render time. */
+  titleKey: string;
   links: readonly FooterLink[];
 }
 
@@ -20,68 +25,66 @@ export interface FooterColumn {
  */
 export const FOOTER_COLUMNS: readonly FooterColumn[] = [
   {
-    title: "Services",
+    titleKey: "services",
     links: [
-      { label: "Website design", href: "/shop#small-designs" },
-      { label: "Badge design", href: "/shop#small-designs" },
-      { label: "Poster design", href: "/shop#small-designs" },
-      { label: "Banner mockup design", href: "/shop#small-designs" },
-      { label: "Sign Design", href: "/shop#small-designs" },
-      { label: "Bag Design", href: "/shop#small-designs" },
-      { label: "Large Billboard", href: "/shop#large-designs" },
-      { label: "Rooftop advertising", href: "/shop#large-designs" },
+      { labelKey: "servicesLinks.websiteDesign", href: "/shop#small-designs" },
+      { labelKey: "servicesLinks.badgeDesign", href: "/shop#small-designs" },
+      { labelKey: "servicesLinks.posterDesign", href: "/shop#small-designs" },
+      { labelKey: "servicesLinks.bannerMockupDesign", href: "/shop#small-designs" },
+      { labelKey: "servicesLinks.signDesign", href: "/shop#small-designs" },
+      { labelKey: "servicesLinks.bagDesign", href: "/shop#small-designs" },
+      { labelKey: "servicesLinks.largeBillboard", href: "/shop#large-designs" },
+      { labelKey: "servicesLinks.rooftopAdvertising", href: "/shop#large-designs" },
     ],
   },
   {
-    title: "About",
+    titleKey: "about",
     links: [
-      { label: "How we work", href: "/#features" },
-      { label: "Our partners", href: "/#partners" },
+      { labelKey: "aboutLinks.howWeWork", href: "/#features" },
+      { labelKey: "aboutLinks.ourPartners", href: "/#partners" },
+      // Brand name: rendered literally, never translated.
       { label: "TS Connect", href: "/#partners" },
-      { label: "Studio news", href: "/#news" },
-      { label: "Blog", href: "/blog" },
+      { labelKey: "aboutLinks.studioNews", href: "/#news" },
+      { labelKey: "aboutLinks.blog", href: "/blog" },
     ],
   },
   {
-    title: "Resources",
+    titleKey: "resources",
     links: [
+      // "Design systems" and the product names are never translated: they are
+      // literals, not locale keys.
       { label: "Design systems", href: "#" },
       { label: "Ozone project", href: "#" },
       { label: "Plus For Play", href: "#" },
     ],
   },
   {
-    title: "Legal",
+    titleKey: "legal",
     links: [
-      { label: "Privacy Policy", href: "#" },
-      { label: "User Agreement", href: "#" },
-      { label: "Offer", href: "#" },
-      { label: "Terms of use", href: "#" },
+      { labelKey: "legalLinks.privacyPolicy", href: "#" },
+      { labelKey: "legalLinks.userAgreement", href: "#" },
+      { labelKey: "legalLinks.offer", href: "#" },
+      { labelKey: "legalLinks.termsOfUse", href: "#" },
     ],
   },
   {
-    title: "Company",
+    titleKey: "company",
     links: [
-      { label: "Account", href: "/?auth=login" },
-      { label: "Collaboration", href: "/contact" },
-      { label: "Partners", href: "/#partners" },
-      { label: "Contact us", href: "/contact" },
+      { labelKey: "companyLinks.account", href: "/?auth=login" },
+      { labelKey: "companyLinks.collaboration", href: "/contact" },
+      { labelKey: "companyLinks.partners", href: "/#partners" },
+      { labelKey: "companyLinks.contactUs", href: "/contact" },
     ],
   },
 ];
 
 export const FOOTER_LEGAL_LINKS: readonly FooterLink[] = [
   { label: "TSConnect Group", href: "/#partners" },
-  { label: "Legal documents", href: "#" },
-  { label: "Terms of use", href: "#" },
-  { label: "Privacy policy", href: "#" },
-  { label: "Cookie policy", href: "#" },
+  { labelKey: "legalRow.legalDocuments", href: "#" },
+  { labelKey: "legalRow.termsOfUse", href: "#" },
+  { labelKey: "legalRow.privacyPolicy", href: "#" },
+  { labelKey: "legalRow.cookiePolicy", href: "#" },
 ];
-
-export const FOOTER_COPYRIGHT = "© 2026 Plus In Plus. All rights reserved.";
-
-export const FOOTER_CTA_HEADING = "Start your journey with Plus In Plus";
-
 const CTA_BUTTON_CLASS =
   "inline-flex h-12 w-full max-w-sm items-center justify-center rounded-xl px-8 font-body text-sm font-semibold transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2 focus-visible:ring-offset-[#D6E4FF] lg:w-auto lg:max-w-none";
 
@@ -93,10 +96,9 @@ const FOOTER_LINK_CLASS =
  * the legal row with the copyright, and the oversized decorative wordmark
  * as a watermark on the light-blue brand background.
  */
-export function Footer({ locale = "en" }: { locale?: "en" | "ru" } = {}) {
-  const copy = locale === "ru"
-    ? { cta: "Начните путь с Plus In Plus", order: "Заказать дизайн", talk: "Связаться с нами" }
-    : { cta: FOOTER_CTA_HEADING, order: "Order a design", talk: "Talk to us" };
+export function Footer() {
+  const t = useTranslations("footer");
+  const label = (link: FooterLink) => (link.labelKey ? t(link.labelKey) : link.label ?? "");
 
   return (
     <footer className="mt-auto overflow-hidden border-t border-navy/20 bg-[#D6E4FF] text-navy">
@@ -106,17 +108,17 @@ export function Footer({ locale = "en" }: { locale?: "en" | "ru" } = {}) {
             id="footer-cta-heading"
             className="mx-auto max-w-[760px] text-balance font-geist text-3xl font-semibold tracking-[-0.03em] text-navy sm:text-4xl"
           >
-            {copy.cta}
+            {t("startJourney")}
           </h2>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 lg:mt-10 lg:flex-row lg:gap-4">
             <Link href="/shop" className={`${CTA_BUTTON_CLASS} bg-navy text-white hover:bg-[#0A4366]`}>
-              {copy.order}
+              {t("orderDesign")}
             </Link>
             <Link
               href="/contact"
               className={`${CTA_BUTTON_CLASS} border border-navy bg-transparent text-navy hover:bg-navy/[0.06]`}
             >
-              {copy.talk}
+              {t("talkToUs")}
             </Link>
           </div>
         </section>
@@ -125,17 +127,17 @@ export function Footer({ locale = "en" }: { locale?: "en" | "ru" } = {}) {
           <FooterSubscribeForm />
 
           <nav
-            aria-label="Footer"
+            aria-label={t("footerNavigation")}
             className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 lg:grid-cols-5 xl:gap-x-6"
           >
             {FOOTER_COLUMNS.map((column) => (
-              <div key={column.title}>
-                <h3 className="mb-4 font-body text-sm font-semibold text-navy">{column.title}</h3>
+              <div key={column.titleKey}>
+                <h3 className="mb-4 font-body text-sm font-semibold text-navy">{t(column.titleKey)}</h3>
                 <ul className="space-y-2">
                   {column.links.map((link) => (
-                    <li key={link.label}>
+                    <li key={link.href + label(link)}>
                       <Link href={link.href} className={FOOTER_LINK_CLASS}>
-                        {link.label}
+                        {label(link)}
                       </Link>
                     </li>
                   ))}
@@ -148,17 +150,17 @@ export function Footer({ locale = "en" }: { locale?: "en" | "ru" } = {}) {
         <div className="mt-12 flex flex-col gap-4 border-t border-navy/20 pt-8 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-6">
           <ul className="flex flex-wrap items-center gap-x-6 gap-y-2">
             {FOOTER_LEGAL_LINKS.map((link) => (
-              <li key={link.label}>
+              <li key={link.href + label(link)}>
                 <Link
                   href={link.href}
                   className="rounded-sm font-body text-xs text-navy/60 transition-colors duration-200 ease-out hover:text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
                 >
-                  {link.label}
+                  {label(link)}
                 </Link>
               </li>
             ))}
           </ul>
-          <p className="font-body text-xs text-navy/60">{FOOTER_COPYRIGHT}</p>
+          <p className="font-body text-xs text-navy/60">{t("copyright")}</p>
         </div>
 
         {/* Decorative brand watermark: not a link, hidden from assistive tech.

@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 
+import { getActionTranslator } from "@/lib/action-i18n";
 import { recordActivity } from "@/lib/activity-log";
 import { requireAdmin } from "@/lib/admin-session";
 import { prisma } from "@/lib/prisma";
@@ -19,10 +20,11 @@ function validId(id: unknown): id is string {
 }
 
 export async function updateUserRole(userId: string, role: "USER" | "ADMIN"): Promise<AdminActionResult> {
+  const t = await getActionTranslator();
   const admin = await requireAdmin();
-  if (!admin || !prisma) return { ok: false, error: "Unauthorized." };
-  if (!validId(userId) || (role !== "USER" && role !== "ADMIN")) return { ok: false, error: "Invalid user." };
-  if (admin.id === userId && role !== "ADMIN") return { ok: false, error: "You cannot remove your own admin access." };
+  if (!admin || !prisma) return { ok: false, error: t("unauthorized") };
+  if (!validId(userId) || (role !== "USER" && role !== "ADMIN")) return { ok: false, error: t("invalidUser") };
+  if (admin.id === userId && role !== "ADMIN") return { ok: false, error: t("cannotRemoveOwnAdmin") };
   try {
     const user = await prisma.user.update({ where: { id: userId }, data: { role } });
     await prisma.activityLog.create({ data: { action: `role changed to ${role}`, entityType: "user", entityId: user.id, title: user.email, actorId: admin.id } });
@@ -31,15 +33,16 @@ export async function updateUserRole(userId: string, role: "USER" | "ADMIN"): Pr
     return { ok: true };
   } catch (error) {
     console.error("Failed to update user role:", error);
-    return { ok: false, error: "The user role could not be changed." };
+    return { ok: false, error: t("roleUpdateFailed") };
   }
 }
 
 export async function toggleUserBlocked(userId: string, blocked: boolean): Promise<AdminActionResult> {
+  const t = await getActionTranslator();
   const admin = await requireAdmin();
-  if (!admin || !prisma) return { ok: false, error: "Unauthorized." };
-  if (!validId(userId)) return { ok: false, error: "Invalid user." };
-  if (admin.id === userId && blocked) return { ok: false, error: "You cannot block your own account." };
+  if (!admin || !prisma) return { ok: false, error: t("unauthorized") };
+  if (!validId(userId)) return { ok: false, error: t("invalidUser") };
+  if (admin.id === userId && blocked) return { ok: false, error: t("cannotBlockSelf") };
   try {
     const user = await prisma.user.update({ where: { id: userId }, data: { isBlocked: Boolean(blocked) } });
     await prisma.activityLog.create({ data: { action: blocked ? "blocked" : "unblocked", entityType: "user", entityId: user.id, title: user.email, actorId: admin.id } });
@@ -47,14 +50,15 @@ export async function toggleUserBlocked(userId: string, blocked: boolean): Promi
     return { ok: true };
   } catch (error) {
     console.error("Failed to update user block status:", error);
-    return { ok: false, error: "The user status could not be changed." };
+    return { ok: false, error: t("userStatusUpdateFailed") };
   }
 }
 
 export async function resetUserPassword(userId: string): Promise<AdminActionResult> {
+  const t = await getActionTranslator();
   const admin = await requireAdmin();
-  if (!admin || !prisma) return { ok: false, error: "Unauthorized." };
-  if (!validId(userId)) return { ok: false, error: "Invalid user." };
+  if (!admin || !prisma) return { ok: false, error: t("unauthorized") };
+  if (!validId(userId)) return { ok: false, error: t("invalidUser") };
   const temporaryPassword = randomBytes(9).toString("base64url");
   try {
     const user = await prisma.user.update({ where: { id: userId }, data: { passwordHash: await bcrypt.hash(temporaryPassword, 12) } });
@@ -63,14 +67,15 @@ export async function resetUserPassword(userId: string): Promise<AdminActionResu
     return { ok: true, temporaryPassword };
   } catch (error) {
     console.error("Failed to reset user password:", error);
-    return { ok: false, error: "The password could not be reset." };
+    return { ok: false, error: t("passwordResetFailed") };
   }
 }
 
 export async function updateSiteSettings(settings: Record<string, string>): Promise<AdminActionResult> {
+  const t = await getActionTranslator();
   const admin = await requireAdmin();
-  if (!admin || !prisma) return { ok: false, error: "Unauthorized." };
-  if (!settings || typeof settings !== "object") return { ok: false, error: "Invalid settings." };
+  if (!admin || !prisma) return { ok: false, error: t("unauthorized") };
+  if (!settings || typeof settings !== "object") return { ok: false, error: t("invalidSettings") };
   const safeEntries = Object.entries(settings).filter(([key, value]) => /^[a-zA-Z0-9_.-]{1,80}$/.test(key) && typeof value === "string").slice(0, 100);
   try {
     await prisma.$transaction(async (tx) => {
@@ -84,14 +89,15 @@ export async function updateSiteSettings(settings: Record<string, string>): Prom
     return { ok: true };
   } catch (error) {
     console.error("Failed to update site settings:", error);
-    return { ok: false, error: "Settings could not be saved." };
+    return { ok: false, error: t("settingsSaveFailed") };
   }
 }
 
 export async function setFeaturedPost(postId: string | null): Promise<AdminActionResult> {
+  const t = await getActionTranslator();
   const admin = await requireAdmin();
-  if (!admin || !prisma) return { ok: false, error: "Unauthorized." };
-  if (postId !== null && !validId(postId)) return { ok: false, error: "Invalid post." };
+  if (!admin || !prisma) return { ok: false, error: t("unauthorized") };
+  if (postId !== null && !validId(postId)) return { ok: false, error: t("invalidPost") };
   try {
     await prisma.$transaction(async (tx) => {
       await tx.post.updateMany({ data: { isFeatured: false } });
@@ -104,6 +110,6 @@ export async function setFeaturedPost(postId: string | null): Promise<AdminActio
     return { ok: true };
   } catch (error) {
     console.error("Failed to set featured post:", error);
-    return { ok: false, error: "Featured post could not be updated." };
+    return { ok: false, error: t("featuredPostUpdateFailed") };
   }
 }

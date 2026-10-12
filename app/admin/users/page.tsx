@@ -3,11 +3,12 @@ import { Users as UsersIcon } from "lucide-react";
 import { UsersTable } from "@/components/admin/users-table";
 import { EmptyState } from "@/components/site/empty-state";
 import { getAllUsers, getUserActivity, getUserBlockStatuses } from "@/lib/admin-data";
+import { getRequestTranslations } from "@/lib/server-i18n";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminUsersPage() {
-  const users = await getAllUsers();
+  const [users, t] = await Promise.all([getAllUsers(), getRequestTranslations("admin")]);
   const blockStatuses = await getUserBlockStatuses(users.map((user) => user.id));
   const usersWithActivity = await Promise.all(users.map(async (user) => ({
     ...user,
@@ -17,10 +18,8 @@ export default async function AdminUsersPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold tracking-tight">Users</h1>
-      <p className="mt-2 text-muted-foreground">
-        Registered accounts. New accounts are created through the public Register form.
-      </p>
+      <h1 className="text-3xl font-bold tracking-tight">{t("users")}</h1>
+      <p className="mt-2 text-muted-foreground">{t("usersSubtitle")}</p>
 
       {users.length ? (
         <UsersTable users={usersWithActivity} />
@@ -28,8 +27,8 @@ export default async function AdminUsersPage() {
         <div className="mt-8">
           <EmptyState
             icon={UsersIcon}
-            title="No users yet"
-            description="Accounts will appear here after visitors register."
+            title={t("noUsers")}
+            description={t("noUsersHelp")}
           />
         </div>
       )}

@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
 import { auth, signIn, signOut } from "@/auth";
+import { getActionTranslator } from "@/lib/action-i18n";
 import { recordActivity } from "@/lib/activity-log";
 import { isAuthConfigured } from "@/lib/auth-secret";
 import { prisma } from "@/lib/prisma";
@@ -96,15 +97,16 @@ function isUniqueViolation(error: unknown): boolean {
 }
 
 export async function loginUser(input: LoginSubmission): Promise<AuthActionResult> {
+  const t = await getActionTranslator();
   if (!isAuthConfigured() || !prisma) {
-    return { ok: false, success: false, error: "Login is unavailable right now. Try again later." };
+    return { ok: false, success: false, error: t("loginUnavailable") };
   }
   const submission = readLoginSubmission(input);
   const credentials = loginSchema.safeParse({ email: submission.email, password: submission.password });
   if (!credentials.success) {
     // Never confirm which part of a credential pair was wrong.
     console.warn("Rejected malformed login input:", firstIssueMessage(credentials.error));
-    return { ok: false, success: false, error: "Invalid email or password." };
+    return { ok: false, success: false, error: t("invalidCredentials") };
   }
   const { email, password } = credentials.data;
   const adminMode = submission.adminMode === true;
@@ -116,10 +118,10 @@ export async function loginUser(input: LoginSubmission): Promise<AuthActionResul
     account = await prisma.user.findUnique({ where: { email }, select: { role: true } });
   } catch (error) {
     console.error("Login lookup failed:", error);
-    return { ok: false, success: false, error: "Unable to log in. Try again later." };
+    return { ok: false, success: false, error: t("unableToLogIn") };
   }
   if (adminMode && account?.role !== "ADMIN") {
-    return { ok: false, success: false, error: "Admin account not found. Please log in as a regular user." };
+    return { ok: false, success: false, error: t("adminNotFound") };
   }
 
   try {
@@ -133,16 +135,16 @@ export async function loginUser(input: LoginSubmission): Promise<AuthActionResul
   } catch (error) {
     if (error instanceof CredentialsSignin) {
       if (error.code === "admin_account_not_found") {
-        return { ok: false, success: false, error: "Admin account not found. Please log in as a regular user." };
+        return { ok: false, success: false, error: t("adminNotFound") };
       }
       if (error.code === "rate_limited") {
-        return { ok: false, success: false, error: "Too many login attempts. Try again later." };
+        return { ok: false, success: false, error: t("tooManyLoginAttempts") };
       }
-      return { ok: false, success: false, error: "Invalid email or password." };
+      return { ok: false, success: false, error: t("invalidCredentials") };
     }
-    if (error instanceof AuthError) return { ok: false, success: false, error: "Unable to log in. Try again later." };
+    if (error instanceof AuthError) return { ok: false, success: false, error: t("unableToLogIn") };
     console.error("Login failed:", error);
-    return { ok: false, success: false, error: "Unable to log in. Try again later." };
+    return { ok: false, success: false, error: t("unableToLogIn") };
   }
 
   const isAdmin = adminMode && account?.role === "ADMIN";
@@ -153,25 +155,26 @@ export async function loginUser(input: LoginSubmission): Promise<AuthActionResul
 
 /** Explicit allowlist: registration NEVER accepts a role, avatar path or user id. */
 export async function registerUser(input: RegisterSubmission): Promise<RegisterResult> {
+  const t = await getActionTranslator();
   const requestHeaders = await headers();
   const address = getClientAddress(requestHeaders.get("x-real-ip") ?? requestHeaders.get("x-forwarded-for"));
   if (!checkRateLimit(hashRateLimitIdentifier(`register-address:${address}`), 5, WINDOW_MS).allowed) {
-    return { ok: false, success: false, error: "Too many registration attempts. Try again later." };
+    return { ok: false, success: false, error: t("tooManyRegistrationAttempts") };
   }
   const submitted = readRegisterSubmission(input);
   const result = registerSchema.safeParse(submitted);
   if (!result.success) {
-    return { ok: false, success: false, error: firstIssueMessage(result.error) };
+    return { ok: false, success: false, error: t(firstIssueMessage(result.error)) };
   }
   // Only the allowlisted fields survive validation.
   const { email, password, firstName, lastName } = result.data;
   if (!prisma || !isAuthConfigured()) {
-    return { ok: false, success: false, error: "Registration is unavailable right now. Try again later." };
+    return { ok: false, success: false, error: t("registrationUnavailable") };
   }
 
   try {
     const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } });
-    if (existing) return { ok: false, success: false, error: "Unable to create an account with these details." };
+    if (existing) return { ok: false, success: false, error: t("registrationFailedWithDetails") };
     const passwordHash = await bcrypt.hash(password, 12);
     await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
@@ -181,9 +184,9 @@ export async function registerUser(input: RegisterSubmission): Promise<RegisterR
       await recordActivity(tx, { action: "registered", entityType: "user", entityId: user.id, title: user.email, actorId: user.id });
     });
   } catch (error) {
-    if (isUniqueViolation(error)) return { ok: false, success: false, error: "Unable to create an account with these details." };
+    if (isUniqueViolation(error)) return { ok: false, success: false, error: t("registrationFailedWithDetails") };
     console.error("Registration failed:", error);
-    return { ok: false, success: false, error: "Registration failed. Try again later." };
+    return { ok: false, success: false, error: t("registrationFailed") };
   }
 
   revalidatePath("/admin/users");
@@ -194,33 +197,34 @@ export async function registerUser(input: RegisterSubmission): Promise<RegisterR
     ok: false,
     success: false,
     accountCreated: true,
-    error: "Your account was created. Please log in.",
+    error: t("accountCreatedPleaseLogIn"),
   };
 }
 
 export async function updateUserProfile(formData: FormData): Promise<AuthActionResult> {
-  if (!isAuthConfigured() || !prisma) return { ok: false, success: false, error: "Please log in to edit your profile." };
+  const t = await getActionTranslator();
+  if (!isAuthConfigured() || !prisma) return { ok: false, success: false, error: t("loginToEditProfile") };
   let newAvatar: string | null = null;
   let saved = false;
   try {
     const session = await auth();
-    if (!session?.user?.id) return { ok: false, success: false, error: "Please log in to edit your profile." };
+    if (!session?.user?.id) return { ok: false, success: false, error: t("loginToEditProfile") };
     if (!checkRateLimit(hashRateLimitIdentifier(`profile:${session.user.id}`), 20, WINDOW_MS).allowed) {
-      return { ok: false, success: false, error: "Too many profile updates. Try again later." };
+      return { ok: false, success: false, error: t("tooManyProfileUpdates") };
     }
     const profile = profileSchema.safeParse({
       firstName: readString(formData.get("firstName")),
       lastName: readString(formData.get("lastName")),
     });
-    if (!profile.success) return { ok: false, success: false, error: firstIssueMessage(profile.error) };
+    if (!profile.success) return { ok: false, success: false, error: t(firstIssueMessage(profile.error)) };
     const { firstName, lastName } = profile.data;
     const existing = await prisma.user.findUnique({
       where: { id: session.user.id }, select: { id: true, avatar: true, email: true },
     });
-    if (!existing) return { ok: false, success: false, error: "Your account no longer exists. Please log in again." };
+    if (!existing) return { ok: false, success: false, error: t("accountGone") };
     const file = formData.get("avatar");
-    if (typeof file === "string" && file) return { ok: false, success: false, error: "Please choose a local image file." };
-    if (file instanceof File && file.name && file.size === 0) throw new UploadValidationError("Image must not be empty.");
+    if (typeof file === "string" && file) return { ok: false, success: false, error: t("chooseLocalImage") };
+    if (file instanceof File && file.name && file.size === 0) throw new UploadValidationError(t("emptyImage"));
     if (file instanceof File && file.size > 0) newAvatar = await saveImageUpload(file, "avatars");
 
     await prisma.$transaction(async (tx) => {
@@ -238,7 +242,7 @@ export async function updateUserProfile(formData: FormData): Promise<AuthActionR
     if (newAvatar && !saved) await cleanupUpload(newAvatar, "avatars");
     if (error instanceof UploadValidationError) return { ok: false, success: false, error: error.message };
     console.error("Profile update failed:", error);
-    return { ok: false, success: false, error: "Unable to save your profile. Try again later." };
+    return { ok: false, success: false, error: t("profileSaveFailed") };
   }
   revalidatePath("/admin/users");
   revalidatePath("/admin/dashboard");
@@ -246,11 +250,12 @@ export async function updateUserProfile(formData: FormData): Promise<AuthActionR
 }
 
 export async function logout(): Promise<AuthActionResult> {
+  const t = await getActionTranslator();
   try {
     await signOut({ redirect: false, redirectTo: "/" });
     return { ok: true, success: true };
   } catch (error) {
     console.error("Logout failed:", error);
-    return { ok: false, success: false, error: "Unable to log out. Please try again." };
+    return { ok: false, success: false, error: t("logoutFailed") };
   }
 }

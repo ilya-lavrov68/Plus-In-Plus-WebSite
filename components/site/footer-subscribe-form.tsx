@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { useTranslations } from "next-intl";
 
 const FIELD_CLASS =
   "mt-2 w-full rounded-lg border border-navy/30 bg-white/50 px-3 py-2.5 font-body text-sm text-navy placeholder:text-navy/50 transition-colors duration-200 ease-out focus-visible:border-navy focus-visible:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy/30";
@@ -15,6 +16,8 @@ const CHECKBOX_CLASS = "mt-0.5 h-3.5 w-3.5 shrink-0 cursor-pointer accent-navy";
  * the address was stored.
  */
 export function FooterSubscribeForm() {
+  const t = useTranslations("footer");
+  const tc = useTranslations("common");
   const [status, setStatus] = useState<"idle" | "pending">("idle");
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -24,38 +27,38 @@ export function FooterSubscribeForm() {
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-md font-body xl:max-w-none">
-      <h3 className="font-body text-sm font-semibold text-navy">Subscribe to updates</h3>
+      <h3 className="font-body text-sm font-semibold text-navy">{t("subscribe")}</h3>
 
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label htmlFor="footer-first-name" className="sr-only">
-            First name
+            {tc("firstName")}
           </label>
           <input
             id="footer-first-name"
             name="firstName"
             type="text"
             autoComplete="given-name"
-            placeholder="First name"
+            placeholder={tc("firstName")}
             className={FIELD_CLASS}
           />
         </div>
         <div>
           <label htmlFor="footer-last-name" className="sr-only">
-            Last name
+            {tc("lastName")}
           </label>
           <input
             id="footer-last-name"
             name="lastName"
             type="text"
             autoComplete="family-name"
-            placeholder="Last name"
+            placeholder={tc("lastName")}
             className={FIELD_CLASS}
           />
         </div>
         <div className="sm:col-span-2">
           <label htmlFor="footer-email" className="sr-only">
-            Email
+            {tc("email")}
           </label>
           <input
             id="footer-email"
@@ -63,7 +66,7 @@ export function FooterSubscribeForm() {
             type="email"
             autoComplete="email"
             required
-            placeholder="Email"
+            placeholder={tc("email")}
             className={FIELD_CLASS}
           />
         </div>
@@ -72,16 +75,16 @@ export function FooterSubscribeForm() {
       <div className="mt-4 space-y-2">
         <label className="flex cursor-pointer items-start gap-2 font-body text-xs leading-5 text-navy/80">
           <input type="checkbox" name="plusInPlusNews" defaultChecked className={CHECKBOX_CLASS} />
-          Plus In Plus news
+          {t("news")}
         </label>
         <label className="flex cursor-pointer items-start gap-2 font-body text-xs leading-5 text-navy/80">
           <input type="checkbox" name="designInsights" defaultChecked className={CHECKBOX_CLASS} />
-          Design insights
+          {t("insights")}
         </label>
       </div>
 
       <p id="footer-subscribe-consent" className="mt-3 font-body text-xs leading-5 text-navy/60">
-        I agree to receive marketing communications from Plus In Plus, subject to the Privacy Policy.
+        {t("subscriptionConsent")}
       </p>
 
       <button
@@ -89,11 +92,11 @@ export function FooterSubscribeForm() {
         aria-describedby="footer-subscribe-consent"
         className="mt-4 inline-flex h-10 items-center justify-center rounded-lg bg-navy px-4 font-body text-sm font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#0A4366] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2 focus-visible:ring-offset-[#D6E4FF]"
       >
-        Subscribe
+        {t("subscribeButton")}
       </button>
 
       <p role="status" className="mt-3 min-h-5 font-body text-xs leading-5 text-navy/70">
-        {status === "pending" ? "Newsletter delivery is not connected yet." : ""}
+        {status === "pending" ? t("subscribeNotConnected") : ""}
       </p>
     </form>
   );

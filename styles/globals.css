@@ -2,12 +2,31 @@
 @plugin "tailwindcss-animate";
 
 /* ---------------------------------------------------------------------------
+   Brand typography — locale independent, weight explicit.
+   - `heading` (Geist): headings and large display text.
+   - `body`    (Google Sans Flex): body copy, controls, navigation.
+   Every family is declared with explicit weights and a Cyrillic-capable
+   companion, so Russian and English render with identical thickness.
+   Google Sans Flex ships no Cyrillic subset, so Inter (OFL-1.1) is registered
+   for the Cyrillic unicode ranges as the second family in each stack — the
+   browser then picks it per glyph, never falling back to a system font.
+   --------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------------------
    Brand typography
    - Geist: headings and large display text (self-hosted from the `geist`
-     npm package, OFL-1.1).
+     npm package, OFL-1.1). The bundled variable file covers Latin + Cyrillic
+     (verified against the font's cmap: 134 Cyrillic code points).
    - Google Sans Flex: body text, buttons, navigation, captions and footer
      links (self-hosted from `@fontsource-variable/google-sans-flex`,
-     OFL-1.1).
+     OFL-1.1). Google Sans Flex ships **no Cyrillic subset** (latin,
+     latin-ext, math, symbols, … only), so its file would silently fall back
+     to a system font for Russian and the text would look thinner.
+   - Inter: the Cyrillic companion of Google Sans Flex, self-hosted from
+     `@fontsource-variable/inter` (OFL-1.1). It is registered with the
+     Cyrillic `unicode-range` only, so Latin keeps rendering in Google Sans
+     Flex while Russian renders in Inter at exactly the same weights
+     (400 / 500 / 600), never in an arbitrary system font.
    --------------------------------------------------------------------------- */
 @font-face {
   font-family: "Geist";
@@ -15,6 +34,27 @@
   font-display: swap;
   font-weight: 100 900;
   src: url("/assets/fonts/geist-variable.woff2") format("woff2");
+}
+
+/* Cyrillic companion: Inter covers exactly the Cyrillic code points of both
+   the cyrillic and the cyrillic-ext subsets, in the same variable weight axis
+   (100–900) as Google Sans Flex and Geist. */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("/assets/fonts/inter-cyrillic-wght-normal.woff2") format("woff2");
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("/assets/fonts/inter-cyrillic-ext-wght-normal.woff2") format("woff2");
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
 }
 
 @font-face {
@@ -36,12 +76,20 @@
 }
 
 @theme {
-  /* Body font: Google Sans Flex. Heading font: Geist. */
-  --font-sans: "Google Sans Flex", ui-sans-serif, system-ui, sans-serif;
-  --font-sans-flex: "Google Sans Flex", ui-sans-serif, system-ui, sans-serif;
-  --font-body: "Google Sans Flex", ui-sans-serif, system-ui, sans-serif;
-  --font-geist: "Geist", ui-sans-serif, system-ui, sans-serif;
-  --font-heading: "Geist", ui-sans-serif, system-ui, sans-serif;
+  /* Body font: Google Sans Flex with the Cyrillic-capable Inter companion.
+     Heading font: Geist (covers Latin and Cyrillic, Inter as last resort). */
+  --font-sans: "Google Sans Flex", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans-flex: "Google Sans Flex", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Google Sans Flex", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-geist: "Geist", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Geist", "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* Explicit weight scale: the same numbers on every locale and every family
+     (Google Sans Flex, Inter, Geist all ship a full 100–900 axis). */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
 
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
@@ -127,6 +175,8 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-body);
+    /* Explicit weight: never inherit a lighter face after a locale switch. */
+    font-weight: 400;
     transition: opacity 140ms ease-out;
   }
 
@@ -137,8 +187,46 @@
   /* Headings use Geist; everything else inherits Google Sans Flex from body. */
   h1,
   h2,
-  h3 {
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-heading);
+    font-weight: 600;
+  }
+
+  /* Interface controls (buttons, navigation, labels) sit one step heavier than
+     body copy. Utility classes such as `font-bold` still win, because Tailwind
+     applies its utilities layer after this base layer. */
+  button,
+  nav,
+  nav a,
+  [role="tab"],
+  label,
+  legend {
+    font-weight: 500;
+  }
+
+  /* Locale-independent rendering: both languages resolve to the same weights,
+     whichever font file ends up covering the script (Google Sans Flex for
+     Latin, Inter for Cyrillic, Geist for headings). No `!important` is needed:
+     the layers above keep every intentional utility override working. */
+  html[data-locale] body,
+  html[data-locale="en"] body,
+  html[data-locale="ru"] body {
+    font-weight: 400;
+  }
+
+  html[data-locale] :is(h1, h2, h3, h4, h5, h6),
+  html[data-locale="en"] :is(h1, h2, h3, h4, h5, h6),
+  html[data-locale="ru"] :is(h1, h2, h3, h4, h5, h6) {
+    font-weight: 600;
+  }
+
+  html[data-locale] :is(button, nav, nav a, [role="tab"], label, legend),
+  html[data-locale="en"] :is(button, nav, nav a, [role="tab"], label, legend),
+  html[data-locale="ru"] :is(button, nav, nav a, [role="tab"], label, legend) {
+    font-weight: 500;
   }
 }
 

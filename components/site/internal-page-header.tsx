@@ -1,4 +1,5 @@
 import { Search } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { GradientBackdrop } from "@/components/site/gradient-backdrop";
 import { Logo } from "@/components/site/logo";
@@ -11,10 +12,11 @@ export interface InternalPageHeaderProps {
 
 /** Shared gradient title, brand-lockup and search header for internal pages. */
 export function InternalPageHeader({ title }: InternalPageHeaderProps) {
+  const t = useTranslations("common");
   return (
     <>
       <section
-        aria-label={`${title} page hero`}
+        aria-label={`${title} — ${t("loadingPage")}`}
         className="relative isolate -mt-16 flex h-[clamp(400px,40.52vw,778px)] items-end overflow-hidden bg-[#CFE0FF]"
       >
         <GradientBackdrop src="/assets/gradients/hero-gradient.svg" priority />
@@ -32,13 +34,13 @@ export function InternalPageHeader({ title }: InternalPageHeaderProps) {
           </div>
           <form role="search" className="relative w-full">
             <label htmlFor="internal-page-search" className="sr-only">
-              Search
+              {t("search")}
             </label>
             <input
               id="internal-page-search"
               type="search"
               name="q"
-              placeholder="Search"
+              placeholder={t("searchPlaceholder")}
               className="h-14 w-full rounded-[24px] border-0 bg-[#EFEFEF] py-2 pl-6 pr-14 font-body text-base text-[#052B42] placeholder:text-[#052B42]/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42] lg:h-[70px] lg:text-lg"
             />
             <Search

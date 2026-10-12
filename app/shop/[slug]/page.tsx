@@ -9,8 +9,9 @@ import { SafeImage } from "@/components/site/safe-image";
 import { getPublishedPosts, getPublishedService, toNewsItem } from "@/lib/data";
 import { createPageMetadata } from "@/lib/seo";
 import { getServiceArtwork, getServiceGallery, isSignDesignService } from "@/lib/shop-assets";
-import { SIGN_DESIGN_COPY } from "@/lib/shop-service-copy";
 import { getRequestLocale } from "@/lib/request-locale";
+import { getRequestTranslations } from "@/lib/server-i18n";
+import type { MessageTranslator } from "@/lib/i18n-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -20,17 +21,39 @@ interface ServicePageProps {
 
 export async function generateMetadata({ params }: ServicePageProps): Promise<Metadata> {
   const { slug } = await params;
-  const service = await getPublishedService(slug);
-  const title = service ? `${service.title} — Plus In Plus` : "Shop — Plus In Plus";
+  const [service, t, locale] = await Promise.all([
+    getPublishedService(slug),
+    getRequestTranslations("metadata"),
+    getRequestLocale(),
+  ]);
+  const title = service ? `${service.title} — Plus In Plus` : t("shop");
 
   return createPageMetadata({
     title,
-    description:
-      service?.shortDesc ||
-      "Learn the details of this service and what a Plus In Plus design project includes.",
+    description: service?.shortDesc || t("shopServiceDescription"),
     path: `/shop/${encodeURIComponent(slug)}`,
     image: service ? getServiceArtwork(service) : undefined,
+    locale,
   });
+}
+
+/**
+ * Reference Sign Design copy of the supplied PDF mockup. It lives in
+ * `messages/*.json` (`shop.signDesignCopy`), so the reference service is
+ * documented in the language of the page instead of a hard-coded English block.
+ */
+function signDesignCopy(t: MessageTranslator) {
+  const list = (key: string) => {
+    const value = t.raw(key);
+    return Array.isArray(value) ? (value as string[]) : [];
+  };
+  return {
+    introduction: t("signDesignCopy.introduction"),
+    includes: list("signDesignCopy.includes"),
+    shapesIntroduction: t("signDesignCopy.shapesIntroduction"),
+    shapes: list("signDesignCopy.shapes"),
+    result: t("signDesignCopy.result"),
+  };
 }
 
 function copyWithLead(text: string) {
@@ -48,15 +71,17 @@ function copyWithLead(text: string) {
 
 export default async function ServicePage({ params }: ServicePageProps) {
   const { slug } = await params;
-  const service = await getPublishedService(slug);
+  const [service, t] = await Promise.all([
+    getPublishedService(slug),
+    getRequestTranslations("shop"),
+  ]);
   if (!service) redirect("/shop");
 
   const posts = await getPublishedPosts();
   const newsItems = posts.map(toNewsItem);
-  const locale = await getRequestLocale();
   const isReferenceSign = isSignDesignService(service);
   const content = isReferenceSign
-    ? SIGN_DESIGN_COPY
+    ? signDesignCopy(t)
     : {
         introduction: service.fullDesc,
         includes: service.includes,
@@ -68,7 +93,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
 
   return (
     <>
-      <InternalPageHeader title="SHOP" />
+      <InternalPageHeader title={t("pageTitle")} />
 
       <InternalPageContent
         labelledBy="service-title"
@@ -79,11 +104,11 @@ export default async function ServicePage({ params }: ServicePageProps) {
           <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 sm:gap-5">
             <Link
               href="/shop"
-              aria-label="Back to shop"
+              aria-label={t("backToShop")}
               className="inline-flex items-center gap-1 rounded-sm text-sm font-semibold underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42] sm:text-base"
             >
               <ChevronLeft aria-hidden="true" className="h-5 w-5 shrink-0" />
-              Back
+              {t("back")}
             </Link>
             <h2
               id="service-title"
@@ -95,13 +120,13 @@ export default async function ServicePage({ params }: ServicePageProps) {
               href="/contact"
               className="inline-flex h-11 w-[clamp(7.5rem,19.8vw,23.75rem)] items-center justify-center rounded-xl bg-[#052B42] text-white px-4 font-body text-sm font-semibold transition-colors duration-200 ease-out hover:bg-[#0A4366] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42] focus-visible:ring-offset-2 sm:h-14 sm:text-base lg:h-[70px]"
             >
-              Order
+              {t("order")}
             </Link>
           </div>
 
           {gallery.length ? (
             <ul
-              aria-label="Service gallery"
+              aria-label={t("galleryLabel")}
               className="mt-6 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 sm:mt-8 sm:gap-6"
             >
               {gallery.map((src, index) => (
@@ -111,7 +136,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
                 >
                   <SafeImage
                     src={src}
-                    alt={`${service.title} example ${index + 1}`}
+                    alt={t("exampleAlt", { title: service.title, index: index + 1 })}
                     fill
                     priority={index === 0}
                     sizes="(min-width: 1536px) 560px, (min-width: 768px) 29vw, 82vw"
@@ -128,7 +153,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
             {content.includes.length ? (
               <section aria-labelledby="service-includes">
                 <h3 id="service-includes" className="font-geist text-lg font-semibold sm:text-xl">
-                  Our service includes:
+                  {t("ourServiceIncludes")}
                 </h3>
                 <ul className="mt-1 space-y-1">
                   {content.includes.map((item, index) => (
@@ -141,7 +166,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
             {content.shapes.length ? (
               <section aria-labelledby="service-shapes">
                 <h3 id="service-shapes" className="font-geist text-lg font-semibold sm:text-xl">
-                  Any shape, any idea
+                  {t("anyShapeAnyIdea")}
                 </h3>
                 {content.shapesIntroduction ? <p className="mt-1">{content.shapesIntroduction}</p> : null}
                 <ol className="mt-1 list-decimal space-y-0.5 pl-6">
@@ -154,14 +179,14 @@ export default async function ServicePage({ params }: ServicePageProps) {
 
             {content.result ? (
               <p>
-                <strong>The result:</strong> {content.result}
+                <strong>{t("theResult")}</strong> {content.result}
               </p>
             ) : null}
           </div>
         </article>
       </InternalPageContent>
 
-      <OtherNewsSection items={newsItems} id="service-other-news" locale={locale} />
+      <OtherNewsSection items={newsItems} id="service-other-news" />
     </>
   );
 }

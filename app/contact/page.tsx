@@ -3,21 +3,29 @@ import type { Metadata } from "next";
 import { ContactForm } from "@/components/site/contact-form";
 import { InternalPageContent, InternalPageHeader } from "@/components/site/internal-page-header";
 import { createPageMetadata } from "@/lib/seo";
+import { getRequestLocale } from "@/lib/request-locale";
+import { getRequestTranslations } from "@/lib/server-i18n";
 
-export const metadata: Metadata = createPageMetadata({
-  title: "Contact us — Plus In Plus",
-  description: "Get in touch with the Plus In Plus design studio.",
-  path: "/contact",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getRequestTranslations("metadata");
+  const locale = await getRequestLocale();
+  return createPageMetadata({
+    title: t("contact"),
+    description: t("contactDescription"),
+    path: "/contact",
+    locale,
+  });
+}
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const t = await getRequestTranslations("contact");
   return (
     <>
-      <InternalPageHeader title="CONTACT" />
+      <InternalPageHeader title={t("pageTitle")} />
 
       <InternalPageContent labelledBy="contact-heading" sectionClassName="pt-12 sm:pt-16 lg:pt-20">
         <h2 id="contact-heading" className="text-center font-geist text-3xl font-semibold tracking-[-0.04em] text-[#052B42] sm:text-4xl">
-          Contact us
+          {t("title")}
         </h2>
         <div className="mt-8 sm:mt-10">
           <ContactForm />

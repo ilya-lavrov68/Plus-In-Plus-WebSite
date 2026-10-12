@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ServiceForm } from "@/components/admin/service-form";
 import { getAdminService } from "@/lib/admin-data";
 import { parseJsonArray } from "@/lib/db-helpers";
+import { getRequestTranslations } from "@/lib/server-i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -12,17 +13,15 @@ export default async function EditServicePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const service = await getAdminService(id);
+  const [service, t] = await Promise.all([getAdminService(id), getRequestTranslations("admin")]);
   if (!service) {
     notFound();
   }
 
   return (
     <div>
-      <h1 className="text-3xl font-bold tracking-tight">Edit service</h1>
-      <p className="mt-2 text-muted-foreground">
-        The cover is uploaded to /public/uploads/services/ and its path is saved in the database.
-      </p>
+      <h1 className="text-3xl font-bold tracking-tight">{t("editService")}</h1>
+      <p className="mt-2 text-muted-foreground">{t("form.editServiceSubtitle")}</p>
       <div className="mt-8">
         <ServiceForm
           mode="edit"

@@ -3,6 +3,12 @@
 import Link from "next/link";
 import { Mail, Send, ShoppingBag } from "lucide-react";
 
+import { useTranslations } from "next-intl";
+
+import {
+  navigationDescription,
+  navigationLabel,
+} from "@/components/site/nav-dropdown";
 import { DropdownFeatured, type FeaturedPostData } from "@/components/site/dropdown-featured";
 
 export interface DropdownSocnetProps {
@@ -34,48 +40,37 @@ function VkIcon({ className, ...props }: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+/**
+ * Social networks of the studio. VK, Telegram and YouTube are brand names and
+ * are therefore rendered literally, never through a translation key.
+ */
 const SOCIAL_ITEMS = [
   {
     label: "VK",
-    description: "Follow Plus In Plus on VK.",
+    descriptionKey: "vk",
     href: "https://vk.com/plusinplus",
     icon: VkIcon,
-    iconBg: "bg-[#00C56D]",
     external: true,
   },
   {
     label: "Telegram",
-    description: "Studio updates, straight to your feed.",
+    descriptionKey: "telegram",
     href: "https://t.me/plusinplus",
     icon: Send,
-    iconBg: "bg-[#00C56D]",
     external: true,
   },
   {
     label: "YouTube",
-    description: "Watch ideas take shape in the studio.",
+    descriptionKey: "youtube",
     href: "https://www.youtube.com/@plusinplus",
     icon: YouTubeIcon,
-    iconBg: "bg-[#00C56D]",
     external: true,
   },
 ];
 
 const CONTACT_ITEMS = [
-  {
-    label: "Contact us",
-    description: "Get in touch with our team today.",
-    href: "/contact",
-    icon: Mail,
-    iconBg: "bg-[#00C56D]",
-  },
-  {
-    label: "Order",
-    description: "Place a request for your next design.",
-    href: "/shop",
-    icon: ShoppingBag,
-    iconBg: "bg-[#00C56D]",
-  },
+  { key: "contactUs", href: "/contact", icon: Mail },
+  { key: "order", href: "/shop", icon: ShoppingBag },
 ];
 
 export function DropdownSocnet({
@@ -85,11 +80,13 @@ export function DropdownSocnet({
   onLinkClick,
   featuredPost,
 }: DropdownSocnetProps) {
+  const t = useTranslations("nav");
+  const th = useTranslations("header");
   return (
     <div
       id={`navigation-dropdown-${id}`}
       role="region"
-      aria-label="SOCNET navigation menu"
+      aria-label={t("aria", { section: th("socnet") })}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       className="absolute left-1/2 top-[calc(100%+0.75rem)] z-30 w-[min(1120px,calc(100vw-1rem))] min-w-[700px] -translate-x-1/2 animate-dropdown-in"
@@ -102,7 +99,7 @@ export function DropdownSocnet({
                 id="socnet-section-social"
                 className="px-3 text-xs font-semibold uppercase tracking-[0.12em] text-gray-500"
               >
-                Social
+                {t("sections.social")}
               </h2>
               <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                 {SOCIAL_ITEMS.map((item) => {
@@ -126,7 +123,7 @@ export function DropdownSocnet({
                           {item.label}
                         </span>
                         <span className="mt-0.5 block line-clamp-2 text-xs leading-4 text-gray-500">
-                          {item.description}
+                          {navigationDescription(t, { key: item.descriptionKey })}
                         </span>
                       </span>
                     </a>
@@ -140,14 +137,14 @@ export function DropdownSocnet({
                 id="socnet-section-contact"
                 className="px-3 text-xs font-semibold uppercase tracking-[0.12em] text-gray-500"
               >
-                Contact
+                {t("sections.contact")}
               </h2>
               <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                 {CONTACT_ITEMS.map((item) => {
                   const Icon = item.icon;
                   return (
                     <Link
-                      key={item.label}
+                      key={navigationLabel(t, item)}
                       href={item.href}
                       onClick={onLinkClick}
                       className="group flex min-w-0 items-start gap-3 rounded-xl p-3 text-left transition-colors duration-200 ease-out hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
@@ -159,10 +156,10 @@ export function DropdownSocnet({
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-medium leading-5 text-navy group-hover:text-[#0A4366]">
-                          {item.label}
+                          {navigationLabel(t, item)}
                         </span>
                         <span className="mt-0.5 block line-clamp-2 text-xs leading-4 text-gray-500">
-                          {item.description}
+                          {navigationDescription(t, item)}
                         </span>
                       </span>
                     </Link>

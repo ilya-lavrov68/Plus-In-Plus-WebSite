@@ -3,6 +3,7 @@
 import { useState, useRef, type DragEvent, type ChangeEvent } from "react";
 import Image from "next/image";
 import { Loader2, Trash2, UploadCloud } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { IMAGE_ACCEPT } from "@/lib/upload-policy";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,7 @@ export function ImageAlbumUploader({
   initialImages = [],
   onChange,
 }: ImageAlbumUploaderProps) {
+  const t = useTranslations("admin");
   const [images, setImages] = useState<string[]>(initialImages);
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -42,7 +44,7 @@ export function ImageAlbumUploader({
 
       const data = await response.json();
       if (!response.ok || !data.ok) {
-        throw new Error(data.error || "Failed to upload images.");
+        throw new Error(data.error || t("upload.uploadFailed"));
       }
 
       const updated = [...images, ...(data.urls as string[])];
@@ -50,7 +52,7 @@ export function ImageAlbumUploader({
       onChange?.(updated);
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "Failed to upload images.");
+      setError(err instanceof Error ? err.message : t("upload.uploadFailed"));
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
@@ -122,7 +124,7 @@ export function ImageAlbumUploader({
         {uploading ? (
           <div className="flex flex-col items-center gap-2 py-2">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm font-medium">Uploading images…</p>
+            <p className="text-sm font-medium">{t("upload.uploading")}</p>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2 py-2">
@@ -131,10 +133,10 @@ export function ImageAlbumUploader({
             </div>
             <div>
               <p className="text-sm font-medium text-foreground">
-                <span className="text-primary hover:underline">Click to upload</span> or drag and drop
+                <span className="text-primary hover:underline">{t("upload.clickToUpload")}</span> {t("upload.dragAndDrop")}
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                PNG, JPEG, WebP, GIF or AVIF (up to 8 MB each)
+                {t("upload.formats")}
               </p>
             </div>
           </div>
@@ -151,11 +153,11 @@ export function ImageAlbumUploader({
       <div>
         <div className="flex items-center justify-between pb-2">
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Album images ({images.length})
+            {t("upload.albumCounter", { count: images.length })}
           </span>
           {images.length > 0 ? (
             <span className="text-xs text-muted-foreground">
-              {images.length} {images.length === 1 ? "image" : "images"} uploaded
+              {t("upload.albumUploaded", { count: images.length })}
             </span>
           ) : null}
         </div>
@@ -169,7 +171,7 @@ export function ImageAlbumUploader({
               >
                 <Image
                   src={url}
-                  alt={`Album image ${index + 1}`}
+                  alt={t("upload.albumImage", { index: index + 1 })}
                   fill
                   sizes="160px"
                   className="object-cover"
@@ -180,8 +182,8 @@ export function ImageAlbumUploader({
                     e.stopPropagation();
                     removeImage(index);
                   }}
-                  aria-label={`Remove image ${index + 1}`}
-                  className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-black/70 text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 hover:bg-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+                  aria-label={t("upload.albumRemove", { index: index + 1 })}
+                  className="font-medium absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-black/70 text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 hover:bg-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -193,7 +195,7 @@ export function ImageAlbumUploader({
           </div>
         ) : (
           <div className="rounded-lg border border-dashed border-border/60 p-4 text-center text-xs text-muted-foreground">
-            No additional images uploaded yet.
+            {t("upload.albumEmpty")}
           </div>
         )}
       </div>

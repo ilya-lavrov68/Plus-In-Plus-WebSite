@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 
 export const SITE_NAME = "Plus In Plus";
+/** English fallback description; the translated copy lives in `messages/*.json`. */
 export const DEFAULT_SITE_DESCRIPTION =
-  "Plus In Plus — дизайн-студия графического и цифрового дизайна.";
+  "Plus In Plus — a graphic and digital design studio.";
 
 function resolveSiteUrl(): URL {
   const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.AUTH_URL ?? process.env.NEXTAUTH_URL;
@@ -27,6 +28,8 @@ interface PageMetadataOptions {
   image?: string | null;
   type?: "website" | "article";
   publishedTime?: Date | null;
+  /** Locale of the page, used for the Open Graph locale of the shared URL. */
+  locale?: "en" | "ru";
 }
 
 export function createPageMetadata({
@@ -36,13 +39,14 @@ export function createPageMetadata({
   image,
   type = "website",
   publishedTime,
+  locale = "en",
 }: PageMetadataOptions): Metadata {
   const imageUrl = image?.trim() ? absoluteUrl(image.trim()) : undefined;
   const commonOpenGraph = {
     title,
     description,
     siteName: SITE_NAME,
-    locale: "ru_RU",
+    locale: locale === "ru" ? "ru_RU" : "en_US",
     url: absoluteUrl(path),
     ...(imageUrl ? { images: [{ url: imageUrl }] } : {}),
   };

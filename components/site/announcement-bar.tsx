@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export const ANNOUNCEMENT_BAR_HEIGHT = 32;
 export const ANNOUNCEMENT_DISMISSED_KEY = "pip-announcement-dismissed";
@@ -19,6 +20,7 @@ function broadcastVisibility(visible: boolean) {
 
 /** A dismissible, persistent announcement strip above the site navigation. */
 export function AnnouncementBar() {
+  const t = useTranslations("announcement");
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
@@ -49,13 +51,13 @@ export function AnnouncementBar() {
   return (
     <div className="relative z-50 flex h-8 items-center justify-center bg-[#052B42] px-10 text-white">
       <p className="max-w-full truncate text-center font-body text-[11px] font-medium leading-none sm:text-xs">
-        Plus In Plus — A next-generation design studio
+        {t("message")}
       </p>
       <button
         type="button"
-        aria-label="Dismiss announcement"
+        aria-label={t("dismiss")}
         onClick={dismiss}
-        className="absolute right-2 inline-flex h-7 w-7 items-center justify-center rounded-full text-white/80 transition-colors duration-200 ease-out hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        className="font-medium absolute right-2 inline-flex h-7 w-7 items-center justify-center rounded-full text-white/80 transition-colors duration-200 ease-out hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
       >
         <X aria-hidden="true" className="h-4 w-4" strokeWidth={1.8} />
       </button>

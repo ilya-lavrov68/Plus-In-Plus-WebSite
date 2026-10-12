@@ -2,6 +2,8 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { Star } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { createPost, updatePost } from "@/app/actions/posts";
 import { Button } from "@/components/ui/button";
@@ -43,6 +45,8 @@ export interface PostFormProps {
  * actions; album images are uploaded to /public/uploads/blog/albums/.
  */
 export function PostForm({ mode, postId, initial }: PostFormProps) {
+  const t = useTranslations("admin");
+  const tc = useTranslations("common");
   const router = useRouter();
   const [title, setTitle] = useState(initial?.title ?? "");
   const [slug, setSlug] = useState(initial?.slug ?? "");
@@ -72,17 +76,17 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
           : await updatePost(postId ?? "", formData);
 
       if (!result.ok) {
-        const message = result.error ?? "Saving failed.";
+        const message = result.error ?? t("form.saveFailed");
         setError(message);
-        toast({ title: "Could not save post", description: message, variant: "destructive" });
+        toast({ title: t("form.couldNotSavePost"), description: message, variant: "destructive" });
         return;
       }
 
-      toast({ title: mode === "create" ? "Post created" : "Post updated", description: "The blog list has been refreshed." });
+      toast({ title: mode === "create" ? t("form.postCreated") : t("form.postUpdated"), description: t("form.blogListRefreshed") });
       router.push("/admin/blog");
       router.refresh();
     } catch {
-      setError("Saving failed.");
+      setError(t("form.saveFailed"));
     } finally {
       setPending(false);
     }
@@ -91,7 +95,7 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
   return (
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="post-title">Title</Label>
+        <Label htmlFor="post-title">{tc("title")}</Label>
         <Input
           id="post-title"
           name="title"
@@ -107,46 +111,46 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="post-slug">Slug</Label>
+        <Label htmlFor="post-slug">{t("slug")}</Label>
         <Input
           id="post-slug"
           name="slug"
           maxLength={120}
           required
           pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
-          title="Lowercase letters, numbers and dashes"
+          title={t("form.postSlugPattern")}
           value={slug}
           onChange={(event) => {
             setSlugEdited(true);
             setSlug(event.target.value);
           }}
         />
-        <p className="text-xs text-muted-foreground">Used in the URL: /blog/&lt;slug&gt;</p>
+        <p className="text-xs text-muted-foreground">{t("form.postSlugHelp")}</p>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="post-excerpt">Excerpt</Label>
+        <Label htmlFor="post-excerpt">{t("form.excerpt")}</Label>
         <Textarea id="post-excerpt" name="excerpt" maxLength={500} required rows={2} defaultValue={initial?.excerpt} />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="post-content">Content (rich text)</Label>
+        <Label htmlFor="post-content">{t("form.contentLabel")}</Label>
         <RichTextEditor name="content" initialValue={initial?.content} />
         <p className="text-xs text-muted-foreground">
-          Formatting is stored as safe HTML. Scripts, embeds, images, and unsafe links are removed before publishing.
+          {t("form.contentHelp")}
         </p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="post-source">Source</Label>
+          <Label htmlFor="post-source">{tc("source")}</Label>
           <select
             id="post-source"
             name="source"
             defaultValue={initial?.source ?? "manual"}
             className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
-            <option value="manual">Manual (Studio)</option>
+            <option value="manual">{t("form.sourceManual")}</option>
             <option value="telegram">Telegram</option>
             <option value="vk">VK</option>
             <option value="youtube">YouTube</option>
@@ -154,19 +158,19 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="post-source-url">Source URL (optional)</Label>
+          <Label htmlFor="post-source-url">{t("form.sourceUrl")}</Label>
           <Input
             id="post-source-url"
             name="sourceUrl"
             type="url"
-            placeholder="https://t.me/..., https://vk.com/..., etc."
+            placeholder={t("form.sourceUrlPlaceholder")}
             defaultValue={initial?.sourceUrl ?? ""}
           />
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="post-read-time">Read time (minutes)</Label>
+        <Label htmlFor="post-read-time">{t("form.readTime")}</Label>
         <Input
           id="post-read-time"
           name="readTime"
@@ -180,18 +184,18 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="post-published-at">Publication date and time</Label>
+        <Label htmlFor="post-published-at">{t("form.publishedAt")}</Label>
         <Input
           id="post-published-at"
           name="publishedAt"
           type="datetime-local"
           defaultValue={initial?.publishedAt ? new Date(initial.publishedAt).toISOString().slice(0, 16) : ""}
         />
-        <p className="text-xs text-muted-foreground">Leave empty for immediate publication. A future date keeps the post hidden until then.</p>
+        <p className="text-xs text-muted-foreground">{t("form.publishedAtHelp")}</p>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="post-cover">Cover image (main)</Label>
+        <Label htmlFor="post-cover">{t("coverImageMain")}</Label>
         <Input
           id="post-cover"
           name="cover"
@@ -204,7 +208,7 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
             if (file && file.size > MAX_COVER_BYTES) {
               event.target.value = "";
               setCoverFile(null);
-              setError("Cover image must be 8 MB or smaller.");
+              setError(t("form.coverTooLarge"));
               return;
             }
             setCoverFile(file ?? null);
@@ -215,7 +219,7 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
           <div className="relative mt-2 h-24 w-40 overflow-hidden rounded-md border border-border bg-[#F0F0F0]">
             <SafeImage
               src={initial.coverImage}
-              alt="Current cover"
+              alt={t("currentCover")}
               fill
               sizes="160px"
               className="object-contain"
@@ -227,9 +231,9 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
       {/* Additional Images (Album) */}
       <div className="space-y-2 rounded-xl border border-border p-4 bg-muted/20">
         <div>
-          <Label className="text-base font-semibold">Additional Images (Album)</Label>
+          <Label className="text-base font-semibold">{t("form.album")}</Label>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Add multiple photos to create an image gallery on the post page.
+            {t("form.albumHelp")}
           </p>
         </div>
         <ImageAlbumUploader initialImages={initialAlbumImages} />
@@ -238,15 +242,18 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-8">
         <div className="flex items-center gap-3">
           <Switch id="post-featured" checked={isFeatured} onCheckedChange={setIsFeatured} />
-          <Label htmlFor="post-featured" className="cursor-pointer">
-            {isFeatured ? "Featured post ⭐" : "Standard post"}
+          <Label htmlFor="post-featured" className="inline-flex cursor-pointer items-center gap-1.5">
+            {/* Icon instead of an emoji: every glyph stays inside the bundled
+                Latin/Cyrillic faces, in both locales. */}
+            {isFeatured ? <Star aria-hidden="true" className="h-4 w-4" /> : null}
+            {isFeatured ? t("form.featuredPost") : t("form.standardPost")}
           </Label>
         </div>
 
         <div className="flex items-center gap-3">
           <Switch id="post-published" checked={isPublished} onCheckedChange={setIsPublished} />
           <Label htmlFor="post-published" className="cursor-pointer">
-            {isPublished ? "Published" : "Draft"}
+            {isPublished ? t("published") : t("draft")}
           </Label>
         </div>
       </div>
@@ -259,7 +266,7 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
 
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={pending}>
-          {pending ? "Saving…" : mode === "create" ? "Create post" : "Save changes"}
+          {pending ? tc("saving") : mode === "create" ? t("form.createPost") : t("form.saveChanges")}
         </Button>
         <Button
           type="button"
@@ -270,7 +277,7 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
             router.refresh();
           }}
         >
-          Cancel
+          {tc("cancel")}
         </Button>
       </div>
     </form>

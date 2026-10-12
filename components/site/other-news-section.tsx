@@ -1,9 +1,9 @@
 import { Newspaper } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { EmptyState } from "@/components/site/empty-state";
 import { NewsCarousel } from "@/components/site/news-carousel";
 import type { NewsItem } from "@/components/site/news-carousel";
-import type { NewsLocale } from "@/components/site/news-card";
 import type { NewsItemView } from "@/lib/data";
 
 export interface OtherNewsSectionProps {
@@ -13,7 +13,8 @@ export interface OtherNewsSectionProps {
 }
 
 /** Shared light-blue carousel block used below internal-page content cards. */
-export function OtherNewsSection({ items, id, locale = "en" }: OtherNewsSectionProps & { locale?: NewsLocale }) {
+export function OtherNewsSection({ items, id }: OtherNewsSectionProps) {
+  const t = useTranslations("news");
   const carouselItems: NewsItem[] = items.map((item) => ({
     id: item.id,
     title: item.title,
@@ -25,23 +26,22 @@ export function OtherNewsSection({ items, id, locale = "en" }: OtherNewsSectionP
     source: item.source,
     imagesCount: item.imagesCount,
     publishedAt: item.publishedAt,
-    locale,
   }));
 
   return (
     <section aria-labelledby={id} className="bg-[#CFE0FF] text-[#052B42]">
       <div className="mx-auto max-w-[1836px] px-5 pb-16 pt-12 sm:px-8 sm:pb-20 min-[1920px]:px-0 lg:pb-[56px] lg:pt-12">
         <h2 id={id} className="text-center font-geist text-3xl font-semibold tracking-[-0.04em] sm:text-4xl lg:text-[3rem]">
-          Other News
+          {t("otherNews")}
         </h2>
         <div className="mt-8 sm:mt-10 lg:mt-10">
           {carouselItems.length ? (
-            <NewsCarousel items={carouselItems} label="Other news" />
+            <NewsCarousel items={carouselItems} label={t("otherNewsLabel")} />
           ) : (
             <EmptyState
               icon={Newspaper}
-              title="No news yet"
-              description="Check back later for updates."
+              title={t("noNewsYet")}
+              description={t("checkBack")}
             />
           )}
         </div>

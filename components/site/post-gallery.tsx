@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { SafeImage } from "@/components/site/safe-image";
 
@@ -11,6 +12,7 @@ export interface PostGalleryProps {
 }
 
 export function PostGallery({ images }: PostGalleryProps) {
+  const t = useTranslations("gallery");
   let imageList: string[] = [];
   if (Array.isArray(images)) {
     imageList = images;
@@ -69,10 +71,10 @@ export function PostGallery({ images }: PostGalleryProps) {
     <div className="mt-10 border-t border-[#052B42]/10 pt-8 sm:mt-12 sm:pt-10">
       <div className="flex items-center justify-between pb-4">
         <h3 className="font-geist text-xl font-semibold tracking-[-0.02em] text-[#052B42] sm:text-2xl">
-          Gallery
+          {t("title")}
         </h3>
         <span className="rounded-full bg-[#052B42]/10 px-3 py-1 font-body text-xs font-semibold text-[#052B42]">
-          {imageList.length} {imageList.length === 1 ? "photo" : "photos"}
+          {t("photoCount", { count: imageList.length })}
         </span>
       </div>
 
@@ -82,8 +84,8 @@ export function PostGallery({ images }: PostGalleryProps) {
             key={`${src}-${index}`}
             type="button"
             onClick={() => setSelectedIndex(index)}
-            aria-label={`Open photo ${index + 1} of ${imageList.length}`}
-            className="group relative aspect-video w-full overflow-hidden rounded-xl border border-gray-200 bg-[#F0F0F0] text-left transition-shadow duration-200 ease-out hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42]"
+            aria-label={t("openPhoto", { index: index + 1, total: imageList.length })}
+            className="font-medium group relative aspect-video w-full overflow-hidden rounded-xl border border-gray-200 bg-[#F0F0F0] text-left transition-shadow duration-200 ease-out hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42]"
           >
             <SafeImage
               src={src}
@@ -109,7 +111,7 @@ export function PostGallery({ images }: PostGalleryProps) {
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Image gallery lightbox"
+          aria-label={t("lightbox")}
           onClick={closeModal}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm sm:p-6"
         >
@@ -117,8 +119,8 @@ export function PostGallery({ images }: PostGalleryProps) {
           <button
             type="button"
             onClick={closeModal}
-            aria-label="Close lightbox"
-            className="absolute right-4 top-4 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white transition-colors duration-200 hover:bg-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            aria-label={t("close")}
+            className="font-medium absolute right-4 top-4 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white transition-colors duration-200 hover:bg-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
             <X className="h-5 w-5" />
           </button>
@@ -131,8 +133,8 @@ export function PostGallery({ images }: PostGalleryProps) {
                 e.stopPropagation();
                 showPrev();
               }}
-              aria-label="Previous image"
-              className="absolute left-4 top-1/2 z-50 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/20 text-white transition-colors duration-200 hover:bg-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              aria-label={t("previous")}
+              className="font-medium absolute left-4 top-1/2 z-50 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/20 text-white transition-colors duration-200 hover:bg-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               <ChevronLeft className="h-6 w-6" />
             </button>
@@ -146,8 +148,8 @@ export function PostGallery({ images }: PostGalleryProps) {
                 e.stopPropagation();
                 showNext();
               }}
-              aria-label="Next image"
-              className="absolute right-4 top-1/2 z-50 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/20 text-white transition-colors duration-200 hover:bg-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              aria-label={t("next")}
+              className="absolute right-4 top-1/2 z-50 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/20 font-medium text-white transition-colors duration-200 hover:bg-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               <ChevronRight className="h-6 w-6" />
             </button>
@@ -161,7 +163,7 @@ export function PostGallery({ images }: PostGalleryProps) {
             <div className="relative aspect-video max-h-[80vh] w-[min(1200px,85vw)] overflow-hidden rounded-xl bg-black/40">
               <Image
                 src={imageList[selectedIndex]}
-                alt={`Photo ${selectedIndex + 1}`}
+                alt={t("photoAlt", { index: selectedIndex + 1 })}
                 fill
                 sizes="90vw"
                 className="object-contain"

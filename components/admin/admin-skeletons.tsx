@@ -1,6 +1,10 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+
 import { Skeleton } from "@/components/ui/skeleton";
 
-function LoadingRegion({ children, label = "Loading" }: { children: React.ReactNode; label?: string }) {
+function LoadingRegion({ children, label }: { children: React.ReactNode; label: string }) {
   return (
     <div role="status" aria-label={label} className="space-y-6">
       <span className="sr-only">{label}…</span>
@@ -10,8 +14,9 @@ function LoadingRegion({ children, label = "Loading" }: { children: React.ReactN
 }
 
 export function AdminDashboardSkeleton() {
+  const t = useTranslations("admin");
   return (
-    <LoadingRegion label="Loading dashboard">
+    <LoadingRegion label={t("loadingDashboard")}>
       <div className="space-y-2">
         <Skeleton className="h-9 w-48" />
         <Skeleton className="h-5 w-80 max-w-full" />
@@ -33,7 +38,9 @@ export function AdminDashboardSkeleton() {
   );
 }
 
-export function AdminTableSkeleton({ label = "Loading table", rows = 6 }: { label?: string; rows?: number }) {
+export function AdminTableSkeleton({ rows = 6 }: { rows?: number }) {
+  const t = useTranslations("admin");
+  const label = t("loadingTable");
   return (
     <LoadingRegion label={label}>
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -67,12 +74,13 @@ export function AdminTableSkeleton({ label = "Loading table", rows = 6 }: { labe
 }
 
 export function AdminUsersSkeleton() {
-  return <AdminTableSkeleton label="Loading users" rows={7} />;
+  return <AdminTableSkeleton rows={7} />;
 }
 
 export function AdminSettingsSkeleton() {
+  const t = useTranslations("admin");
   return (
-    <LoadingRegion label="Loading settings">
+    <LoadingRegion label={t("loadingSettings")}>
       <div className="space-y-2"><Skeleton className="h-9 w-48" /><Skeleton className="h-5 w-96 max-w-full" /></div>
       <div className="grid gap-6 lg:grid-cols-2">
         {Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-64 rounded-xl" />)}
@@ -83,8 +91,9 @@ export function AdminSettingsSkeleton() {
 }
 
 export function AdminFormSkeleton() {
+  const t = useTranslations("admin");
   return (
-    <LoadingRegion label="Loading editor">
+    <LoadingRegion label={t("loadingEditor")}>
       <div className="space-y-2"><Skeleton className="h-9 w-64" /><Skeleton className="h-5 w-96 max-w-full" /></div>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="space-y-5 rounded-xl border border-border p-5"><Skeleton className="h-11 w-full" /><Skeleton className="h-11 w-full" /><Skeleton className="h-56 w-full rounded-lg" /><Skeleton className="h-48 w-full rounded-lg" /></div>

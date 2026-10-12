@@ -16,6 +16,8 @@ require.extensions[".tsx"] = (module, filename) => {
 require.extensions[".ts"] = require.extensions[".tsx"];
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
+  if (name === "next-intl") return require("./next-intl-stub.cjs");
+  if (name === "next-intl/server") return require("./next-intl-stub.cjs");
   if (name === "next/link") return React.forwardRef(({ children, ...props }, ref) => React.createElement("a", { ...props, ref }, children));
   if (name === "next/image") return (props) => React.createElement("img", props);
   if (name === "@/lib/prisma") return { prisma: null };
@@ -392,8 +394,8 @@ test("category introduction is centered, responsive and uses the supplied copy",
   section.unmount();
 });
 
-test("contact form is centered and Send retains its rounded-xl style", () => {
-  const page = create(React.createElement(ContactPage));
+test("contact form is centered and Send retains its rounded-xl style", async () => {
+  const page = create(await ContactPage());
   const heading = page.root.findByProps({ id: "contact-heading" });
   assert.match(heading.props.className, /text-center/);
   assert.match(heading.props.className, /font-geist/);
