@@ -3,13 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 
-/**
- * Full-bleed PNG gradient background (e.g. /assets/gradients/hero-gradient.png).
- *
- * The PNG is the only source of the gradient look — CSS gradients are never
- * used here. Until the customer adds the file, the section's solid brand-color
- * background shows through.
- */
+/** Full-bleed background artwork from the supplied files in /public/assets. */
 export interface GradientBackdropProps {
   src: string;
   alt?: string;
@@ -25,9 +19,7 @@ export function GradientBackdrop({
 }: GradientBackdropProps) {
   const [failed, setFailed] = useState(false);
 
-  if (failed) {
-    return null;
-  }
+  if (failed) return null;
 
   return (
     <Image

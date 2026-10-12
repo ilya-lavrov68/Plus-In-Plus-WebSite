@@ -5,49 +5,47 @@ import { Logo } from "@/components/site/logo";
 import { cn } from "@/lib/utils";
 
 export interface InternalPageHeaderProps {
-  /** Large page title rendered on the gradient hero, e.g. "BLOG" or "SHOP". */
+  /** Large page title rendered on the shared gradient hero, e.g. "BLOG" or "SHOP". */
   title: string;
 }
 
-/**
- * Shared top block for internal pages (Blog, Shop, Shop Service, Contact):
- * 1. Gradient hero (PNG from /assets/gradients, same as the landing) with a big title.
- * 2. White logo row: Plus In Plus | TS Connect on the left, search on the right.
- *
- * Use <InternalPageContent> below it for the white content card.
- */
+/** Shared gradient title, brand-lockup and search header for internal pages. */
 export function InternalPageHeader({ title }: InternalPageHeaderProps) {
   return (
     <>
       <section
         aria-label={`${title} page hero`}
-        className="relative isolate -mt-16 flex h-[40vh] min-h-[260px] items-end overflow-hidden bg-[#e8f0fe]"
+        className="relative isolate -mt-16 flex h-[clamp(400px,40.52vw,778px)] items-end overflow-hidden bg-[#CFE0FF]"
       >
-        <GradientBackdrop src="/assets/gradients/hero-gradient.png" priority />
-        <div className="relative z-10 w-full px-6 pb-2 sm:px-12">
-          <h1 className="font-geist text-[clamp(4rem,16vw,13rem)] font-semibold leading-[0.8] tracking-[-0.05em] text-[#052B42]">
+        <GradientBackdrop src="/assets/gradients/hero-gradient.svg" priority />
+        <div className="relative z-10 w-full px-6 pb-2 sm:px-12 lg:px-24">
+          <h1 className="whitespace-nowrap font-geist text-[clamp(3.5rem,15vw,19rem)] font-semibold leading-[0.8] tracking-[-0.055em] text-[#052B42]">
             {title}
           </h1>
         </div>
       </section>
 
-      <div className="bg-white px-6 py-4">
-        <div className="mx-auto grid max-w-[1440px] grid-cols-1 items-center gap-4 md:grid-cols-2 md:gap-8">
+      <div className="bg-white">
+        <div className="mx-auto grid min-h-[190px] max-w-[1704px] grid-cols-1 items-center gap-5 px-5 py-6 sm:px-8 lg:grid-cols-[minmax(0,683px)_minmax(0,784px)] lg:justify-between lg:gap-8 lg:px-0 lg:pr-12 lg:py-0">
           <div className="flex items-center">
-            <Logo variant="partners" className="h-10 w-auto sm:h-12" />
+            <Logo variant="partners" className="h-auto w-full max-w-[683px]" />
           </div>
-          <div className="relative w-full md:justify-self-end">
+          <form role="search" className="relative w-full">
+            <label htmlFor="internal-page-search" className="sr-only">
+              Search
+            </label>
             <input
+              id="internal-page-search"
               type="search"
-              aria-label="Search"
+              name="q"
               placeholder="Search"
-              className="h-12 w-full rounded-lg border border-[#052B42]/20 bg-white py-2 pl-4 pr-12 font-body text-base text-[#052B42] placeholder:text-[#052B42]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
+              className="h-14 w-full rounded-[24px] border-0 bg-[#EFEFEF] py-2 pl-6 pr-14 font-body text-base text-[#052B42] placeholder:text-[#052B42]/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42] lg:h-[70px] lg:text-lg"
             />
             <Search
               aria-hidden="true"
-              className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#052B42]"
+              className="pointer-events-none absolute right-6 top-1/2 h-5 w-5 -translate-y-1/2 text-[#052B42]"
             />
-          </div>
+          </form>
         </div>
       </div>
     </>
@@ -56,20 +54,32 @@ export function InternalPageHeader({ title }: InternalPageHeaderProps) {
 
 export interface InternalPageContentProps {
   children: React.ReactNode;
+  /** Classes applied to the white content card. */
   className?: string;
-  /** Optional id of the heading that labels the card region. */
+  /** Classes applied to the light-blue page section. */
+  sectionClassName?: string;
+  /** Optional id of the heading that labels the page content. */
   labelledBy?: string;
 }
 
-/**
- * Light-blue content area with a rounded white card inside (mx-6 my-8, p-8 / sm:p-12).
- */
-export function InternalPageContent({ children, className, labelledBy }: InternalPageContentProps) {
+/** Light-blue page surface with a large, responsive white content card. */
+export function InternalPageContent({
+  children,
+  className,
+  sectionClassName,
+  labelledBy,
+}: InternalPageContentProps) {
   return (
-    <section aria-labelledby={labelledBy} className="bg-[#D6E4FF] text-[#052B42]">
+    <section
+      aria-labelledby={labelledBy}
+      className={cn(
+        "rounded-t-[3rem] bg-[#CFE0FF] pb-16 pt-[clamp(3.5rem,9vw,11rem)] text-[#052B42] sm:rounded-t-[4rem] lg:rounded-t-[100px]",
+        sectionClassName,
+      )}
+    >
       <div
         className={cn(
-          "mx-6 my-8 rounded-[2rem] bg-white p-8 text-[#052B42] sm:p-12",
+          "mx-auto w-full max-w-[1920px] rounded-[2.5rem] bg-white px-5 py-8 text-[#052B42] sm:rounded-[3.5rem] sm:px-10 sm:py-12 lg:rounded-[100px] lg:px-[4.2%] lg:py-14",
           className,
         )}
       >

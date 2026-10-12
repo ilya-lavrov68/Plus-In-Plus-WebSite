@@ -2,6 +2,7 @@ import { Newspaper } from "lucide-react";
 
 import { EmptyState } from "@/components/site/empty-state";
 import { NewsCarousel } from "@/components/site/news-carousel";
+import type { NewsItem } from "@/components/site/news-carousel";
 import type { NewsItemView } from "@/lib/data";
 
 export interface OtherNewsSectionProps {
@@ -10,17 +11,26 @@ export interface OtherNewsSectionProps {
   id: string;
 }
 
-/** "Other News" block shown below the white content card on internal pages. */
+/** Shared light-blue carousel block used below internal-page content cards. */
 export function OtherNewsSection({ items, id }: OtherNewsSectionProps) {
+  const carouselItems: NewsItem[] = items.map((item) => ({
+    id: item.id,
+    title: item.title,
+    href: item.href,
+    imageSrc: item.imageSrc,
+    excerpt: item.excerpt,
+    source: item.source,
+  }));
+
   return (
-    <section aria-labelledby={id} className="bg-[#D6E4FF] text-[#052B42]">
-      <div className="mx-auto max-w-7xl px-4 pb-16 sm:px-8 sm:pb-20">
-        <h2 id={id} className="text-center text-3xl font-bold tracking-tight sm:text-4xl">
+    <section aria-labelledby={id} className="bg-[#CFE0FF] text-[#052B42]">
+      <div className="mx-auto max-w-[1836px] px-5 pb-16 pt-12 sm:px-8 sm:pb-20 min-[1920px]:px-0 lg:pb-[56px] lg:pt-12">
+        <h2 id={id} className="text-center font-geist text-3xl font-semibold tracking-[-0.04em] sm:text-4xl lg:text-[3rem]">
           Other News
         </h2>
-        <div className="mt-10 sm:mt-12">
-          {items.length ? (
-            <NewsCarousel items={items} label="Other news" />
+        <div className="mt-8 sm:mt-10 lg:mt-10">
+          {carouselItems.length ? (
+            <NewsCarousel items={carouselItems} label="Other news" />
           ) : (
             <EmptyState
               icon={Newspaper}

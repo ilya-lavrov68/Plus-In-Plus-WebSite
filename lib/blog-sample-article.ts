@@ -1,7 +1,6 @@
 /**
- * Article text from the "Plus in Plus Site - Blog" mockup (PDF).
- * Rendered on /blog/[slug] when the published post has no body content yet,
- * so the page matches the design. Real posts from the admin panel use their own HTML.
+ * Canonical article copy transcribed from the supplied Plus In Plus Blog PDF.
+ * It is used only when the matching reference post exists in the published DB.
  */
 export interface SampleArticleSection {
   title: string;
