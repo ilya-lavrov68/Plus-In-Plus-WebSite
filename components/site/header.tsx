@@ -241,7 +241,7 @@ export function Header() {
               onClick={openLogin}
               aria-label="Open account"
               aria-haspopup="dialog"
-              className="rounded-full p-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2"
             >
               <UserAvatar user={session.user} size={36} />
             </button>

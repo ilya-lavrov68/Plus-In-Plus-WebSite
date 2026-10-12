@@ -57,13 +57,13 @@ export default async function AdminServicesPage() {
               {services.map((service) => (
                 <TableRow key={service.id}>
                   <TableCell>
-                    <div className="relative h-12 w-16 overflow-hidden rounded-md border border-border">
+                    <div className="relative h-12 w-16 overflow-hidden rounded-md border border-border bg-[#F0F0F0]">
                       <SafeImage
                         src={service.coverImage}
                         alt=""
                         fill
                         sizes="64px"
-                        className="object-cover"
+                        className="object-contain"
                       />
                     </div>
                   </TableCell>
