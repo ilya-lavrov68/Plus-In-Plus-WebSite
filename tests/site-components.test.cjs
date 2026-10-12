@@ -43,7 +43,7 @@ const { default: ShopPage } = require("../app/shop/page.tsx");
 const { default: BlogPage } = require("../app/blog/page.tsx");
 const { default: sitemap } = require("../app/sitemap.ts");
 const { default: robots } = require("../app/robots.ts");
-const { ArrowRight, ChevronDown } = require("lucide-react");
+const { ArrowRight, ChevronDown, Languages } = require("lucide-react");
 const content = (node) => {
   const children = Array.isArray(node) ? node : node?.children ?? [];
   return (Array.isArray(children) ? children : [])
@@ -138,7 +138,7 @@ test("empty and single-item carousels have no autoplay controls", () => {
   act(() => single.view.unmount());
 });
 
-test("header switches background only above 50px and removes its listener", () => {
+test("header switches to its glass surface only above 50px and removes its listener", () => {
   const timer = clock();
   let view;
   act(() => { view = create(React.createElement(Header)); });
@@ -147,7 +147,8 @@ test("header switches background only above 50px and removes its listener", () =
   act(() => { window.scrollY = 50; timer.listeners.get("scroll")(); });
   assert.match(header(), /bg-transparent/);
   act(() => { window.scrollY = 51; timer.listeners.get("scroll")(); });
-  assert.match(header(), /bg-white\/95/);
+  assert.match(header(), /site-header--glass/);
+  assert.doesNotMatch(header(), /bg-white\/95/);
   assert.match(header(), /duration-250 ease-out/);
   act(() => view.unmount());
   assert.equal(timer.listeners.has("scroll"), false);
@@ -164,6 +165,10 @@ test("header opens one large multi-column menu on hover and supports mobile acco
     typeof node.props?.className === "string" && node.props.className.includes("relative z-30 flex"),
   )[0];
   assert.ok(rightSide);
+  const languageSwitcher = rightSide.findAllByType("button").find((button) => button.props.title === "Language");
+  assert.ok(languageSwitcher);
+  assert.equal(languageSwitcher.props["aria-label"], "English — Language");
+  assert.ok(languageSwitcher.findByType(Languages));
   const contact = rightSide.findAllByType("a").find((link) => content(link) === "Contact");
   const login = rightSide.findAllByType("button").find((button) => content(button) === "Log in");
   assert.ok(contact);

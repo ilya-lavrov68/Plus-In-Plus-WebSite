@@ -230,6 +230,25 @@
   }
 }
 
+/* A translucent, softly blurred surface for the sticky site navigation. */
+@layer components {
+  .site-header--glass {
+    border-color: rgba(255, 255, 255, 0.72);
+    background-color: rgba(255, 255, 255, 0.94);
+    box-shadow:
+      0 10px 30px -22px rgba(5, 43, 66, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  }
+
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    .site-header--glass {
+      background-color: rgba(255, 255, 255, 0.72);
+      -webkit-backdrop-filter: blur(18px) saturate(140%);
+      backdrop-filter: blur(18px) saturate(140%);
+    }
+  }
+}
+
 /* Long-form article body (blog posts come from the DB as HTML). */
 @layer components {
   .article-content {

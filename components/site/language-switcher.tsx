@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Languages } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 
@@ -57,12 +58,13 @@ export function LanguageSwitcher() {
       <button
         type="button"
         aria-label={`${labels[locale]} — ${t("language")}`}
+        title={t("language")}
         aria-expanded={open}
         aria-haspopup="listbox"
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex items-center rounded-sm border-b border-navy px-1 pb-0.5 font-body text-sm font-medium leading-none text-navy transition-colors duration-200 ease-out hover:text-[#0A4366] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
+        className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-navy transition-colors duration-200 ease-out hover:bg-navy/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
       >
-        {t("aa")}
+        <Languages aria-hidden="true" className="h-5 w-5" strokeWidth={1.8} />
       </button>
       {open ? (
         <div
