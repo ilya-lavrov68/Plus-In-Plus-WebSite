@@ -29,22 +29,28 @@ export interface PostView {
   excerpt: string;
   content: string;
   coverImage: string;
+  images?: string | null;
   readTime: number;
   source: string;
+  sourceUrl?: string | null;
+  isFeatured?: boolean;
   publishedAt: Date | null;
 }
 
-export type NewsSource = "vk" | "telegram" | "youtube";
+export type NewsSource = "vk" | "telegram" | "youtube" | "manual";
 
 /** Data shared by the landing-page news cards and the legacy article carousel. */
 export interface NewsItemView {
   id: string;
   title: string;
   href: string;
+  postUrl?: string;
+  sourceUrl?: string | null;
   imageSrc?: string;
   excerpt: string;
   source: NewsSource;
   description?: string;
+  imagesCount?: number;
 }
 
 function toServiceView(service: ServiceModel): ServiceView {
@@ -70,8 +76,11 @@ function toPostView(post: PostModel): PostView {
     excerpt: post.excerpt,
     content: post.content,
     coverImage: post.coverImage,
+    images: post.images ?? null,
     readTime: post.readTime,
     source: post.source,
+    sourceUrl: post.sourceUrl ?? null,
+    isFeatured: post.isFeatured ?? false,
     publishedAt: post.publishedAt,
   };
 }
@@ -80,18 +89,23 @@ function toNewsSource(source: string): NewsSource {
   const normalized = source.trim().toLowerCase();
   if (normalized === "telegram") return "telegram";
   if (normalized === "youtube" || normalized === "you tube" || normalized === "yt") return "youtube";
-  return "vk";
+  if (normalized === "vk" || normalized === "vkontakte") return "vk";
+  return "manual";
 }
 
 export function toNewsItem(post: PostView): NewsItemView {
+  const additionalImages = post.images ? parseJsonArray(post.images) : [];
   return {
     id: post.id,
     title: post.title,
     href: `/blog/${post.slug}`,
+    postUrl: `/blog/${post.slug}`,
+    sourceUrl: post.sourceUrl ?? null,
     imageSrc: post.coverImage || undefined,
     excerpt: post.excerpt,
     source: toNewsSource(post.source),
     description: post.excerpt || undefined,
+    imagesCount: additionalImages.length,
   };
 }
 
@@ -161,6 +175,27 @@ export async function getPublishedPost(slug: string): Promise<PostView | null> {
     return post ? toPostView(post) : null;
   } catch (error) {
     console.error("Failed to load the post from the database:", error);
+    return null;
+  }
+}
+
+export async function getFeaturedPost(): Promise<PostView | null> {
+  if (!prisma) return null;
+
+  try {
+    let post = await prisma.post.findFirst({
+      where: { isPublished: true, isFeatured: true },
+      orderBy: [{ publishedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
+    });
+    if (!post) {
+      post = await prisma.post.findFirst({
+        where: { isPublished: true },
+        orderBy: [{ publishedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
+      });
+    }
+    return post ? toPostView(post) : null;
+  } catch (error) {
+    console.error("Failed to load featured post from the database:", error);
     return null;
   }
 }

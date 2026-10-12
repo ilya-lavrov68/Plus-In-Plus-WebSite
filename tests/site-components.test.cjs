@@ -191,6 +191,13 @@ test("header opens one large multi-column menu on hover and supports mobile acco
   assert.equal(mainNav.findAllByType("button").filter((button) => button.props["aria-haspopup"] === "true").length, 4);
   assert.equal(panelNodes().length, 0);
 
+  const expectedSections = [
+    ["Services", "Programs"],
+    ["Small designs", "Large designs"],
+    ["Company", "Resources"],
+    ["Social", "Contact"],
+  ];
+
   for (const [index, label] of labels.entries()) {
     const trigger = triggerFor(label);
     assert.ok(trigger, `${label} trigger is missing`);
@@ -214,18 +221,23 @@ test("header opens one large multi-column menu on hover and supports mobile acco
     assert.match(frame.props.className, /border-gray-100/);
     assert.match(frame.props.className, /bg-white/);
     assert.match(frame.props.className, /shadow-xl/);
-    assert.deepEqual(panel.findAllByType("h2").map(content), ["Services", "Catalog", "Company", "Social"]);
+    assert.deepEqual(panel.findAllByType("h2").map(content), expectedSections[index]);
 
-    const order = panel.findAllByType("a").find((link) => content(link).startsWith("Order a design"));
-    assert.ok(order);
-    assert.match(order.props.className, /rounded-xl/);
-    assert.match(order.props.className, /hover:bg-gray-50/);
-    assert.match(order.children[0].props.className, /h-8 w-8/);
-    assert.match(order.children[0].props.className, /bg-green-100/);
-    assert.match(order.children[1].children[1].props.className, /text-xs/);
+    const links = panel.findAllByType("a");
+    assert.ok(links.length > 0);
     assert.ok(panel.findAllByType("img").some((image) => image.props.src === "/assets/gradients/hero-gradient.svg"));
     assert.ok(panel.findAllByType("a").some((link) => content(link).includes("Inside the Plus In Plus studio")));
   }
+
+  act(() => triggerFor("FOR PLAY").props.onMouseEnter());
+  const forPlayPanel = panelFor("for-play");
+  const order = forPlayPanel.findAllByType("a").find((link) => content(link).startsWith("Order a design"));
+  assert.ok(order);
+  assert.match(order.props.className, /rounded-xl/);
+  assert.match(order.props.className, /hover:bg-gray-50/);
+  assert.match(order.children[0].props.className, /h-8 w-8/);
+  assert.match(order.children[0].props.className, /bg-emerald-500/);
+  assert.match(order.children[1].children[1].props.className, /text-xs/);
 
   act(() => triggerFor("SHOP").props.onMouseEnter());
   const shopPanel = panelFor("shop");
@@ -233,7 +245,9 @@ test("header opens one large multi-column menu on hover and supports mobile acco
   for (const label of shopLabels) {
     assert.ok(shopPanel.findAllByType("a").some((link) => content(link).startsWith(label)), `${label} is missing`);
   }
-  const socials = panelFor("shop").findAllByType("a");
+  act(() => triggerFor("SOCNET").props.onMouseEnter());
+  const socnetPanel = panelFor("socnet");
+  const socials = socnetPanel.findAllByType("a");
   assert.ok(socials.some((link) => link.props.href === "https://vk.com/plusinplus"));
   assert.ok(socials.some((link) => link.props.href === "https://t.me/plusinplus"));
   assert.ok(socials.some((link) => link.props.href === "https://www.youtube.com/@plusinplus"));

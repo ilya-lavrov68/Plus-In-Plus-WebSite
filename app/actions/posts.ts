@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/admin-session";
 import { prisma } from "@/lib/prisma";
 import { revalidatePost } from "@/lib/revalidate-content";
 import { sanitizePostContent } from "@/lib/sanitize-post-content";
+import * as uploadModule from "@/lib/uploads";
 import { cleanupUpload, saveImageUpload, UploadValidationError } from "@/lib/uploads";
 import { createPostSchema, firstIssueMessage } from "@/lib/validators";
 
@@ -25,6 +26,24 @@ function parseCommonFields(form: FormData) {
   // Unsafe HTML is removed before validation, so a post is never stored (or
   // counted) as non-empty because of a script tag.
   const content = sanitizePostContent(rawContent);
+
+  const rawSourceUrl = text(form, "sourceUrl");
+  const rawSource = text(form, "source") || "manual";
+  const rawImages = form.get("images");
+  let imagesJson: string | null = null;
+  if (typeof rawImages === "string" && rawImages.trim()) {
+    try {
+      const parsed = JSON.parse(rawImages);
+      if (Array.isArray(parsed)) {
+        imagesJson = JSON.stringify(parsed.map(String));
+      } else {
+        imagesJson = rawImages.trim();
+      }
+    } catch {
+      imagesJson = rawImages.trim();
+    }
+  }
+
   const result = createPostSchema.safeParse({
     title: text(form, "title"),
     slug: text(form, "slug"),
@@ -32,10 +51,40 @@ function parseCommonFields(form: FormData) {
     content,
     readTime: Number(text(form, "readTime")),
     isPublished: form.get("isPublished") === "true" || form.get("isPublished") === "on",
+    isFeatured: form.get("isFeatured") === "true" || form.get("isFeatured") === "on",
+    source: rawSource,
+    sourceUrl: rawSourceUrl || null,
+    images: imagesJson,
   });
   if (!result.success) return { error: firstIssueMessage(result.error) };
   const { isPublished } = result.data;
   return { data: { ...result.data, publishedAt: isPublished ? new Date() : null } };
+}
+
+async function processAlbumFiles(form: FormData, initialImagesJson: string | null): Promise<string | null> {
+  let imagesList: string[] = [];
+  if (initialImagesJson) {
+    try {
+      const parsed = JSON.parse(initialImagesJson);
+      if (Array.isArray(parsed)) imagesList = parsed.map(String);
+    } catch {
+      imagesList = [initialImagesJson];
+    }
+  }
+
+  const files = form.getAll("album").filter((f): f is File => f instanceof File && f.size > 0);
+  if (files.length > 0) {
+    for (const file of files) {
+      const saveFn =
+        typeof (uploadModule as Record<string, unknown>).saveAlbumImage === "function"
+          ? (uploadModule as { saveAlbumImage: (f: File) => Promise<string> }).saveAlbumImage
+          : (f: File) => saveImageUpload(f, "blog");
+      const url = await saveFn(file);
+      imagesList.push(url);
+    }
+  }
+
+  return imagesList.length > 0 ? JSON.stringify(imagesList) : null;
 }
 
 function coverFile(form: FormData): File | null {
@@ -61,8 +110,16 @@ export async function createPost(formData: FormData): Promise<PostActionResult> 
     const cover = coverFile(formData);
     if (!cover) return { ok: false, error: "Cover image is required." };
     coverImage = await saveImageUpload(cover, "blog");
+    const finalImages = await processAlbumFiles(formData, parsed.data.images ?? null);
+
     const post = await prisma.$transaction(async (tx) => {
-      const created = await tx.post.create({ data: { ...parsed.data, coverImage: coverImage!, source: "manual" } });
+      const created = await tx.post.create({
+        data: {
+          ...parsed.data,
+          coverImage: coverImage!,
+          images: finalImages,
+        },
+      });
       await recordActivity(tx, { action: "created", entityType: "post", entityId: created.id, title: created.title, actorId: admin.id });
       return created;
     });
@@ -94,9 +151,19 @@ export async function updatePost(id: string, formData: FormData): Promise<PostAc
     oldSlug = existing.slug;
     const cover = coverFile(formData);
     if (cover) newCover = await saveImageUpload(cover, "blog");
+    const finalImages = await processAlbumFiles(formData, parsed.data.images ?? null);
     const publishedAt = parsed.data.isPublished && existing.publishedAt ? existing.publishedAt : parsed.data.publishedAt;
+
     await prisma.$transaction(async (tx) => {
-      await tx.post.update({ where: { id }, data: { ...parsed.data, publishedAt, ...(newCover ? { coverImage: newCover } : {}) } });
+      await tx.post.update({
+        where: { id },
+        data: {
+          ...parsed.data,
+          images: finalImages,
+          publishedAt,
+          ...(newCover ? { coverImage: newCover } : {}),
+        },
+      });
       await recordActivity(tx, { action: "updated", entityType: "post", entityId: id, title: parsed.data.title, actorId: admin.id });
     });
   } catch (error) {
@@ -131,4 +198,33 @@ export async function deletePost(id: string): Promise<PostActionResult> {
   await cleanupUpload(cover, "blog");
   revalidatePost(id, slug);
   return { ok: true, id };
+}
+
+export async function getFeaturedPostAction() {
+  if (!prisma) return null;
+  try {
+    let post = await prisma.post.findFirst({
+      where: { isPublished: true, isFeatured: true },
+      orderBy: [{ publishedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
+    });
+    if (!post) {
+      post = await prisma.post.findFirst({
+        where: { isPublished: true },
+        orderBy: [{ publishedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
+      });
+    }
+    return post
+      ? {
+          id: post.id,
+          title: post.title,
+          slug: post.slug,
+          excerpt: post.excerpt,
+          coverImage: post.coverImage,
+          isFeatured: post.isFeatured,
+        }
+      : null;
+  } catch (error) {
+    console.error("Failed to load featured post:", error);
+    return null;
+  }
 }

@@ -14,6 +14,9 @@ export interface NewsSectionItem {
   imageSrc?: string;
   source: NewsSource;
   href: string;
+  postUrl?: string;
+  sourceUrl?: string | null;
+  imagesCount?: number;
 }
 
 export function NewsSection({ items }: { items: readonly NewsSectionItem[] }) {
@@ -24,6 +27,9 @@ export function NewsSection({ items }: { items: readonly NewsSectionItem[] }) {
     imageSrc: item.imageSrc,
     source: item.source,
     href: item.href,
+    postUrl: item.postUrl ?? item.href,
+    sourceUrl: item.sourceUrl,
+    imagesCount: item.imagesCount,
   }));
 
   return (

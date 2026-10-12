@@ -27,7 +27,7 @@ export default async function AdminBlogPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Blog</h1>
           <p className="mt-2 text-muted-foreground">
-            Covers are stored in /public/uploads/blog/.
+            Covers in /public/uploads/blog/, album images in /public/uploads/blog/albums/.
           </p>
         </div>
         <Link
@@ -67,7 +67,16 @@ export default async function AdminBlogPage() {
                       />
                     </div>
                   </TableCell>
-                  <TableCell className="font-medium">{post.title}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      <span>{post.title}</span>
+                      {post.isFeatured ? (
+                        <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700 border border-amber-200">
+                          Featured
+                        </span>
+                      ) : null}
+                    </div>
+                  </TableCell>
                   <TableCell className="font-mono text-xs text-muted-foreground">
                     {post.slug}
                   </TableCell>

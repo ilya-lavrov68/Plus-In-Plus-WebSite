@@ -17,9 +17,12 @@ export function OtherNewsSection({ items, id }: OtherNewsSectionProps) {
     id: item.id,
     title: item.title,
     href: item.href,
+    postUrl: item.postUrl ?? item.href,
+    sourceUrl: item.sourceUrl,
     imageSrc: item.imageSrc,
     excerpt: item.excerpt,
     source: item.source,
+    imagesCount: item.imagesCount,
   }));
 
   return (

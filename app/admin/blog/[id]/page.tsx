@@ -20,7 +20,7 @@ export default async function EditPostPage({
     <div>
       <h1 className="text-3xl font-bold tracking-tight">Edit post</h1>
       <p className="mt-2 text-muted-foreground">
-        The cover is uploaded to /public/uploads/blog/ and its path is saved in the database.
+        The cover is uploaded to /public/uploads/blog/ and album images to /public/uploads/blog/albums/.
       </p>
       <div className="mt-8">
         <PostForm
@@ -33,6 +33,10 @@ export default async function EditPostPage({
             content: post.content,
             readTime: post.readTime,
             coverImage: post.coverImage,
+            images: post.images,
+            isFeatured: post.isFeatured,
+            source: post.source,
+            sourceUrl: post.sourceUrl,
             isPublished: post.isPublished,
           }}
         />

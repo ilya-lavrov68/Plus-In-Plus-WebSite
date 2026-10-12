@@ -13,11 +13,14 @@ const SWIPE_THRESHOLD = 50;
 export interface NewsItem {
   id: string;
   title: string;
-  href: string;
+  href?: string;
+  postUrl?: string;
+  sourceUrl?: string | null;
   imageSrc?: string;
   excerpt?: string;
   description?: string;
   source?: NewsSource;
+  imagesCount?: number;
 }
 
 export interface NewsCarouselProps {
@@ -196,7 +199,10 @@ export function NewsCarousel({ items, label }: NewsCarouselProps) {
                       excerpt={item.excerpt ?? item.description ?? ""}
                       imageSrc={item.imageSrc}
                       source={item.source}
+                      sourceUrl={item.sourceUrl ?? undefined}
+                      postUrl={item.postUrl ?? item.href}
                       href={item.href}
+                      imagesCount={item.imagesCount}
                       isActive={pageIndex === activePage}
                     />
                   </li>
