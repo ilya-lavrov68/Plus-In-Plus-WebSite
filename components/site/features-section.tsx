@@ -28,15 +28,15 @@ export function FeaturesSection() {
           {features.map(({ title, description, icon: Icon }) => (
             <li
               key={title}
-              className="flex min-h-[220px] flex-col rounded-[2rem] bg-[#0A3650] p-6 sm:p-7 lg:min-h-[250px] lg:rounded-[40px] lg:p-8"
+              className="flex min-h-[220px] flex-col rounded-[2rem] bg-[#0A3B57] p-6 sm:p-7 lg:min-h-[250px] lg:rounded-[40px] lg:p-8"
             >
               <div className="flex items-center gap-4">
                 <Icon aria-hidden="true" className="h-9 w-9 shrink-0 text-[#05F07E]" strokeWidth={1.8} />
-                <h2 className="font-geist text-lg font-semibold leading-tight tracking-[-0.025em] text-white sm:text-xl">
+                <h2 className="font-geist text-xl font-semibold leading-tight tracking-[-0.025em] text-white sm:text-[1.375rem]">
                   {title}
                 </h2>
               </div>
-              <p className="mt-5 max-w-[28rem] font-body text-sm leading-6 text-white sm:text-base sm:leading-7">
+              <p className="mt-5 max-w-[28rem] font-body text-[0.9375rem] leading-6 text-white sm:text-[1.0625rem] sm:leading-7">
                 {description}
               </p>
             </li>

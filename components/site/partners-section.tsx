@@ -15,7 +15,7 @@ export function PartnersSection() {
           <h2 id="partners-heading" className="sr-only">
             Our partners
           </h2>
-          <p className="mx-auto max-w-[700px] text-center font-body text-base leading-7 text-[#052B42] sm:text-lg sm:leading-8 lg:ml-auto lg:text-right lg:text-xl">
+          <p className="mx-auto max-w-[700px] text-center font-body text-base leading-7 text-[#052B42] sm:text-lg sm:leading-8 lg:ml-auto lg:text-center lg:text-xl">
             Our partners and neighbors at TS Connect, an IT firm in Tambov, provide us with the
             resources we need to carry out our activities, and we, in turn, provide them with our
             services.
