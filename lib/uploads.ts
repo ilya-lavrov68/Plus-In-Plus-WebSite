@@ -4,7 +4,8 @@ import path from "node:path";
 import sharp from "sharp";
 
 import {
-  isUploadFilename, isUploadKind, MAX_AVATAR_BYTES, MAX_COVER_BYTES, type UploadKind,
+  isUploadFilename, isUploadKind, MAX_AVATAR_BYTES, MAX_COVER_BYTES,
+  MAX_COVER_INPUT_PIXELS, MAX_COVER_OUTPUT_EDGE_PX, type UploadKind,
 } from "@/lib/upload-policy";
 
 export type { UploadKind } from "@/lib/upload-policy";
@@ -63,14 +64,14 @@ export async function saveImageUpload(file: File, kind: UploadKind): Promise<str
 
   let image: Buffer;
   try {
-    const size = kind === "avatars" ? 256 : 2400;
-    image = await sharp(bytes, { limitInputPixels: 25_000_000, animated: false })
+    const size = kind === "avatars" ? 256 : MAX_COVER_OUTPUT_EDGE_PX;
+    image = await sharp(bytes, { limitInputPixels: MAX_COVER_INPUT_PIXELS, animated: false })
       .rotate()
       .resize({ width: size, height: size, fit: "inside", withoutEnlargement: true })
       .webp({ quality: 88 })
       .toBuffer();
   } catch {
-    throw new UploadValidationError("Invalid image file. Please choose a valid image under 25 megapixels.");
+    throw new UploadValidationError(`Invalid image file. Please choose a valid image under ${MAX_COVER_INPUT_PIXELS / 1_000_000} megapixels.`);
   }
 
   if (image.length > limit) throw new UploadValidationError("The processed image is too large. Please choose a smaller image.");

@@ -28,7 +28,7 @@ export function FeaturesSection() {
           {features.map(({ title, description, icon: Icon }) => (
             <li
               key={title}
-              className="flex min-h-[220px] flex-col rounded-[2rem] bg-[#0A3B57] p-6 sm:p-7 lg:min-h-[250px] lg:rounded-[40px] lg:p-8"
+              className="flex flex-col rounded-[2rem] bg-[#0A3B57] p-6 sm:p-7 lg:rounded-[40px] lg:p-8"
             >
               <div className="flex items-center gap-4">
                 <Icon aria-hidden="true" className="h-9 w-9 shrink-0 text-[#05F07E]" strokeWidth={1.8} />

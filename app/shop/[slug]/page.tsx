@@ -113,7 +113,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
                     fill
                     priority={index === 0}
                     sizes="(min-width: 1536px) 560px, (min-width: 768px) 29vw, 82vw"
-                    className="object-cover"
+                    className="object-contain"
                   />
                 </li>
               ))}

@@ -45,9 +45,7 @@ export const FOOTER_COLUMNS: readonly FooterColumn[] = [
   {
     title: "Resources",
     links: [
-      { label: "Case studies", href: "/blog" },
       { label: "Design systems", href: "#" },
-      { label: "Front-end development", href: "#" },
       { label: "Ozone project", href: "#" },
       { label: "Plus For Play", href: "#" },
     ],
@@ -68,13 +66,12 @@ export const FOOTER_COLUMNS: readonly FooterColumn[] = [
       { label: "Collaboration", href: "/contact" },
       { label: "Partners", href: "/#partners" },
       { label: "Contact us", href: "/contact" },
-      { label: "Careers", href: "#" },
     ],
   },
 ];
 
 export const FOOTER_LEGAL_LINKS: readonly FooterLink[] = [
-  { label: "Plus In Plus Group", href: "/#partners" },
+  { label: "TSConnect Group", href: "/#partners" },
   { label: "Legal documents", href: "#" },
   { label: "Terms of use", href: "#" },
   { label: "Privacy policy", href: "#" },

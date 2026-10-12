@@ -17,13 +17,13 @@ export function ServiceCard({ title, href, imageSrc }: ServiceCardProps) {
       aria-label={`${title} — more details`}
       className="group flex h-full flex-col overflow-hidden rounded-[1.75rem] bg-[#CFE0FF] text-[#052B42] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42] focus-visible:ring-offset-2"
     >
-      <div className="relative aspect-[4/3] overflow-hidden rounded-2xl">
+      <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-[#F0F0F0]">
         <SafeImage
           src={imageSrc}
           alt=""
           fill
           sizes="(min-width: 1536px) 420px, (min-width: 1280px) 25vw, (min-width: 640px) 45vw, 46vw"
-          className="object-cover transition-transform duration-250 ease-out group-hover:scale-[1.025] group-focus-visible:scale-[1.025]"
+          className="object-contain transition-opacity duration-200 ease-out group-hover:opacity-95 group-focus-visible:opacity-95"
         />
       </div>
       <div className="flex flex-1 items-center justify-between gap-4 px-4 py-4">

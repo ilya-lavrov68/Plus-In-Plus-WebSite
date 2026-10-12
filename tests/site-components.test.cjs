@@ -319,14 +319,46 @@ test("category and service cards use the supplied artwork with responsive brand 
   const service = create(React.createElement(ServiceCard, { title: "Service", href: "/shop/service", imageSrc: "/from-props.png" }));
   const image = service.root.findByType("img");
   assert.equal(image.props.src, "/from-props.png");
-  assert.match(image.props.className, /duration-250 ease-out/);
-  assert.match(image.props.className, /group-hover:scale-\[1\.025\]/);
+  assert.match(image.props.className, /object-contain/);
+  assert.match(image.props.className, /transition-opacity duration-200 ease-out/);
   const title = service.root.findByType("h3");
   assert.match(title.props.className, /font-geist/);
   assert.match(service.root.findByType("a").props.className, /text-\[#052B42\]/);
   const arrow = service.root.findByType(ArrowRight);
   assert.match(arrow.props.className, /transition-transform duration-200 ease-out group-hover:translate-x-1/);
+
+  const { ShopServiceCard } = require("../components/site/shop-service-card.tsx");
+  const shopService = create(React.createElement(ShopServiceCard, { title: "Catalog service", href: "/shop/catalog", imageSrc: "/cover.webp" }));
+  assert.match(shopService.root.findByType("img").props.className, /object-contain/);
+  assert.match(shopService.root.findAllByType("div").find((node) => /aspect-\[3\/2\]/.test(node.props.className)).props.className, /bg-\[#F0F0F0\]/);
+
+  const { NewsCard } = require("../components/site/news-card.tsx");
+  const news = create(React.createElement(NewsCard, { title: "News", excerpt: "Excerpt", imageSrc: "/news.webp" }));
+  assert.match(news.root.findByType("img").props.className, /object-contain/);
+  assert.match(news.root.findAllByType("div").find((node) => /aspect-\[350\/273\]/.test(node.props.className)).props.className, /bg-\[#F0F0F0\]/);
+
   category.unmount();
+  service.unmount();
+  shopService.unmount();
+  news.unmount();
+});
+
+test("cover upload help shows target pixel dimensions and explains that uploaded art will not be cropped", () => {
+  const { CoverImageHelp } = require("../components/admin/cover-image-help.tsx");
+  const blog = create(React.createElement(CoverImageHelp, { kind: "blog", file: null, mode: "create" }));
+  const blogCopy = content(blog.toJSON());
+  assert.match(blogCopy, /1,400 × 1,092 px \(350:273\)/);
+  assert.match(blogCopy, /700 × 546 px/);
+  assert.match(blogCopy, /2,400 × 1,872 px/);
+  assert.match(blogCopy, /Full HD \(1,920 × 1,080 px\) is accepted and displayed in full/);
+  assert.match(blogCopy, /never cropped/);
+
+  const service = create(React.createElement(CoverImageHelp, { kind: "services", file: null, mode: "create" }));
+  const serviceCopy = content(service.toJSON());
+  assert.match(serviceCopy, /1,600 × 1,067 px \(3:2\)/);
+  assert.match(serviceCopy, /800 × 533 px/);
+  assert.match(serviceCopy, /2,400 × 1,600 px/);
+  blog.unmount();
   service.unmount();
 });
 
@@ -496,15 +528,22 @@ test("a published post maps to a landing news item and renders its blog link", (
   act(() => view.unmount());
 });
 
-test("stage 7.1: hero is nowrap and category introduction is centered", () => {
+test("stage 7.1: hero is oversized and category introduction is centered", () => {
   const { HeroSection } = require("../components/site/hero-section.tsx");
   const { CategoriesSection } = require("../components/site/categories-section.tsx");
   const hero = create(React.createElement(HeroSection));
   const heading = hero.root.findByType("h1");
-  assert.match(heading.props.className, /whitespace-nowrap/);
-  assert.match(heading.props.className, /text-\[clamp\(/);
+  assert.match(heading.props.className, /text-\[clamp\(3rem,6\.2vw,6rem\)\]/);
+  assert.match(heading.props.className, /lg:whitespace-nowrap/);
   assert.match(heading.props.className, /text-\[#052B42\]/);
   assert.doesNotMatch(heading.props.className, /text-balance/);
+  const heroButtons = hero.root.findAllByType("a").filter((link) => ["Order", "Contact us"].includes(content(link)));
+  assert.equal(heroButtons.length, 2);
+  for (const button of heroButtons) {
+    assert.match(button.props.className, /h-\[42px\].*w-\[min\(206px,31\.5vw\)\]/);
+    assert.match(button.props.className, /rounded-none/);
+    assert.match(button.props.className, /text-xs/);
+  }
   const categories = create(React.createElement(CategoriesSection));
   const intro = categories.root.findByProps({ id: "categories-heading" }).parent;
   assert.match(intro.props.className, /mx-auto max-w-\[820px\] text-center/);
@@ -563,6 +602,7 @@ test("stage 7.1: dark sections retain white text, green icons and correct backgr
   assert.equal(cards.length, 3);
   for (const card of cards) {
     assert.match(card.props.className, /bg-\[#0A3B57\]/);
+    assert.doesNotMatch(card.props.className, /min-h-\[/, "feature cards should size to their copy rather than reserve unused height");
     const heading = card.findByType("h2");
     const description = card.findByType("p");
     assert.match(heading.props.className, /text-xl.*sm:text-\[1\.375rem\]/);
@@ -645,9 +685,9 @@ test("footer: light-blue Nebius-style layout with CTA, five columns, legal row a
   const expectedColumns = {
     Services: ["Website design", "Badge design", "Poster design", "Banner mockup design", "Sign Design", "Bag Design", "Large Billboard", "Rooftop advertising"],
     About: ["How we work", "Our partners", "TS Connect", "Studio news", "Blog"],
-    Resources: ["Case studies", "Design systems", "Front-end development", "Ozone project", "Plus For Play"],
+    Resources: ["Design systems", "Ozone project", "Plus For Play"],
     Legal: ["Privacy Policy", "User Agreement", "Offer", "Terms of use"],
-    Company: ["Account", "Collaboration", "Partners", "Contact us", "Careers"],
+    Company: ["Account", "Collaboration", "Partners", "Contact us"],
   };
   assert.deepEqual(columns.map((column) => column.title), Object.keys(expectedColumns));
   assert.deepEqual(
@@ -700,7 +740,7 @@ test("footer: light-blue Nebius-style layout with CTA, five columns, legal row a
   const bottomLinks = bottomRow.findAllByType("a");
   assert.deepEqual(
     bottomLinks.map((node) => content(node)),
-    ["Plus In Plus Group", "Legal documents", "Terms of use", "Privacy policy", "Cookie policy"],
+    ["TSConnect Group", "Legal documents", "Terms of use", "Privacy policy", "Cookie policy"],
   );
   for (const link of bottomLinks) {
     assert.match(link.props.className, /text-xs text-navy\/60/);

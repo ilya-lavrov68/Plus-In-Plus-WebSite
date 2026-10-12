@@ -22,7 +22,7 @@ export function ShopServiceCard({ title, href, imageSrc }: ShopServiceCardProps)
           alt=""
           fill
           sizes="(min-width: 1920px) 450px, (min-width: 1280px) 24vw, (min-width: 640px) 42vw, 80vw"
-          className="object-cover transition-transform duration-250 ease-out group-hover:scale-[1.025] group-focus-visible:scale-[1.025]"
+          className="object-contain transition-opacity duration-200 ease-out group-hover:opacity-95 group-focus-visible:opacity-95"
         />
       </div>
       <h3 className="mt-3 flex min-h-[4.25rem] items-start justify-center px-4 text-center font-body text-base font-medium leading-snug sm:text-lg lg:text-2xl">

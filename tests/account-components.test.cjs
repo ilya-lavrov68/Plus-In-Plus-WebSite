@@ -150,7 +150,10 @@ test("failed admin lookup shows the server message without changing the session"
 test("header opens the same profile dialog and profile save refreshes both avatars and names", async () => {
   initialSession = { user: { ...profile } };
   const view = mount(React.createElement(Header));
-  act(() => view.root.findByProps({ "aria-label": "Open account" }).props.onClick());
+  const accountTrigger = view.root.findByProps({ "aria-label": "Open account" });
+  assert.match(accountTrigger.props.className, /inline-flex h-9 w-9.*items-center justify-center.*p-0/);
+  assert.equal(accountTrigger.findByType(UserAvatar).props.size, 36);
+  act(() => accountTrigger.props.onClick());
   assert.ok(button(view, "Edit profile"));
   assert.equal(view.root.findAllByType(UserAvatar).length, 2);
   assert.deepEqual(view.root.findAllByType(UserAvatar).map((n) => n.props.size ?? 64), [36, 64]);

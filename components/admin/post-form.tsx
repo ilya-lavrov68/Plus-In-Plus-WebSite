@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { SafeImage } from "@/components/site/safe-image";
+import { CoverImageHelp } from "@/components/admin/cover-image-help";
 import { IMAGE_ACCEPT, MAX_COVER_BYTES } from "@/lib/upload-policy";
 
 export interface PostFormProps {
@@ -34,7 +35,7 @@ export interface PostFormProps {
 export function PostForm({ mode, postId, initial }: PostFormProps) {
   const router = useRouter();
   const [isPublished, setIsPublished] = useState(initial?.isPublished ?? false);
-  const [coverName, setCoverName] = useState<string | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -128,26 +129,22 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
             setError(null);
             if (file && file.size > MAX_COVER_BYTES) {
               event.target.value = "";
-              setCoverName(null);
+              setCoverFile(null);
               setError("Cover image must be 8 MB or smaller.");
               return;
             }
-            setCoverName(file?.name ?? null);
+            setCoverFile(file ?? null);
           }}
         />
-        <p className="text-xs text-muted-foreground">
-          Up to 8 MB. Saved as WebP to /public/uploads/blog/.{" "}
-          {mode === "edit" ? "Leave empty to keep the current cover." : "Required."}
-          {coverName ? ` Selected: ${coverName}` : ""}
-        </p>
+        <CoverImageHelp kind="blog" file={coverFile} mode={mode} />
         {mode === "edit" && initial?.coverImage ? (
-          <div className="relative mt-2 h-24 w-40 overflow-hidden rounded-md border border-border">
+          <div className="relative mt-2 h-24 w-40 overflow-hidden rounded-md border border-border bg-[#F0F0F0]">
             <SafeImage
               src={initial.coverImage}
               alt="Current cover"
               fill
               sizes="160px"
-              className="object-cover"
+              className="object-contain"
             />
           </div>
         ) : null}
