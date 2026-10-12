@@ -15,14 +15,11 @@ export default function ContactPage() {
     <>
       <InternalPageHeader title="CONTACT" />
 
-      <InternalPageContent labelledBy="contact-heading">
-        <h2 id="contact-heading" className="text-center font-heading text-3xl font-bold tracking-tight text-navy sm:text-4xl">
+      <InternalPageContent labelledBy="contact-heading" sectionClassName="pt-12 sm:pt-16 lg:pt-20">
+        <h2 id="contact-heading" className="text-center font-geist text-3xl font-semibold tracking-[-0.04em] text-[#052B42] sm:text-4xl">
           Contact us
         </h2>
-        <p className="mx-auto mt-4 max-w-2xl text-center text-lg leading-relaxed">
-          Have an idea? Tell us about your project and we will get back to you.
-        </p>
-        <div className="mt-10">
+        <div className="mt-8 sm:mt-10">
           <ContactForm />
         </div>
       </InternalPageContent>

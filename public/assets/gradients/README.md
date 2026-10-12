@@ -1,20 +1,17 @@
-# Brand gradients (static assets)
+# Supplied gradient artwork
 
-PNG gradient images in this folder are **brand assets uploaded manually into the repository
-by the customer** — they are never generated and never uploaded through the admin panel.
+The gradient artwork is bundled as SVG files that contain the original embedded
+PNG images exported with the supplied SVG mockups. These static files are the
+source of the hero and category-card backgrounds; do not replace them with CSS
+gradients or newly generated images.
 
-Expected file names (referenced from the code):
+| File | Used in | Description |
+| --- | --- | --- |
+| `hero-gradient.svg` | Landing hero and internal-page headers | Full-bleed green/teal brand background |
+| `category-bg.svg` | Website mockup category card | First category artwork |
+| `category-bg2.svg` | Badge design category card | Second category artwork |
+| `category-bg3.svg` | Poster design category card | Third category artwork |
+| `category-bg4.svg` | Banner design category card | Fourth category artwork |
 
-| File                | Used in                                          | Description                          |
-| ------------------- | ------------------------------------------------ | ------------------------------------ |
-| `hero-gradient.png` | Hero section, `components/site/hero-section.tsx` | Full-width hero background gradient |
-| `category-bg.png`   | Category cards, `components/site/category-card.tsx` | PNG image used behind each service tile |
-
-Rules:
-
-- These PNGs are used as background images (`next/image` with `object-cover`).
-  **CSS gradients (`linear-gradient`, `radial-gradient`) are forbidden** where these
-  images belong.
-- Static brand assets live **only** in `/public/assets/`. Dynamic uploads from the admin
-  panel go **only** to `/public/uploads/`. Never mix the two.
-- Until the files are added, the sections render solid brand-color fallbacks.
+All bundled artwork is served from `/public/assets/gradients/` and is independent
+of files uploaded through the admin panel.

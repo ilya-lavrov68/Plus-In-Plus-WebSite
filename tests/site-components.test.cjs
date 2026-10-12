@@ -299,40 +299,49 @@ test("announcement bar can be dismissed and remembers its choice in localStorage
   }
 });
 
-test("category stays static; service image and arrow use 200ms hover motion", () => {
-  const category = create(React.createElement(CategoryCard, { title: "Category", icon: ArrowRight }));
-  for (const node of category.root.findAll((n) => typeof n.type === "string")) {
-    assert.doesNotMatch(node.props.className || "", /hover:|transition|animate-/);
-  }
+test("category and service cards use the supplied artwork with responsive brand hover motion", () => {
+  const category = create(React.createElement(CategoryCard, {
+    title: "Category",
+    gradientImageSrc: "/assets/gradients/category-bg.svg",
+    href: "/shop",
+  }));
+  const categoryImage = category.root.findByType("img");
+  assert.equal(categoryImage.props.src, "/assets/gradients/category-bg.svg");
+  assert.match(categoryImage.props.className, /transition-\[filter,opacity\]/);
+  assert.match(categoryImage.props.className, /group-hover:grayscale/);
+  assert.match(categoryImage.props.className, /group-hover:opacity-70/);
+  assert.match(categoryImage.props.className, /group-focus-visible:grayscale/);
+  const categoryArrow = category.root.findByType(require("lucide-react").ArrowUpRight);
+  assert.match(categoryArrow.props.className, /transition-\[rotate\] duration-200 ease-out/);
+  assert.match(categoryArrow.props.className, /group-hover:rotate-90/);
+  assert.match(categoryArrow.props.className, /group-focus-visible:rotate-90/);
+
   const service = create(React.createElement(ServiceCard, { title: "Service", href: "/shop/service", imageSrc: "/from-props.png" }));
   const image = service.root.findByType("img");
   assert.equal(image.props.src, "/from-props.png");
-  assert.match(image.props.className, /duration-200 ease-out/);
-  assert.match(image.props.className, /group-hover:grayscale group-hover:opacity-70/);
+  assert.match(image.props.className, /duration-250 ease-out/);
+  assert.match(image.props.className, /group-hover:scale-\[1\.025\]/);
   const title = service.root.findByType("h3");
-  assert.match(title.props.className, /font-heading/);
-  assert.match(title.props.className, /text-\[1\.6875rem\]/);
-  assert.match(title.props.className, /text-navy/);
+  assert.match(title.props.className, /font-geist/);
+  assert.match(service.root.findByType("a").props.className, /text-\[#052B42\]/);
   const arrow = service.root.findByType(ArrowRight);
-  assert.match(arrow.props.className, /transition-transform duration-200 ease-out group-hover:rotate-90/);
-  assert.doesNotMatch(arrow.props.className, /rotate-45/);
+  assert.match(arrow.props.className, /transition-transform duration-200 ease-out group-hover:translate-x-1/);
   category.unmount();
   service.unmount();
 });
 
-test("categories heading stays on one line without changing its subtitle", () => {
+test("category introduction is centered, responsive and uses the supplied copy", () => {
   const section = create(React.createElement(CategoriesSection));
   const heading = section.root.findByProps({ id: "categories-heading" });
-  assert.match(heading.props.className, /whitespace-nowrap/);
-  assert.match(heading.props.className, /text-\[clamp\(1rem,5\.5vw,1\.5rem\)\]/);
+  assert.match(heading.props.className, /sm:whitespace-nowrap/);
+  assert.match(heading.props.className, /text-\[clamp\(/);
 
   const subtitle = section.root.findByType("p");
   assert.match(content(subtitle), /^Have an idea but don.t know how to showcase it\?/);
   assert.match(content(subtitle), /clear design—from website mockups to posters and event collateral\./);
-  assert.equal(
-    subtitle.props.className,
-    "mx-auto mt-5 max-w-2xl text-center font-body text-base leading-7 text-[#052B42] sm:text-lg sm:leading-8",
-  );
+  assert.match(subtitle.props.className, /mx-auto mt-5 max-w-\[760px\] font-body/);
+  assert.match(subtitle.props.className, /lg:mt-14/);
+  assert.match(subtitle.props.className, /text-\[#052B42\]/);
   section.unmount();
 });
 
@@ -340,9 +349,9 @@ test("contact form is centered and Send retains its rounded-xl style", () => {
   const page = create(React.createElement(ContactPage));
   const heading = page.root.findByProps({ id: "contact-heading" });
   assert.match(heading.props.className, /text-center/);
-  assert.match(heading.props.className, /font-heading/);
+  assert.match(heading.props.className, /font-geist/);
 
-  const form = page.root.findByType("form");
+  const form = page.root.findAllByType("form").find((candidate) => /max-w-xl/.test(candidate.props.className));
   assert.match(form.props.className, /mx-auto/);
   assert.match(form.props.className, /max-w-xl/);
   for (const input of form.findAllByType("input")) {
@@ -451,7 +460,7 @@ test("background tabs freeze the clock and visibility restores the remaining tim
 
 test("reduced-motion preference disables autoplay but permits explicit play", () => {
   const timer = clock();
-  window.matchMedia = () => ({ matches: true, addEventListener() {}, removeEventListener() {} });
+  window.matchMedia = (query) => ({ matches: query.includes("prefers-reduced-motion"), addEventListener() {}, removeEventListener() {} });
   const c = mountCarousel();
   assert.equal(timer.frames.size, 0);
   act(() => c.button("Start autoplay").props.onClick());
@@ -498,13 +507,13 @@ test("stage 7.1: hero is nowrap and category introduction is centered", () => {
   assert.doesNotMatch(heading.props.className, /text-balance/);
   const categories = create(React.createElement(CategoriesSection));
   const intro = categories.root.findByProps({ id: "categories-heading" }).parent;
-  assert.match(intro.props.className, /mx-auto max-w-2xl text-center/);
+  assert.match(intro.props.className, /mx-auto max-w-\[820px\] text-center/);
   assert.match(intro.findByType("p").props.className, /text-\[#052B42\]/);
   hero.unmount();
   categories.unmount();
 });
 
-test("stage 7.1: category titles have an explicit break, 3:4 ratio, grayscale and 90deg hover", () => {
+test("category titles use the supplied artwork, 7:10 ratio and animated arrow hover", () => {
   const { ArrowUpRight } = require("lucide-react");
   for (const title of ["Website mockup", "Badge design", "Poster design", "Banner design"]) {
     const card = create(React.createElement(CategoryCard, { title, href: "/shop", gradientImageSrc: "/category.png" }));
@@ -513,12 +522,12 @@ test("stage 7.1: category titles have an explicit break, 3:4 ratio, grayscale an
     assert.equal(label.children[1].type, "br");
     assert.equal(label.children[2], title.split(" ")[1]);
     assert.match(label.props.className, /font-geist/);
-    assert.match(label.props.className, /left-5 top-5/);
-    assert.match(label.parent.props.className, /aspect-\[3\/4\].*text-white/);
+    assert.match(label.props.className, /left-4 top-4/);
+    assert.match(label.parent.props.className, /aspect-\[7\/10\].*text-white/);
     const arrow = card.root.findByType(ArrowUpRight);
-    assert.match(arrow.props.className, /bottom-5 right-5/);
-    assert.match(arrow.props.className, /duration-200 ease-out group-hover:rotate-90 group-focus-visible:rotate-90/);
-    assert.match(card.root.findByType("img").props.className, /duration-200 ease-out group-hover:grayscale/);
+    assert.match(arrow.props.className, /bottom-4 right-4/);
+    assert.match(arrow.props.className, /transition-\[rotate\] duration-200 ease-out group-hover:rotate-90 group-focus-visible:rotate-90/);
+    assert.match(card.root.findByType("img").props.className, /transition-\[filter,opacity\].*group-hover:grayscale/);
     card.unmount();
   }
 });
@@ -548,16 +557,16 @@ test("stage 7.1: dark sections retain white text, green icons and correct backgr
   const { FeaturesSection } = require("../components/site/features-section.tsx");
   const { Footer } = require("../components/site/footer.tsx");
   const features = create(React.createElement(FeaturesSection));
-  assert.match(features.root.findByType("section").props.className, /bg-\[#0A2540\] text-white/);
+  assert.match(features.root.findByType("section").props.className, /bg-\[#052B42\] text-white/);
   for (const node of features.root.findAll((n) => ["h2", "p"].includes(n.type))) {
     assert.match(node.props.className, /text-white/);
     assert.doesNotMatch(node.props.className, /text-(navy|slate|gray)|text-\[#052B42\]/);
   }
-  for (const icon of features.root.findAllByType("svg")) assert.match(icon.props.className, /text-green-500/);
+  for (const icon of features.root.findAllByType("svg")) assert.match(icon.props.className, /text-\[#05F07E\]/);
   const footer = create(React.createElement(Footer));
   assert.match(footer.root.findByType("footer").props.className, /bg-\[#052B42\] text-white/);
   for (const link of footer.root.findAllByType("a")) assert.match(link.props.className, /text-white\/60/);
-  assert.match(footer.root.findByType("p").props.className, /text-white\/10/);
+  assert.match(footer.root.findByType("p").props.className, /text-\[#0A4366\]/);
   features.unmount();
   footer.unmount();
 });
@@ -566,10 +575,11 @@ test("stage 7.1: news uses a light blue section with navy card text", () => {
   clock();
   let news;
   act(() => { news = create(React.createElement(NewsSection, { items: [{ ...items[0], excerpt: "News excerpt", source: "vk" }] })); });
-  assert.match(news.root.findByType("section").props.className, /bg-\[#D6E4FF\]/);
-  for (const node of news.root.findAll((n) => ["h2", "h3", "p"].includes(n.type))) {
-    assert.match(node.props.className, /text-\[#052B42\]/);
+  assert.match(news.root.findByType("section").props.className, /bg-\[#CFE0FF\]/);
+  for (const card of news.root.findAllByType("article")) {
+    assert.match(card.props.className, /text-\[#052B42\]/);
   }
+  assert.match(news.root.findByProps({ id: "news-heading" }).props.className, /text-\[#052B42\]/);
   act(() => news.unmount());
 });
 
@@ -596,7 +606,7 @@ test("stage 7.1: populated service and article pages inherit navy without recolo
     assert.match(order.props.className, /bg-\[#052B42\] text-white/);
     const article = create(await BlogPostPage({ params: Promise.resolve({ slug: "launch" }) }));
     assert.match(article.root.findByType("article").props.className, /text-\[#052B42\]/);
-    assert.match(article.root.findByType("header").findByType("p").props.className, /text-\[#052B42\]/);
+    assert.match(article.root.findByType("header").findByType("time").props.className, /text-\[#052B42\]/);
     const body = article.root.findAllByType("div").find((node) => node.props.dangerouslySetInnerHTML);
     assert.match(body.props.dangerouslySetInnerHTML.__html, /<h2>About our work<\/h2>/);
     service.unmount();

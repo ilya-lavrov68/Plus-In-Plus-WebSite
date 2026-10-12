@@ -6,10 +6,10 @@ import { redirect } from "next/navigation";
 import { InternalPageContent, InternalPageHeader } from "@/components/site/internal-page-header";
 import { OtherNewsSection } from "@/components/site/other-news-section";
 import { SafeImage } from "@/components/site/safe-image";
-import { buttonVariants } from "@/components/ui/button";
 import { getPublishedPosts, getPublishedService, toNewsItem } from "@/lib/data";
 import { createPageMetadata } from "@/lib/seo";
-import { cn } from "@/lib/utils";
+import { getServiceArtwork, getServiceGallery, isSignDesignService } from "@/lib/shop-assets";
+import { SIGN_DESIGN_COPY } from "@/lib/shop-service-copy";
 
 export const dynamic = "force-dynamic";
 
@@ -28,8 +28,21 @@ export async function generateMetadata({ params }: ServicePageProps): Promise<Me
       service?.shortDesc ||
       "Learn the details of this service and what a Plus In Plus design project includes.",
     path: `/shop/${encodeURIComponent(slug)}`,
-    image: service?.coverImage,
+    image: service ? getServiceArtwork(service) : undefined,
   });
+}
+
+function copyWithLead(text: string) {
+  const separator = text.indexOf(":");
+  if (separator > 0 && separator < 64) {
+    return (
+      <>
+        <strong>{text.slice(0, separator + 1)}</strong>
+        {text.slice(separator + 1)}
+      </>
+    );
+  }
+  return text;
 }
 
 export default async function ServicePage({ params }: ServicePageProps) {
@@ -39,97 +52,111 @@ export default async function ServicePage({ params }: ServicePageProps) {
 
   const posts = await getPublishedPosts();
   const newsItems = posts.map(toNewsItem);
-  // The gallery shows the service cover image; extra gallery images are not in the data model yet.
-  const gallery = [service.coverImage].filter((src): src is string => Boolean(src?.trim()));
+  const isReferenceSign = isSignDesignService(service);
+  const content = isReferenceSign
+    ? SIGN_DESIGN_COPY
+    : {
+        introduction: service.fullDesc,
+        includes: service.includes,
+        shapesIntroduction: "",
+        shapes: service.shapes,
+        result: service.resultText,
+      };
+  const gallery = getServiceGallery(service);
 
   return (
     <>
       <InternalPageHeader title="SHOP" />
 
-      <InternalPageContent labelledBy="service-title">
-        <div className="grid grid-cols-[1fr_auto] items-center gap-4 sm:grid-cols-[1fr_auto_1fr]">
-          <Link
-            href="/shop"
-            aria-label="Back to shop"
-            className="inline-flex items-center gap-1 justify-self-start rounded-sm text-xl font-semibold underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
-          >
-            <ChevronLeft aria-hidden="true" className="h-6 w-6" />
-            Back
-          </Link>
-          <h2
-            id="service-title"
-            className="font-geist text-center text-3xl font-normal tracking-tight sm:text-5xl sm:col-start-2"
-          >
-            {service.title}
-          </h2>
-          {/* Order goes to the contact form until an order flow exists. */}
-          <Link
-            href="/contact"
-            className={cn(buttonVariants({ variant: "default", size: "lg" }), "shrink-0 justify-self-end sm:col-start-3")}
-          >
-            Order
-          </Link>
-        </div>
+      <InternalPageContent
+        labelledBy="service-title"
+        sectionClassName="pt-[clamp(4.5rem,15vw,18rem)] pb-0"
+        className="px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10"
+      >
+        <article className="mx-auto max-w-[1760px] text-[#052B42]">
+          <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 sm:gap-5">
+            <Link
+              href="/shop"
+              aria-label="Back to shop"
+              className="inline-flex items-center gap-1 rounded-sm text-sm font-semibold underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42] sm:text-base"
+            >
+              <ChevronLeft aria-hidden="true" className="h-5 w-5 shrink-0" />
+              Back
+            </Link>
+            <h2
+              id="service-title"
+              className="min-w-0 text-center font-geist text-[clamp(1.55rem,3.6vw,3.5rem)] font-normal leading-tight tracking-[-0.045em]"
+            >
+              {service.title}
+            </h2>
+            <Link
+              href="/contact"
+              className="inline-flex h-11 w-[clamp(7.5rem,19.8vw,23.75rem)] items-center justify-center rounded-xl bg-[#052B42] text-white px-4 font-body text-sm font-semibold transition-colors duration-200 ease-out hover:bg-[#0A4366] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42] focus-visible:ring-offset-2 sm:h-14 sm:text-base lg:h-[70px]"
+            >
+              Order
+            </Link>
+          </div>
 
-        {gallery.length > 0 && (
-          <ul
-            aria-label="Service gallery"
-            className="mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4"
-          >
-            {gallery.map((src, index) => (
-              <li key={`${src}-${index}`} className="relative aspect-video w-[min(85%,640px)] shrink-0 snap-start overflow-hidden rounded-2xl">
-                <SafeImage
-                  src={src}
-                  alt=""
-                  fill
-                  priority={index === 0}
-                  sizes="(min-width: 1024px) 640px, 85vw"
-                  className="object-cover"
-                />
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {service.fullDesc && (
-          <p className="mt-8 max-w-4xl text-lg leading-relaxed">{service.fullDesc}</p>
-        )}
-
-        {service.includes.length > 0 && (
-          <section aria-labelledby="service-includes" className="mt-12 max-w-4xl">
-            <h3 id="service-includes" className="text-2xl font-bold tracking-tight">
-              Our service includes:
-            </h3>
-            <ul className="mt-4 space-y-4">
-              {service.includes.map((item, index) => (
-                <li key={`${item}-${index}`} className="text-lg leading-relaxed">
-                  {item}
+          {gallery.length ? (
+            <ul
+              aria-label="Service gallery"
+              className="mt-6 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 sm:mt-8 sm:gap-6"
+            >
+              {gallery.map((src, index) => (
+                <li
+                  key={`${src}-${index}`}
+                  className="relative aspect-[3/2] w-[clamp(260px,29vw,560px)] shrink-0 snap-start overflow-hidden rounded-2xl bg-[#F0F0F0]"
+                >
+                  <SafeImage
+                    src={src}
+                    alt={`${service.title} example ${index + 1}`}
+                    fill
+                    priority={index === 0}
+                    sizes="(min-width: 1536px) 560px, (min-width: 768px) 29vw, 82vw"
+                    className="object-cover"
+                  />
                 </li>
               ))}
             </ul>
-          </section>
-        )}
+          ) : null}
 
-        {service.shapes.length > 0 && (
-          <section aria-labelledby="service-shapes" className="mt-12 max-w-4xl">
-            <h3 id="service-shapes" className="text-2xl font-bold tracking-tight">
-              Any shape, any idea
-            </h3>
-            <ol className="mt-4 list-decimal space-y-3 pl-6">
-              {service.shapes.map((shape, index) => (
-                <li key={`${shape}-${index}`} className="text-lg leading-relaxed">
-                  {shape}
-                </li>
-              ))}
-            </ol>
-          </section>
-        )}
+          <div className="mt-5 space-y-5 font-body text-sm leading-[1.4] sm:mt-6 sm:text-base sm:leading-[1.45]">
+            {content.introduction ? <p>{content.introduction}</p> : null}
 
-        {service.resultText && (
-          <p className="mt-12 max-w-4xl text-lg leading-relaxed">
-            <strong>The result:</strong> {service.resultText}
-          </p>
-        )}
+            {content.includes.length ? (
+              <section aria-labelledby="service-includes">
+                <h3 id="service-includes" className="font-geist text-lg font-semibold sm:text-xl">
+                  Our service includes:
+                </h3>
+                <ul className="mt-1 space-y-1">
+                  {content.includes.map((item, index) => (
+                    <li key={`${item}-${index}`}>{copyWithLead(item)}</li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+
+            {content.shapes.length ? (
+              <section aria-labelledby="service-shapes">
+                <h3 id="service-shapes" className="font-geist text-lg font-semibold sm:text-xl">
+                  Any shape, any idea
+                </h3>
+                {content.shapesIntroduction ? <p className="mt-1">{content.shapesIntroduction}</p> : null}
+                <ol className="mt-1 list-decimal space-y-0.5 pl-6">
+                  {content.shapes.map((shape, index) => (
+                    <li key={`${shape}-${index}`}>{shape}</li>
+                  ))}
+                </ol>
+              </section>
+            ) : null}
+
+            {content.result ? (
+              <p>
+                <strong>The result:</strong> {content.result}
+              </p>
+            ) : null}
+          </div>
+        </article>
       </InternalPageContent>
 
       <OtherNewsSection items={newsItems} id="service-other-news" />

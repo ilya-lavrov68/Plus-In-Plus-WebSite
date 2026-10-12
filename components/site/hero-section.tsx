@@ -1,34 +1,31 @@
 import Link from "next/link";
 
 import { GradientBackdrop } from "@/components/site/gradient-backdrop";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 export function HeroSection() {
   return (
     <section
       aria-labelledby="hero-heading"
-      className="relative isolate -mt-16 flex min-h-[600px] items-center overflow-hidden bg-[#e8f0fe] sm:min-h-[660px]"
+      className="relative isolate -mt-16 flex h-[clamp(460px,40.52vw,778px)] items-center justify-center overflow-hidden bg-[#CFE0FF]"
     >
-      <GradientBackdrop src="/assets/gradients/hero-gradient.png" priority />
-      <div aria-hidden="true" className="absolute inset-0 bg-white/10" />
-      <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col items-center px-5 py-28 text-center sm:px-8 sm:py-36">
+      <GradientBackdrop src="/assets/gradients/hero-gradient.svg" priority />
+      <div className="relative z-10 mx-auto flex w-full max-w-[1640px] flex-col items-center px-5 text-center sm:px-8">
         <h1
           id="hero-heading"
-          className="max-w-full whitespace-nowrap font-geist text-[clamp(1rem,4.8vw,3.75rem)] font-semibold leading-[1.08] tracking-[-0.055em] text-[#052B42]"
+          className="max-w-full font-geist text-[clamp(2rem,3.1vw,3rem)] font-semibold leading-[1.08] tracking-[-0.045em] text-[#052B42] sm:whitespace-nowrap"
         >
           A next-generation design studio
         </h1>
-        <div className="mt-9 flex flex-wrap items-center justify-center gap-3 sm:mt-11 sm:gap-4">
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-4 sm:mt-10 sm:gap-6">
           <Link
             href="/shop"
-            className={cn(buttonVariants({ variant: "default", size: "lg" }), "min-w-32")}
+            className="inline-flex h-14 min-w-[min(274px,42vw)] items-center justify-center rounded-full bg-[#052B42] px-10 font-body text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#0A4366] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42] focus-visible:ring-offset-2"
           >
             Order
           </Link>
           <Link
             href="/contact"
-            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "min-w-36")}
+            className="inline-flex h-14 min-w-[min(274px,42vw)] items-center justify-center rounded-full bg-white/30 px-10 font-body text-base font-semibold text-[#052B42] transition-colors duration-200 ease-out hover:bg-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42] focus-visible:ring-offset-2"
           >
             Contact us
           </Link>

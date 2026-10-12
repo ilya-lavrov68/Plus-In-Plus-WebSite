@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { buttonVariants } from "@/components/ui/button";
 import { SafeImage } from "@/components/site/safe-image";
 
 export interface ServiceCardProps {
@@ -11,36 +9,30 @@ export interface ServiceCardProps {
   imageSrc?: string | null;
 }
 
+/** Reusable brand-styled service tile for small/large service listings. */
 export function ServiceCard({ title, href, imageSrc }: ServiceCardProps) {
   return (
-    <Link href={href} className="group block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2">
-      <Card className="flex h-full flex-col overflow-hidden border-navy/15 bg-white text-navy">
-        <CardContent className="p-0">
-          <div className="relative aspect-[4/3] overflow-hidden">
-            <SafeImage
-              src={imageSrc}
-              alt=""
-              fill
-              sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-              className="object-cover transition-[filter,opacity] duration-200 ease-out group-hover:grayscale group-hover:opacity-70 group-focus-visible:grayscale group-focus-visible:opacity-70"
-            />
-          </div>
-        </CardContent>
-        <CardHeader className="flex-row items-center justify-between gap-4 space-y-0">
-          <CardTitle className="font-heading text-[1.6875rem] font-semibold leading-tight tracking-tight text-navy">
-            {title}
-          </CardTitle>
-          <ArrowRight
-            aria-hidden="true"
-            className="h-5 w-5 shrink-0 transition-transform duration-200 ease-out group-hover:rotate-90 group-focus-visible:rotate-90"
-          />
-        </CardHeader>
-        <CardContent className="mt-auto">
-          <span className={buttonVariants({ variant: "default", className: "w-full" })}>
-            More
-          </span>
-        </CardContent>
-      </Card>
+    <Link
+      href={href}
+      aria-label={`${title} — more details`}
+      className="group flex h-full flex-col overflow-hidden rounded-[1.75rem] bg-[#CFE0FF] text-[#052B42] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42] focus-visible:ring-offset-2"
+    >
+      <div className="relative aspect-[4/3] overflow-hidden rounded-2xl">
+        <SafeImage
+          src={imageSrc}
+          alt=""
+          fill
+          sizes="(min-width: 1536px) 420px, (min-width: 1280px) 25vw, (min-width: 640px) 45vw, 46vw"
+          className="object-cover transition-transform duration-250 ease-out group-hover:scale-[1.025] group-focus-visible:scale-[1.025]"
+        />
+      </div>
+      <div className="flex flex-1 items-center justify-between gap-4 px-4 py-4">
+        <h3 className="font-geist text-lg font-semibold leading-tight tracking-tight sm:text-xl">{title}</h3>
+        <ArrowRight aria-hidden="true" className="h-5 w-5 shrink-0 transition-transform duration-200 ease-out group-hover:translate-x-1" />
+      </div>
+      <span className="mx-4 mb-4 inline-flex h-11 items-center justify-center rounded-xl bg-[#052B42] text-white font-body text-sm font-semibold transition-colors duration-200 ease-out group-hover:bg-[#0A4366]">
+        More
+      </span>
     </Link>
   );
 }
