@@ -76,6 +76,36 @@ origins work without browser requests to localhost. Development accepts
   social profiles (`SOCIAL_LINKS` at the top of `components/site/header.tsx` —
   replace the placeholder handles with the real ones).
 
+## Footer
+
+`components/site/footer.tsx` is a server component on the light-blue brand
+surface (`bg-[#D6E4FF]`); only the newsletter form is a client component
+(`components/site/footer-subscribe-form.tsx`). The layout is fixed:
+
+1. **CTA** — centred "Start your journey with Plus In Plus" heading with the
+   filled `Order a design` and outline `Talk to us` buttons. The buttons stack
+   full-width up to 1024px and sit inline from `lg` up.
+2. **Links** — the newsletter form and five columns of links (`Services`,
+   `About`, `Resources`, `Legal`, `Company`) separated by `border-navy/20`
+   rules. Columns run 2 → 3 → 5 (`lg`) and the form moves from a full-width row
+   on tablets into its own 17rem column from `xl` (1280px).
+3. **Legal row** — the group/legal links and `© 2026 Plus In Plus.` in
+   `text-navy/60`.
+4. **Wordmark** — the oversized `Plus in Plus` watermark in `text-navy/10`.
+   It is decorative and `aria-hidden` (never a link). Its size
+   (`clamp(3rem, 16.5vw, 16rem)`) comes from the real Geist Bold metrics:
+   "Plus in Plus" measures 5.07em with `tracking-tighter`, so it fills the row
+   on every breakpoint without clipping.
+
+Every link is `text-navy/70` and turns `text-navy` on hover — no white, no
+default palette colours. Link targets live in `FOOTER_COLUMNS` and
+`FOOTER_LEGAL_LINKS` at the top of the file; entries with `href: "#"` are
+placeholders for pages that do not exist yet (the `/privacy-policy`,
+`/user-agreement`, `/offer` and `/terms-of-use` routes from the previous footer
+were never built). The newsletter form validates on the client and reports that
+delivery is not connected yet, exactly like the contact form — point its submit
+handler at a real endpoint when one exists.
+
 ## Account and authorization
 
 - Header **Log in** opens `components/site/account-modal.tsx`. After login it
