@@ -9,11 +9,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/use-toast";
 import { SafeImage } from "@/components/site/safe-image";
 import { CoverImageHelp } from "@/components/admin/cover-image-help";
 import { ImageAlbumUploader } from "@/components/admin/image-album-uploader";
+import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { IMAGE_ACCEPT, MAX_COVER_BYTES } from "@/lib/upload-policy";
 import { parseJsonArray } from "@/lib/db-helpers";
+import { slugify } from "@/lib/slug";
 
 export interface PostFormProps {
   mode: "create" | "edit";
@@ -29,6 +32,7 @@ export interface PostFormProps {
     isFeatured?: boolean;
     source?: string;
     sourceUrl?: string | null;
+    publishedAt?: Date | string | null;
     isPublished: boolean;
   };
 }
@@ -40,6 +44,9 @@ export interface PostFormProps {
  */
 export function PostForm({ mode, postId, initial }: PostFormProps) {
   const router = useRouter();
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [slug, setSlug] = useState(initial?.slug ?? "");
+  const [slugEdited, setSlugEdited] = useState(mode === "edit" && Boolean(initial?.slug));
   const [isPublished, setIsPublished] = useState(initial?.isPublished ?? false);
   const [isFeatured, setIsFeatured] = useState(initial?.isFeatured ?? false);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -65,10 +72,13 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
           : await updatePost(postId ?? "", formData);
 
       if (!result.ok) {
-        setError(result.error ?? "Saving failed.");
+        const message = result.error ?? "Saving failed.";
+        setError(message);
+        toast({ title: "Could not save post", description: message, variant: "destructive" });
         return;
       }
 
+      toast({ title: mode === "create" ? "Post created" : "Post updated", description: "The blog list has been refreshed." });
       router.push("/admin/blog");
       router.refresh();
     } catch {
@@ -82,7 +92,18 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
       <div className="space-y-2">
         <Label htmlFor="post-title">Title</Label>
-        <Input id="post-title" name="title" maxLength={160} required defaultValue={initial?.title} />
+        <Input
+          id="post-title"
+          name="title"
+          maxLength={160}
+          required
+          value={title}
+          onChange={(event) => {
+            const nextTitle = event.target.value;
+            setTitle(nextTitle);
+            if (!slugEdited) setSlug(slugify(nextTitle, "post"));
+          }}
+        />
       </div>
 
       <div className="space-y-2">
@@ -94,7 +115,11 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
           required
           pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
           title="Lowercase letters, numbers and dashes"
-          defaultValue={initial?.slug}
+          value={slug}
+          onChange={(event) => {
+            setSlugEdited(true);
+            setSlug(event.target.value);
+          }}
         />
         <p className="text-xs text-muted-foreground">Used in the URL: /blog/&lt;slug&gt;</p>
       </div>
@@ -105,10 +130,10 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="post-content">Content (safe HTML formatting)</Label>
-        <Textarea id="post-content" name="content" maxLength={100000} required rows={12} defaultValue={initial?.content} />
+        <Label htmlFor="post-content">Content (rich text)</Label>
+        <RichTextEditor name="content" initialValue={initial?.content} />
         <p className="text-xs text-muted-foreground">
-          Scripts, embeds, images, and unsafe links are removed before publishing.
+          Formatting is stored as safe HTML. Scripts, embeds, images, and unsafe links are removed before publishing.
         </p>
       </div>
 
@@ -152,6 +177,17 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
           className="w-32"
           defaultValue={initial?.readTime ?? 5}
         />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="post-published-at">Publication date and time</Label>
+        <Input
+          id="post-published-at"
+          name="publishedAt"
+          type="datetime-local"
+          defaultValue={initial?.publishedAt ? new Date(initial.publishedAt).toISOString().slice(0, 16) : ""}
+        />
+        <p className="text-xs text-muted-foreground">Leave empty for immediate publication. A future date keeps the post hidden until then.</p>
       </div>
 
       <div className="space-y-2">

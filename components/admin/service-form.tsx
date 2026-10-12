@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/use-toast";
 import { SafeImage } from "@/components/site/safe-image";
 import { CoverImageHelp } from "@/components/admin/cover-image-help";
 import { IMAGE_ACCEPT, MAX_COVER_BYTES } from "@/lib/upload-policy";
@@ -67,10 +68,13 @@ export function ServiceForm({ mode, serviceId, initial }: ServiceFormProps) {
           : await updateService(serviceId ?? "", formData);
 
       if (!result.ok) {
-        setError(result.error ?? "Saving failed.");
+        const message = result.error ?? "Saving failed.";
+        setError(message);
+        toast({ title: "Could not save service", description: message, variant: "destructive" });
         return;
       }
 
+      toast({ title: mode === "create" ? "Service created" : "Service updated", description: "The service list has been refreshed." });
       router.push("/admin/services");
       router.refresh();
     } catch {

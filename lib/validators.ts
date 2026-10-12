@@ -120,8 +120,9 @@ export const createPostSchema = z.object({
   isPublished: z.boolean(),
   isFeatured: z.boolean().optional().default(false),
   source: z.string().max(50).optional().default("manual"),
-  sourceUrl: z.string().max(1000).nullable().optional(),
+  sourceUrl: z.string().max(1000).refine((value) => /^https?:\/\//i.test(value), "Source URL must use http or https.").nullable().optional(),
   images: z.string().nullable().optional(),
+  publishedAt: z.date().nullable().optional(),
 });
 
 export type RegisterData = z.infer<typeof registerSchema>;

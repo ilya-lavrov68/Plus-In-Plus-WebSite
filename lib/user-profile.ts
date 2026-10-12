@@ -5,6 +5,7 @@ export const userProfileSelect = {
   lastName: true,
   avatar: true,
   role: true,
+  isBlocked: true,
 } as const;
 
 export interface UserProfile {

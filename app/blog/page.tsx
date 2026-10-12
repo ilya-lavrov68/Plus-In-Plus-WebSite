@@ -6,6 +6,8 @@ import { EmptyState } from "@/components/site/empty-state";
 import { InternalPageContent, InternalPageHeader } from "@/components/site/internal-page-header";
 import { getPublishedPosts } from "@/lib/data";
 import { createPageMetadata } from "@/lib/seo";
+import { formatPostDate, type Locale } from "@/i18n";
+import { getRequestLocale } from "@/lib/request-locale";
 
 export const dynamic = "force-dynamic";
 
@@ -15,15 +17,9 @@ export const metadata: Metadata = createPageMetadata({
   path: "/blog",
 });
 
-const POST_DATE_FORMAT = new Intl.DateTimeFormat("en-US", {
-  year: "numeric",
-  month: "long",
-  day: "numeric",
-  timeZone: "UTC",
-});
-
 export default async function BlogPage() {
   const posts = await getPublishedPosts();
+  const locale: Locale = await getRequestLocale();
 
   return (
     <>
@@ -47,9 +43,9 @@ export default async function BlogPage() {
                         {post.title}
                       </Link>
                     </h3>
-                    {post.publishedAt ? (
-                      <time dateTime={post.publishedAt.toISOString()} className="font-body text-sm text-[#052B42]/75">
-                        {POST_DATE_FORMAT.format(post.publishedAt)} · {post.readTime}-minute read
+                    {post.publishedAt || post.createdAt ? (
+                      <time dateTime={(post.publishedAt ?? post.createdAt).toISOString()} className="font-body text-sm text-[#052B42]/75">
+                        {formatPostDate(post.publishedAt ?? post.createdAt, locale)} · {post.readTime}-minute read
                       </time>
                     ) : null}
                   </div>

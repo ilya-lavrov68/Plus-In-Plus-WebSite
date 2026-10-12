@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { recordActivity } from "@/lib/activity-log";
 import { requireAdmin } from "@/lib/admin-session";
 import { parseLineList, toJsonArray } from "@/lib/db-helpers";
@@ -144,6 +146,73 @@ export async function updateService(id: string, formData: FormData): Promise<Ser
   if (newCover) await cleanupUpload(oldCover, "services");
   revalidateService(id, slug);
   return { ok: true, id };
+}
+
+export async function bulkUpdateServices(ids: string[], action: "publish" | "unpublish" | "delete"): Promise<ServiceActionResult> {
+  const admin = await requireAdmin();
+  if (!admin || !prisma) return { ok: false, error: "Unauthorized." };
+  if (!Array.isArray(ids) || ids.length === 0 || ids.length > 100 || ids.some((id) => typeof id !== "string" || !id || id.length > 128)) {
+    return { ok: false, error: "Select at least one valid service." };
+  }
+  const removedCovers: string[] = [];
+  try {
+    await prisma.$transaction(async (tx) => {
+      for (const id of ids) {
+        const service = await tx.service.findUnique({ where: { id } });
+        if (!service) continue;
+        if (action === "delete") {
+          if (service.coverImage) removedCovers.push(service.coverImage);
+          await tx.service.delete({ where: { id } });
+          await recordActivity(tx, { action: "deleted", entityType: "service", entityId: id, title: service.title, actorId: admin.id });
+        } else {
+          await tx.service.update({ where: { id }, data: { isPublished: action === "publish" } });
+          await recordActivity(tx, { action: action === "publish" ? "published" : "unpublished", entityType: "service", entityId: id, title: service.title, actorId: admin.id });
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Failed to update services in bulk:", error);
+    return { ok: false, error: "The selected services could not be updated." };
+  }
+  await Promise.all(removedCovers.map((cover) => cleanupUpload(cover, "services")));
+  ids.forEach((id) => revalidateService(id));
+  revalidatePath("/admin/services");
+  return { ok: true };
+}
+
+export async function duplicateService(id: string): Promise<ServiceActionResult> {
+  const admin = await requireAdmin();
+  if (!admin || !prisma) return { ok: false, error: "Unauthorized." };
+  if (typeof id !== "string" || !id || id.length > 128) return { ok: false, error: "Invalid service id." };
+  try {
+    const source = await prisma.service.findUnique({ where: { id } });
+    if (!source) return { ok: false, error: "Service not found." };
+    const slug = await resolveServiceSlug(`${source.slug}-copy`);
+    const copy = await prisma.$transaction(async (tx) => {
+      const created = await tx.service.create({
+        data: {
+          title: `${source.title} (Copy)`,
+          slug,
+          category: source.category,
+          shortDesc: source.shortDesc,
+          fullDesc: source.fullDesc,
+          includes: source.includes,
+          shapes: source.shapes,
+          resultText: source.resultText,
+          coverImage: source.coverImage,
+          isPublished: false,
+          sortOrder: source.sortOrder + 1,
+        },
+      });
+      await recordActivity(tx, { action: "duplicated", entityType: "service", entityId: created.id, title: created.title, actorId: admin.id });
+      return created;
+    });
+    revalidatePath("/admin/services");
+    return { ok: true, id: copy.id };
+  } catch (error) {
+    console.error("Failed to duplicate service:", error);
+    return { ok: false, error: "The service could not be duplicated." };
+  }
 }
 
 export async function deleteService(id: string): Promise<ServiceActionResult> {

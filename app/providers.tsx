@@ -2,6 +2,9 @@
 
 import { SessionProvider } from "next-auth/react";
 
+import { PageViewTracker } from "@/components/site/page-view-tracker";
+import { Toaster } from "@/components/ui/toast";
+
 /**
  * Client providers for the App Router shell.
  *
@@ -12,7 +15,9 @@ import { SessionProvider } from "next-auth/react";
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider refetchOnWindowFocus refetchInterval={300} refetchWhenOffline={false}>
+      <PageViewTracker />
       {children}
+      <Toaster />
     </SessionProvider>
   );
 }

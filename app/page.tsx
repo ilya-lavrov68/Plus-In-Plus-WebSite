@@ -7,6 +7,7 @@ import { NewsSection } from "@/components/site/news-section";
 import { PartnersSection } from "@/components/site/partners-section";
 import { getPublishedPosts, toNewsItem } from "@/lib/data";
 import { createPageMetadata } from "@/lib/seo";
+import { getRequestLocale } from "@/lib/request-locale";
 
 export const dynamic = "force-dynamic";
 
@@ -20,14 +21,15 @@ export const metadata: Metadata = createPageMetadata({
 export default async function HomePage() {
   const posts = await getPublishedPosts();
   const newsItems = posts.map(toNewsItem);
+  const locale = await getRequestLocale();
 
   return (
     <>
-      <HeroSection />
+      <HeroSection locale={locale} />
       <CategoriesSection />
       <FeaturesSection />
       <PartnersSection />
-      <NewsSection items={newsItems} />
+      <NewsSection items={newsItems} locale={locale} />
     </>
   );
 }

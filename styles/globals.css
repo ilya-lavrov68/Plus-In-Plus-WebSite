@@ -127,6 +127,11 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-body);
+    transition: opacity 140ms ease-out;
+  }
+
+  html[data-locale-transition] body {
+    opacity: 0;
   }
 
   /* Headings use Geist; everything else inherits Google Sans Flex from body. */

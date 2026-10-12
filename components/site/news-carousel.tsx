@@ -5,7 +5,7 @@ import type { KeyboardEvent, TouchEvent } from "react";
 import { ArrowLeft, ArrowRight, Pause, Play } from "lucide-react";
 
 import { NewsCard } from "@/components/site/news-card";
-import type { NewsSource } from "@/components/site/news-card";
+import type { NewsLocale, NewsSource } from "@/components/site/news-card";
 
 export const AUTOPLAY_INTERVAL = 7000;
 const SWIPE_THRESHOLD = 50;
@@ -21,6 +21,8 @@ export interface NewsItem {
   description?: string;
   source?: NewsSource;
   imagesCount?: number;
+  publishedAt?: string | null;
+  locale?: NewsLocale;
 }
 
 export interface NewsCarouselProps {
@@ -203,6 +205,8 @@ export function NewsCarousel({ items, label }: NewsCarouselProps) {
                       postUrl={item.postUrl ?? item.href}
                       href={item.href}
                       imagesCount={item.imagesCount}
+                      publishedAt={item.publishedAt}
+                      locale={item.locale}
                       isActive={pageIndex === activePage}
                     />
                   </li>

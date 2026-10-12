@@ -1,0 +1,27 @@
+{
+  "header": {
+    "forPlay": "FOR PLAY",
+    "shop": "SHOP",
+    "about": "ABOUT PIP",
+    "socnet": "SOCNET",
+    "contact": "Contact",
+    "login": "Log in",
+    "language": "Language"
+  },
+  "hero": {
+    "title": "A next-generation design studio",
+    "order": "Order",
+    "contactUs": "Contact us"
+  },
+  "footer": {
+    "servers": "Servers",
+    "socnet": "Socnet",
+    "aboutPip": "About PIP"
+  },
+  "common": {
+    "previous": "Previous",
+    "next": "Next",
+    "minuteRead": "minute read",
+    "publishedAt": "Published"
+  }
+}

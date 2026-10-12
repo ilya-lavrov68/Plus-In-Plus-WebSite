@@ -48,14 +48,14 @@ export function DropdownFeatured({
             alt=""
             fill
             sizes="(min-width: 1280px) 320px, (min-width: 1024px) 272px, 208px"
-            className="object-cover transition-transform duration-200 ease-out group-hover:scale-[1.03]"
+            className="object-cover transition-opacity duration-200 ease-out group-hover:opacity-90"
           />
           <div className="absolute inset-0 flex items-end justify-between bg-[#052B42]/10 p-3">
             <span className="rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-navy">
               {post.isFeatured ? "Featured" : "Studio journal"}
             </span>
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm transition-transform duration-200 ease-out group-hover:scale-110">
-              <ArrowUpRight aria-hidden="true" className="h-4 w-4" />
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#00C56D] text-[#052B42]">
+              <ArrowUpRight aria-hidden="true" className="h-4 w-4 text-[#052B42]" />
             </span>
           </div>
         </div>

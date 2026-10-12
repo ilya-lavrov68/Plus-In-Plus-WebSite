@@ -53,6 +53,7 @@ export async function authorizeCredentials(
   const validPassword = await bcrypt.compare(password, account?.passwordHash ?? DUMMY_PASSWORD_HASH);
   if (adminMode && account?.role !== "ADMIN") throw new AdminAccountNotFound();
   if (!account || !validPassword) return null;
+  if (account.isBlocked) return null;
 
   return {
     id: account.id,

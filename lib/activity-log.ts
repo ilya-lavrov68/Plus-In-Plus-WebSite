@@ -1,8 +1,8 @@
 import type { Prisma } from "@/lib/generated/prisma/client";
 
 export interface ActivityInput {
-  action: "created" | "updated" | "deleted" | "registered" | "updated profile";
-  entityType: "service" | "post" | "user";
+  action: string;
+  entityType: "service" | "post" | "user" | "setting";
   entityId: string;
   title: string;
   actorId: string;

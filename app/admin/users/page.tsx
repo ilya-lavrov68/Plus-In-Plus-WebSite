@@ -1,21 +1,19 @@
 import { Users as UsersIcon } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { UsersTable } from "@/components/admin/users-table";
 import { EmptyState } from "@/components/site/empty-state";
-import { getAllUsers } from "@/lib/admin-data";
+import { getAllUsers, getUserActivity, getUserBlockStatuses } from "@/lib/admin-data";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminUsersPage() {
   const users = await getAllUsers();
+  const blockStatuses = await getUserBlockStatuses(users.map((user) => user.id));
+  const usersWithActivity = await Promise.all(users.map(async (user) => ({
+    ...user,
+    isBlocked: Boolean(blockStatuses[user.id]),
+    activities: await getUserActivity(user.id),
+  })));
 
   return (
     <div>
@@ -25,36 +23,7 @@ export default async function AdminUsersPage() {
       </p>
 
       {users.length ? (
-        <div className="mt-8 overflow-hidden rounded-lg border border-border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Email</TableHead>
-                <TableHead>First name</TableHead>
-                <TableHead>Last name</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Registered</TableHead>
-                <TableHead>ID</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.email}</TableCell>
-                  <TableCell>{user.firstName || "—"}</TableCell>
-                  <TableCell>{user.lastName || "—"}</TableCell>
-                  <TableCell>
-                    <Badge variant={user.role === "ADMIN" ? "default" : "secondary"}>
-                      {user.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{user.createdAt.toLocaleDateString("en-GB")}</TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">{user.id}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <UsersTable users={usersWithActivity} />
       ) : (
         <div className="mt-8">
           <EmptyState
