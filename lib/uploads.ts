@@ -100,6 +100,54 @@ export async function cleanupUpload(publicPath: string | null, kind: UploadKind)
   await deleteImageUpload(publicPath, kind).catch((error) => console.error("Upload cleanup failed:", error));
 }
 
+/** Validate and re-encode an album image; save to /public/uploads/blog/albums/. */
+export async function saveAlbumImage(file: File): Promise<string> {
+  const folder = path.join(process.cwd(), "public", "uploads", "blog", "albums");
+  const extension = path.extname(file.name || "").toLowerCase();
+  if (!IMAGE_TYPES[extension] || IMAGE_TYPES[extension] !== file.type) {
+    throw new UploadValidationError("Only PNG, JPEG, WebP, GIF and AVIF images can be uploaded.");
+  }
+  const limit = MAX_COVER_BYTES;
+  if (!file.size || file.size > limit) {
+    throw new UploadValidationError(`Image must be between 1 byte and ${limit / 1024 / 1024} MB.`);
+  }
+
+  const bytes = Buffer.from(await file.arrayBuffer());
+  if (bytes.length !== file.size || !matchesImageSignature(bytes, extension)) {
+    throw new UploadValidationError("Invalid image file.");
+  }
+
+  let image: Buffer;
+  try {
+    image = await sharp(bytes, { limitInputPixels: MAX_COVER_INPUT_PIXELS, animated: false })
+      .rotate()
+      .resize({ width: MAX_COVER_OUTPUT_EDGE_PX, height: MAX_COVER_OUTPUT_EDGE_PX, fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 88 })
+      .toBuffer();
+  } catch {
+    throw new UploadValidationError(`Invalid image file. Please choose a valid image under ${MAX_COVER_INPUT_PIXELS / 1_000_000} megapixels.`);
+  }
+
+  if (image.length > limit) throw new UploadValidationError("The processed image is too large. Please choose a smaller image.");
+  const name = `${randomUUID()}.webp`;
+  await mkdir(folder, { recursive: true });
+  await writeFile(path.join(folder, name), image, { flag: "wx" });
+  return `/uploads/blog/albums/${name}`;
+}
+
+export async function deleteAlbumImage(publicPath: string | null): Promise<void> {
+  const folder = path.join(process.cwd(), "public", "uploads", "blog", "albums");
+  const prefix = "/uploads/blog/albums/";
+  if (!publicPath?.startsWith(prefix)) return;
+  const name = publicPath.slice(prefix.length);
+  if (!isUploadFilename(name)) return;
+  try {
+    await unlink(path.join(folder, name));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+}
+
 // Compatibility with the original cover uploader API.
 export const saveCoverUpload = saveImageUpload;
 export const deleteCoverUpload = deleteImageUpload;

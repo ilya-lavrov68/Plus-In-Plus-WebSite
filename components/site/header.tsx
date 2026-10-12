@@ -11,7 +11,16 @@ import {
   ANNOUNCEMENT_VISIBILITY_EVENT,
 } from "@/components/site/announcement-bar";
 import { AccountModal } from "@/components/site/account-modal";
-import { NavDropdown, NAVIGATION_ITEMS, getNavigationSection, NavigationMenuEntry } from "@/components/site/nav-dropdown";
+import { DropdownForPlay } from "@/components/site/dropdown-forplay";
+import { DropdownShop } from "@/components/site/dropdown-shop";
+import { DropdownAbout } from "@/components/site/dropdown-about";
+import { DropdownSocnet } from "@/components/site/dropdown-socnet";
+import type { FeaturedPostData } from "@/components/site/dropdown-featured";
+import {
+  NAVIGATION_ITEMS,
+  getNavigationSection,
+  NavigationMenuEntry,
+} from "@/components/site/nav-dropdown";
 import { UserAvatar } from "@/components/site/user-avatar";
 import { Logo } from "@/components/site/logo";
 import { HeaderButton, HeaderButtonLink } from "@/components/ui/header-button";
@@ -46,6 +55,7 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileAccordion, setMobileAccordion] = useState<string | null>(null);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [featuredPost, setFeaturedPost] = useState<FeaturedPostData | null>(null);
   const dropdownCloseTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearDropdownCloseTimeout = () => {
@@ -67,6 +77,15 @@ export function Header() {
       dropdownCloseTimeout.current = null;
     }, 150);
   };
+
+  useEffect(() => {
+    fetch("/api/featured-post")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.post) setFeaturedPost(data.post);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const update = () => {
@@ -210,11 +229,34 @@ export function Header() {
               </button>
             );
           })}
-          {activeDropdown ? (
-            <NavDropdown
+
+          {activeDropdown === "forplay" || activeDropdown === "for-play" ? (
+            <DropdownForPlay
               id={activeDropdown}
               onMouseEnter={clearDropdownCloseTimeout}
               onMouseLeave={scheduleDropdownClose}
+              featuredPost={featuredPost}
+            />
+          ) : activeDropdown === "shop" ? (
+            <DropdownShop
+              id={activeDropdown}
+              onMouseEnter={clearDropdownCloseTimeout}
+              onMouseLeave={scheduleDropdownClose}
+              featuredPost={featuredPost}
+            />
+          ) : activeDropdown === "about" || activeDropdown === "about-pip" ? (
+            <DropdownAbout
+              id={activeDropdown}
+              onMouseEnter={clearDropdownCloseTimeout}
+              onMouseLeave={scheduleDropdownClose}
+              featuredPost={featuredPost}
+            />
+          ) : activeDropdown === "socnet" ? (
+            <DropdownSocnet
+              id={activeDropdown}
+              onMouseEnter={clearDropdownCloseTimeout}
+              onMouseLeave={scheduleDropdownClose}
+              featuredPost={featuredPost}
             />
           ) : null}
         </nav>
@@ -303,19 +345,43 @@ export function Header() {
                     </button>
                     {expanded ? (
                       <div id={contentId} className="pb-4">
-                        <h2 className="px-3 pb-2 text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
-                          {section.title}
-                        </h2>
-                        <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
-                          {section.items.map((menuItem) => (
-                            <NavigationMenuEntry
-                              key={menuItem.label}
-                              item={menuItem}
-                              compact
-                              onSelect={closeMobileMenu}
-                            />
-                          ))}
-                        </div>
+                        {section.subsections ? (
+                          <div className="space-y-4">
+                            {section.subsections.map((sub) => (
+                              <div key={sub.title}>
+                                <h2 className="px-3 pb-2 text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
+                                  {sub.title}
+                                </h2>
+                                <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                                  {sub.items.map((menuItem) => (
+                                    <NavigationMenuEntry
+                                      key={menuItem.label}
+                                      item={menuItem}
+                                      compact
+                                      onSelect={closeMobileMenu}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <>
+                            <h2 className="px-3 pb-2 text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
+                              {section.title}
+                            </h2>
+                            <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                              {section.items.map((menuItem) => (
+                                <NavigationMenuEntry
+                                  key={menuItem.label}
+                                  item={menuItem}
+                                  compact
+                                  onSelect={closeMobileMenu}
+                                />
+                              ))}
+                            </div>
+                          </>
+                        )}
                       </div>
                     ) : null}
                   </section>

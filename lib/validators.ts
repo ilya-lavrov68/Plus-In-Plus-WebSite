@@ -118,6 +118,10 @@ export const createPostSchema = z.object({
     .min(1, "Read time must be between 1 and 1440 minutes.")
     .max(1440, "Read time must be between 1 and 1440 minutes."),
   isPublished: z.boolean(),
+  isFeatured: z.boolean().optional().default(false),
+  source: z.string().max(50).optional().default("manual"),
+  sourceUrl: z.string().max(1000).nullable().optional(),
+  images: z.string().nullable().optional(),
 });
 
 export type RegisterData = z.infer<typeof registerSchema>;

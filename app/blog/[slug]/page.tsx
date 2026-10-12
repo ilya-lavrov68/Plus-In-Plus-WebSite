@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { EmptyState } from "@/components/site/empty-state";
 import { InternalPageHeader } from "@/components/site/internal-page-header";
 import { OtherNewsSection } from "@/components/site/other-news-section";
+import { PostGallery } from "@/components/site/post-gallery";
 import { getPublishedPost, getPublishedPosts, toNewsItem } from "@/lib/data";
 import { SAMPLE_ARTICLE } from "@/lib/blog-sample-article";
 import { createPageMetadata } from "@/lib/seo";
@@ -162,6 +163,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               description="Please check back soon for the full article."
             />
           )}
+
+          {post.images ? <PostGallery images={post.images} /> : null}
 
           {navigation}
         </article>

@@ -57,6 +57,8 @@ next-env.d.ts
 !/public/uploads/blog/.gitkeep
 !/public/uploads/services/README.md
 !/public/uploads/blog/README.md
+!/public/uploads/blog/albums/
+!/public/uploads/blog/albums/.gitkeep
 
 # scratch e2e harness (verification only)
 /.e2e/

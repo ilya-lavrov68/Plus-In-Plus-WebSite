@@ -3,18 +3,21 @@ import { ArrowUpRight, Play, Send } from "lucide-react";
 
 import { SafeImage } from "@/components/site/safe-image";
 
-export type NewsSource = "vk" | "telegram" | "youtube";
+export type NewsSource = "vk" | "telegram" | "youtube" | "manual";
 
 export interface NewsCardProps {
   title: string;
   excerpt: string;
   imageSrc?: string;
   source?: NewsSource;
+  sourceUrl?: string;
+  postUrl?: string;
   href?: string;
+  imagesCount?: number;
   isActive?: boolean;
 }
 
-function SourceIcon({ source }: { source: NewsSource }) {
+function SourceIcon({ source }: { source: "vk" | "telegram" | "youtube" }) {
   if (source === "telegram") {
     return <Send aria-hidden="true" className="h-5 w-5" strokeWidth={1.9} />;
   }
@@ -35,9 +38,16 @@ export function NewsCard({
   excerpt,
   imageSrc,
   source,
-  href = "/blog",
+  sourceUrl,
+  postUrl,
+  href,
+  imagesCount,
   isActive = true,
 }: NewsCardProps) {
+  const targetPostUrl = postUrl ?? href;
+  const showSource = Boolean(sourceUrl && source && source !== "manual");
+  const showArrow = Boolean(targetPostUrl);
+
   return (
     <article
       aria-hidden={!isActive}
@@ -56,17 +66,27 @@ export function NewsCard({
             className="z-10 object-contain"
           />
         ) : null}
+
+        {typeof imagesCount === "number" && imagesCount > 0 ? (
+          <span className="absolute right-3 top-3 z-20 inline-flex items-center gap-1 rounded-full bg-black/65 px-2.5 py-1 font-body text-xs font-semibold text-white shadow-sm backdrop-blur-sm">
+            📷 {imagesCount}
+          </span>
+        ) : null}
       </div>
 
       <div className="flex min-h-[150px] flex-1 flex-col px-4 pb-4 pt-3 sm:px-5 sm:pt-4">
         <h3 className="font-geist text-sm font-semibold leading-snug tracking-[-0.015em] sm:text-base">
-          <Link
-            href={href}
-            tabIndex={isActive ? 0 : -1}
-            className="rounded-sm outline-none transition-colors duration-200 ease-out hover:text-[#0A4366] focus-visible:ring-2 focus-visible:ring-[#052B42]"
-          >
-            {title}
-          </Link>
+          {targetPostUrl ? (
+            <Link
+              href={targetPostUrl}
+              tabIndex={isActive ? 0 : -1}
+              className="rounded-sm outline-none transition-colors duration-200 ease-out hover:text-[#0A4366] focus-visible:ring-2 focus-visible:ring-[#052B42]"
+            >
+              {title}
+            </Link>
+          ) : (
+            <span>{title}</span>
+          )}
         </h3>
         {excerpt ? (
           <p className="mt-2 line-clamp-5 font-body text-xs leading-[1.35] sm:text-sm sm:leading-[1.4]">
@@ -74,25 +94,33 @@ export function NewsCard({
           </p>
         ) : null}
 
-        <div className="mt-auto flex items-center gap-4 pt-4">
-          {source ? (
-            <span
-              role="img"
-              aria-label={source === "vk" ? "VK" : source === "telegram" ? "Telegram" : "YouTube"}
-              className="inline-flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-full bg-[#F0F0F0] text-[#052B42]"
-            >
-              <SourceIcon source={source} />
-            </span>
-          ) : null}
-          <Link
-            href={href}
-            aria-label={`Read ${title}`}
-            tabIndex={isActive ? 0 : -1}
-            className="inline-flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-full bg-[#F0F0F0] text-[#052B42] transition-colors duration-200 ease-out hover:bg-[#052B42] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42]"
-          >
-            <ArrowUpRight aria-hidden="true" className="h-8 w-8" strokeWidth={1.8} />
-          </Link>
-        </div>
+        {showSource || showArrow ? (
+          <div className="mt-auto flex items-center gap-4 pt-4">
+            {showSource && (source === "vk" || source === "telegram" || source === "youtube") ? (
+              <a
+                href={sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                tabIndex={isActive ? 0 : -1}
+                aria-label={`Source on ${source === "vk" ? "VK" : source === "telegram" ? "Telegram" : "YouTube"}`}
+                className="inline-flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-full bg-[#F0F0F0] text-[#052B42] transition-colors duration-200 ease-out hover:bg-[#052B42] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42]"
+              >
+                <SourceIcon source={source} />
+              </a>
+            ) : null}
+
+            {showArrow && targetPostUrl ? (
+              <Link
+                href={targetPostUrl}
+                aria-label={`Read ${title}`}
+                tabIndex={isActive ? 0 : -1}
+                className="inline-flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-full bg-[#F0F0F0] text-[#052B42] transition-colors duration-200 ease-out hover:bg-[#052B42] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42]"
+              >
+                <ArrowUpRight aria-hidden="true" className="h-8 w-8" strokeWidth={1.8} />
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </article>
   );
