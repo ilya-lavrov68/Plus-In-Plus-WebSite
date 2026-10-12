@@ -522,8 +522,10 @@ test("category titles use the supplied artwork, 7:10 ratio and animated arrow ho
     assert.equal(label.children[1].type, "br");
     assert.equal(label.children[2], title.split(" ")[1]);
     assert.match(label.props.className, /font-geist/);
+    assert.match(label.props.className, /text-\[3\.125rem\].*sm:text-\[3\.75rem\].*lg:text-\[4\.75rem\]/);
     assert.match(label.props.className, /left-4 top-4/);
     assert.match(label.parent.props.className, /aspect-\[7\/10\].*text-white/);
+    assert.doesNotMatch(label.parent.props.className, /rounded/);
     const arrow = card.root.findByType(ArrowUpRight);
     assert.match(arrow.props.className, /bottom-4 right-4/);
     assert.match(arrow.props.className, /transition-\[rotate\] duration-200 ease-out group-hover:rotate-90 group-focus-visible:rotate-90/);
@@ -557,12 +559,32 @@ test("stage 7.1: dark sections retain white text, green icons and correct backgr
   const { FeaturesSection } = require("../components/site/features-section.tsx");
   const features = create(React.createElement(FeaturesSection));
   assert.match(features.root.findByType("section").props.className, /bg-\[#052B42\] text-white/);
+  const cards = features.root.findAllByType("li");
+  assert.equal(cards.length, 3);
+  for (const card of cards) {
+    assert.match(card.props.className, /bg-\[#0A3B57\]/);
+    const heading = card.findByType("h2");
+    const description = card.findByType("p");
+    assert.match(heading.props.className, /text-xl.*sm:text-\[1\.375rem\]/);
+    assert.match(description.props.className, /text-\[0\.9375rem\].*sm:text-\[1\.0625rem\]/);
+  }
   for (const node of features.root.findAll((n) => ["h2", "p"].includes(n.type))) {
     assert.match(node.props.className, /text-white/);
     assert.doesNotMatch(node.props.className, /text-(navy|slate|gray)|text-\[#052B42\]/);
   }
   for (const icon of features.root.findAllByType("svg")) assert.match(icon.props.className, /text-\[#05F07E\]/);
   features.unmount();
+});
+
+test("partners section keeps its right-column placement with centered TS Connect copy", () => {
+  const { PartnersSection } = require("../components/site/partners-section.tsx");
+  const partners = create(React.createElement(PartnersSection));
+  const copy = partners.root.findByType("p");
+  assert.match(copy.props.className, /text-center/);
+  assert.match(copy.props.className, /lg:ml-auto/);
+  assert.match(copy.props.className, /lg:text-center/);
+  assert.doesNotMatch(copy.props.className, /text-right/);
+  partners.unmount();
 });
 
 test("footer: light-blue Nebius-style layout with CTA, five columns, legal row and watermark", () => {
