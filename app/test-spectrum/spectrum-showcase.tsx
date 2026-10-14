@@ -49,8 +49,23 @@ import {
   ResponsiveModalTitle,
   ResponsiveModalTrigger,
 } from "@/components/spectrumui/ui/responsive-modal";
-import { Spinner } from "@/components/spectrumui/ui/spinner";
 import { brand, spectrumTheme } from "@/lib/spectrum-theme";
+
+// Brand layer (Stage 2): these are the components the site actually imports.
+// Each one is a Spectrum UI primitive restyled for Plus In Plus.
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Spinner } from "@/components/ui/spinner";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 
 /* -------------------------------------------------------------------------- */
 /* helpers                                                                     */
@@ -172,6 +187,62 @@ export function SpectrumShowcase() {
       </header>
 
       <div className="grid gap-6">
+        {/* ---- brand layer (Stage 2) ------------------------------------- */}
+        <Section
+          title="Brand layer — components/ui/*"
+          note="What the site actually imports. Each component below is a Spectrum UI primitive wrapped with the Plus In Plus palette. Nothing here should look grey."
+        >
+          <div className="flex flex-wrap items-center gap-3">
+            <Button>Default (navy)</Button>
+            <Button variant="outline">Outline</Button>
+            <Button variant="ghost">Ghost</Button>
+            <Button size="sm">Small</Button>
+            <Button loading={saving} onClick={fakeSave}>
+              {saving ? "Saving…" : "Click to load"}
+            </Button>
+            <Button disabled>Disabled</Button>
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center gap-8">
+            <label className="flex items-center gap-3 text-sm font-medium text-[#052B42]">
+              <Switch id="brand-switch" checked={published} onCheckedChange={setPublished} />
+              <span>Brand switch (drag or flick it)</span>
+            </label>
+
+            <div className="flex items-center gap-3">
+              <Spinner size="small" />
+              <Spinner />
+              <Spinner size="large" />
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <Textarea rows={2} placeholder="rows={2} — starts at 80px, grows as you type" />
+            <Textarea rows={6} placeholder="rows={6} — starts at 138px, grows as you type" />
+          </div>
+
+          <div className="mt-5">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline">Open brand dialog</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Brand dialog</DialogTitle>
+                  <DialogDescription>
+                    Below lg this slides up from the bottom; from lg it is centred.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button onClick={() => push({ status: "info", title: "Dismissed" })}>
+                    Got it
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </Section>
+
         {/* ---- buttons -------------------------------------------------- */}
         <Section
           title="Buttons — LoadingButton"

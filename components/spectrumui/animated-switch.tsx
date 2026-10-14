@@ -40,6 +40,10 @@ export interface AnimatedSwitchProps {
   disabled?: boolean
   /** Accessible name of the switch. Default "Toggle" */
   label?: string
+  /** Forwards to the button so `<Label htmlFor>` can target the switch. */
+  id?: string
+  /** Forwards to the button so descriptions stay wired up. */
+  "aria-describedby"?: string
   /** Additional classes merged with the default track styles */
   className?: string
 }
@@ -96,7 +100,8 @@ function clamp(value: number, min: number, max: number) {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export function AnimatedSwitch({
+export const AnimatedSwitch = React.forwardRef<HTMLButtonElement, AnimatedSwitchProps>(
+  function AnimatedSwitch({
   checked: checkedProp,
   defaultChecked = false,
   onCheckedChange,
@@ -105,8 +110,12 @@ export function AnimatedSwitch({
   size = "md",
   disabled = false,
   label = "Toggle",
+  id,
+  "aria-describedby": ariaDescribedBy,
   className,
-}: AnimatedSwitchProps) {
+  }: AnimatedSwitchProps,
+  ref,
+) {
   const shouldReduceMotion = useReducedMotion()
   const [internalChecked, setInternalChecked] = useState(defaultChecked)
   const [pressed, setPressed] = useState(false)
@@ -227,7 +236,10 @@ export function AnimatedSwitch({
     <button
       type="button"
       role="switch"
+      ref={ref}
+      id={id}
       aria-checked={checked}
+      aria-describedby={ariaDescribedBy}
       aria-label={label}
       disabled={disabled}
       onClick={handleClick}
@@ -300,4 +312,6 @@ export function AnimatedSwitch({
       </motion.span>
     </button>
   )
-}
+});
+
+AnimatedSwitch.displayName = "AnimatedSwitch";

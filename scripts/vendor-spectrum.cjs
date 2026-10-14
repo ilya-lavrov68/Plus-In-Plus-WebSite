@@ -134,6 +134,113 @@ const POST_FIXES = [
     to: "",
     why: "rule does not exist in this project's ESLint config",
   },
+
+  // Upstream AnimatedSwitch renders a <button> but exposes no `id`, so
+  // <Label htmlFor> cannot target it and `aria-describedby` is unreachable.
+  // Both are labelable-button attributes; upstream has no reason to reject them.
+  {
+    file: "components/spectrumui/animated-switch.tsx",
+    from: '  /** Accessible name of the switch. Default "Toggle" */\n  label?: string\n',
+    to:
+      '  /** Accessible name of the switch. Default "Toggle" */\n  label?: string\n' +
+      "  /** Forwards to the button so `<Label htmlFor>` can target the switch. */\n" +
+      "  id?: string\n" +
+      "  /** Forwards to the button so descriptions stay wired up. */\n" +
+      '  "aria-describedby"?: string\n',
+    why: "a11y: label/switch association (htmlFor) and aria-describedby",
+  },
+  {
+    file: "components/spectrumui/animated-switch.tsx",
+    from: '  disabled = false,\n  label = "Toggle",\n  className,\n}: AnimatedSwitchProps) {',
+    to:
+      '  disabled = false,\n  label = "Toggle",\n  id,\n  "aria-describedby": ariaDescribedBy,\n  className,\n}: AnimatedSwitchProps) {',
+    why: "a11y: read the new id / aria-describedby props",
+  },
+  {
+    file: "components/spectrumui/animated-switch.tsx",
+    from: "      aria-checked={checked}\n      aria-label={label}\n",
+    to:
+      "      id={id}\n      aria-checked={checked}\n      aria-describedby={ariaDescribedBy}\n      aria-label={label}\n",
+    why: "a11y: apply id / aria-describedby to the button",
+  },
+  // Upstream declares AnimatedSwitch as a plain function component, so it
+  // cannot take a ref — but it renders a <button> and every other toggle in the
+  // codebase is ref-forwarding. Convert to forwardRef so the brand wrapper in
+  // components/ui/switch.tsx keeps the usual Radix-style API.
+  {
+    file: "components/spectrumui/animated-switch.tsx",
+    from: "export function AnimatedSwitch({\n  checked: checkedProp,",
+    to:
+      "export const AnimatedSwitch = React.forwardRef<HTMLButtonElement, AnimatedSwitchProps>(\n  function AnimatedSwitch({\n  checked: checkedProp,",
+    why: "forwardRef: wraps the component so refs reach the button",
+  },
+  {
+    file: "components/spectrumui/animated-switch.tsx",
+    from: "}: AnimatedSwitchProps) {",
+    to: "  }: AnimatedSwitchProps,\n  ref,\n) {",
+    why: "forwardRef: accept the ref argument",
+  },
+  {
+    file: "components/spectrumui/animated-switch.tsx",
+    from: "      id={id}\n",
+    to: "      ref={ref}\n      id={id}\n",
+    why: "forwardRef: attach the ref to the button",
+  },
+  {
+    file: "components/spectrumui/animated-switch.tsx",
+    from: "    </button>\n  )\n}\n",
+    to: '    </button>\n  )\n});\n\nAnimatedSwitch.displayName = "AnimatedSwitch";\n',
+    why: "forwardRef: close the forwardRef call",
+  },
+
+  // Upstream hardcodes the English word "Close" in the modal's dismiss button.
+  // This site is EN/RU, so the label has to be injectable.
+  {
+    file: "components/spectrumui/ui/responsive-modal.tsx",
+    from:
+      "    VariantProps<typeof ResponsiveModalVariants> {}",
+    to:
+      "    VariantProps<typeof ResponsiveModalVariants> {\n" +
+      "  /** Accessible label for the dismiss button. Pass a translated string. */\n" +
+      "  closeLabel?: string;\n" +
+      "}",
+    why: "i18n: modal close button label must be translatable",
+  },
+  {
+    file: "components/spectrumui/ui/responsive-modal.tsx",
+    from: '>(({ side = "bottom", className, children, ...props }, ref) => (',
+    to: '>(({ side = "bottom", className, children, closeLabel, ...props }, ref) => (',
+    why: "i18n: read the closeLabel prop",
+  },
+  {
+    file: "components/spectrumui/ui/responsive-modal.tsx",
+    from:
+      '<ResponsiveModalClose className="absolute right-4 top-4 rounded-sm opacity-70',
+    to:
+      '<ResponsiveModalClose aria-label={closeLabel} className="absolute right-4 top-4 rounded-sm opacity-70',
+    why: "i18n: label the dismiss button for screen readers",
+  },
+  {
+    file: "components/spectrumui/ui/responsive-modal.tsx",
+    from: '<span className="sr-only">Close</span>',
+    to: '<span className="sr-only">{closeLabel}</span>',
+    why: "i18n: use the translated close label",
+  },
+  // Upstream only ships top/bottom/left/right: below `lg` the modal is always a
+  // sheet. This site's dialogs have always been centred at every width, so add a
+  // `center` side that reproduces the lg behaviour unconditionally. The brand
+  // dialog defaults to it, which keeps every existing screen pixel-identical
+  // while the sheet variants stay available.
+  {
+    file: "components/spectrumui/ui/responsive-modal.tsx",
+    from: "      side: {\n        top:",
+    to:
+      "      side: {\n" +
+      "        center:\n" +
+      '          "left-[50%] top-[50%] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] rounded-xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",\n' +
+      "        top:",
+    why: "preserve centred dialogs below lg (upstream only ships sheet sides)",
+  },
 ];
 
 function main() {

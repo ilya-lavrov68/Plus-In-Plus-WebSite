@@ -1,16 +1,33 @@
+"use client";
+
 import * as React from "react";
 
 import { cva, type VariantProps } from "class-variance-authority";
 
+import { LoadingButton } from "@/components/spectrumui/ui/loading-button";
 import { cn } from "@/lib/utils";
 
 /**
  * Brand buttons: soft squares ("squircle" — rounded-lg/rounded-xl, never
  * rounded-full) in the navy brand palette, set in the Google Sans Flex
  * body font.
+ *
+ * Built on Spectrum UI's LoadingButton, which contributes two things the old
+ * shadcn button did not have:
+ *
+ *   - `loading`  — renders a spinner, blocks the click and disables the button
+ *   - `asChild`  — renders as the child element (e.g. a Link) via Radix Slot
+ *
+ * The brand variant table below replaces Spectrum's stock (grey) palette
+ * wholesale. Because `cn()` runs tailwind-merge with the brand classes last,
+ * every conflicting Spectrum default (bg-primary, rounded-md, h-10…) is dropped
+ * rather than fighting for specificity.
  */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl font-body text-sm font-semibold transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:h-4 [&_svg]:w-4 [&_svg]:shrink-0",
+  // `py-0` is here only to cancel the `py-2` baked into Spectrum's default size
+  // variant. Every brand size sets an explicit height, so vertical padding is
+  // inert — this keeps the tailwind-merge result free of stray Spectrum classes.
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl py-0 font-body text-sm font-semibold transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:h-4 [&_svg]:w-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -39,17 +56,40 @@ const buttonVariants = cva(
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {}
+    VariantProps<typeof buttonVariants> {
+  /** Shows a spinner and blocks interaction. From Spectrum UI's LoadingButton. */
+  loading?: boolean;
+  /** Render as the single child element instead of a <button>. */
+  asChild?: boolean;
+}
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, type = "button", ...props }, ref) => {
+  (
+    {
+      className,
+      variant,
+      size,
+      type = "button",
+      loading,
+      asChild,
+      children,
+      ...props
+    },
+    ref
+  ) => {
     return (
-      <button
-        className={cn(buttonVariants({ variant, size, className }))}
+      <LoadingButton
         ref={ref}
+        // Brand classes go through `cn` last, so they overwrite Spectrum's
+        // stock cva output instead of merging with it.
+        className={cn(buttonVariants({ variant, size, className }))}
         type={type}
+        loading={loading}
+        asChild={asChild}
         {...props}
-      />
+      >
+        {children}
+      </LoadingButton>
     );
   }
 );
