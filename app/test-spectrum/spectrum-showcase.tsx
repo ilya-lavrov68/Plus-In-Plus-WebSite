@@ -20,7 +20,7 @@ import {
 } from "@/components/spectrumui/animated-toast-stack";
 import { AnimatedSwitch } from "@/components/spectrumui/animated-switch";
 import { CommandSearch } from "@/components/spectrumui/command-search";
-import { DataTable } from "@/components/spectrumui/data-table";
+import { AdminDataTable } from "@/components/admin/admin-data-table";
 import type { DataTableColumn } from "@/components/spectrumui/data-table";
 import { Dock, DockIcon } from "@/components/spectrumui/dock";
 import { PasswordStrengthInput } from "@/components/spectrumui/password-strength";
@@ -365,7 +365,7 @@ export function SpectrumShowcase() {
 
         {/* ---- data table ----------------------------------------------- */}
         <Section title="DataTable" note="Sorting, search and quick filters for the admin screens.">
-          <DataTable
+          <AdminDataTable
             data={SERVICE_ROWS}
             columns={SERVICE_COLUMNS}
             rowId={(row) => row.id}

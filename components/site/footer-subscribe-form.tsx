@@ -4,6 +4,8 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { useTranslations } from "next-intl";
 
+import { Button } from "@/components/ui/button";
+
 const FIELD_CLASS =
   "mt-2 w-full rounded-lg border border-navy/30 bg-white/50 px-3 py-2.5 font-body text-sm text-navy placeholder:text-navy/50 transition-colors duration-200 ease-out focus-visible:border-navy focus-visible:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy/30";
 
@@ -87,13 +89,16 @@ export function FooterSubscribeForm() {
         {t("subscriptionConsent")}
       </p>
 
-      <button
+      {/* Brand button (Spectrum underneath). `h-10` and the two hover/ring
+          overrides keep this smaller footer control pixel-identical. */}
+      <Button
         type="submit"
+        size="sm"
         aria-describedby="footer-subscribe-consent"
-        className="mt-4 inline-flex h-10 items-center justify-center rounded-lg bg-navy px-4 font-body text-sm font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#0A4366] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2 focus-visible:ring-offset-[#D6E4FF]"
+        className="mt-4 h-10 hover:bg-[#0A4366] focus-visible:ring-offset-[#D6E4FF]"
       >
         {t("subscribeButton")}
-      </button>
+      </Button>
 
       <p role="status" className="mt-3 min-h-5 font-body text-xs leading-5 text-navy/70">
         {status === "pending" ? t("subscribeNotConnected") : ""}

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 
 import { GradientBackdrop } from "@/components/site/gradient-backdrop";
+import { Button } from "@/components/ui/button";
 
 export function HeroSection() {
   const t = useTranslations("hero");
@@ -19,18 +20,25 @@ export function HeroSection() {
           {t("title")}
         </h1>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-4 sm:mt-10">
-          <Link
-            href="/shop"
-            className="inline-flex min-w-[168px] items-center justify-center rounded-xl bg-[#00C56D] px-8 py-3 font-body text-base font-medium text-[#052B42] transition-colors duration-200 ease-out hover:bg-[#00B361] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42] focus-visible:ring-offset-2"
+          {/* Brand buttons (Spectrum LoadingButton underneath) instead of two
+              hand-rolled class strings. `asChild` keeps them real <Link>s, so
+              navigation and middle-click behave natively. */}
+          <Button
+            asChild
+            variant="cta"
+            size="lg"
+            className="min-w-[168px] text-base font-medium"
           >
-            {t("order")}
-          </Link>
-          <Link
-            href="/contact"
-            className="inline-flex min-w-[168px] items-center justify-center rounded-xl border border-[#052B42] bg-transparent px-8 py-3 font-body text-base font-medium text-[#052B42] transition-colors duration-200 ease-out hover:bg-navy/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42] focus-visible:ring-offset-2"
+            <Link href="/shop">{t("order")}</Link>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            size="lg"
+            className="min-w-[168px] text-base font-medium hover:bg-navy/5"
           >
-            {t("contactUs")}
-          </Link>
+            <Link href="/contact">{t("contactUs")}</Link>
+          </Button>
         </div>
       </div>
     </section>

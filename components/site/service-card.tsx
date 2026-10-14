@@ -3,6 +3,8 @@ import { ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { SafeImage } from "@/components/site/safe-image";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export interface ServiceCardProps {
   title: string;
@@ -32,7 +34,16 @@ export function ServiceCard({ title, href, imageSrc }: ServiceCardProps) {
         <h3 className="font-geist text-lg font-semibold leading-tight tracking-tight sm:text-xl">{title}</h3>
         <ArrowRight aria-hidden="true" className="h-5 w-5 shrink-0 transition-transform duration-200 ease-out group-hover:translate-x-1" />
       </div>
-      <span className="mx-4 mb-4 inline-flex h-11 items-center justify-center rounded-xl bg-[#052B42] text-white font-body text-sm font-semibold transition-colors duration-200 ease-out group-hover:bg-[#0A4366]">
+      {/* Same visuals, but the fill now comes from the brand button system, so
+          it stays in step with every other button on the site. `group-hover`
+          outranks the variant's own `hover` on specificity, so the whole tile
+          still lights up — not just the strip. */}
+      <span
+        className={cn(
+          buttonVariants({ variant: "default" }),
+          "mx-4 mb-4 group-hover:bg-[#0A4366]",
+        )}
+      >
         {t("more")}
       </span>
     </Link>

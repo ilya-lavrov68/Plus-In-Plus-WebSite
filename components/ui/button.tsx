@@ -33,6 +33,8 @@ const buttonVariants = cva(
       variant: {
         default: "bg-[#052B42] text-white hover:bg-[#153c5c]",
         primary: "bg-[#052B42] text-white hover:bg-[#153c5c]",
+        /** Green hero/order CTA — the one place green is a button fill. */
+        cta: "bg-[#00C56D] text-[#052B42] hover:bg-[#00B361]",
         outline:
           "border border-[#052B42] bg-transparent text-[#052B42] hover:bg-navy/[0.06]",
         ghost: "bg-transparent text-[#052B42] hover:bg-navy/[0.06]",
