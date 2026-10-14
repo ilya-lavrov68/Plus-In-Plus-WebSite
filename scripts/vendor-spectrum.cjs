@@ -1,0 +1,223 @@
+#!/usr/bin/env node
+/**
+ * Re-vendor Spectrum UI components into this project.
+ *
+ * Spectrum UI (github.com/arihantcodes/spectrum-ui) is a copy/paste component
+ * registry, not an npm package — components are meant to be copied into your
+ * source tree. This script does that copying reproducibly, so the vendored
+ * files can be refreshed when the upstream library changes.
+ *
+ * Usage:
+ *   git clone --depth 1 https://github.com/arihantcodes/spectrum-ui.git /tmp/spectrum-ui
+ *   node scripts/vendor-spectrum.cjs /tmp/spectrum-ui
+ *
+ * It reads the built registry manifests (public/r/<name>.json), writes each
+ * component to the path in PLAN below, and applies the small import rewrites
+ * this project needs. Re-run it after upgrading, then review `git diff` —
+ * vendored files are ordinary source and are safe to edit afterwards.
+ */
+
+const fs = require("node:fs");
+const path = require("node:path");
+
+const SRC = process.argv[2] || "/tmp/spectrum-ui";
+const DEST_ROOT = path.resolve(__dirname, "..");
+
+/**
+ * registry item -> { source path in the manifest : destination path here }
+ *
+ *   components/spectrumui/     showcase / composed components
+ *   components/spectrumui/ui/  enhanced primitives
+ */
+const PLAN = {
+  // ---- enhanced primitives -------------------------------------------------
+  "accordion-dependencies": {
+    "components/ui/accordion.tsx": "components/spectrumui/ui/accordion.tsx",
+  },
+  "autosize-textarea-dependecies": {
+    "components/spectrumui/autosize-textarea.tsx": "components/spectrumui/ui/autosize-textarea.tsx",
+  },
+  "loading-button-dependencies": {
+    "components/spectrumui/loading-button-dependencies.tsx": "components/spectrumui/ui/loading-button.tsx",
+  },
+  "multiple-selector-dependencies": {
+    "components/spectrumui/multiple-selector-dependencies.tsx": "components/spectrumui/ui/multiple-selector.tsx",
+  },
+  "progress-with-value-dependencies": {
+    "components/spectrumui/progress-with-value-dependencies.tsx": "components/spectrumui/ui/progress-with-value.tsx",
+  },
+  "responsive-modal-dependencies": {
+    "components/spectrumui/responsive-modal-dependencies.tsx": "components/spectrumui/ui/responsive-modal.tsx",
+  },
+  "spinner-dependencies": {
+    "components/spectrumui/spinner-dependencies.tsx": "components/spectrumui/ui/spinner.tsx",
+  },
+  "dual-range-slider-dependecies": {
+    "components/spectrumui/dual-range-slider-dependecies.tsx": "components/spectrumui/ui/dual-range-slider.tsx",
+  },
+  "floating-label-input": {
+    "components/spectrumui/floating-label-input.tsx": "components/spectrumui/ui/floating-label-input.tsx",
+  },
+  "infinite-scroll-dependecies": {
+    "components/spectrumui/infinite-scroll-dependecies.tsx": "components/spectrumui/ui/infinite-scroll.tsx",
+  },
+
+  // ---- showcase / composed -------------------------------------------------
+  "data-table": { "components/spectrumui/data-table.tsx": "components/spectrumui/data-table.tsx" },
+  "animated-switch": { "components/spectrumui/animated-switch.tsx": "components/spectrumui/animated-switch.tsx" },
+  "tilt-card": { "components/spectrumui/tilt-card.tsx": "components/spectrumui/tilt-card.tsx" },
+  "command-search": { "components/spectrumui/command-search.tsx": "components/spectrumui/command-search.tsx" },
+  "skeleton-reveal": { "components/spectrumui/skeleton-reveal.tsx": "components/spectrumui/skeleton-reveal.tsx" },
+  "animated-card": { "components/spectrumui/animatedcard.tsx": "components/spectrumui/animated-card.tsx" },
+  "password-strength": { "components/spectrumui/password-strength.tsx": "components/spectrumui/password-strength.tsx" },
+  "quantity-stepper": { "components/spectrumui/quantity-stepper.tsx": "components/spectrumui/quantity-stepper.tsx" },
+  "task-checkbox": { "components/spectrumui/task-checkbox.tsx": "components/spectrumui/task-checkbox.tsx" },
+  dock: { "components/spectrumui/dock.tsx": "components/spectrumui/dock.tsx" },
+  "accordion-card": { "components/spectrumui/accordion-card.tsx": "components/spectrumui/accordion-card.tsx" },
+  "accordion-filled": { "components/spectrumui/accordion-filled.tsx": "components/spectrumui/accordion-filled.tsx" },
+  "accordion-ghost": { "components/spectrumui/accordion-ghost.tsx": "components/spectrumui/accordion-ghost.tsx" },
+  "accordion-generative": {
+    "components/spectrumui/accordion-generative.tsx": "components/spectrumui/accordion-generative.tsx",
+  },
+  "toast-stack": {
+    "components/motion/animated-toast-stack.tsx": "components/spectrumui/animated-toast-stack.tsx",
+    "lib/ease.ts": "lib/ease.ts",
+  },
+};
+
+const REWRITES = [
+  // The project installs the `motion` package only; several Spectrum components
+  // still import the legacy `framer-motion` entry point (same library).
+  [/from ["']framer-motion["']/g, 'from "motion/react"'],
+  // shadcn's `command` primitive is not part of this project; it is vendored
+  // together with the other Spectrum primitives.
+  [/@\/components\/ui\/command/g, "@/components/spectrumui/ui/command"],
+  // Same for the accordion: Spectrum's variants must import the vendored copy.
+  [/@\/components\/ui\/accordion/g, "@/components/spectrumui/ui/accordion"],
+];
+
+/**
+ * Local fixes applied after every vendoring.
+ *
+ * Upstream targets React 19 / Next 16 with a newer ESLint flat config; this
+ * project runs React 18 / Next 15 with `next lint` (ESLint 8). These rewrites
+ * close that gap. They are idempotent — a no-op if upstream already changed.
+ */
+const POST_FIXES = [
+  {
+    file: "components/spectrumui/ui/command.tsx",
+    from: "interface CommandDialogProps extends DialogProps {}",
+    to: "type CommandDialogProps = DialogProps;",
+    why: "@typescript-eslint/no-empty-object-type",
+  },
+  {
+    file: "components/spectrumui/ui/floating-label-input.tsx",
+    from: "export interface InputProps\n  extends React.InputHTMLAttributes<HTMLInputElement> {}",
+    to: "export type InputProps = React.InputHTMLAttributes<HTMLInputElement>;",
+    why: "@typescript-eslint/no-empty-object-type",
+  },
+  {
+    file: "components/spectrumui/ui/infinite-scroll.tsx",
+    from: "        // @ts-ignore ignore ref type\n",
+    to: "",
+    why: "unused @ts-ignore under this tsconfig",
+  },
+  {
+    file: "components/spectrumui/ui/multiple-selector.tsx",
+    from: "                triggerSearchOnFocus && onSearch?.(debouncedSearchTerm);",
+    to: "                if (triggerSearchOnFocus) onSearch?.(debouncedSearchTerm);",
+    why: "@typescript-eslint/no-unused-expressions",
+  },
+  {
+    file: "components/spectrumui/animated-toast-stack.tsx",
+    from: "    // eslint-disable-next-line react-hooks/set-state-in-effect -- upstream beUI code\n",
+    to: "",
+    why: "rule does not exist in this project's ESLint config",
+  },
+];
+
+function main() {
+  const written = [];
+  const missing = [];
+
+  for (const [name, mapping] of Object.entries(PLAN)) {
+    const manifestPath = path.join(SRC, "public", "r", `${name}.json`);
+    if (!fs.existsSync(manifestPath)) {
+      missing.push(`${name}: registry manifest not found`);
+      continue;
+    }
+
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    const byPath = new Map();
+    for (const file of manifest.files || []) {
+      if (file.path) byPath.set(file.path, file.content);
+      if (file.target) byPath.set(file.target, file.content);
+    }
+
+    for (const [srcFile, target] of Object.entries(mapping)) {
+      const content = byPath.get(srcFile);
+      if (content === undefined) {
+        missing.push(`${name}: ${srcFile}`);
+        continue;
+      }
+      let out = content;
+      for (const [pattern, replacement] of REWRITES) out = out.replace(pattern, replacement);
+
+      const dest = path.join(DEST_ROOT, target);
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.writeFileSync(dest, out);
+      written.push(target);
+    }
+  }
+
+  // components/ui/command.tsx is a plain shadcn primitive that Spectrum's
+  // multiple-selector builds on. It is not published to the registry, so take it
+  // from the library source tree.
+  const commandSrc = path.join(SRC, "components/ui/command.tsx");
+  if (fs.existsSync(commandSrc)) {
+    const dest = path.join(DEST_ROOT, "components/spectrumui/ui/command.tsx");
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.writeFileSync(dest, fs.readFileSync(commandSrc, "utf8"));
+    written.push("components/spectrumui/ui/command.tsx");
+  } else {
+    missing.push("components/ui/command.tsx (library source)");
+  }
+
+  // use-typewriter is a hook, not a registry component.
+  const typewriterSrc = path.join(SRC, "components/spectrumui/use-typewriter.ts");
+  if (fs.existsSync(typewriterSrc)) {
+    const dest = path.join(DEST_ROOT, "components/spectrumui/use-typewriter.ts");
+    fs.writeFileSync(dest, fs.readFileSync(typewriterSrc, "utf8"));
+    written.push("components/spectrumui/use-typewriter.ts");
+  } else {
+    missing.push("components/spectrumui/use-typewriter.ts (library source)");
+  }
+
+  // Apply the local compatibility fixes.
+  for (const fix of POST_FIXES) {
+    const dest = path.join(DEST_ROOT, fix.file);
+    if (!fs.existsSync(dest)) {
+      missing.push(`${fix.file} (post-fix target missing)`);
+      continue;
+    }
+    const before = fs.readFileSync(dest, "utf8");
+    if (!before.includes(fix.from)) continue; // already applied / upstream changed
+    fs.writeFileSync(dest, before.replace(fix.from, fix.to));
+    console.log(`  ~ ${fix.file}  (${fix.why})`);
+  }
+
+  console.log(`\nwrote ${written.length} files`);
+  for (const file of written.sort()) console.log("  +", file);
+
+  if (missing.length) {
+    console.log(`\nMISSING (${missing.length}):`);
+    for (const item of missing) console.log("  !", item);
+    process.exit(1);
+  }
+
+  console.log(
+    "\nNext: npx tsc --noEmit && npm run lint && npm run build, then review git diff.",
+  );
+}
+
+main();

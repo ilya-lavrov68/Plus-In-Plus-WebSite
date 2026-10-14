@@ -160,6 +160,30 @@
     --input: 0 0% 90%;
     --ring: 0 0% 4%;
     --radius: 0.375rem;
+
+    /* -----------------------------------------------------------------------
+       Spectrum UI brand tokens.
+       Mirrors `spectrumTheme` in `lib/spectrum-theme.ts` so vendored Spectrum
+       components can reach the Plus In Plus palette from plain CSS, inline
+       styles and arbitrary Tailwind values (`bg-[var(--spectrum-primary)]`).
+       Keep the two in sync — the TS object is the source of truth.
+       -------------------------------------------------------------------- */
+    --spectrum-primary: #052b42;
+    --spectrum-primary-hover: #153c5c;
+    --spectrum-secondary: #00c56d;
+    --spectrum-secondary-hover: #00b361;
+    --spectrum-accent: #d9e1ff;
+    --spectrum-background: #ffffff;
+    --spectrum-text: #052b42;
+    --spectrum-muted: #052b4280;
+    --spectrum-destructive: #b4232a;
+    --spectrum-border: #052b4229;
+    --spectrum-radius-sm: 0.375rem;
+    --spectrum-radius-md: 0.75rem;
+    --spectrum-radius-lg: 1rem;
+    --spectrum-radius-full: 9999px;
+    --spectrum-duration-base: 200ms;
+    --spectrum-ease: cubic-bezier(0, 0, 0.2, 1);
   }
 
   * {
