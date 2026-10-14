@@ -136,6 +136,25 @@ CTA КАРТОЧЕК ЭКВИВАЛЕНТНЫ ✓
 (`LoadingButton` + `@radix-ui/react-slot`). Админские списки: **+2–3 kB** —
 обёртка над `DataTable`; сам `motion` (+48 kB) ушёл в асинхронный чанк.
 
+### Граница «сервер — клиент» (поймано на живом рендере)
+
+`components/ui/button.tsx` — клиентский компонент (`"use client"`), потому что
+он рендерит Spectrum `LoadingButton`. Серверные компоненты не могут **вызвать**
+экспортированную из него функцию `buttonVariants()` — React падает с
+«Attempted to call buttonVariants() from the server».
+
+Это задело `service-card.tsx` и `shop-service-card.tsx` (оба серверные).
+Ни `tsc`, ни `lint`, ни `build` этого не ловят — ошибка возникает только в
+рантайме, и только когда страница действительно рендерит карточки.
+
+**Никак не проявилось до заливки данных:** БД в песочнице была пуста, страницы
+рендерили пустые состояния, и ветка кода не исполнялась.
+
+**Решение:** CVA-рецепты вынесены в `components/ui/button-variants.ts` —
+чистый модуль без React и без `"use client"`. `button.tsx` и `header-button.tsx`
+импортируют и реэкспортируют их оттуда (существующие импорты не сломаны), а
+серверные компоненты получают классы напрямую.
+
 ---
 
 ## 4. Проверки
@@ -143,11 +162,33 @@ CTA КАРТОЧЕК ЭКВИВАЛЕНТНЫ ✓
 - `npx tsc --noEmit` — без ошибок ✅
 - `npm run lint` — «No ESLint warnings or errors» ✅
 - `rm -rf .next && npm run build` — exit 0 ✅
-- HTTP 200: `/`, `/shop`, `/blog`, `/contact`, `/test-spectrum` ✅
+- HTTP 200: `/`, `/shop`, `/shop/[slug]`, `/blog`, `/blog/[slug]`, `/contact`, `/test-spectrum` ✅
 
 `/test-spectrum` переведён с прямого импорта `DataTable` на `AdminDataTable`,
 чтобы обёртка тоже исполнялась в рантайме: скелетон рендерится на сервере
 (`loadingTable` присутствует), таблица подгружается на клиенте.
+
+### Проверка на реальных данных
+
+Чтобы карточки действительно рендерились, локальная БД (`prisma/dev.db`, в
+gitignore) создана через `npm run db:push` и заполнена 6 услугами (5
+опубликованных) и 5 постами (4 опубликованных).
+
+Разбор отрендеренного `/shop` — все 5 CTA содержат:
+
+```
+inline-flex items-center justify-center gap-2 whitespace-nowrap py-0 font-body
+text-sm font-semibold transition-colors duration-200 ease-out ...
+bg-[#052B42] text-white hover:bg-[#153c5c] rounded-xl mx-auto mb-6 mt-auto
+h-12 w-[calc(100%-40px)] px-5 group-hover:bg-[#0A4366] sm:h-14
+xl:mb-[31px] xl:h-[70px] xl:w-[calc(100%-70px)] xl:text-base
+```
+
+Ни `py-2`, ни `bg-primary`, ни `rounded-full` — нет.
+
+`group-hover:bg-[#0A4366]` перекрывает `hover:bg-[#153c5c]` по специфичности
+(0,3,0 против 0,2,0), поэтому тайл подсвечивается при наведении в любом месте,
+а не только по полоске кнопки.
 
 ---
 

@@ -3,9 +3,11 @@
 import * as React from "react";
 import Link from "next/link";
 
-import { cva, type VariantProps } from "class-variance-authority";
-
 import { LoadingButton } from "@/components/spectrumui/ui/loading-button";
+import {
+  headerButtonVariants,
+  type HeaderButtonVariantProps,
+} from "@/components/ui/button-variants";
 import { cn } from "@/lib/utils";
 
 /**
@@ -17,26 +19,9 @@ import { cn } from "@/lib/utils";
  * `loading` and `asChild` to the header as well. The brand classes are merged
  * last, so Spectrum's stock palette never reaches the screen.
  */
-const headerButtonVariants = cva(
-  // `py-0` cancels the `py-2` in Spectrum's default size variant; the height is
-  // fixed at h-9, so vertical padding is inert and would just be a stray class.
-  "inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-full px-5 py-0 font-body text-sm font-medium transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:pointer-events-none disabled:opacity-50",
-  {
-    variants: {
-      variant: {
-        outline: "border border-navy bg-transparent text-navy hover:bg-navy/[0.05]",
-        primary: "bg-navy text-white hover:bg-navy/90",
-      },
-    },
-    defaultVariants: {
-      variant: "primary",
-    },
-  }
-);
-
 export interface HeaderButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof headerButtonVariants> {
+    HeaderButtonVariantProps {
   /** Shows a spinner and blocks interaction. From Spectrum UI's LoadingButton. */
   loading?: boolean;
 }
@@ -57,7 +42,7 @@ HeaderButton.displayName = "HeaderButton";
 /** Link counterpart for header controls that should retain native navigation semantics. */
 export interface HeaderButtonLinkProps
   extends Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, "type">,
-    VariantProps<typeof headerButtonVariants> {
+    HeaderButtonVariantProps {
   href: string;
 }
 

@@ -1,7 +1,9 @@
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 
-import { buttonVariants } from "@/components/ui/button";
+// Imported from the recipe module, not from button.tsx: these are Server
+// Components, and button.tsx is a Client Component.
+import { buttonVariants } from "@/components/ui/button-variants";
 import { cn } from "@/lib/utils";
 
 export interface BreadcrumbBackProps {
