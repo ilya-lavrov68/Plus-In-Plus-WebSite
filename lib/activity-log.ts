@@ -2,10 +2,13 @@ import type { Prisma } from "@/lib/generated/prisma/client";
 
 export interface ActivityInput {
   action: string;
-  entityType: "service" | "post" | "user" | "setting";
+  /** "order" добавлен вместе с заявками на расчёт и заказами. */
+  entityType: "service" | "post" | "user" | "setting" | "order";
   entityId: string;
   title: string;
-  actorId: string;
+  /** Кто сделал. Пусто у системных событий — например, оплата пришла через
+   *  уведомление платёжного шлюза, и вошедшего пользователя в этот момент нет. */
+  actorId?: string | null;
 }
 
 /** Use the mutation's transaction: an audit entry must not outlive a failed write. */

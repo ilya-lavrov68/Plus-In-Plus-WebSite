@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { logout } from "@/app/actions/auth";
 import { usePathname } from "next/navigation";
-import { BookOpen, LayoutDashboard, LogOut, Palette, Settings, Users } from "lucide-react";
+import { BarChart3, BookOpen, LayoutDashboard, LogOut, Palette, Settings, ShoppingCart, Users } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useTranslations } from "next-intl";
 
@@ -13,8 +13,10 @@ import { cn } from "@/lib/utils";
 
 const links = [
   { key: "dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+  { key: "analytics", href: "/admin/analytics", icon: BarChart3 },
   { key: "services", href: "/admin/services", icon: Palette },
   { key: "blog", href: "/admin/blog", icon: BookOpen },
+  { key: "orders", href: "/admin/orders", icon: ShoppingCart },
   { key: "users", href: "/admin/users", icon: Users },
   { key: "settings", href: "/admin/settings", icon: Settings },
 ];

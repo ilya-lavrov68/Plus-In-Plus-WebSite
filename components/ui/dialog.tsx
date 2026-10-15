@@ -2,25 +2,45 @@
 
 import * as React from "react";
 
-import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import {
+  ResponsiveModal,
+  ResponsiveModalClose,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalOverlay,
+  ResponsiveModalPortal,
+  ResponsiveModalTitle,
+  ResponsiveModalTrigger,
+} from "@/components/spectrumui/ui/responsive-modal";
 import { cn } from "@/lib/utils";
 
-const Dialog = DialogPrimitive.Root;
-
-const DialogTrigger = DialogPrimitive.Trigger;
-
-const DialogPortal = DialogPrimitive.Portal;
-
-const DialogClose = DialogPrimitive.Close;
+/**
+ * Brand dialog, now Spectrum UI's ResponsiveModal.
+ *
+ * Upstream ResponsiveModal defaults to a bottom sheet below `lg`, which would
+ * have moved the account and delete-confirmation dialogs on phones. The `center`
+ * side added in scripts/vendor-spectrum.cjs reproduces the old centred layout at
+ * every width, and it is the default here — so every existing screen is
+ * pixel-identical while the sheet variants (`side="bottom"`, `"left"`, …) remain
+ * available for new dialogs that want the native mobile feel.
+ *
+ * Everything else is preserved: the same names are re-exported, the overlay is
+ * still a dark wash, and the dismiss button keeps its translated label.
+ */
+const Dialog = ResponsiveModal;
+const DialogTrigger = ResponsiveModalTrigger;
+const DialogPortal = ResponsiveModalPortal;
+const DialogClose = ResponsiveModalClose;
 
 const DialogOverlay = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Overlay>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
+  React.ElementRef<typeof ResponsiveModalOverlay>,
+  React.ComponentPropsWithoutRef<typeof ResponsiveModalOverlay>
 >(({ className, ...props }, ref) => (
-  <DialogPrimitive.Overlay
+  <ResponsiveModalOverlay
     ref={ref}
     className={cn(
       "fixed inset-0 z-50 bg-black/80 duration-250 ease-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
@@ -29,40 +49,35 @@ const DialogOverlay = React.forwardRef<
     {...props}
   />
 ));
-DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
+DialogOverlay.displayName = "DialogOverlay";
 
 const DialogContent = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => {
+  React.ElementRef<typeof ResponsiveModalContent>,
+  React.ComponentPropsWithoutRef<typeof ResponsiveModalContent>
+>(({ className, children, side = "center", ...props }, ref) => {
   const t = useTranslations("common");
   return (
-  <DialogPortal>
-    <DialogOverlay />
-    <DialogPrimitive.Content
+    <ResponsiveModalContent
       ref={ref}
+      side={side}
+      closeLabel={t("close")}
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-border bg-background p-6 duration-250 ease-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 sm:rounded-lg",
+        "border-border bg-background duration-250 ease-out sm:rounded-xl",
         className
       )}
       {...props}
     >
       {children}
-      <DialogPrimitive.Close aria-label={t("close")} className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity duration-200 ease-out hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-        <X className="h-4 w-4" />
-        <span className="sr-only">{t("close")}</span>
-      </DialogPrimitive.Close>
-    </DialogPrimitive.Content>
-  </DialogPortal>
+    </ResponsiveModalContent>
   );
 });
-DialogContent.displayName = DialogPrimitive.Content.displayName;
+DialogContent.displayName = "DialogContent";
 
 const DialogHeader = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div
+  <ResponsiveModalHeader
     className={cn(
       "flex flex-col space-y-1.5 text-center sm:text-left",
       className
@@ -76,7 +91,7 @@ const DialogFooter = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div
+  <ResponsiveModalFooter
     className={cn(
       "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
       className
@@ -87,31 +102,28 @@ const DialogFooter = ({
 DialogFooter.displayName = "DialogFooter";
 
 const DialogTitle = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Title>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
+  React.ElementRef<typeof ResponsiveModalTitle>,
+  React.ComponentPropsWithoutRef<typeof ResponsiveModalTitle>
 >(({ className, ...props }, ref) => (
-  <DialogPrimitive.Title
+  <ResponsiveModalTitle
     ref={ref}
-    className={cn(
-      "text-lg font-semibold leading-none tracking-tight",
-      className
-    )}
+    className={cn("text-lg font-semibold leading-none tracking-tight", className)}
     {...props}
   />
 ));
-DialogTitle.displayName = DialogPrimitive.Title.displayName;
+DialogTitle.displayName = "DialogTitle";
 
 const DialogDescription = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Description>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
+  React.ElementRef<typeof ResponsiveModalDescription>,
+  React.ComponentPropsWithoutRef<typeof ResponsiveModalDescription>
 >(({ className, ...props }, ref) => (
-  <DialogPrimitive.Description
+  <ResponsiveModalDescription
     ref={ref}
     className={cn("text-sm text-muted-foreground", className)}
     {...props}
   />
 ));
-DialogDescription.displayName = DialogPrimitive.Description.displayName;
+DialogDescription.displayName = "DialogDescription";
 
 export {
   Dialog,

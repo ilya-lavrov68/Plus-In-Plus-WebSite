@@ -64,6 +64,9 @@ function coverFile(form: FormData, t: MessageTranslator): File | null {
   return file instanceof File && file.size > 0 ? file : null;
 }
 
+/** Единственный источник правды о допустимых типах цены — и в форме, и здесь. */
+const PRICE_TYPES = ["fixed", "from", "quote"] as const;
+
 function isUniqueViolation(error: unknown): boolean {
   return typeof error === "object" && error !== null && (error as { code?: string }).code === "P2002";
 }
@@ -242,4 +245,109 @@ export async function deleteService(id: string): Promise<ServiceActionResult> {
   await cleanupUpload(cover, "services");
   revalidateService(id, slug);
   return { ok: true, id };
+}
+
+/**
+ * Быстрая правка цены прямо из таблицы.
+ *
+ * Цена — самое часто меняемое поле услуги: пересчитали себестоимость,
+ * поменяли тираж — и надо поправить одну цифру. Ради этого открывать
+ * форму целиком неудобно, а правка напрямую в списке экономит поход по
+ * трём экранам.
+ *
+ * Сумма приходит в рублях (её вводит человек), хранится в копейках.
+ */
+export async function updateServicePrice(input: {
+  serviceId: string;
+  basePriceRub: string;
+}): Promise<ServiceActionResult> {
+  const t = await getActionTranslator();
+  const admin = await requireAdmin();
+  if (!admin || !prisma) return { ok: false, error: t("unauthorized") };
+  if (typeof input?.serviceId !== "string" || !input.serviceId || input.serviceId.length > 128) {
+    return { ok: false, error: t("invalidRequest") };
+  }
+
+  const raw = String(input.basePriceRub ?? "").trim().replace(",", ".");
+  // Пустое поле — не «бесплатно»: Number("") === 0, и услуга стала бы
+  // бесплатной. Проверяем до преобразования.
+  if (!raw) return { ok: false, error: t("invalidPrice") };
+  const rubles = Number(raw);
+  if (!Number.isFinite(rubles) || rubles < 0) return { ok: false, error: t("invalidPrice") };
+  if (rubles > 100_000_000) return { ok: false, error: t("invalidPrice") };
+  const basePrice = Math.round(rubles * 100);
+
+  try {
+    const existing = await prisma.service.findUnique({ where: { id: input.serviceId } });
+    if (!existing) return { ok: false, error: t("serviceNotFound") };
+    if (existing.basePrice === basePrice) return { ok: true };
+
+    await prisma.$transaction(async (tx) => {
+      await tx.service.update({ where: { id: input.serviceId }, data: { basePrice } });
+      await recordActivity(tx, {
+        action: "updated",
+        entityType: "service",
+        entityId: input.serviceId,
+        title: `${existing.title} — ${(basePrice / 100).toLocaleString("ru-RU")} ₽`,
+        actorId: admin.id,
+      });
+    });
+  } catch (error) {
+    console.error("Failed to update the service price:", error);
+    return { ok: false, error: t("updateServiceFailed") };
+  }
+
+  revalidateService(input.serviceId);
+  return { ok: true };
+}
+
+/**
+ * Тип цены: «ровно», «от» или «по запросу».
+ *
+ * Влияет и на витрину, и на заказ: при «по запросу» кнопка покупки
+ * недоступна, потому что назвать цену может только менеджер.
+ */
+export async function updateServicePriceType(input: {
+  serviceId: string;
+  priceType: string;
+  isOrderable?: boolean;
+}): Promise<ServiceActionResult> {
+  const t = await getActionTranslator();
+  const admin = await requireAdmin();
+  if (!admin || !prisma) return { ok: false, error: t("unauthorized") };
+  if (typeof input?.serviceId !== "string" || !input.serviceId || input.serviceId.length > 128) {
+    return { ok: false, error: t("invalidRequest") };
+  }
+  if (!PRICE_TYPES.includes(input.priceType as (typeof PRICE_TYPES)[number])) {
+    return { ok: false, error: t("invalidPriceType") };
+  }
+
+  try {
+    const existing = await prisma.service.findUnique({ where: { id: input.serviceId } });
+    if (!existing) return { ok: false, error: t("serviceNotFound") };
+
+    // «По запросу» означает, что цену называет менеджер, — самостоятельно
+    // заказать такое нельзя. Остальные типы оставляем как было.
+    const isOrderable = input.priceType === "quote" ? false : input.isOrderable ?? existing.isOrderable;
+
+    await prisma.$transaction(async (tx) => {
+      await tx.service.update({
+        where: { id: input.serviceId },
+        data: { priceType: input.priceType, isOrderable },
+      });
+      await recordActivity(tx, {
+        action: "updated",
+        entityType: "service",
+        entityId: input.serviceId,
+        title: `${existing.title} — ${input.priceType}`,
+        actorId: admin.id,
+      });
+    });
+  } catch (error) {
+    console.error("Failed to update the service price type:", error);
+    return { ok: false, error: t("updateServiceFailed") };
+  }
+
+  revalidateService(input.serviceId);
+  return { ok: true };
 }

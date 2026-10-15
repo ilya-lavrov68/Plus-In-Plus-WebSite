@@ -19,7 +19,7 @@ export function InternalPageHeader({ title }: InternalPageHeaderProps) {
         aria-label={`${title} — ${t("loadingPage")}`}
         className="relative isolate -mt-16 flex h-[clamp(400px,40.52vw,778px)] items-end overflow-hidden bg-[#CFE0FF]"
       >
-        <GradientBackdrop src="/assets/gradients/hero-gradient.svg" priority />
+        <GradientBackdrop src="/assets/gradients/hero-gradient.jpg" priority />
         <div className="relative z-10 w-full px-6 pb-2 sm:px-12 lg:px-24">
           <h1 className="whitespace-nowrap font-geist text-[clamp(3.5rem,15vw,19rem)] font-semibold leading-[0.8] tracking-[-0.055em] text-[#052B42]">
             {title}

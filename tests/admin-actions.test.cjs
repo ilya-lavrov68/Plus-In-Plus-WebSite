@@ -170,3 +170,77 @@ test("invalid categories, slugs, read times, remote covers and missing uploads d
   for (const result of [await services.createService(badCategory), await services.createService(remote), await services.createService(serviceForm(false)), await posts.createPost(badSlug), await posts.createPost(badTime), await posts.createPost(postForm(false))]) assert.equal(result.ok, false);
   assert.equal(queries, 0); assert.equal(uploads.length, 0); assert.equal(logs.length, 0);
 });
+
+// ── Быстрая правка цены ────────────────────────────────────────────────────
+// Цена меняется чаще остальных полей, поэтому правится прямо из таблицы.
+
+test("цена услуги правится и пишется в журнал", async () => {
+  store.service.set("svc-1", { id: "svc-1", title: "Визитки", slug: "visitki", basePrice: 89000, priceType: "fixed", isOrderable: true });
+  const result = await services.updateServicePrice({ serviceId: "svc-1", basePriceRub: "1200" });
+
+  assert.equal(result.ok, true);
+  assert.equal(store.service.get("svc-1").basePrice, 120_000, "рубли переведены в копейки");
+  assert.equal(logs.length, 1);
+  assert.equal(logs[0].action, "updated");
+});
+
+test("запятая в цене допустима", async () => {
+  store.service.set("svc-1", { id: "svc-1", title: "Визитки", slug: "visitki", basePrice: 0, priceType: "fixed" });
+  const result = await services.updateServicePrice({ serviceId: "svc-1", basePriceRub: "899,50" });
+  assert.equal(result.ok, true);
+  assert.equal(store.service.get("svc-1").basePrice, 89_950);
+});
+
+test("пустая цена не делает услугу бесплатной", async () => {
+  store.service.set("svc-1", { id: "svc-1", title: "Визитки", slug: "visitki", basePrice: 89000, priceType: "fixed" });
+  // Number("") === 0 — без проверки услуга стала бы бесплатной.
+  for (const basePriceRub of ["", "   ", "abc", "-50", "999999999"]) {
+    const result = await services.updateServicePrice({ serviceId: "svc-1", basePriceRub });
+    assert.equal(result.ok, false, `«${basePriceRub}» не должно проходить`);
+  }
+  assert.equal(store.service.get("svc-1").basePrice, 89000);
+  assert.equal(logs.length, 0);
+});
+
+test("цена без изменений не пишется в базу", async () => {
+  store.service.set("svc-1", { id: "svc-1", title: "Визитки", slug: "visitki", basePrice: 89000, priceType: "fixed" });
+  const result = await services.updateServicePrice({ serviceId: "svc-1", basePriceRub: "890" });
+  assert.equal(result.ok, true);
+  assert.equal(logs.length, 0, "журнал не должен пополняться пустой правкой");
+});
+
+test("тип цены меняется, «по запросу» снимает возможность заказа", async () => {
+  store.service.set("svc-1", { id: "svc-1", title: "Вывеска", slug: "vyveska", basePrice: 0, priceType: "from", isOrderable: true });
+  const result = await services.updateServicePriceType({ serviceId: "svc-1", priceType: "quote" });
+
+  assert.equal(result.ok, true);
+  assert.equal(store.service.get("svc-1").priceType, "quote");
+  // Цены нет, значит заказать самому нельзя — только обсудить с менеджером.
+  assert.equal(store.service.get("svc-1").isOrderable, false);
+});
+
+test("точную цену можно заказать, если услуга это разрешает", async () => {
+  store.service.set("svc-1", { id: "svc-1", title: "Вывеска", slug: "vyveska", basePrice: 0, priceType: "quote", isOrderable: false });
+  const result = await services.updateServicePriceType({ serviceId: "svc-1", priceType: "fixed", isOrderable: true });
+
+  assert.equal(result.ok, true);
+  assert.equal(store.service.get("svc-1").priceType, "fixed");
+  assert.equal(store.service.get("svc-1").isOrderable, true);
+});
+
+test("неизвестный тип цены отвергается", async () => {
+  store.service.set("svc-1", { id: "svc-1", title: "Вывеска", slug: "vyveska", basePrice: 0, priceType: "fixed" });
+  const result = await services.updateServicePriceType({ serviceId: "svc-1", priceType: "whatever" });
+  assert.equal(result.ok, false);
+  assert.equal(store.service.get("svc-1").priceType, "fixed");
+});
+
+test("менеджер не может менять цену услуги", async () => {
+  // Управление сайтом — только администратор.
+  admin = null;
+  store.service.set("svc-1", { id: "svc-1", title: "Визитки", slug: "visitki", basePrice: 89000, priceType: "fixed" });
+  assert.equal((await services.updateServicePrice({ serviceId: "svc-1", basePriceRub: "1" })).ok, false);
+  assert.equal((await services.updateServicePriceType({ serviceId: "svc-1", priceType: "quote" })).ok, false);
+  assert.equal(store.service.get("svc-1").basePrice, 89000);
+  assert.equal(store.service.get("svc-1").priceType, "fixed");
+});

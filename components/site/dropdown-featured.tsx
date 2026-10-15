@@ -27,12 +27,12 @@ export function DropdownFeatured({
     title: t("defaultPostTitle"),
     slug: "",
     excerpt: t("defaultPostExcerpt"),
-    coverImage: "/assets/gradients/hero-gradient.svg",
+    coverImage: "/assets/gradients/hero-gradient.jpg",
     isFeatured: false,
   };
 
   const href = post.slug ? `/blog/${post.slug}` : "/blog";
-  const imageSrc = post.coverImage || "/assets/gradients/hero-gradient.svg";
+  const imageSrc = post.coverImage || "/assets/gradients/hero-gradient.jpg";
 
   return (
     <aside className="hidden min-h-0 overflow-y-auto border-l border-gray-100 bg-[#FAFCFB] p-5 md:block lg:p-6">

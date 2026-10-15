@@ -1,0 +1,330 @@
+const assert = require("node:assert/strict");
+const { test, beforeEach, describe } = require("node:test");
+const crypto = require("node:crypto");
+const fs = require("node:fs");
+const path = require("node:path");
+const Module = require("node:module");
+const ts = require("typescript");
+
+require.extensions[".ts"] = (module, filename) =>
+  module._compile(
+    ts.transpileModule(fs.readFileSync(filename, "utf8"), {
+      compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true, target: ts.ScriptTarget.ES2022 },
+    }).outputText,
+    filename,
+  );
+
+/** В памяти: только платежи одного заказа — логику выставления проверяем. */
+const invoiceDb = {
+  payments: new Map(),
+  sequence: 0,
+  reset() {
+    this.payments = new Map();
+    this.sequence = 0;
+  },
+  seed(rows) {
+    for (const row of rows) this.payments.set(row.id, { ...row });
+    // Счётчик продолжается после подсунутых записей, иначе новый платёж
+    // получит тот же id, что уже лежит в базе.
+    this.sequence = Math.max(this.sequence, rows.length);
+  },
+  prisma: {
+    payment: {
+      findMany: async ({ where }) =>
+        [...invoiceDb.payments.values()].filter((p) => p.orderId === where.orderId || true),
+      create: async ({ data }) => {
+        const row = { id: `pay-${++invoiceDb.sequence}`, ...data };
+        invoiceDb.payments.set(row.id, row);
+        return { id: row.id, paymentUrl: row.paymentUrl };
+      },
+      updateMany: async ({ where, data }) => {
+        for (const [id, row] of invoiceDb.payments) {
+          if (where.status && row.status !== where.status) continue;
+          Object.assign(row, data);
+        }
+        return { count: 0 };
+      },
+    },
+  },
+};
+
+const originalLoad = Module._load;
+Module._load = function (name, parent, isMain) {
+  // Сгенерированный Prisma-клиент — ESM, из .cjs его не подключить.
+  // invoice.ts всё равно работает только с базой, а здесь проверяется
+  // чистая арифметика номера счёта.
+  if (name === "@/lib/prisma") return { prisma: invoiceDb.prisma };
+  if (name.startsWith("@/")) name = path.resolve(__dirname, "..", name.slice(2));
+  return originalLoad.call(this, name, parent, isMain);
+};
+
+const robokassa = require("../lib/payments/robokassa.ts");
+const { invoiceNumber } = require("../lib/payments/invoice.ts");
+
+const LOGIN = "shop";
+const PASS1 = "password-one";
+const PASS2 = "password-two";
+
+/** Эталонная подпись считается независимо — не тем же кодом, что проверяем. */
+function md5(value) {
+  return crypto.createHash("md5").update(value, "utf8").digest("hex").toUpperCase();
+}
+
+beforeEach(() => {
+  process.env.ROBOKASSA_MERCHANT_LOGIN = LOGIN;
+  process.env.ROBOKASSA_PASSWORD1 = PASS1;
+  process.env.ROBOKASSA_PASSWORD2 = PASS2;
+  delete process.env.ROBOKASSA_TEST_MODE;
+  delete process.env.ROBOKASSA_HASH_ALGO;
+});
+
+describe("сумма", () => {
+  test("копейки превращаются в рубли с двумя знаками", () => {
+    assert.equal(robokassa.formatOutSum(123450), "1234.50");
+    assert.equal(robokassa.formatOutSum(100), "1.00");
+    assert.equal(robokassa.formatOutSum(0), "0.00");
+    assert.equal(robokassa.formatOutSum(5), "0.05");
+  });
+
+  test("дробные копейки не протекают в сумму", () => {
+    // Если где-то посчитали 1234.499, в платёж должно уйти ровное число.
+    assert.equal(robokassa.formatOutSum(123449.9 | 0), "1234.49");
+  });
+});
+
+describe("подписи", () => {
+  test("подпись запроса: логин:сумма:счёт:пароль1", () => {
+    const config = robokassa.readConfig();
+    assert.equal(robokassa.requestSignature(config, "100.00", 5), md5(`${LOGIN}:100.00:5:${PASS1}`));
+  });
+
+  test("подпись уведомления строится на втором пароле", () => {
+    const config = robokassa.readConfig();
+    assert.equal(robokassa.resultSignature(config, "100.00", 5), md5(`100.00:5:${PASS2}`));
+  });
+
+  test("страница успеха подписывается первым паролем, а не вторым", () => {
+    const config = robokassa.readConfig();
+    assert.equal(robokassa.successSignature(config, "100.00", 5), md5(`100.00:5:${PASS1}`));
+    // Второй пароль наружу не уходит — иначе его можно подсмотреть.
+    assert.notEqual(
+      robokassa.successSignature(config, "100.00", 5),
+      robokassa.resultSignature(config, "100.00", 5),
+    );
+  });
+
+  test("дополнительные параметры идут в алфавитном порядке", () => {
+    const config = robokassa.readConfig();
+    const expected = md5(`${LOGIN}:100.00:5:${PASS1}:shp_a=1:shp_b=2`);
+    // Порядок в объекте намеренно обратный: сортировка обязана поправить.
+    assert.equal(robokassa.requestSignature(config, "100.00", 5, { shp_b: "2", shp_a: "1" }), expected);
+  });
+
+  test("разные алгоритмы дают разные подписи", () => {
+    process.env.ROBOKASSA_HASH_ALGO = "sha256";
+    const config = robokassa.readConfig();
+    assert.equal(config.hashAlgo, "sha256");
+    assert.equal(
+      robokassa.resultSignature(config, "100.00", 5),
+      crypto.createHash("sha256").update(`100.00:5:${PASS2}`, "utf8").digest("hex").toUpperCase(),
+    );
+  });
+
+  test("неизвестный алгоритм не ломает подпись, а берёт md5", () => {
+    process.env.ROBOKASSA_HASH_ALGO = "sha1-чего-то";
+    const config = robokassa.readConfig();
+    assert.equal(config.hashAlgo, "md5");
+    assert.equal(robokassa.resultSignature(config, "100.00", 5), md5(`100.00:5:${PASS2}`));
+  });
+});
+
+describe("проверка подписи", () => {
+  test("своя подпись принимается", () => {
+    const config = robokassa.readConfig();
+    const signature = robokassa.resultSignature(config, "100.00", 5);
+    assert.equal(robokassa.signatureMatches(signature, signature), true);
+  });
+
+  test("регистр не важен, а вот любая ошибка — да", () => {
+    const config = robokassa.readConfig();
+    const signature = robokassa.resultSignature(config, "100.00", 5);
+    assert.equal(robokassa.signatureMatches(signature, signature.toLowerCase()), true);
+    assert.equal(robokassa.signatureMatches(signature, `${signature}X`), false);
+    assert.equal(robokassa.signatureMatches(signature, ""), false);
+    assert.equal(robokassa.signatureMatches(signature, null), false);
+    assert.equal(robokassa.signatureMatches(signature, undefined), false);
+  });
+
+  test("не та сумма — не та подпись", () => {
+    const config = robokassa.readConfig();
+    const signature = robokassa.resultSignature(config, "1.00", 5);
+    // Попытка оплатить заказ за копейку.
+    assert.equal(robokassa.signatureMatches(robokassa.resultSignature(config, "100.00", 5), signature), false);
+  });
+});
+
+describe("ссылка на оплату", () => {
+  test("в ссылке есть всё нужное и верная подпись", () => {
+    const url = robokassa.buildPaymentUrl({
+      amount: 123450,
+      invId: 7000,
+      description: "Оплата заказа ПИП-000007",
+      email: "client@test",
+      extra: { OrderId: "ord-000007" },
+    });
+    const parsed = new URL(url);
+    assert.equal(parsed.origin + parsed.pathname, "https://auth.robokassa.ru/Merchant/Index.aspx");
+    assert.equal(parsed.searchParams.get("MerchantLogin"), LOGIN);
+    assert.equal(parsed.searchParams.get("OutSum"), "1234.50");
+    assert.equal(parsed.searchParams.get("InvId"), "7000");
+    assert.equal(parsed.searchParams.get("Email"), "client@test");
+    assert.equal(parsed.searchParams.get("Encoding"), "utf-8");
+
+    // shp_-параметр подписан и при этом реально уехал в ссылку.
+    const expected = md5(`${LOGIN}:1234.50:7000:${PASS1}:shp_OrderId=ord-000007`);
+    assert.equal(parsed.searchParams.get("SignatureValue"), expected);
+    assert.equal(parsed.searchParams.get("shp_OrderId"), "ord-000007");
+  });
+
+  test("подпись и ссылка не расходятся: всё, что подписано, уехало", () => {
+    const url = new URL(
+      robokassa.buildPaymentUrl({
+        amount: 50000,
+        invId: 900,
+        description: "Счёт",
+        extra: { OrderId: "ord-9", Source: "site" },
+      }),
+    );
+    // Пересчитываем подпись по тем же данным, что реально лежат в ссылке.
+    const expected = md5(
+      `${LOGIN}:${url.searchParams.get("OutSum")}:900:${PASS1}:shp_OrderId=ord-9:shp_Source=site`,
+    );
+    assert.equal(url.searchParams.get("SignatureValue"), expected);
+    assert.equal(url.searchParams.get("shp_OrderId"), "ord-9");
+    assert.equal(url.searchParams.get("shp_Source"), "site");
+  });
+
+  test("тестовый режим помечает ссылку", () => {
+    process.env.ROBOKASSA_TEST_MODE = "1";
+    const url = robokassa.buildPaymentUrl({ amount: 100, invId: 1, description: "тест" });
+    assert.equal(new URL(url).searchParams.get("IsTest"), "1");
+  });
+
+  test("без настроек ссылки нет, но и падения нет", () => {
+    delete process.env.ROBOKASSA_PASSWORD1;
+    assert.equal(robokassa.isRobokassaConfigured(), false);
+    assert.equal(robokassa.buildPaymentUrl({ amount: 100, invId: 1, description: "тест" }), null);
+  });
+
+  test("описание обрезается по длине", () => {
+    const url = robokassa.buildPaymentUrl({ amount: 100, invId: 1, description: "x".repeat(300) });
+    assert.equal(new URL(url).searchParams.get("Description").length, 100);
+  });
+});
+
+describe("сквозной сценарий", () => {
+  test("уведомление подходит к ссылке, по которой клиент ушёл платить", () => {
+    const config = robokassa.readConfig();
+    const amount = 289900;
+    const invId = 4000;
+    const extra = { OrderId: "ord-000004" };
+
+    // Ушли по ссылке…
+    const url = new URL(robokassa.buildPaymentUrl({ amount, invId, description: "Счёт", extra }));
+    // …вернулось уведомление с теми же суммой и номером.
+    const incoming = {
+      outSum: url.searchParams.get("OutSum"),
+      invId: url.searchParams.get("InvId"),
+      signature: robokassa.resultSignature(config, url.searchParams.get("OutSum"), invId, extra),
+    };
+    assert.equal(
+      robokassa.signatureMatches(
+        robokassa.resultSignature(config, incoming.outSum, incoming.invId, extra),
+        incoming.signature,
+      ),
+      true,
+    );
+  });
+});
+
+describe("номер счёта", () => {
+  test("выводится из номера заказа и не сталкивается при повторе", () => {
+    assert.equal(invoiceNumber("ПИП-000007", 0), 7000);
+    assert.equal(invoiceNumber("ПИП-000007", 1), 7001);
+    assert.equal(invoiceNumber("ПИП-000012", 0), 12000);
+  });
+
+  test("битый номер не роняет выставление счёта", () => {
+    assert.equal(invoiceNumber("без цифр", 0), 0);
+    assert.equal(invoiceNumber("", 3), 3);
+  });
+});
+
+
+describe("повторное выставление счёта", () => {
+  test("та же сумма — тот же счёт, а не новый", async () => {
+    const { issueInvoice } = require("../lib/payments/invoice.ts");
+    invoiceDb.reset();
+    invoiceDb.seed([{ id: "pay-1", status: "pending", amount: 1600000, externalId: "7000", paymentUrl: "https://pay/7000" }]);
+
+    const again = await issueInvoice({
+      orderId: "ord-7", orderNumber: "ПИП-000007", amount: 1_600_000,
+      currency: "RUB", customerEmail: "c@test",
+    });
+
+    assert.equal(again.paymentId, "pay-1", "ссылка должна остаться прежней");
+    assert.equal(invoiceDb.payments.size, 1, "новый счёт не создаётся");
+  });
+
+  test("другая сумма — старый счёт закрывается, выставляется новый", async () => {
+    const { issueInvoice } = require("../lib/payments/invoice.ts");
+    invoiceDb.reset();
+    invoiceDb.seed([{ id: "pay-1", status: "pending", amount: 1600000, externalId: "7000", paymentUrl: "https://pay/7000" }]);
+
+    const changed = await issueInvoice({
+      orderId: "ord-7", orderNumber: "ПИП-000007", amount: 1_750_000,
+      currency: "RUB", customerEmail: "c@test",
+    });
+
+    assert.notEqual(changed.paymentId, "pay-1");
+    assert.equal(invoiceDb.payments.get("pay-1").status, "failed", "старый счёт больше недействителен");
+    assert.equal(invoiceDb.payments.get(changed.paymentId).amount, 1_750_000);
+    // У клиента не должно быть двух ссылок на разные суммы.
+    const pending = [...invoiceDb.payments.values()].filter((p) => p.status === "pending");
+    assert.equal(pending.length, 1);
+  });
+
+  test("номер нового счёта не сталкивается с предыдущим", async () => {
+    const { issueInvoice } = require("../lib/payments/invoice.ts");
+    invoiceDb.reset();
+    invoiceDb.seed([{ id: "pay-1", status: "pending", amount: 1600000, externalId: "7000", paymentUrl: "https://pay/7000" }]);
+
+    const second = await issueInvoice({
+      orderId: "ord-7", orderNumber: "ПИП-000007", amount: 1_900_000,
+      currency: "RUB", customerEmail: "c@test",
+    });
+
+    assert.equal(second.invId, 7001, "вторая попытка — следующий номер счёта");
+  });
+
+  test("без настроенного провайдера счёт всё равно сохраняется", async () => {
+    const { issueInvoice } = require("../lib/payments/invoice.ts");
+    const savedLogin = process.env.ROBOKASSA_MERCHANT_LOGIN;
+    const savedPass1 = process.env.ROBOKASSA_PASSWORD1;
+    delete process.env.ROBOKASSA_MERCHANT_LOGIN;
+    delete process.env.ROBOKASSA_PASSWORD1;
+
+    invoiceDb.reset();
+    try {
+      const result = await issueInvoice({
+        orderId: "ord-7", orderNumber: "ПИП-000007", amount: 1_600_000,
+        currency: "RUB", customerEmail: "c@test",
+      });
+      assert.equal(result.paymentUrl, null, "ссылки нет — провайдер не настроен");
+      assert.ok(result.paymentId, "счёт в базе остаётся: историю не теряем");
+    } finally {
+      process.env.ROBOKASSA_MERCHANT_LOGIN = savedLogin;
+      process.env.ROBOKASSA_PASSWORD1 = savedPass1;
+    }
+  });
+});

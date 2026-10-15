@@ -154,6 +154,94 @@ export function serviceHref(service: Pick<ServiceView, "id" | "slug">): string {
   return `/shop/${encodeURIComponent(service.slug || service.id)}`;
 }
 
+export interface ServiceOptionView {
+  id: string;
+  label: string;
+  /** Копейки, прибавляемые к базовой цене. Может быть отрицательной. */
+  priceDelta: number;
+  priceFactor: number;
+  isDefault: boolean;
+  sortOrder: number;
+}
+
+export interface ServiceOptionGroupView {
+  id: string;
+  name: string;
+  required: boolean;
+  sortOrder: number;
+  options: ServiceOptionView[];
+}
+
+/**
+ * Всё, что нужно конфигуратору на странице услуги.
+ *
+ * Загружается отдельным запросом, а не расширением ServiceView: список услуг
+ * в /shop и карточки не должны тащить за собой дерево опций каждой позиции.
+ */
+export interface ServicePricingView {
+  serviceId: string;
+  title: string;
+  /** Копейки. */
+  basePrice: number;
+  /** "fixed" | "from" | "quote" */
+  priceType: string;
+  currency: string;
+  isOrderable: boolean;
+  groups: ServiceOptionGroupView[];
+}
+
+/**
+ * Цена и опции услуги для конфигуратора. Возвращает null, если услуги нет,
+ * она снята с публикации или не продаётся — во всех трёх случаях
+ * конфигуратор показывать нечего.
+ */
+export async function getServicePricing(slugOrId: string): Promise<ServicePricingView | null> {
+  if (!prisma) return null;
+
+  try {
+    const service = await prisma.service.findFirst({
+      where: {
+        isPublished: true,
+        OR: [{ slug: slugOrId }, { id: slugOrId }],
+      },
+      include: {
+        optionGroups: {
+          orderBy: { sortOrder: "asc" },
+          include: { options: { orderBy: { sortOrder: "asc" } } },
+        },
+      },
+    });
+
+    if (!service || !service.isOrderable) return null;
+
+    return {
+      serviceId: service.id,
+      title: service.title,
+      basePrice: service.basePrice,
+      priceType: service.priceType,
+      currency: service.currency,
+      isOrderable: service.isOrderable,
+      groups: service.optionGroups.map((group) => ({
+        id: group.id,
+        name: group.name,
+        required: group.required,
+        sortOrder: group.sortOrder,
+        options: group.options.map((option) => ({
+          id: option.id,
+          label: option.label,
+          priceDelta: option.priceDelta,
+          priceFactor: option.priceFactor,
+          isDefault: option.isDefault,
+          sortOrder: option.sortOrder,
+        })),
+      })),
+    };
+  } catch (error) {
+    console.error("Failed to load service pricing from the database:", error);
+    return null;
+  }
+}
+
 export async function getPublishedPosts(): Promise<PostView[]> {
   if (!prisma) return [];
 

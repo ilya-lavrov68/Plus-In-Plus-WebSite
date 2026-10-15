@@ -6,7 +6,9 @@ import { redirect } from "next/navigation";
 import { InternalPageContent, InternalPageHeader } from "@/components/site/internal-page-header";
 import { OtherNewsSection } from "@/components/site/other-news-section";
 import { SafeImage } from "@/components/site/safe-image";
-import { getPublishedPosts, getPublishedService, toNewsItem } from "@/lib/data";
+import { ServiceConfigurator } from "@/components/site/service-configurator";
+import { requestQuote } from "@/app/actions/orders";
+import { getPublishedPosts, getPublishedService, getServicePricing, toNewsItem } from "@/lib/data";
 import { createPageMetadata } from "@/lib/seo";
 import { getServiceArtwork, getServiceGallery, isSignDesignService } from "@/lib/shop-assets";
 import { getRequestLocale } from "@/lib/request-locale";
@@ -71,8 +73,9 @@ function copyWithLead(text: string) {
 
 export default async function ServicePage({ params }: ServicePageProps) {
   const { slug } = await params;
-  const [service, t] = await Promise.all([
+  const [service, pricing, t] = await Promise.all([
     getPublishedService(slug),
+    getServicePricing(slug),
     getRequestTranslations("shop"),
   ]);
   if (!service) redirect("/shop");
@@ -183,6 +186,17 @@ export default async function ServicePage({ params }: ServicePageProps) {
               </p>
             ) : null}
           </div>
+
+          {pricing ? (
+            <ServiceConfigurator
+              className="mt-8"
+              pricing={pricing}
+              onSubmit={async (optionIds) => {
+                "use server";
+                return requestQuote({ serviceId: pricing.serviceId, optionIds });
+              }}
+            />
+          ) : null}
         </article>
       </InternalPageContent>
 

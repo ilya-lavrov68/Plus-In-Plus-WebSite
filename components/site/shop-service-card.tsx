@@ -3,6 +3,10 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 
 import { SafeImage } from "@/components/site/safe-image";
+// Imported from the recipe module, not from button.tsx: these are Server
+// Components, and button.tsx is a Client Component.
+import { buttonVariants } from "@/components/ui/button-variants";
+import { cn } from "@/lib/utils";
 
 export interface ShopServiceCardProps {
   title: string;
@@ -31,7 +35,12 @@ export function ShopServiceCard({ title, href, imageSrc }: ShopServiceCardProps)
       <h3 className="mt-3 flex min-h-[4.25rem] items-start justify-center px-4 text-center font-body text-base font-medium leading-snug sm:text-lg lg:text-2xl">
         {title}
       </h3>
-      <span className="mx-auto mb-6 mt-auto inline-flex h-12 w-[calc(100%-40px)] items-center justify-center rounded-xl bg-[#052B42] px-5 font-body text-sm font-semibold text-white transition-colors duration-200 ease-out group-hover:bg-[#0A4366] sm:h-14 xl:mb-[31px] xl:h-[70px] xl:w-[calc(100%-70px)] xl:text-base">
+      <span
+        className={cn(
+          buttonVariants({ variant: "default" }),
+          "mx-auto mb-6 mt-auto h-12 w-[calc(100%-40px)] px-5 group-hover:bg-[#0A4366] sm:h-14 xl:mb-[31px] xl:h-[70px] xl:w-[calc(100%-70px)] xl:text-base",
+        )}
+      >
         {t("more")}
       </span>
     </Link>

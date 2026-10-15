@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AdminNav } from "@/components/admin/admin-nav";
-import { AdminBreadcrumbs } from "@/components/admin/admin-breadcrumbs";
+import { StaffBreadcrumbs } from "@/components/staff/staff-breadcrumbs";
 import { Separator } from "@/components/ui/separator";
 import { requireAdmin } from "@/lib/admin-session";
 import { getRequestTranslations } from "@/lib/server-i18n";
@@ -45,7 +45,7 @@ export default async function AdminLayout({
         </div>
       </aside>
       <section className="min-w-0 flex-1" aria-label={t("content")}>
-        <AdminBreadcrumbs />
+        <StaffBreadcrumbs />
         {children}
       </section>
     </div>

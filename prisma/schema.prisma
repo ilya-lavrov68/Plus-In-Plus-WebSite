@@ -34,11 +34,15 @@ model User {
   firstName    String? // Имя (для отображения после входа и в заявках)
   lastName     String? // Фамилия
   avatar       String? // Путь к файлу аватарки в /public/uploads/avatars/
-  role         String        @default("USER") // "USER" | "ADMIN"
+  role         String        @default("USER") // "USER" | "MANAGER" | "ADMIN"
   isBlocked    Boolean       @default(false)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @default(now()) @updatedAt
   activities   ActivityLog[]
+  cartItems    CartItem[]
+  orders       Order[] @relation("CustomerOrders")
+  // Заказы, по которым этот пользователь согласовал цену как менеджер.
+  managedOrders Order[] @relation("ManagedOrders")
 
   @@map("users")
 }
@@ -59,7 +63,53 @@ model Service {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // ── Продажа и цена ────────────────────────────────────────────────────────
+  // Все деньги — целые копейки. Float для денег не используется никогда:
+  // 0.1 + 0.2 !== 0.3, и на суммах заказа это даёт расхождения в отчётах.
+  basePrice   Int     @default(0) // копейки
+  // "fixed" — цена окончательная; "from" — «от N ₽», точная сумма после обсуждения;
+  // "quote" — цены на сайте нет, только запрос расчёта
+  priceType   String  @default("quote") // "fixed" | "from" | "quote"
+  currency    String  @default("RUB")
+  isOrderable Boolean @default(false) // разрешить класть в корзину
+
+  optionGroups ServiceOptionGroup[]
+  cartItems    CartItem[]
+  orderItems   OrderItem[]
+
   @@map("services")
+}
+
+/// Группа опций услуги («Размер», «Материал», «Тираж»).
+/// Цена считается как round((basePrice + Σ priceDelta) * Π priceFactor).
+model ServiceOptionGroup {
+  id        String   @id @default(cuid())
+  serviceId String
+  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  name      String
+  // Обязательная группа всегда имеет выбранную опцию (первая или isDefault).
+  required  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  options   ServiceOption[]
+
+  @@index([serviceId])
+  @@map("service_option_groups")
+}
+
+model ServiceOption {
+  id         String   @id @default(cuid())
+  groupId    String
+  group      ServiceOptionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  label      String
+  // Копейки, прибавляемые к базовой цене. Может быть отрицательной (скидка).
+  priceDelta Int      @default(0)
+  // Множитель цены — для тиражей и размеров («100 шт» = ×2.5).
+  priceFactor Float   @default(1)
+  isDefault  Boolean  @default(false)
+  sortOrder  Int      @default(0)
+
+  @@index([groupId])
+  @@map("service_options")
 }
 
 model Post {
@@ -97,14 +147,152 @@ model ActivityLog {
   @@map("activity_logs")
 }
 
+/// Сырые события просмотров — основа панели аналитики.
+///
+/// Поля sessionId/visitorId приходят из cookie:
+///   - sessionId — одна.visit, сбрасывается через 30 минут бездействия;
+///     нужен, чтобы отличать «5 просмотров одним человеком» от «5 разных людей»
+///   - visitorId — долгоживущая метка браузера; нужна для «новые vs вернувшиеся»
+///                и для подсчёта уникальных посетителей
+///
+/// durationMs заполняется вторым запросом (beacon) при уходе со страницы,
+/// поэтому у части строк он остаётся NULL — агрегаты это учитывают.
 model PageView {
   id        String   @id @default(cuid())
   path      String
+  sessionId String?
+  visitorId String?
+  referrer  String? // источник перехода (домен или полный URL)
+  utmSource String? // ?utm_source=… — для метки рекламных кампаний
+  userAgent String?
+  device    String? // "desktop" | "mobile" | "tablet"
+  durationMs Int? // сколько провели на странице, миллисекунды
   createdAt DateTime @default(now())
 
   @@index([createdAt])
   @@index([path, createdAt])
+  @@index([sessionId])
+  @@index([visitorId, createdAt])
   @@map("page_views")
+}
+
+/// Корзина. Хранится в БД, а не в localStorage: заказ требует входа,
+/// поэтому корзина привязана к пользователю и доступна с любого устройства.
+model CartItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  serviceId String
+  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  quantity  Int      @default(1)
+  // Выбранные опции: JSON-массив [{ groupId, optionId }].
+  // optionsHash — его стабильный отпечаток: одна услуга с разным набором опций
+  // лежит в корзине разными строками, а не перезаписывает друг друга.
+  optionsJson String @default("[]")
+  optionsHash String @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, serviceId, optionsHash])
+  @@index([userId])
+  @@map("cart_items")
+}
+
+/// Заказ живёт по цепочке «заявка → согласование → счёт → оплата»:
+///
+///   quote_requested  клиент выбрал опции, отправил заявку. Сумма пока
+///                    только расчётная (estimatedAmount).
+///   negotiating      менеджер обсуждает с клиентом (звонок, уточнение ТЗ).
+///   awaiting_payment цена согласована, счёт выставлен — клиенту ушла ссылка
+///                    на оплату. total заполнен, именно его надо оплатить.
+///   paid             деньги пришли.
+///   in_progress      работа началась.
+///   completed        закрыт.
+///   cancelled / refunded — в любой момент.
+///
+/// Ключевое: цену назначает менеджер, а не калькулятор. Калькулятор даёт
+/// только ориентир, поэтому расчётная и финальная суммы лежат в разных полях
+/// и никогда не перезаписывают друг друга — по ним потом считается, насколько
+/// расчёт разошёлся с factом.
+model Order {
+  id        String   @id @default(cuid())
+  // Человекочитаемый номер для переписки с клиентом (ПИП-000123),
+  // а не cuid — его неудобно диктовать по телефону.
+  number    String   @unique
+  userId    String
+  user      User     @relation("CustomerOrders", fields: [userId], references: [id], onDelete: Cascade)
+  status    String   @default("quote_requested")
+  // Что насчитал калькулятор по выбранным опциям. Ориентир для клиента
+  // и точка отсчёта для менеджера.
+  estimatedAmount Int @default(0)
+  subtotal  Int      @default(0) // сумма позиций по согласованной цене
+  discount  Int      @default(0)
+  // Согласованная менеджером цена — то, что реально к оплате.
+  // Пока менеджер её не выставил, остаётся 0 и заказ не оплатить.
+  total     Int      @default(0)
+  currency  String   @default("RUB")
+  customerNote String? // пожелания клиента
+  managerNote  String? // почему цена отличается от расчётной
+  managerId String? // кто согласовал цену и выставил счёт
+  manager   User?    @relation("ManagedOrders", fields: [managerId], references: [id], onDelete: SetNull)
+  priceAgreedAt DateTime? // когда цена зафиксирована и счёт выставлен
+  items     OrderItem[]
+  payments  Payment[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  paidAt    DateTime?
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([managerId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  serviceId String?
+  // Связь мягкая: услугу могут удалить, но заказ должен остаться с исторической
+  // ценой и названием. Поэтому title/optionsSnapshot дублируются сюда.
+  service   Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  title     String // название на момент заказа
+  quantity  Int     @default(1)
+  // Что насчитал калькулятор по опциям — на момент заявки.
+  estimatedUnitPrice Int @default(0)
+  unitPrice Int     @default(0) // согласованная цена за единицу
+  totalPrice Int    @default(0) // unitPrice * quantity
+  // JSON: [{ group, option, priceDelta, priceFactor }] — что именно выбрал клиент.
+  optionsSnapshot String @default("[]")
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+/// Попытка оплаты. Их может быть несколько на заказ: первая не удалась,
+/// клиент попробовал ещё раз — история должна сохраниться.
+model Payment {
+  id         String   @id @default(cuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  // "robokassa" | "manual" — провайдер записан строкой, чтобы можно было
+  // подключить второй, не меняя схему.
+  provider   String
+  externalId String? // InvId в Робокассе, id платежа у другого провайдера
+  status     String   @default("pending") // pending | succeeded | failed | refunded
+  amount     Int // копейки
+  currency   String   @default("RUB")
+  paymentUrl String? // ссылка на виджет оплаты, которую показываем клиенту
+  // Сырой ответ провайдера (webhook) — для разбора спорных ситуаций.
+  rawPayload String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  paidAt     DateTime?
+
+  @@index([orderId])
+  @@index([provider, externalId])
+  @@map("payments")
 }
 
 model SiteSetting {
