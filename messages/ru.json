@@ -828,7 +828,14 @@
     "analyticsEmpty": "За этот период данных пока нет.",
     "device_desktop": "Компьютер",
     "device_mobile": "Телефон",
-    "device_tablet": "Планшет"
+    "device_tablet": "Планшет",
+    "price": "Цена",
+    "priceType": "Тип цены",
+    "noPrice": "Не задана",
+    "editPrice": "Изменить цену",
+    "priceType_fixed": "Точная цена",
+    "priceType_from": "От (начальная)",
+    "priceType_quote": "По запросу"
   },
   "errors": {
     "notFound": "Страница не найдена",
@@ -937,7 +944,9 @@
       "sourceUrlProtocol": "URL источника должен начинаться с http или https.",
       "listTooLong": "Не более 100 пунктов в списке.",
       "invalidData": "Некорректные данные."
-    }
+    },
+    "invalidPrice": "Введите корректную цену.",
+    "invalidPriceType": "Неизвестный тип цены."
   },
   "payment": {
     "alreadyPaidBody": "Подтверждение пришло уже после того, как вы ушли со страницы оплаты. Заказ отмечен оплаченным.",

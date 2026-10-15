@@ -828,7 +828,14 @@
     "analyticsEmpty": "No data for this period yet.",
     "device_desktop": "Desktop",
     "device_mobile": "Mobile",
-    "device_tablet": "Tablet"
+    "device_tablet": "Tablet",
+    "price": "Price",
+    "priceType": "Price type",
+    "noPrice": "Not set",
+    "editPrice": "Edit the price",
+    "priceType_fixed": "Exact price",
+    "priceType_from": "From (starting at)",
+    "priceType_quote": "On request"
   },
   "errors": {
     "notFound": "Page not found",
@@ -937,7 +944,9 @@
       "sourceUrlProtocol": "Source URL must use http or https.",
       "listTooLong": "Use no more than 100 items per list.",
       "invalidData": "Invalid data."
-    }
+    },
+    "invalidPrice": "Enter a valid price.",
+    "invalidPriceType": "Unknown price type."
   },
   "payment": {
     "alreadyPaidBody": "The confirmation arrived after you left the payment page. The order is marked as paid.",

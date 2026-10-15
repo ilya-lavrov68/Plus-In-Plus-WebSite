@@ -7,6 +7,8 @@ import { useTranslations } from "next-intl";
 
 import { bulkUpdateServices, duplicateService } from "@/app/actions/services";
 import { AdminDataTable } from "@/components/admin/admin-data-table";
+import { InlinePriceEditor } from "@/components/admin/inline-price-editor";
+import { InlinePriceType } from "@/components/admin/inline-price-type";
 import type { DataTableColumn } from "@/components/spectrumui/data-table";
 import { SafeImage } from "@/components/site/safe-image";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +29,10 @@ export interface AdminServiceRow {
   isPublished: boolean;
   coverImage: string;
   updatedAt: Date;
+  /** Копейки. */
+  basePrice: number;
+  priceType: string;
+  isOrderable: boolean;
 }
 
 export function ServicesTable({ services }: { services: AdminServiceRow[] }) {
@@ -86,6 +92,32 @@ export function ServicesTable({ services }: { services: AdminServiceRow[] }) {
           </div>
           <span className="font-medium">{service.title}</span>
         </div>
+      ),
+    },
+    {
+      id: "basePrice",
+      header: t("price"),
+      sortable: true,
+      numeric: true,
+      cell: (service) => (
+        <InlinePriceEditor
+          serviceId={service.id}
+          serviceTitle={service.title}
+          basePrice={service.basePrice}
+          emptyLabel={t("noPrice")}
+        />
+      ),
+    },
+    {
+      id: "priceType",
+      header: t("priceType"),
+      sortable: true,
+      cell: (service) => (
+        <InlinePriceType
+          serviceId={service.id}
+          priceType={service.priceType}
+          isOrderable={service.isOrderable}
+        />
       ),
     },
     {
