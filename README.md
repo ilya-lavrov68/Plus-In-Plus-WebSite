@@ -1,438 +1,921 @@
-# Plus In Plus — Web Site
+# Plus In Plus — сайт
 
-Next.js 15 (App Router), React 18, Prisma 6 / **Turso (libSQL/SQLite)**, Tailwind
-CSS 4 and **Auth.js v5** (`next-auth@5.0.0-beta.32`). Use Node.js 20.19+ or 22 LTS.
+Репозиторий сайта **Plus In Plus**: витрина услуг с конфигуратором и заявками, блог,
+личный кабинет клиента, кабинет менеджера и полная админ-панель.
 
-## Getting started
+**Стек:** Next.js 15 (App Router) · React 18 · TypeScript · Tailwind CSS 4 ·
+Prisma 6 + libSQL/SQLite (Turso) · Auth.js v5 (`next-auth` beta) · next-intl (ru/en) ·
+Zod · TipTap · Robokassa · Sharp.
 
-```bash
-cp .env.example .env      # PowerShell: Copy-Item .env.example .env
-node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-# Copy that value into AUTH_SECRET. TURSO_DATABASE_URL may stay empty locally:
-# development then uses the SQLite file prisma/dev.db.
-npm install              # generates the Prisma client, no database required
-npm run db:push          # creates/updates every table (no migration files)
-npm run db:check         # verifies that all tables and columns exist
-npm run dev              # also syncs the schema automatically, then starts Next
-```
+**Где работает:**
+- **разработка** — локально, база просто лежит файлом `prisma/dev.db`, ничего ставить не нужно;
+- **продакшен** — на вашем собственном сервере: **Apache принимает HTTPS-трафик и
+  проксирует его на Node.js-приложение**, база — Turso Cloud (рекомендуется) или
+  libSQL-сервер на том же сервере. Подробно: [Продакшен: свой сервер с Apache](#продакшен-свой-сервер-с-apache).
 
-There is no database server to install and nothing to configure twice: the same
-schema, the same code and the same `npm run db:push` work locally (SQLite file) and
-in production (Turso Cloud). Add `-- --hostname 0.0.0.0` to `npm run dev` to expose
-the dev server on the network.
+> Дополнительный пошаговый док по Turso и хостингам — [DEPLOYMENT.md](DEPLOYMENT.md)
+> (на английском). Все переменные окружения описаны в [.env.example](.env.example).
 
-Prisma client output (`lib/generated/prisma/`) is ignored by Git. The postinstall
-script generates it without opening a DB connection; `npm run prisma:generate`
-can also be run manually. If Prisma's engine download host is unavailable and no
-client exists yet, generation fails explicitly rather than leaving a broken build.
+## Содержание
 
-Scripts: `npm run dev`, `npm run build`, `npm run start`, `npm run lint`, `npm test`,
-`npm run db:push`, `npm run db:check`, `npm run db:promote-admin`, `npm run deploy:verify`,
-`npm run prisma:generate`. `npx tsc --noEmit` checks types.
+1. [Что умеет сайт](#что-умеет-сайт)
+2. [Требования](#требования)
+3. [Локальная разработка — быстрый старт](#локальная-разработка--быстрый-старт)
+4. [Команды](#команды)
+5. [Переменные окружения](#переменные-окружения)
+6. [Роли и доступы](#роли-и-доступы)
+7. [База данных](#база-данных)
+8. [Файлы загрузок (uploads)](#файлы-загрузок-uploads)
+9. [Языки (ru / en)](#языки-ru--en)
+10. [Проверка качества: линт, типы, тесты, CI](#проверка-качества-линт-типы-тесты-ci)
+11. [Продакшен: свой сервер с Apache](#продакшен-свой-сервер-с-apache)
+12. [Проверка деплоя](#проверка-деплоя)
+13. [Частые проблемы](#частые-проблемы)
+14. [Безопасность — чек-лист](#безопасность--чек-лист)
+15. [Дизайн-макеты и другие документы](#дизайн-макеты-и-другие-документы)
 
-Production setup (Turso database, hosting variables, schema push, verification,
-backups) is a step-by-step list in **[DEPLOYMENT.md](DEPLOYMENT.md)**, in copy-paste
-order. CI (`.github/workflows/ci.yml`) runs lint, types, tests, schema push/check,
-build and a production smoke test with no secrets at all.
+---
 
-Public data sections display empty states if the database is unreachable. Admin
-queries are protected at the data-access layer and report database failures,
-rather than presenting them as an empty content database. `GET /api/health` reports
-whether the configured database is reachable and whether every table exists.
+## Что умеет сайт
 
-## Environment
+| Раздел | Адрес | Описание |
+| --- | --- | --- |
+| Главная | `/` (переадресация на `/ru` или `/en`) | лендинг, новости, партнёры, CTA |
+| Магазин | `/shop`, `/shop/[slug]` | каталог услуг; на странице услуги — конфигуратор опций и отправка заявки |
+| Блог | `/blog`, `/blog/[slug]` | статьи с обложками и галереями, избранная статья |
+| Контакты | `/contact` | страница контактов (форма-заглушка, отправка не подключена) |
+| Личный кабинет | `/orders` | вход обязателен: свои заявки, счета, статусы, профиль |
+| Кабинет менеджера | `/manager/orders`, `/manager/orders/[id]` | согласование цены, выставление счёта, смена статусов |
+| Админ-панель | `/admin/…` | `dashboard` (счётчики и журнал действий), `services`, `blog`, `orders`, `users`, `analytics`, `settings` |
+| Оплата | `/payment/success`, `/payment/fail` | страницы редиректа после Робокассы |
 
-| Variable | Purpose |
+**Жизненный цикл заказа:** `quote_requested` (клиент собрал услугу и отправил заявку) →
+`negotiating` (менеджер уточняет ТЗ) → `awaiting_payment` (цена согласована, выставлен
+счёт) → `paid` → `in_progress` → `completed`; возможны `cancelled` и `refunded`.
+Сумма заявки рассчитывается конфигуратором (`estimatedAmount`), к оплате годится только
+`total`, выставленный менеджером.
+
+**Прочее:** счётчик посещений (`page_views` + `/api/page-view`), настройки сайта в
+админке (`SiteSetting`), стратегия поисковых ботов (`robots.ts`, `sitemap.ts`),
+санитизация HTML статей перед сохранением и при рендере, локальные аватары/обложки
+через Sharp (PNG/JPEG/WebP/GIF/AVIF → статический WebP).
+
+**Структура репозитория:**
+
+| Путь | Что внутри |
 | --- | --- |
-| `TURSO_DATABASE_URL` | libSQL URL: `libsql://…turso.io` (production), `file:./prisma/dev.db` (local, also the development default), `http://…` (self-hosted sqld) |
-| `TURSO_AUTH_TOKEN` | Turso auth token (remote databases only; create with `turso db tokens create <db>`) |
-| `AUTH_SECRET` | Unique signing/encryption secret, at least 32 characters |
-| `AUTH_URL` | Optional canonical public URL. Set to the real HTTPS URL in production |
-| `NEXT_PUBLIC_SITE_URL` | Optional canonical URL for SEO |
+| `app/` | маршруты App Router: страницы, `api/`, server actions (`app/actions/`) |
+| `components/` | UI: `site/` (публичная часть), `admin/`, `manager/`, `orders/`, `ui/`, `spectrumui/` |
+| `lib/` | бизнес-логика: доступы, валидация, БД, оплата, загрузки, i18n |
+| `prisma/schema.prisma` | единственный источник схемы базы |
+| `messages/en.json`, `messages/ru.json` | все тексты интерфейса |
+| `scripts/` | утилиты: `dev`, `db:*`, `deploy:verify`, seed и др. |
+| `tests/` | автотесты (`node --test`) |
+| `.github/workflows/ci.yml` | CI: линт, типы, тесты, схема, сборка, smoke-тест |
+| `public/uploads/` | загрузы пользователей (аватары, обложки) — в Git не попадают |
+| `docs/`, `*.png/*.pdf/*.svg` в корне | внутренние заметки и дизайн-макеты страниц |
 
-Never commit `.env`. `NEXTAUTH_SECRET` and `NEXTAUTH_URL` remain supported for an
-existing v4 deployment, but new setups should use the v5 names above. Existing v4
-sessions must log in again after the upgrade. Registration, login and privileged
-operations fail closed without a sufficiently long secret.
+---
 
-Auth.js trusts the Next.js reverse proxy's host headers. Configure your proxy to
-**overwrite** `Host`, `X-Forwarded-Host`, `X-Forwarded-Proto`, `X-Real-IP` and
-`X-Forwarded-For` appropriately; do not pass arbitrary client-supplied forwarding
-headers. Client requests always use relative URLs, so local and proxied preview
-origins work without browser requests to localhost. Development accepts
-`*.e2b.app` and permits an embedded preview; production retains clickjacking headers.
+## Требования
 
-## Header navigation
+- **Node.js 20.19+ или 22 LTS** (`node -v`; в `package.json` стоит `engines.node >= 20.19.0`)
+- **npm** (идёт с Node)
+- Git
+- Счёт в Turso — только для продакшена (можно и без него, см. базу данных ниже)
 
-- **FOR PLAY**, **SHOP**, **ABOUT PIP** and **SOCNET** open their dropdown on
-  **hover**, implemented with plain CSS (`group-hover`), not a click-driven menu
-  library. The chevron rotates 180° and the panel stays visible for ~200 ms after
-  the pointer leaves, which is what allows the cursor to cross the 8 px gap into
-  the menu. Keyboard users get the same panel through `group-focus-within`.
-  Touch layouts use the burger menu, where every link is listed without dropdowns.
-- The dropdowns are server-rendered white cards
-  (`bg-white border border-gray-200 shadow-lg rounded-xl p-4 min-w-[200px]`) with
-  real targets: SHOP points at the `/shop` sections and SOCNET at the studio's
-  social profiles (`SOCIAL_LINKS` at the top of `components/site/header.tsx` —
-  replace the placeholder handles with the real ones).
+Базу, сервер БД и драйверы ставить не нужно: локально работает обычный SQLite-файл.
 
-## Footer
+---
 
-`components/site/footer.tsx` is a server component on the light-blue brand
-surface (`bg-[#D6E4FF]`); only the newsletter form is a client component
-(`components/site/footer-subscribe-form.tsx`). The layout is fixed:
-
-1. **CTA** — centred "Start your journey with Plus In Plus" heading with the
-   filled `Order a design` and outline `Talk to us` buttons. The buttons stack
-   full-width up to 1024px and sit inline from `lg` up.
-2. **Links** — the newsletter form and five columns of links (`Services`,
-   `About`, `Resources`, `Legal`, `Company`) separated by `border-navy/20`
-   rules. Columns run 2 → 3 → 5 (`lg`) and the form moves from a full-width row
-   on tablets into its own 17rem column from `xl` (1280px).
-3. **Legal row** — the group/legal links and `© 2026 Plus In Plus.` in
-   `text-navy/60`.
-4. **Wordmark** — the oversized `Plus in Plus` watermark in `text-navy/10`.
-   It is decorative and `aria-hidden` (never a link). Its size
-   (`clamp(3rem, 16.5vw, 16rem)`) comes from the real Geist Bold metrics:
-   "Plus in Plus" measures 5.07em with `tracking-tighter`, so it fills the row
-   on every breakpoint without clipping.
-
-Every link is `text-navy/70` and turns `text-navy` on hover — no white, no
-default palette colours. Link targets live in `FOOTER_COLUMNS` and
-`FOOTER_LEGAL_LINKS` at the top of the file; entries with `href: "#"` are
-placeholders for pages that do not exist yet (the `/privacy-policy`,
-`/user-agreement`, `/offer` and `/terms-of-use` routes from the previous footer
-were never built). The newsletter form validates on the client and reports that
-delivery is not connected yet, exactly like the contact form — point its submit
-handler at a real endpoint when one exists.
-
-## Account and authorization
-
-- Header **Log in** opens `components/site/account-modal.tsx`. After login it
-  becomes a local avatar or initials, opening the same dialog in profile mode.
-- A successful regular login or registration closes the dialog and refreshes the
-  session (`router.refresh()`), so the header switches to the avatar immediately.
-  Admin logins close the dialog and `router.push("/admin/dashboard")`.
-- **Log in**: email, password and an **Admin mode** switch, **off by default**.
-  Switching tabs or closing the dialog resets the switch. It does not appear on
-  Register or in the profile view.
-- Admin mode **off** issues a **USER session**, including for accounts whose
-  database role is ADMIN. It does not demote or otherwise change the database role.
-- Admin mode **on** requires both a correct password and an existing `ADMIN` row in
-  the database; success redirects to `/admin/dashboard`. An unknown or non-admin
-  account receives `Admin account not found. Please log in as a regular user.`
-- **Register** asks for first name, last name, email, password and confirmation.
-  It always writes `role: USER`, hashes the password with bcrypt (cost 12), and
-  automatically signs in in regular mode. There is no first-user exception, seed,
-  preset admin, or role field accepted from the client.
-- Passwords require at least 12 characters and at most **72 UTF-8 bytes**, the
-  bcrypt input limit. Emails are normalized to lowercase. Names are at most 80
-  characters. Name fields remain optional in the database and profile editor.
-- **Edit profile** changes only the current session user's first name, last name
-  and uploaded avatar. The action ignores client IDs, roles and password hashes.
-  Saving refreshes the DB-backed session, header avatar and dialog immediately.
-- The session includes `id`, `email`, `firstName`, `lastName`, `avatar`, `role`.
-  Client session updates cannot forge those claims. Logout invalidates the Auth.js
-  cookie and synchronizes the client session and other open tabs.
-
-### Creating an administrator (manual only)
-
-Register your **own real account**, then promote it directly in the database (or
-Prisma Studio). No accounts are created by installation or schema pushes:
+## Локальная разработка — быстрый старт
 
 ```bash
-npm run db:promote-admin                             # list accounts (id, email, role)
-npm run db:promote-admin -- you@example.com          # → ADMIN
-npm run db:promote-admin -- you@example.com --revoke # → USER again
+# 1. Клонирование
+git clone https://github.com/ilialavrov227-prog/Plus-In-Plus-WebSite.git
+cd Plus-In-Plus-WebSite
+
+# 2. Файл окружения (PowerShell: Copy-Item .env.example .env)
+cp .env.example .env
+
+# 3. Секрет для сессий — ≥32 символов:
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+#    вставьте результат в AUTH_SECRET внутри .env
+#    (TURSO_DATABASE_URL оставьте пустым — локально используется prisma/dev.db)
+
+# 4. Зависимости (сам постскрипт сгенерирует Prisma-клиент, база не нужна)
+npm install
+
+# 5. Поднять схему базы (создаст prisma/dev.db со всеми таблицами)
+npm run db:push
+npm run db:check          # проверка: все таблицы и колонки на месте
+
+# 6. Запуск dev-сервера (сначала сам сверяет схему и синхронизирует её при необходимости)
+npm run dev               # http://localhost:3000
 ```
 
-The same command with the production variables promotes the account on Turso:
+Опционально — демо-контент (услуги, статьи, заказы и тестовые аккаунты):
 
 ```bash
+npm run db:seed-demo
+```
+
+Демо-аккаунты **только для локальной разработки** (пароли лежат в `scripts/seed-demo.cjs`):
+
+| Email | Пароль | Роль |
+| --- | --- | --- |
+| `admin@plusinplus.test` | `Admin12345` | ADMIN |
+| `manager@plusinplus.test` | `Manager12345` | MANAGER |
+| `user1@plusinplus.test` | `User12345` | USER |
+| `user2@plusinplus.test` | `User12345` | USER (заблокирован) |
+
+На удалённую (Turso) базу этот скрипт **не работает** — он удаляет строки перед
+вставкой и предназначен только для одноразового локального файла.
+
+Схема, код и команды `npm run db:push` одинаковы локально и в продакшене: переключается
+только `TURSO_DATABASE_URL`. Prisma-клиент лежит в `lib/generated/prisma/` и в Git не
+попадает — `npm install` генерирует его автоматически (`npm run prisma:generate` — вручную).
+
+Сервер разработки по умолчанию слушает только localhost. Чтобы открыть его в локальной
+сети: `npm run dev -- --hostname 0.0.0.0`.
+
+---
+
+## Команды
+
+| Команда | Что делает |
+| --- | --- |
+| `npm run dev` | dev-сервер Next (с автосинхронизацией схемы БД) |
+| `npm run build` | production-сборка |
+| `npm start` | запуск production-сборки (`next start`) |
+| `npm run lint` | ESLint |
+| `npx tsc --noEmit` | проверка типов |
+| `npm test` | автотесты (`node --test tests/*.test.cjs`) |
+| `npm run db:push` | применить `prisma/schema.prisma` к базе (создать/добавить таблицы и колонки) |
+| `npm run db:check` | проверить соединение и наличие всех таблиц/колонок (код выхода 1, если чего-то нет) |
+| `npm run db:promote-admin` | список аккаунтов / выдать или отобрать роль ADMIN |
+| `npm run db:seed-demo` | залить демо-контент **только** в локальную базу |
+| `npm run db:load-dump` | загрузить дамп (например, продакшеновый) в текущую базу |
+| `npm run db:migrate-from-postgres` | разовый перенос данных из старой PostgreSQL |
+| `npm run deploy:verify -- https://домен` | внешняя проверка уже задеплоенного сайта |
+| `npm run prisma:generate` | перегенерировать Prisma-клиент |
+
+> Важно: скрипты `db:*` читают переменные из **окружения процесса**, а не из `.env`
+> сами по себе. Перед ними в том же шелле выполните:
+> `set -a; source .env; set +a` (Windows PowerShell: задайте переменные через `$env:…`).
+> Сам `next dev` / `next build` / `next start` читает `.env` автоматически.
+
+---
+
+## Переменные окружения
+
+Файл `.env` создаётся из `.env.example`. **`.env` никогда не попадает в Git.**
+
+| Переменная | Обязательна | Назначение |
+| --- | --- | --- |
+| `TURSO_DATABASE_URL` | да (в продакшене обязана) | `libsql://…turso.io` (Turso), `http://…` (свой sqld), `file:./prisma/dev.db` (локально, это же — дефолт) |
+| `TURSO_AUTH_TOKEN` | для Turso Cloud | токен БД: `turso db tokens create <db>` |
+| `AUTH_SECRET` | да | секрет сессий, **минимум 32 символа**, уникален для каждого окружения |
+| `AUTH_URL` | да в продакшене | публичный HTTPS-адрес сайта, например `https://example.com` |
+| `NEXT_PUBLIC_SITE_URL` | рекомендуется | тот же адрес — для SEO-метаданных и `sitemap.xml` |
+| `ROBOKASSA_MERCHANT_LOGIN` | нет | логин мерчанта Робокассы |
+| `ROBOKASSA_PASSWORD1` | нет | пароль №1 — подпись исходящих запросов (форма оплаты) |
+| `ROBOKASSA_PASSWORD2` | нет | пароль №2 — проверка входящих уведомлений (Result URL) |
+| `ROBOKASSA_TEST_MODE` | нет | `"1"` — тестовый режим, реальных денег нет; для боевых платежей пусто |
+| `ROBOKASSA_HASH_ALGO` | нет | `md5` (дефолт) \| `ripemd160` \| `sha256` \| `sha512` — как в настройках магазина |
+
+Генерация секрета:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"   # или: openssl rand -base64 32
+```
+
+Без `TURSO_DATABASE_URL` и/или длинного `AUTH_SECRET` в продакшене всё не падает, а
+**честно отключается**: публичные разделы показывают пустые состояния, вход и
+регистрация отвечают «временно недоступны». Старые переменные v4
+(`NEXTAUTH_SECRET`, `NEXTAUTH_URL`) поддерживаются на переходный период, новые
+настройки — только на имена v5. Левая `DATABASE_URL` (PostgreSQL) игнорируется с
+предупреждением в логе.
+
+**Робокасса:** без трёх переменных сайт работает, но платёжная ссылка не формируется —
+менеджер всё равно согласует цену и записывает счёт. Для боевой оплаты зарегистрируйте
+в кабинете Робокассы:
+
+| Поле | URL |
+| --- | --- |
+| Result URL (серверный, по нему идут деньги) | `https://<домен>/api/payments/robokassa/result` |
+| Success URL (браузер клиента) | `https://<домен>/payment/success` |
+| Fail URL (браузер клиента) | `https://<домен>/payment/fail` |
+
+**Заголовки прокси.** Auth.js доверяет заголовкам обратного прокси. Ваш прокси
+(Apache) обязан **перезаписывать** `Host`, `X-Forwarded-Host`, `X-Forwarded-Proto`,
+`X-Real-IP` и `X-Forwarded-For` — не пропускать клиентские значения. Готовый конфиг
+Apache — в разделе про продакшен. Браузерный код работает только с относительными
+URL, поэтому localhost в запросах из браузера нигде не появляется.
+
+---
+
+## Роли и доступы
+
+| Роль | Куда входит | Права |
+| --- | --- | --- |
+| `USER` | публичный сайт + `/orders` | заявки, оплата, свой профиль — и только свои данные |
+| `MANAGER` | `/manager/orders` | согласование цены, выставление счёта, статусы заявок; управление сайтом недоступно |
+| `ADMIN` | `/admin/…` и `/manager` | весь контент, пользователи, роли, настройки, аналитика, журнал |
+
+- **Регистрация всегда создаёт `USER`.** Первого администратора «по умолчанию» нет,
+  сид-скрипт аккаунты в продакшен не пишет.
+- **Служебные части — явный opt-in.** В диалоге входа есть переключатель
+  **«Режим администратора»** (по умолчанию выключен). С выключенным переключателем
+  даже у администратора создаётся обычная `USER`-сессия. Включённый переключатель требует
+  пароль и роль `ADMIN`/`MANAGER` в базе; при успехе админ уходит на
+  `/admin/dashboard`, менеджер — на `/manager/orders`.
+- Middleware редиректит гостей и `USER` со всех `/admin/*` и `/manager/*`; страницы,
+  server actions и запросы данных **дополнительно проверяют роль из базы**, поэтому
+  блокировка/понижение роли действует даже при живой JWT-сессии (до перелогина в
+  служебную часть).
+- Вход, регистрация и смена профиля ограничены по частоте (внутри процесса).
+- Пароли: от 12 символов до 72 UTF-8 байт (лимит bcrypt), хеш — bcrypt cost 12.
+  Email нормализуется в нижний регистр, имена — до 80 символов.
+- Сессия живёт 7 дней; после смены роли существующая сессия **не повышается сама** —
+  нужно выйти и войти заново с переключателем.
+
+### Создать администратора
+
+```bash
+# 1. Зарегистрировать свой реальный аккаунт на сайте (роль будет USER).
+# 2. Повысить его (чтения .env нет — переменные экспортируем сами):
+set -a; source .env; set +a
+npm run db:promote-admin                          # список аккаунтов
+npm run db:promote-admin -- you@example.com       # → ADMIN
+npm run db:promote-admin -- you@example.com --revoke   # → снова USER
+
+# Для Turso с другого компьютера:
 TURSO_DATABASE_URL="libsql://…" TURSO_AUTH_TOKEN="…" npm run db:promote-admin -- you@example.com
 ```
 
-Equivalent raw SQL (`turso db shell plus-in-plus "update users set role = 'ADMIN' where email = '…';"`)
-works too, but the script checks that the account exists and is idempotent.
+3. Выйти, открыть **Вход**, включить **Режим администратора**, войти снова.
 
-Table and column names are exactly the ones in `prisma/schema.prisma`
-(`users`, `services`, `posts`, `activity_logs` via `@@map`).
+### Создать менеджера
 
-Log out, reopen Log in, enable **Admin mode**, and log in again. A DB promotion
-never upgrades an existing regular session automatically. Middleware redirects
-unauthenticated and USER sessions from every `/admin/*` route to `/`. Server
-pages, data queries and every content action also verify the **current DB role**,
-so deleting or demoting an administrator revokes access even with a stale JWT.
-
-## Admin panel
-
-- `/admin/dashboard`: service/post/user counts and the latest 20 real actions.
-- `/admin/services`: service list, create/edit forms, publish/draft switch, deletion.
-- `/admin/blog`: post list, create/edit forms, publish/draft switch, deletion.
-  Published date is preserved when editing an already-published post. Slug
-  uniqueness is enforced and both old/new public URLs are revalidated on changes.
-- `/admin/users`: email, first name, last name, role, registration date and ID.
-  Password hashes are never selected for the table.
-
-`app/actions/auth.ts` exports `registerUser`, `loginUser`, `updateUserProfile`,
-`logout`; `services.ts` and `posts.ts` expose create/update/delete actions.
-Content mutations and their `ActivityLog` entries are committed in the **same
-transaction**. Registrations/profile updates are logged as well; deletion history
-is retained. There is no fabricated historical activity. Dashboard timestamps are UTC.
-
-## Local file storage
-
-| Folder | DB path | Input limit |
-| --- | --- | --- |
-| `public/uploads/avatars/` | `User.avatar`: `/uploads/avatars/<uuid>.webp` | 2 MB |
-| `public/uploads/services/` | `Service.coverImage`: `/uploads/services/<uuid>.webp` | 8 MB |
-| `public/uploads/blog/` | `Post.coverImage`: `/uploads/blog/<uuid>.webp` | 8 MB |
-
-PNG, JPEG, WebP, GIF and AVIF inputs are checked by extension, MIME, signature and
-actual image decoding (max 25 megapixels). Sharp re-encodes them to **static WebP**,
-removing metadata and embedded payloads: up to 256×256 for avatars, 2400×2400 for
-covers, preserving aspect ratio. Animated inputs use the first frame. SVG, remote
-URLs, arbitrary filenames and traversal paths are rejected. No external avatar
-service is used, even if a remote avatar URL is manually inserted into the DB.
-
-A failed DB transaction removes its new upload. Replacement/deletion cleans up
-old files only after commit, and a cleanup failure does not undo a successful
-mutation. UUID filenames avoid collisions and stale-image caching.
-`app/uploads/[kind]/[filename]/route.ts` serves images created **after startup**,
-including under `next start` where Next's static public-file index would otherwise
-miss new uploads. It allows only known folders and generated filenames, refuses
-symlinks, and sends image MIME types plus `nosniff`.
-
-Runtime uploads are gitignored. The three upload directories must be **writable
-and persistent**. Use a persistent disk/volume for a self-hosted Node deployment;
-an ephemeral/read-only serverless filesystem cannot provide this local-storage
-feature reliably. Back up the database (`turso db dump`, or the SQLite file) and the
-uploads together. Multi-instance
-hosting needs a shared persistent filesystem (not an external avatar service).
-
-Static brand assets remain separate in `public/assets/logos/` and
-`public/assets/gradients/`. Background gradients come from the supplied PNGs.
-
-## Database
-
-One setup for development and production:
-
-| | Development | Production |
-| --- | --- | --- |
-| `TURSO_DATABASE_URL` | empty (→ `prisma/dev.db`) or `file:./prisma/dev.db` | `libsql://plus-in-plus-<org>.turso.io` |
-| `TURSO_AUTH_TOKEN` | not needed | required |
-| Schema | `npm run db:push` | `npm run db:push` |
-| Driver | `@prisma/adapter-libsql` | `@prisma/adapter-libsql` |
-
-**Why libSQL/SQLite and not PostgreSQL.** Turso speaks the SQLite wire format, so
-the Prisma datasource provider is `sqlite` — a `libsql://` endpoint is *not* a
-PostgreSQL server, and pretending otherwise is exactly what produces confusing
-"table does not exist" failures. The trade-offs are handled explicitly:
-
-- no `prisma migrate`, no migration files: `prisma db push` is idempotent and works
-  on an empty file and on a Turso database alike (`npm run db:push`);
-- SQLite has no enum → `User.role` is a `String` constrained by the application
-  (`USER` | `ADMIN`), never by a client payload;
-- SQLite has no JSON column → `Service.includes` / `Service.shapes` are JSON-encoded
-  **strings**, read and written through `lib/db-helpers.ts`
-  (`parseJsonArray` / `toJsonArray`, both tolerant of legacy arrays and broken JSON);
-- explicit table names through `@@map`: `users`, `services`, `posts`, `activity_logs`.
-
-### Turso Cloud (production)
+Скрипт `db:promote-admin` переключает только `ADMIN`/`USER`. Роль `MANAGER` ставится
+напрямую в базе (Prisma Studio или SQL) и действует со следующего входа:
 
 ```bash
-curl -sSfL https://get.tur.so/install.sh | bash      # Turso CLI
-turso auth signup                                    # or: turso auth login
-turso db create plus-in-plus
-turso db show plus-in-plus --url                     # → TURSO_DATABASE_URL
-turso db tokens create plus-in-plus                  # → TURSO_AUTH_TOKEN
+set -a; source .env; set +a
+# Turso:
+turso db shell plus-in-plus "update users set role = 'MANAGER' where email = 'you@example.com';"
+# или свой sqld:
+turso db shell http://127.0.0.1:8080 "update users set role = 'MANAGER' where email = 'you@example.com';"
 ```
 
-Put both values into the hosting panel (Vercel/Netlify/…) together with
-`AUTH_SECRET`, then run the schema push against production **once per schema
-change**, e.g. from your machine:
+Проверить роли: `npm run db:promote-admin` (без аргументов печатает `id, email, role`).
+
+---
+
+## База данных
+
+Одна схема — `prisma/schema.prisma`, провайдер `sqlite` (протокол libSQL). Никаких
+файлов миграций: применяет `prisma db push` (идемпотентно), локально и в продакшене —
+одной и той же командой.
+
+| | Разработка | Продакшен |
+| --- | --- | --- |
+| `TURSO_DATABASE_URL` | пусто → `prisma/dev.db` (или `file:./prisma/dev.db`) | `libsql://plus-in-plus-<org>.turso.io` или `http://127.0.0.1:8080` (свой sqld) |
+| `TURSO_AUTH_TOKEN` | не нужен | обязателен для Turso Cloud |
+| Применение схемы | `npm run db:push` | `npm run db:push` (с переменными продакшена) |
+| Драйвер | `@prisma/adapter-libsql` | тот же |
+
+**Почему не PostgreSQL:** Turso/libSQL говорит на протоколе SQLite, поэтому
+`provider = "sqlite"` — `libsql://` это *не* PostgreSQL-сервер. Отсюда правила:
+
+- `User.role` — это `String` (`USER` | `MANAGER` | `ADMIN`), который контролирует
+  приложение, а не база (в SQLite нет enum);
+- `Service.includes`, `Service.shapes`, опции в корзине/заказах — JSON **строки**,
+  читаются/пишутся через `lib/db-helpers.ts` (`parseJsonArray` / `toJsonArray`);
+- имена таблиц явные через `@@map`: `users`, `services`, `posts`, `activity_logs`,
+  `orders`, `order_items`, `payments`, `cart_items`, `page_views`, …
+
+### Локальная база без аккаунтов
+
+Пустой `TURSO_DATABASE_URL` — и всё работает: `npm run dev` сам создаёт
+`prisma/dev.db`, сверяет схему и запускает Next. Файлы `prisma/dev.db*` в `.gitignore`,
+каждый клон стартует чисто.
+
+### Добавить колонку или таблицу
 
 ```bash
-TURSO_DATABASE_URL="libsql://…" TURSO_AUTH_TOKEN="…" npm run db:push
-TURSO_DATABASE_URL="libsql://…" TURSO_AUTH_TOKEN="…" npm run db:check
-```
-
-`TURSO_DATABASE_URL` is intentionally **required** for the production runtime: with
-no database configured, content sections render empty states and sign-in reports
-"unavailable" instead of silently using a local file.
-
-**Deployment check:** `curl https://<your-domain>/api/health` answers `200` with
-`{"status":"ok","database":{"driver":"libsql","remote":true,"tables":4}}` when the
-database is reachable and every table exists, and `503` with the missing table names
-otherwise. It never exposes the URL, the token or any row.
-
-### Local development without an account
-
-An empty `TURSO_DATABASE_URL` (or `file:./prisma/dev.db`) uses a plain SQLite file:
-`npm run dev` creates it, pushes the schema and starts Next. `prisma/dev.db` and its
-`-wal`/`-shm` files are gitignored, so every clone starts clean.
-
-| Command | Purpose |
-| --- | --- |
-| `npm run db:push` | create/update every table from `prisma/schema.prisma` |
-| `npm run db:check` | verify connection + every table/column; exits 1 with the missing names |
-| `npm run db:promote-admin` | list accounts / grant or revoke the ADMIN role |
-| `npm run db:load-dump` | load a Turso/SQLite dump (e.g. production) into this database |
-| `npm run deploy:verify` | check a running deployment: `/api/health` + public pages |
-| `npm run dev` | checks the schema, pushes only when needed, then starts Next |
-| `npm run db:migrate-from-postgres` | one-off data import from the old PostgreSQL database |
-
-### Adding a column (or a table)
-
-The schema file is the only thing you edit — there are no SQL migration files to
-write and nothing to apply by hand:
-
-```bash
-# 1. Edit prisma/schema.prisma, e.g. add to model User:
-#      phone String?          → nullable, safe on a database that already has rows
-#      visits Int @default(0) → required, but safe because of the default
-# 2. Apply it (local prisma/dev.db by default, Turso when TURSO_* are set):
+# 1. Отредактировать prisma/schema.prisma, например в model User:
+#      phone String?          → nullable, безопасно при уже существующих строках
+#      visits Int @default(0) → обязательная, но безопасная из-за default
+# 2. Применить:
 npm run db:push
-# 3. Verify:
+# 3. Проверить:
 npm run db:check
 ```
 
-`db:push` also regenerates the Prisma client, so `prisma.user.update({ data: { phone } })`
-type-checks immediately afterwards. Then wire the field through the app: a Zod
-schema in `lib/validators.ts`, the server action (`app/actions/*.ts`), the admin
-form and the list page.
+`db:push` заодно перегенерирует Prisma-клиент, после чего новое поле сразу
+типизируется. Дальше — провести поле через приложение: Zod-схема в
+`lib/validators.ts`, server action в `app/actions/*.ts`, форма в админке.
 
-Automated — you usually do not run these commands at all:
+Правила:
 
-| When | What happens |
+- обязательная колонка **без default** к таблице со строками отклоняется (Prisma
+  сама напишет, сколько строк в таблице) — сделайте `@default(…)` или `String?`;
+- удаление колонки с данными требует явного флага: `npm run db:push -- --accept-data-loss`,
+  полностью пересоздать БД: `npm run db:push -- --force-reset` (все данные потеряются);
+- **в продакшен перед изменением схемы — обязательно дамп** (`db push` без отмены).
+
+Автоматика, которую обычно не нужно трогать руками:
+
+| Ситуация | Что происходит |
 | --- | --- |
-| `npm install` | `postinstall` → `prisma generate` (no database needed) |
-| `npm run dev` | compares `prisma/schema.prisma` with the live database and runs `prisma db push` **only** if a table or column is missing |
-| CI (`.github/workflows/ci.yml`) | `npm run db:push` + `npm run db:check` against an empty `file:./prisma/ci.db` on every push |
-| `GET /api/health` | reports the configured database and whether every table exists |
+| `npm install` | `postinstall` → `prisma generate` (без подключения к базе) |
+| `npm run dev` | сравнивает схему с базой и запускает `db push` **только** если чего-то не хватает |
+| CI (`.github/workflows/ci.yml`) | на каждом push: `db:push` + `db:check` на одноразовом `file:./prisma/ci.db` |
+| `GET /api/health` | сообщает базу и наличие всех обязательных таблиц |
 
-Rules for this SQLite/libSQL database (enforced by `tests/database.test.cjs`):
-
-- No enums and no `Json` columns. A role is a `String` checked by the app; a list is
-  a JSON-encoded `String` read/written through `lib/db-helpers.ts`.
-- Adding a **required column without a default** to a table that already has rows is
-  refused, not silently forced:
-  `Added the required column "x" to the "users" table without a default value. There are N rows in this table…`
-  Give it `@default(…)` or make it nullable (`String?`).
-- Dropping a column that holds data needs an explicit confirmation. Flags after `--`
-  are passed through to the Prisma CLI:
-  `npm run db:push -- --accept-data-loss` (keep the other tables),
-  `npm run db:push -- --force-reset` (recreate the whole database, all data lost).
-- The same push applies to production, once per schema change:
-  `TURSO_DATABASE_URL="libsql://…" TURSO_AUTH_TOKEN="…" npm run db:push`
-  Run `turso db dump` first — `db push` has no undo.
-
-`prisma db push` prints its result after a few hundred milliseconds but keeps its
-adapter connection open for about a minute before the CLI exits (Prisma 6.19 +
-`@prisma/adapter-libsql`). `scripts/lib/prisma-cli.cjs` therefore stops the CLI as
-soon as it reports success and then **verifies the schema structure**; if anything
-were still missing, the script falls back to running the CLI normally and waiting.
-
-### Migrating the existing PostgreSQL data (one-off)
+### Инспекция базы
 
 ```bash
-npm i -D pg                                        # only this script needs the driver
-POSTGRES_URL="postgresql://user:pass@host:5432/plus_in_plus"   TURSO_DATABASE_URL="libsql://…" TURSO_AUTH_TOKEN="…"   npm run db:migrate-from-postgres -- --replace
-```
-
-It copies users, services, posts and activity logs with their ids, converts JSON
-columns to JSON strings, converts dates to the format the libSQL adapter expects and
-generates a URL slug for services that do not have one. `public/uploads/` files are
-already compatible — copy them as they are. The old PostgreSQL migration files are
-kept for reference only in `prisma/legacy-postgresql-migrations/` and must not be
-applied to the SQLite database.
-
-### Inspecting the database
-
-**Prisma Studio — built in, no extension required**
-
-```bash
-npx prisma studio                                                 # http://localhost:5555
-npx prisma studio --hostname 0.0.0.0 --port 5555 --browser none   # remote/preview host
-```
-
-It loads `prisma.config.ts`, so it connects through exactly the same driver adapter
-and `TURSO_DATABASE_URL` as the application. Tables: `users`, `services`, `posts`,
-`activity_logs`; rows can be browsed, filtered and edited. Set the environment
-variable in the shell (or rely on `.env`) when targeting Turso.
-
-Studio writes **directly** to the database, so it bypasses the app's validation,
-rate limits and `ActivityLog`. That is intended for administration, with rules:
-
-- `users.passwordHash` must be a real bcrypt hash (cost 12). Never type one by hand —
-  generate it and paste the output:
-
-  ```bash
-  node -e "console.log(require('bcryptjs').hashSync('new-passphrase-2026', 12))"
-  ```
-
-- `users.avatar` must be `/uploads/avatars/<uuid>.webp`. Any other value (including
-  remote URLs) is ignored by the app, which then renders initials instead.
-- Promoting an admin through the `users.role` column is the one supported manual
-  edit (see above). It applies to the **next** login, never to a live session.
-- Manual edits do not appear in the dashboard activity feed, because
-  `activity_logs` only records actions performed through the app.
-
-**Turso CLI**
-
-```bash
+npx prisma studio                                     # http://localhost:5555
+npx prisma studio --hostname 0.0.0.0 --port 5555 --browser none   # удалённый хост
 turso db shell plus-in-plus ".tables"
 turso db shell plus-in-plus "select email, role from users order by createdAt;"
 turso db shell plus-in-plus "select action, entityType, title, createdAt from activity_logs order by createdAt desc limit 20;"
 ```
 
-**VS Code extensions** (declared in `.vscode/extensions.json`)
+Studio ходит в базу тем же драйвером, что и сайт (см. `prisma.config.ts`), но пишет
+**минуя** валидацию и журнал действий приложения. Допустимые ручные правки:
 
-- **Prisma** (`Prisma.prisma`) — schema language support, formatting and
-  highlighting for `prisma/schema.prisma`.
-- **SQLTools** (`mtxr.sqltools`) + **SQLite driver**
-  (`mtxr.sqltools-driver-sqlite`) — sidebar explorer and ad-hoc SQL against the
-  local `prisma/dev.db` file. Run *SQLTools: Add New Connection*, choose SQLite and
-  select the absolute path of `prisma/dev.db` (GUI extensions read the **VS Code
-  process** environment, not `.env`). Studio cannot run raw SQL — use this, the
-  Turso CLI, or `turso db shell` for queries.
+- `users.passwordHash` — только настоящий bcrypt; сгенерируйте его:
+  `node -e "console.log(require('bcryptjs').hashSync('new-passphrase-2026', 12))"`
+- `users.avatar` — строго `/uploads/avatars/<uuid>.webp`, иначе приложение рисует инициалы;
+- `users.role` — повышение/понижение (см. выше), действует со следующего входа;
+- ручные правки не появляются в журнале действий дашборда (туда пишутся только
+  действия через приложение).
 
-### Schema changes
+Для сырых SQL в локальной базе — расширение **SQLTools** + SQLite driver
+(см. `.vscode/extensions.json`) или `sqlite3 prisma/dev.db`.
 
-Edit `prisma/schema.prisma`, then run `npm run db:push` locally and the same command
-with the production `TURSO_DATABASE_URL`/`TURSO_AUTH_TOKEN`. Finish with
-`npm run db:check` and `curl …/api/health`. No seed script is configured —
-registration always creates `USER` accounts and admins are promoted manually.
+### Схема в продакшене
 
-## Troubleshooting sign-in
+Изменения применяются **после деплоя**, из каталога проекта на сервере:
 
-| Symptom | Cause / fix |
+```bash
+set -a; source .env; set +a
+npm run db:push
+npm run db:check
+curl https://<домен>/api/health     # {"status":"ok",…,"tables":4}
+```
+
+---
+
+## Файлы загрузок (uploads)
+
+| Каталог | Поле в базе | Лимит входа |
+| --- | --- | --- |
+| `public/uploads/avatars/` | `User.avatar`: `/uploads/avatars/<uuid>.webp` | 2 МБ |
+| `public/uploads/services/` | `Service.coverImage`: `/uploads/services/<uuid>.webp` | 8 МБ |
+| `public/uploads/blog/` | `Post.coverImage`: `/uploads/blog/<uuid>.webp` | 8 МБ |
+
+Принимаются PNG, JPEG, WebP, GIF, AVIF (проверяются расширение, MIME, подпись и
+реальное декодирование, до 25 мегапикселей). Sharp перекодирует в **статический
+WebP** без метаданных: аватары до 256×256, обложки до 2400×2400, с сохранением
+пропорций. SVG, удалённые URL, произвольные имена и пути с обходом — отклоняются.
+
+Особенности:
+
+- имя файла — UUID (нет коллизий и проблем с кешем);
+- при ошибке транзакции новый файл удаляется, старый — только после успешного
+  коммита;
+- `app/uploads/[kind]/[filename]/route.ts` отдаёт файлы, созданные **после**
+  старта процесса (включая `next start`), разрешает только известные каталоги и
+  сгенерированные имена, запрещает симлинки, отдаёт картинки с `nosniff`;
+- загрузки в `.gitignore` — каталоги `public/uploads/…` должны быть **доступны на
+  запись и переживать редеплой** (постоянный диск, никакой очистки при деплое).
+  Хранить их надо вместе с бэкапами базы — картинки лежат на диске, не в SQLite.
+
+Статические брендовые ассеты отдельно: `public/assets/logos/`, `public/assets/gradients/`.
+
+---
+
+## Языки (ru / en)
+
+- Два языка: `ru` и `en` (дефолт — `en`). Все тексты интерфейса — в
+  `messages/ru.json` и `messages/en.json` (одинаковый набор ключей).
+- Маршруты получают префикс: `/ru/blog`, `/en/blog`. Middleware внутренне
+  переписывает их на `/blog`, поэтому URL и выбор языка переживают клиентскую навигацию
+  без дублирования страниц.
+- Язык выбирается по cookie `pip-locale` (её ставит переключатель) или по
+  `Accept-Language`; служебные адреса (`/api/*`, `/_next/*`, `/uploads/*`) языкового
+  редиректа не получают.
+- `/admin` и `/manager` существуют без языкового префикса; из `/ru/admin…`
+  middleware уводит на `/admin…`.
+- Server actions переводятся через `lib/action-i18n.ts` — новый текст ошибки
+  добавляйте в оба файла `messages/*.json`.
+
+---
+
+## Проверка качества: линт, типы, тесты, CI
+
+```bash
+npm run lint          # ESLint
+npx tsc --noEmit      # типы
+npm test              # node --test tests/*.test.cjs
+```
+
+Тесты покрывают: режимы авторизации и прав ролей, инъекцию роли при регистрации,
+владение профилем, подделку claims сессии, защиту админ-действий, CRUD и журнал
+действий в одной транзакции, загрузку файлов, санитизацию, валидацию Zod,
+разрешение цели БД, JSON-хелперы, а также допущение, что схема остаётся
+libSQL/SQLite. Сценарии ролей идут на **замоканных репозиториях**, без реальных
+аккаунтов и сидов.
+
+CI (`.github/workflows/ci.yml`) на каждый push и PR, **без каких-либо секретов**:
+lint → `tsc --noEmit` → `npm test` → `db:push` + `db:check` на одноразовом SQLite →
+`npm run build` → smoke-тест `next start` (`/api/health` + публичные страницы).
+
+---
+
+## Продакшен: свой сервер с Apache
+
+### Как всё устроено
+
+Сайт — это Node.js-приложение (Next.js), поэтому «просто закинуть файлы в
+Apache/PHP-каталог» не работает. На вашем сервере:
+
+```
+Браузер ──HTTPS──▶ Apache (443, SSL-сертификат)          ◀── обновления: git pull + build
+                      │  reverse proxy (mod_proxy)       ◀── статика и SSR отдаёт Node
+                      ▼
+                Node.js приложение  (127.0.0.1:3000, PM2/systemd, next start)
+                      │
+                      ▼
+                База: Turso Cloud (libsql://…)  или  свой sqld на 127.0.0.1:8080
+                + постоянный диск каталога public/uploads/ (аватары, обложки)
+```
+
+- Apache — единственная точка входа: принимает 80/443, выпускает сертификат
+  (Certbot), проксирует **все** запросы (`/`, `/_next/*`, `/api/*`, `/uploads/*`)
+  на `127.0.0.1:3000`.
+- Порт 3000 наружу **не открывается** (он слушает только localhost / закрыт файрволом).
+- Если на сервере уже стоит какая-то панель (ISPmanager, VestaCP, «Apache+PHP» и т.
+  п.) — она не мешает: Apache остаётся точкой входа, а сайт работает как
+  Node-приложение за его reverse-proxy.
+- Если вместо Apache ожидается Nginx — идея ровно та же, пример конфига в
+  [Приложение: Nginx](#приложение-вариант-с-nginx).
+
+### Шаг 0. Подготовка сервера
+
+- Ubuntu/Debian-подобный VPS (хватает 2 vCPU / 2 ГБ RAM; на 1 ГБ добавьте swap),
+  sudo, домен, чья A-запись указывает на IP сервера.
+- Пакеты и Node.js 22:
+
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y git curl apache2 ufw certbot python3-certbot-apache
+
+# Node.js 22.x (репозиторий NodeSource)
+sudo apt install -y ca-certificates gnupg
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
+  | sudo gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" \
+  | sudo tee /etc/apt/sources.list.d/nodesource.list
+sudo apt update && sudo apt install -y nodejs
+node -v          # v22.x (любая версия ≥ 20.19 подходит)
+```
+
+- Файрвол (порт 3000 не открываем):
+
+```bash
+sudo ufw allow OpenSSH && sudo ufw allow 80/tcp && sudo ufw allow 443/tcp
+sudo ufw enable
+```
+
+- Если сборка падает «Out of memory» — добавьте swap:
+
+```bash
+sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile
+sudo mkswap /swapfile && sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
+
+### Шаг 1. База данных
+
+**Вариант А — Turso Cloud (рекомендуется, есть бесплатный уровень):**
+
+```bash
+curl -sSfL https://get.tur.so/install.sh | bash    # Turso CLI (нужен и для бэкапов)
+turso auth signup                                  # или: turso auth login
+turso db create plus-in-plus
+turso db show plus-in-plus --url                   # → TURSO_DATABASE_URL
+turso db tokens create plus-in-plus                # → TURSO_AUTH_TOKEN
+```
+
+**Вариант Б — свой libSQL-сервер (sqld) на этом же сервере:**
+
+```bash
+mkdir -p ~/sqld-data
+docker run -d --name sqld --restart unless-stopped \
+  -e SQLD_NODE=primary \
+  -p 127.0.0.1:8080:8080 \
+  -v "$HOME/sqld-data:/var/lib/sqld" \
+  ghcr.io/tursodatabase/libsql-server:latest
+docker ps   # контейнер sqld должен быть Up
+```
+
+Тогда в `.env`: `TURSO_DATABASE_URL="http://127.0.0.1:8080"`, `TURSO_AUTH_TOKEN`
+пустой. Порт 8080 проброшен только на localhost — наружу он не виден.
+(Для дампов всё равно поставьте Turso CLI — `turso db shell <url> .dump` работает
+и без аккаунта.)
+
+### Шаг 2. Код и окружение
+
+```bash
+sudo mkdir -p /opt/plus-in-plus
+sudo chown "$USER":"$USER" /opt/plus-in-plus
+
+# Приватный репозиторий? Выпустите deploy-ключ (read-only) и клонируйте по SSH:
+#   ssh-keygen -t ed25519 -C deploy@plus-in-plus -f ~/.ssh/plusinplus_deploy
+#   cat ~/.ssh/plusinplus_deploy.pub  → GitHub → репозиторий → Settings → Deploy keys → Add
+#   git clone git@github.com:ilialavrov227-prog/Plus-In-Plus-WebSite.git /opt/plus-in-plus
+git clone https://github.com/ilialavrov227-prog/Plus-In-Plus-WebSite.git /opt/plus-in-plus
+cd /opt/plus-in-plus
+
+cp .env.example .env
+nano .env        # см. таблицу переменных; обязательно:
+                 #   TURSO_DATABASE_URL, TURSO_AUTH_TOKEN (для Turso),
+                 #   AUTH_SECRET (≥32 символов), AUTH_URL="https://example.com",
+                 #   NEXT_PUBLIC_SITE_URL="https://example.com"
+```
+
+Каталог `public/uploads/` — единственный изменяемый в рантайме: он переживает
+`git pull` (загрузки в `.gitignore`, Git их не трогает). **Не запускайте
+`git clean -fdx` на сервере** — он сотрёт загруженные картинки.
+
+### Шаг 3. Зависимости и сборка
+
+```bash
+npm ci                # postinstall сам сгенерирует Prisma-клиент (база не нужна)
+npm run build
+```
+
+Сборка идёт на сервере — убедитесь, что в этом шелле **не** экспортирован
+`NODE_ENV=production` перед `npm ci` (иначе не встанут dev-зависимости: prisma,
+typescript, tailwind — они нужны и для сборки, и для `db:push`).
+
+### Шаг 4. Схема базы и проверка
+
+```bash
+set -a; source .env; set +a          # экспортировать переменные для npm-скриптов
+npm run db:push                      # idempotent: создаст недостающие таблицы/колонки
+npm run db:check                     # должна пройти без ошибок
+```
+
+Проверку `/api/health` сделаем после запуска приложения на шаге 5.
+
+`TURSO_DATABASE_URL` в продакшене **обязана** быть задана: без неё приложение
+намеренно откажется работать с локальным файлом — контент будет пустым, вход
+отключён.
+
+### Шаг 5. Запуск приложения (PM2)
+
+```bash
+sudo npm i -g pm2
+cd /opt/plus-in-plus
+pm2 start npm --name plus-in-plus -- start     # next start, читает .env сам
+pm2 save                                      # сохранить список
+pm2 startup                                   # и выполнить напечатанную от root команду
+                                              # → автозапуск после перезагрузки сервера
+pm2 logs plus-in-plus                         # логи; pm2 restart plus-in-plus — перезапуск
+```
+
+Альтернатива без PM2 — systemd-юнит `/etc/systemd/system/plus-in-plus.service`:
+
+```ini
+[Unit]
+Description=Plus In Plus (Next.js)
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/plus-in-plus
+ExecStart=/usr/bin/npm start
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload && sudo systemctl enable --now plus-in-plus
+sudo systemctl restart plus-in-plus
+```
+
+Если запускаете от `www-data`, отдайте ему каталог загрузок (иначе аватары и
+обложки не будут записываться):
+
+```bash
+sudo chown -R www-data:www-data /opt/plus-in-plus/public/uploads
+```
+
+Проверьте локально: `curl -s http://127.0.0.1:3000/api/health` → `200`.
+
+### Шаг 6. Apache как reverse proxy + HTTPS
+
+```bash
+sudo a2enmod proxy proxy_http headers rewrite
+```
+
+Конфиг сайта (замените `example.com` на свой домен):
+
+```apache
+# /etc/apache2/sites-available/plus-in-plus.conf
+<VirtualHost *:80>
+    ServerName example.com
+
+    ProxyRequests Off
+    ProxyPreserveHost On
+    ProxyTimeout 300
+
+    # Перезаписываем заголовки доверенного прокси — клиентские значения не пропускаем.
+    # После Certbot в -le-ssl.conf этот же блок должен стоять с "https".
+    RequestHeader set X-Forwarded-Proto "http"
+    RequestHeader set X-Forwarded-Host "example.com"
+    RequestHeader set X-Real-IP "%{REMOTE_ADDR}s"
+    RequestHeader unset X-Forwarded-For
+
+    ProxyPass / http://127.0.0.1:3000/
+    ProxyPassReverse / http://127.0.0.1:3000/
+</VirtualHost>
+```
+
+```bash
+sudo a2ensite plus-in-plus
+sudo a2dissite 000-default
+sudo systemctl reload apache2
+
+# Проверка по HTTP до выпуска сертификата:
+curl -s http://example.com/api/health
+```
+
+Выпуск сертификата (автопродление включится автоматически):
+
+```bash
+sudo certbot --apache -d example.com
+```
+
+Certbot клонирует ваш виртуальный хост в `…-le-ssl.conf` для порта 443 и
+настраивает редирект HTTP → HTTPS. **Откройте этот файл и в блоке
+`<VirtualHost *:443>` замените (или добавьте, если скопировалось не всё) строку**
+
+```apache
+RequestHeader set X-Forwarded-Proto "http"
+```
+
+**на**
+
+```apache
+RequestHeader set X-Forwarded-Proto "https"
+```
+
+и `sudo systemctl reload apache2`. Без этого Auth.js увидит «http» и не будет
+ставить защищённую cookie сессии.
+
+Опционально, если когда-нибудь понадобится проксировать dev-сервер с HMR:
+
+```apache
+# RewriteEngine On
+# RewriteCond %{HTTP:Upgrade} =websocket [NC]
+# RewriteRule ^(.*)$ ws://127.0.0.1:3000/$1 [P]
+```
+
+### Шаг 7. Финальная проверка и первый админ
+
+Смотрите [Проверка деплоя](#проверка-деплоя). Дальше — регистрация на сайте и
+[создание администратора](#создать-администратора) прямо на сервере
+(`set -a; source .env; set +a; npm run db:promote-admin -- you@example.com`).
+
+### Шаг 8. Робокасса (когда будут боевые платежи)
+
+Заполните `ROBOKASSA_*` в `/opt/plus-in-plus/.env`, перезапустите приложение
+(`pm2 restart plus-in-plus`) и зарегистрируйте три URL из раздела
+[Переменные окружения](#переменные-окружения) в кабинете Робокассы.
+До этого сайт работает без платёжных ссылок — цена всё равно согласуется менеджером.
+
+### Обновление версии
+
+```bash
+cd /opt/plus-in-plus
+git pull --ff-only
+npm ci
+npm run build
+pm2 restart plus-in-plus          # или: sudo systemctl restart plus-in-plus
+
+# Если менялась схема БД (prisma/schema.prisma):
+set -a; source .env; set +a
+npm run db:push && npm run db:check
+
+# Всегда в конце:
+npm run deploy:verify -- https://example.com
+```
+
+Деплой не трогает базу и не трогает `public/uploads/`: схема применяется только
+явной командой `db:push`, загрузки лежат на диске.
+
+### Бэкапы
+
+Бэкапить нужно **две вещи**: базу и картинки.
+
+```bash
+mkdir -p /opt/plus-in-plus/backup && cd /opt/plus-in-plus
+set -a; source .env; set +a
+
+# База — Turso Cloud:
+turso db shell plus-in-plus .dump > backup/db-$(date +%F).sql
+# База — свой sqld:
+turso db shell http://127.0.0.1:8080 .dump > backup/db-$(date +%F).sql
+
+# Картинки:
+tar czf backup/uploads-$(date +%F).tar.gz public/uploads
+```
+
+Пример cron (ежедневно в 03:00, хранить 14 дней):
+
+```cron
+0 3 * * * cd /opt/plus-in-plus && mkdir -p backup && set -a && . ./.env && set +a && turso db shell plus-in-plus .dump > backup/db-$(date +\%F).sql 2>/dev/null
+30 3 * * * cd /opt/plus-in-plus && tar czf backup/uploads-$(date +\%F).tar.gz public/uploads && find backup -name '*.sql' -mtime +14 -delete && find backup -name 'uploads-*.tar.gz' -mtime +14 -delete
+```
+
+Восстановление в чистую базу:
+
+```bash
+turso db create plus-in-plus-restore
+turso db shell plus-in-plus-restore < backup/db-2026-10-15.sql
+```
+
+У Turso есть и point-in-time restore в пределах тарифа
+(`turso db create new-db --from-db plus-in-plus --timestamp 2026-10-15T10:00:00Z`).
+Своим sqld снимайте ещё и том Docker-контейнера (`~/sqld-data`).
+
+---
+
+## Проверка деплоя
+
+```bash
+# из каталога репозитория (любого компьютера):
+npm run deploy:verify -- https://example.com
+```
+
+Ожидаемый вывод:
+
+```text
+[verify] /api/health → 200 {"status":"ok","database":{"driver":"libsql","remote":true,"tables":4}}
+[verify] /            → 200
+[verify] /shop        → 200
+[verify] /blog        → 200
+[verify] /sitemap.xml → 200
+[verify] All checks passed.
+```
+
+Без репозитория достаточно: `curl https://example.com/api/health`.
+
+- `200` + `status: ok` — база доступна, все 4 обязательные таблицы на месте;
+- `503` + `schema-out-of-date` с `missingTables` — не выполнен `db:push` против этой базы;
+- `503` + `unavailable` — неверные/отсутствующие `TURSO_DATABASE_URL`/`TURSO_AUTH_TOKEN`
+  или недоступная база.
+
+Эндпоинт отдаёт только булевы значения (доступность, драйвер) — ни URL, ни токена,
+ни данных; его можно держать открытым.
+
+Ручной сценарий после первого деплоя:
+
+1. Зарегистрироваться в шапке — вернулись на сайт залогиненным.
+2. Войти с неверным паролем — `Invalid email or password.`
+3. Зайти на `/admin/dashboard` не залогиненным — редирект на `/`.
+4. Загрузить обложку услуги в `/admin/services/new` (после создания админа).
+
+---
+
+## Частые проблемы
+
+| Симптом | Причина / решение |
 | --- | --- |
-| `Login is unavailable right now.` / `Registration is unavailable right now.` | `TURSO_DATABASE_URL` or a ≥32-character `AUTH_SECRET` is missing, so auth fails closed. Copy `.env.example` to `.env` and restart the dev server. |
-| Form submits, no session, no error | The database is unreachable or the schema was never pushed: run `npm run db:push` and `npm run db:check`, then `curl <url>/api/health`. |
-| `table does not exist` (or an empty site after a deploy) | The schema was imported into a database where `db:push` never ran, or `TURSO_DATABASE_URL` points at a different database. Run `npm run db:push` with the production variables and re-check `/api/health`. |
-| A leftover `DATABASE_URL` prints "is not a libSQL/SQLite URL" | The app no longer connects to PostgreSQL: set `TURSO_DATABASE_URL` (or remove `DATABASE_URL` from `.env`). |
-| `Admin account not found. Please log in as a regular user.` | Admin mode is on, but that email is not an `ADMIN` row. Promote the account with the SQL in the section above (registration can never create admins). |
-| Login works, `/admin/*` still redirects to `/` | The session was created without admin mode. Log out, reopen **Log in**, enable **Admin mode**, and log in again. |
-| Avatar not shown after upload | Avatars live in `public/uploads/avatars/` and are served by `/uploads/avatars/<file>`; check the file exists on disk and that the deployment does not wipe that folder between releases. |
+| `502 Bad Gateway` от Apache | приложение не запущено или слушает не тот порт: `pm2 status`, `pm2 logs plus-in-plus`, `curl http://127.0.0.1:3000/api/health`, проверьте `ProxyPass` в конфиге |
+| Сайт открывается, но вход/регистрация — «временно недоступны» | не задан `TURSO_DATABASE_URL` или `AUTH_SECRET` короче 32 символов в `.env` на сервере → пополнить и `pm2 restart plus-in-plus` |
+| Форма отправляется, сессии нет, ошибки нет | база недоступна или не накачана схема: `set -a; source .env; set +a; npm run db:push; npm run db:check`, затем `curl <url>/api/health` |
+| `table does not exist` (или пустой сайт после деплоя) | `db:push` не выполнялся против этой базы или `TURSO_DATABASE_URL` указывает не туда — применить схему продакшена и перепроверить `/api/health` |
+| `/api/health` → `503 schema-out-of-date` с `missingTables` | выполнить `npm run db:push` с переменными продакшена |
+| `npm run db:push` пишет «local file», хотя `.env` с Turso | скрипты читают окружение процесса: `set -a; source .env; set +a` **до** запуска команды |
+| `Admin account not found. Please log in as a regular user.` | включен «Режим администратора», но в базе нет строки `ADMIN`/`MANAGER` — повысить роль (см. раздел ролей) |
+| Вошли, но `/admin/*` кидает на `/` | сессия создана без переключателя — выйти, включить **Режим администратора**, войти снова |
+| Понижение/блокировка админа «не работает» | действующая сессия не пересоздаётся сама: перелогиниться; права на сервере всё равно проверяются по базе |
+| `Login is unavailable right now` после редактирования `.env` | не перезапущено приложение: `pm2 restart plus-in-plus` |
+| Осталась `DATABASE_URL` и лог ругается | приложение больше не работает с PostgreSQL — удалите её, нужна только `TURSO_DATABASE_URL` |
+| Аватар/обложка не отображается | файла нет в `public/uploads/…` или каталог недоступен на запись; при деплое каталог затёрли — восстановить из бэкапа |
+| Пропали загруженные картинки после «очистки» | на сервере выполнили `git clean -fdx` / робот очистки — загрузки в `.gitignore`, Git сам их не удаляет; восстанавливайте из бэкапа и больше не чистите этот каталог |
+| Первая страница после сборки грузится дольше | холодный старт/compile; на своём сервере нормализуется после прогрева (`curl` несколько страниц) |
+| Сборка падает `JavaScript heap out of memory` | мало RAM — добавьте swap (шаг 0) |
+| Apache отдаёт `413` / обложка не загрузилась | проверьте, что тело доходит до Node (`bodySizeLimit: 9mb` в `next.config.mjs`); в Apache `LimitRequestBody` не должен быть меньше 10 МБ |
 
-## Verification and security
+---
 
-`npm test` covers authorization modes, registration role injection, profile
-ownership, session claim forgery, admin guards, CRUD/audit transactions, local
-uploads, sanitization, the account UI, the database target resolution, the
-JSON-in-TEXT helpers, the zod validation schemas and the assumption that the Prisma
-schema stays libSQL/SQLite (provider, `@@map` names, `slug`, JSON columns). Account/role scenarios use **mocked
-repositories**, not database users or admin seeds. Upload tests create and remove
-only temporary image files. Public-page regression tests are retained.
+## Безопасность — чек-лист
 
-`.github/workflows/ci.yml` repeats the important checks on every push and pull
-request without any secret: lint, `tsc --noEmit`, `npm test`, `npm run db:push` plus
-`db:check` against a throwaway SQLite file, `npm run build`, and a smoke test of
-`next start` (health endpoint and public pages).
+- `AUTH_SECRET` — уникален для окружения, ≥32 символов, никогда не в Git; при
+  некорректном секрете авторизация **закрывается**, а не работает вполсилы.
+- `.env*`, `prisma/dev.db*`, `lib/generated/`, `dump.sql`/`backup-*.sql`/`*.dump` —
+  в `.gitignore`; проверяйте `git status` перед коммитом.
+- Утечка токена БД: `turso db tokens invalidate <db> -y`, выпустить новый, обновить
+  `.env` на сервере, перезапустить.
+- Apache — единственная открытая точка входа (80/443); порт 3000 закрыт файрволом;
+  заголовки `X-Forwarded-*`/`X-Real-IP` перезаписываются прокси.
+- Продакшен отдаёт `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
+  `Referrer-Policy`, `Permissions-Policy`; при HTTPS-`AUTH_URL` — ещё и HSTS.
+- HTML статей санитизируется по allowlist перед сохранением и при публичном рендере.
+- Лимиты на вход/регистрацию/смену профиля — внутри процесса (при нескольких
+  инстансах добавьте общий лимит на прокси).
+- Роли: регистрация никогда не создаёт `ADMIN`; мутации контента и запись журнала
+  действий идут в одной транзакции.
 
-Login, registration and profile changes are throttled in-process. For multiple
-instances, also enforce shared rate limits at your trusted proxy/CDN. Blog HTML is
-allowlist-sanitized before saving and before public rendering. Production sends
-MIME-sniffing, clickjacking, referrer and permissions-policy headers; HTTPS canonical
-URLs additionally enable HSTS.
+---
+
+## Дизайн-макеты и другие документы
+
+- [DEPLOYMENT.md](DEPLOYMENT.md) — пошаговый док по Turso и окружению (англ.).
+- Макеты страниц в корне репозитория: `Plus in Plus Site — Landing/Blog/Shop/…`
+  (`.pdf`, `.png`, `.svg`).
+- `docs/spectrum-ui-migration/` — заметки по миграции UI-кита.
+- `.vscode/extensions.json` — рекомендуемые расширения (Prisma, SQLTools + SQLite).
+
+### Краткие примечания по вёрстке
+
+- **Шапка:** разделы `FOR PLAY`, `SHOP`, `ABOUT PIP`, `SOCNET` открывают выпадающее
+  меню по наведению — чистый CSS (`group-hover`), шеврон поворачивается на 180°, панель
+  задерживается ~200 мс после ухода курсора (чтобы успеть переехать через зазор).
+  Клавиатурный доступ — через `group-focus-within`. На тач-раскладках — бургер-меню
+  со всеми ссылками без выпадашек. Ссылки выпадашек: `/shop`-секции и реальные
+  профили студии — константа `SOCIAL_LINKS` в начале `components/site/header.tsx`
+  (заглушки заменить на настоящие аккаунты).
+- **Подвал:** `components/site/footer.tsx` — серверный компонент на светло-синем
+  брендовом фоне; клиентский только `footer-subscribe-form.tsx`. Блоки: CTA с
+  кнопками → форма подписки + пять колонок ссылок (`FOOTER_COLUMNS`) → юридическая
+  строка (`FOOTER_LEGAL_LINKS`, `© 2026 Plus In Plus.`) → крупный водяной знак
+  «Plus in Plus» (`aria-hidden`, не ссылка). Ссылки с `href: "#"` — заглушки под
+  несуществующие страницы (`/privacy-policy`, `/user-agreement`, `/offer`,
+  `/terms-of-use`).
+- **Формы-заглушки:** подписка в подвале и форма на `/contact` на клиенте
+  сообщают, что отправка пока не подключена — подключите их к реальному endpoint,
+  когда он появится.
+
+---
+
+## Приложение: вариант с Nginx
+
+Если точкой входа окажется Nginx вместо Apache — идея и заголовки те же:
+
+```nginx
+# /etc/nginx/sites-available/plus-in-plus
+server {
+    listen 80;
+    server_name example.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name example.com;
+
+    ssl_certificate     /etc/letsencrypt/live/example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
+
+    client_max_body_size 10m;          # обложки до 8 МБ + запас на multipart
+
+    proxy_set_header Host              $host;
+    proxy_set_header X-Forwarded-Host  $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_read_timeout 300s;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;    # WebSocket (нужен dev-серверу)
+        proxy_set_header Connection "upgrade";
+    }
+}
+```
+
+```bash
+sudo ln -s /etc/nginx/sites-available/plus-in-plus /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+sudo certbot --nginx -d example.com     # если сертификат ещё не выпущен
+```
+
+Требования те же: `Host`/`X-Forwarded-Host` — публичный домен, `X-Forwarded-Proto` —
+фактическая схема (`https` на 443), порт 3000 наружу не открывается.
