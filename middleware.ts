@@ -16,6 +16,7 @@ const requestPathname = (request: { nextUrl?: { pathname?: string }; url?: strin
  *
  * /admin   — только администратор: управление сайтом.
  * /manager — администратор и менеджер: работа с заявками.
+ * /orders  — любой вошедший: личный кабинет со своими заявками и счетами.
  *
  * Менеджера, зашедшего в /admin, отправляем в его часть, а не на главную:
  * это его рабочее место, просто не с теми правами.
@@ -24,11 +25,21 @@ const authMiddleware = NextAuth(authConfig).auth((request) => {
   const pathname = requestPathname(request);
   const isAdminArea = pathname === "/admin" || pathname.startsWith("/admin/");
   const isManagerArea = pathname === "/manager" || pathname.startsWith("/manager/");
-  if (!isAdminArea && !isManagerArea) return NextResponse.next();
+  const isOrdersArea = pathname === "/orders" || pathname.startsWith("/orders/");
+  if (!isAdminArea && !isManagerArea && !isOrdersArea) return NextResponse.next();
 
   const role = request.auth?.user?.role;
   const signedIn = Boolean(isAuthConfigured() && request.auth?.user?.id);
-  if (!signedIn || role === "USER" || (role !== "ADMIN" && role !== "MANAGER")) {
+
+  // Гостя пускаем на вход: личный кабинет без входа показывать нечего.
+  // Проверка здесь, а не в самой странице, иначе оболочка успевает
+  // отрисоваться и браузер уезжает по meta refresh вместо честного 307.
+  if (!signedIn) {
+    return NextResponse.redirect(new URL(isOrdersArea ? "/?auth=login" : "/", request.url));
+  }
+  // В личном кабинете каждый видит только свои заказы, роль не важна.
+  if (isOrdersArea) return NextResponse.next();
+  if (role !== "ADMIN" && role !== "MANAGER") {
     return NextResponse.redirect(new URL("/", request.url));
   }
   if (isAdminArea && role !== "ADMIN") {
@@ -58,7 +69,8 @@ export function middleware(
   const pathname = requestPathname(request);
   const isAdmin = pathname === "/admin" || pathname.startsWith("/admin/");
   const isManager = pathname === "/manager" || pathname.startsWith("/manager/");
-  if (isAdmin || isManager) return authMiddleware(request, event);
+  const isOrders = pathname === "/orders" || pathname.startsWith("/orders/");
+  if (isAdmin || isManager || isOrders) return authMiddleware(request, event);
 
   // Служебные адреса (API, статические файлы) не имеют языка и не должны
   // гонять браузер по редиректу ради префикса. Иначе каждый вызов — лишний

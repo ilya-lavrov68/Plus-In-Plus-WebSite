@@ -19,6 +19,14 @@ let admin, customer, orders, orderItems, payments, logs, invalidated, sequence;
 const prisma = {
   order: {
     findUnique: async ({ where }) => structuredClone(orders.get(where.id) ?? null),
+    // Личный кабинет: фильтр по владельцу обязателен, иначе подстановка
+    // чужого userId в запрос отдала бы чужие заказы.
+    findMany: async ({ where = {} } = {}) => {
+      const rows = [...orders.values()].filter(
+        (row) => !where.userId || row.userId === where.userId,
+      );
+      return structuredClone(rows.map((row) => ({ ...row, payments: row.payments ?? [] })));
+    },
     count: async () => orders.size,
     update: async ({ where, data }) => {
       const row = orders.get(where.id);
@@ -73,6 +81,7 @@ Module._load = function (name, parent, isMain) {
 };
 
 const { setOrderPrice, updateOrderStatus } = require("../app/actions/orders.ts");
+const { getCustomerOrders } = require("../lib/customer-orders.ts");
 
 /** Заявка с расчётом 30 000 ₽ и одной позицией. */
 function seedOrder(overrides = {}) {
@@ -245,4 +254,75 @@ test("updateOrderStatus: отвергает неизвестный статус"
   const id = seedOrder();
   const result = await updateOrderStatus({ orderId: id, status: "whatever" });
   assert.equal(result.ok, false);
+});
+
+
+// --- Личный кабинет: видит только свои заказы ---
+
+/** Заказ с владельцем; findMany для клиента фильтрует по нему. */
+function seedOwnedOrder(userId, number, overrides = {}) {
+  const id = `ord-${number}`;
+  orders.set(id, {
+    id,
+    userId,
+    number,
+    status: "quote_requested",
+    estimatedAmount: 3_000_000,
+    total: 0,
+    currency: "RUB",
+    customerNote: null,
+    managerNote: null,
+    createdAt: new Date("2026-01-01"),
+    paidAt: null,
+    payments: [],
+    ...overrides,
+  });
+  return id;
+}
+
+test("getCustomerOrders: гость без сессии не видит ничего", async () => {
+  seedOwnedOrder("usr-1", "ПИП-000001");
+  customer = null;
+  assert.deepEqual(await getCustomerOrders(), []);
+});
+
+test("getCustomerOrders: клиент видит только свои заказы", async () => {
+  customer = { id: "usr-1", email: "user@test" };
+  seedOwnedOrder("usr-1", "ПИП-000001");
+  seedOwnedOrder("usr-1", "ПИП-000002");
+  seedOwnedOrder("usr-2", "ПИП-000003", { status: "awaiting_payment", total: 890_000 });
+
+  const result = await getCustomerOrders();
+  const numbers = result.map((order) => order.number).sort();
+  assert.deepEqual(numbers, ["ПИП-000001", "ПИП-000002"]);
+});
+
+test("getCustomerOrders: чужой заказ недоступен даже при знании номера", async () => {
+  customer = { id: "usr-1", email: "user@test" };
+  seedOwnedOrder("usr-2", "ПИП-000777");
+  const result = await getCustomerOrders();
+  assert.equal(result.some((order) => order.number === "ПИП-000777"), false);
+});
+
+test("getCustomerOrders: счета приходят как invoices со ссылкой на оплату", async () => {
+  customer = { id: "usr-1", email: "user@test" };
+  seedOwnedOrder("usr-1", "ПИП-000100", {
+    status: "awaiting_payment",
+    total: 290_000,
+    payments: [{ id: "pay-1", status: "pending", amount: 290_000, paymentUrl: "https://pay.test/1", createdAt: new Date(), paidAt: null }],
+  });
+
+  const [order] = await getCustomerOrders();
+  assert.ok(Array.isArray(order.invoices), "invoices — массив");
+  assert.equal(order.invoices.length, 1);
+  assert.equal(order.invoices[0].paymentUrl, "https://pay.test/1");
+});
+
+test("getCustomerOrders: заказ без цены остаётся без кнопки оплаты", async () => {
+  customer = { id: "usr-1", email: "user@test" };
+  seedOwnedOrder("usr-1", "ПИП-000101", { status: "negotiating", total: 0 });
+
+  const [order] = await getCustomerOrders();
+  assert.equal(order.total, 0, "цены нет");
+  assert.equal(order.invoices.length, 0, "счёт не выставлен");
 });

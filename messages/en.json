@@ -397,7 +397,8 @@
     "sessionRefreshFailed": "Unable to refresh your session. Please reload the page.",
     "genericError": "Something went wrong. Please try again.",
     "managerSession": "Manager session",
-    "managerDashboard": "Manager panel"
+    "managerDashboard": "Manager panel",
+    "myOrders": "My orders"
   },
   "nav": {
     "sections": {
@@ -964,5 +965,19 @@
     "successTitle": "Thank you, the payment went through",
     "waitingBody": "The bank has not sent the confirmation yet. It usually takes a couple of minutes — the order will update automatically.",
     "waitingTitle": "Payment is being processed"
+  },
+  "orders": {
+    "agreed": "Agreed price",
+    "created": "Created",
+    "emptyBody": "Choose a service in the shop, pick the options and send a request — the manager will confirm the price.",
+    "emptyTitle": "No orders yet",
+    "estimate": "Estimate",
+    "invoicePending": "The invoice is issued, but the payment link is not ready yet. Please try again a little later.",
+    "managerComment": "Manager comment",
+    "pay": "Pay",
+    "subtitle": "Requests you have sent and invoices issued for them.",
+    "title": "My orders",
+    "toShop": "Go to the shop",
+    "waitingForPrice": "The manager is confirming the price. You cannot pay yet — we will show the invoice here as soon as it is agreed."
   }
 }

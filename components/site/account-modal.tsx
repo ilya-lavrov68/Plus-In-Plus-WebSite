@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { ArrowUpRight, LogOut, Pencil, ShieldCheck, Upload } from "lucide-react";
+import { ArrowUpRight, FileText, LogOut, Pencil, ShieldCheck, Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { loginUser, logout, registerUser, updateUserProfile } from "@/app/actions/auth";
@@ -149,6 +149,15 @@ function ProfilePanel({ user, onClose }: { user: UserProfile; onClose: () => voi
           <Button type="button" variant="outline" className="w-full gap-2" disabled={pending} onClick={() => { setEditing(true); setError(null); setNotice(null); }}>
             <Pencil aria-hidden="true" className="h-4 w-4" />{t("editProfile")}
           </Button>
+          <Link
+            href="/orders"
+            onClick={onClose}
+            className="flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium text-[#052B42] underline-offset-4 hover:underline"
+          >
+            <FileText aria-hidden="true" className="h-4 w-4" />
+            {t("myOrders")}
+          </Link>
+
           {/* Менеджер идёт в свою часть — управление сайтом ему не показываем. */}
           {user.role === "ADMIN" || user.role === "MANAGER" ? (
             <Link

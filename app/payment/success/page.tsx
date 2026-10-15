@@ -71,6 +71,7 @@ export default async function PaymentSuccessPage({ searchParams }: PaymentPagePr
             <p className="text-sm text-muted-foreground">{t("linkNotSigned")}</p>
           ) : null}
           <Button asChild className="mt-2">
+            <Link href="/orders">{t("backToOrders")}</Link>
             <Link href="/">{t("backHome")}</Link>
           </Button>
         </CardContent>
