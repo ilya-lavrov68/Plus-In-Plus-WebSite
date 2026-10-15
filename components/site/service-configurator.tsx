@@ -5,6 +5,9 @@ import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { Check } from "lucide-react";
 
+import Link from "next/link";
+
+import { notifyCartUpdated } from "@/components/site/cart-button";
 import { Button } from "@/components/ui/button";
 import type { ServicePricingView } from "@/lib/data";
 import { calculateEstimate, formatKopecks, pricePrefix, showPublicPrice } from "@/lib/pricing";
@@ -14,6 +17,8 @@ export interface ServiceConfiguratorProps {
   pricing: ServicePricingView;
   /** Создаёт заявку на расчёт. Приходит с сервера — клиент не пишет в БД сам. */
   onSubmit: (selectedOptionIds: string[]) => Promise<{ ok: boolean; error?: string; orderNumber?: string }>;
+  /** Кладёт услугу с выбранными опциями в корзину. Тоже server action. */
+  onAddToCart?: (selectedOptionIds: string[]) => Promise<{ ok: boolean; error?: string; count?: number }>;
   className?: string;
 }
 
@@ -28,7 +33,7 @@ export interface ServiceConfiguratorProps {
  * Расчёт берётся из lib/pricing.ts — того же модуля, который использует
  * админка. Клиент и менеджер видят одни и те же числа.
  */
-export function ServiceConfigurator({ pricing, onSubmit, className }: ServiceConfiguratorProps) {
+export function ServiceConfigurator({ pricing, onSubmit, onAddToCart, className }: ServiceConfiguratorProps) {
   const t = useTranslations("shop.configurator");
   const { status: authStatus } = useSession();
 
@@ -47,6 +52,8 @@ export function ServiceConfigurator({ pricing, onSubmit, className }: ServiceCon
   });
 
   const [pending, setPending] = React.useState(false);
+  const [cartPending, setCartPending] = React.useState(false);
+  const [addedToCart, setAddedToCart] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [submittedNumber, setSubmittedNumber] = React.useState<string | null>(null);
 
@@ -86,6 +93,31 @@ export function ServiceConfigurator({ pricing, onSubmit, className }: ServiceCon
       setError(t("priceOnRequest"));
     } finally {
       setPending(false);
+    }
+  }
+
+  async function handleAddToCart() {
+    if (!onAddToCart) return;
+    setError(null);
+    if (!estimate.complete) {
+      setError(t("selectAllRequired"));
+      return;
+    }
+    setCartPending(true);
+    try {
+      const result = await onAddToCart(selectedIds);
+      if (result.ok) {
+        setAddedToCart(true);
+        // Бейдж в шапке слушает это событие и обновляет счётчик.
+        notifyCartUpdated(result.count);
+        window.setTimeout(() => setAddedToCart(false), 4000);
+      } else {
+        setError(result.error ?? null);
+      }
+    } catch {
+      setError(t("addToCartFailed"));
+    } finally {
+      setCartPending(false);
     }
   }
 
@@ -238,9 +270,39 @@ export function ServiceConfigurator({ pricing, onSubmit, className }: ServiceCon
 
       <div className="mt-6">
         {authStatus === "authenticated" ? (
-          <Button type="submit" size="lg" loading={pending} disabled={!estimate.complete}>
-            {t("requestQuote")}
-          </Button>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="submit" size="lg" loading={pending} disabled={!estimate.complete}>
+              {t("requestQuote")}
+            </Button>
+            {onAddToCart ? (
+              <Button
+                type="button"
+                size="lg"
+                variant="outline"
+                loading={cartPending}
+                disabled={!estimate.complete || cartPending}
+                onClick={() => void handleAddToCart()}
+                className={cn(addedToCart && "border-[#00C56D] text-[#052B42]")}
+              >
+                {addedToCart ? (
+                  <>
+                    <Check aria-hidden="true" className="mr-2 h-4 w-4 text-[#00C56D]" />
+                    {t("addedToCart")}
+                  </>
+                ) : (
+                  t("addToCart")
+                )}
+              </Button>
+            ) : null}
+            {addedToCart ? (
+              <Link
+                href="/cart"
+                className="font-body text-sm font-medium text-[#052B42] underline-offset-4 hover:underline"
+              >
+                {t("viewCart")}
+              </Link>
+            ) : null}
+          </div>
         ) : (
           <div className="space-y-2">
             <Button type="button" size="lg" variant="outline" disabled>

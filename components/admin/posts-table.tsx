@@ -177,7 +177,7 @@ export function PostsTable({ posts }: { posts: AdminPostRow[] }) {
               variant="outline"
               onClick={() => runBulk("unpublish", clear)}
               disabled={pending}
-              className="border-white/40 bg-transparent text-white hover:bg-white/10"
+              className="border-[#052B42]/20 bg-transparent text-[#052B42] hover:bg-[#052B42]/[0.06]"
             >
               {t("unpublish")}
             </Button>
@@ -187,7 +187,7 @@ export function PostsTable({ posts }: { posts: AdminPostRow[] }) {
               variant="outline"
               onClick={() => runBulk("delete", clear)}
               disabled={pending}
-              className="border-white/40 bg-transparent text-white hover:bg-white/10"
+              className="border-[#B4232A]/30 bg-transparent text-[#B4232A] hover:bg-[#B4232A]/[0.06]"
             >
               <Trash2 className="mr-1 h-4 w-4" />
               {tc("delete")}

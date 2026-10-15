@@ -202,7 +202,11 @@
       "base": "Base price",
       "managerNote": "The final price is confirmed by a manager after discussing the details.",
       "submitted": "Request {number} is accepted.",
-      "signInHint": "Sign in using the menu in the site header."
+      "signInHint": "Sign in using the menu in the site header.",
+      "addToCart": "Add to cart",
+      "addedToCart": "Added",
+      "viewCart": "Open the cart",
+      "addToCartFailed": "Could not add to the cart. Please try again."
     }
   },
   "blog": {
@@ -836,7 +840,24 @@
     "editPrice": "Edit the price",
     "priceType_fixed": "Exact price",
     "priceType_from": "From (starting at)",
-    "priceType_quote": "On request"
+    "priceType_quote": "On request",
+    "financeTitle": "Revenue & sales",
+    "financeSubtitle": "Candlestick charts for the last {days} days: open, high, low and close of each day's deals.",
+    "financeRevenue": "Revenue",
+    "financePayments": "Payments",
+    "financeOrders": "Orders",
+    "financeAvgCheck": "Average check",
+    "financeRevenueChart": "Daily revenue (candles)",
+    "financeRevenueChartHint": "A candle is one day of payments: the first, largest, smallest and last payment. Bars below show the day's turnover.",
+    "financeSalesChart": "Daily sales (candles)",
+    "financeSalesChartHint": "A candle is one day of orders by their value. Bars below show the number of orders per day.",
+    "candleOpen": "Open",
+    "candleHigh": "High",
+    "candleLow": "Low",
+    "candleClose": "Close",
+    "candleDayTotal": "Day turnover",
+    "candleDayCount": "Orders that day",
+    "trafficTitle": "Traffic"
   },
   "errors": {
     "notFound": "Page not found",
@@ -947,7 +968,9 @@
       "invalidData": "Invalid data."
     },
     "invalidPrice": "Enter a valid price.",
-    "invalidPriceType": "Unknown price type."
+    "invalidPriceType": "Unknown price type.",
+    "cartEmpty": "The cart is empty — there is nothing to send.",
+    "cartItemUnavailable": "One of the services in the cart is no longer available. Remove it and try again."
   },
   "payment": {
     "alreadyPaidBody": "The confirmation arrived after you left the payment page. The order is marked as paid.",
@@ -979,5 +1002,28 @@
     "title": "My orders",
     "toShop": "Go to the shop",
     "waitingForPrice": "The manager is confirming the price. You cannot pay yet — we will show the invoice here as soon as it is agreed."
+  },
+  "cart": {
+    "title": "Cart",
+    "subtitle": "Your selected services. Send them as one request — a manager will confirm the price.",
+    "open": "Open the cart",
+    "openWithCount": "Open the cart — {count} items",
+    "emptyTitle": "Your cart is empty",
+    "emptyBody": "Pick a service in the shop, configure the options and add it to the cart.",
+    "toShop": "Go to the shop",
+    "remove": "Remove from the cart",
+    "itemUnavailable": "This service is no longer available for ordering — remove it from the cart.",
+    "unavailableHint": "Unavailable items will not be included in the request.",
+    "summary": "Summary",
+    "estimatedTotal": "Estimated total",
+    "managerNote": "This is an estimate: the final price is confirmed by a manager after discussing the details.",
+    "noteLabel": "Note for the request",
+    "notePlaceholder": "Wishes, deadlines, details…",
+    "checkout": "Send the request",
+    "continueShopping": "Continue shopping",
+    "toOrders": "My orders",
+    "submitted": "Request {number} is accepted",
+    "submittedHint": "A manager will calculate the exact price and contact you. Track the status in “My orders”.",
+    "priceOnRequest": "Price on request"
   }
 }

@@ -12,6 +12,7 @@ import {
   ANNOUNCEMENT_VISIBILITY_EVENT,
 } from "@/components/site/announcement-bar";
 import { AccountModal } from "@/components/site/account-modal";
+import { CartButton } from "@/components/site/cart-button";
 import { DropdownForPlay } from "@/components/site/dropdown-forplay";
 import { DropdownShop } from "@/components/site/dropdown-shop";
 import { DropdownAbout } from "@/components/site/dropdown-about";
@@ -274,6 +275,9 @@ export function Header() {
           >
             {t("contact")}
           </HeaderButtonLink>
+          {/* Корзина живёт в шапке рядом с аватаркой — в одном ряду и по
+              одной оси (items-center), а не внутри модального окна. */}
+          <CartButton />
           {session?.user ? (
             <button
               id="account-trigger"

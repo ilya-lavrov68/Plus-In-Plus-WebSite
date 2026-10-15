@@ -7,6 +7,7 @@ import { InternalPageContent, InternalPageHeader } from "@/components/site/inter
 import { OtherNewsSection } from "@/components/site/other-news-section";
 import { SafeImage } from "@/components/site/safe-image";
 import { ServiceConfigurator } from "@/components/site/service-configurator";
+import { addToCart } from "@/app/actions/cart";
 import { requestQuote } from "@/app/actions/orders";
 import { getPublishedPosts, getPublishedService, getServicePricing, toNewsItem } from "@/lib/data";
 import { createPageMetadata } from "@/lib/seo";
@@ -194,6 +195,10 @@ export default async function ServicePage({ params }: ServicePageProps) {
               onSubmit={async (optionIds) => {
                 "use server";
                 return requestQuote({ serviceId: pricing.serviceId, optionIds });
+              }}
+              onAddToCart={async (optionIds) => {
+                "use server";
+                return addToCart({ serviceId: pricing.serviceId, optionIds });
               }}
             />
           ) : null}

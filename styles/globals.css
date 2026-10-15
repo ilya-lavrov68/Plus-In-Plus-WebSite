@@ -2,6 +2,16 @@
 @plugin "tailwindcss-animate";
 
 /* ---------------------------------------------------------------------------
+   The site ships a single light (white) theme. Tailwind v4 would otherwise
+   bind the `dark:` variant to `prefers-color-scheme`, so every vendored
+   Spectrum UI component (`dark:bg-neutral-950` …) silently turned black for
+   visitors whose OS runs in dark mode — most visibly as black panels and
+   tables in the admin. Scoping `dark:` to a `.dark` class that is never set
+   keeps the whole interface on the light theme for everyone.
+   --------------------------------------------------------------------------- */
+@custom-variant dark (&:is(.dark *));
+
+/* ---------------------------------------------------------------------------
    Brand typography — locale independent, weight explicit.
    - `heading` (Geist): headings and large display text.
    - `body`    (Google Sans Flex): body copy, controls, navigation.
@@ -150,7 +160,8 @@
     --card-foreground: var(--navy-foreground);
     --popover: 0 0% 100%;
     --popover-foreground: var(--navy-foreground);
-    --primary: 0 0% 4%;
+    /* Brand navy, not near-black: primary controls must follow the theme. */
+    --primary: var(--navy-foreground);
     --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 96%;
     --secondary-foreground: var(--navy-foreground);
@@ -158,11 +169,12 @@
     --muted-foreground: var(--navy-foreground);
     --accent: 0 0% 94%;
     --accent-foreground: var(--navy-foreground);
-    --destructive: 0 0% 4%;
+    /* Brand destructive red (#B4232A) instead of near-black. */
+    --destructive: 357 67% 42%;
     --destructive-foreground: 0 0% 100%;
     --border: 0 0% 90%;
     --input: 0 0% 90%;
-    --ring: 0 0% 4%;
+    --ring: var(--navy-foreground);
     --radius: 0.375rem;
 
     /* -----------------------------------------------------------------------

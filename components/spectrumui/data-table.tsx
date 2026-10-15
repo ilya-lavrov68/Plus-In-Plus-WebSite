@@ -493,11 +493,11 @@ function FilterPill({
         (motionOn ? (
           <motion.span
             layoutId={layoutId}
-            className="absolute inset-0 rounded-full bg-neutral-900 dark:bg-neutral-100"
+            className="absolute inset-0 rounded-full bg-[#052B42]"
             transition={SPRING_FLUID}
           />
         ) : (
-          <span className="absolute inset-0 rounded-full bg-neutral-900 dark:bg-neutral-100" />
+          <span className="absolute inset-0 rounded-full bg-[#052B42]" />
         ))}
       <span className="relative z-10">{label}</span>
       <span
@@ -643,13 +643,13 @@ function SelectBox({
           'relative grid size-[18px] place-items-center overflow-hidden rounded-[5px] border',
           'transition-[border-color] duration-150 ease-out',
           filled
-            ? 'border-neutral-900 dark:border-neutral-100'
+            ? "border-[#052B42]"
             : 'border-neutral-300 bg-white hover:border-neutral-400 dark:border-neutral-700 dark:bg-neutral-950 dark:hover:border-neutral-500',
           'peer-focus-visible:ring-1 peer-focus-visible:ring-neutral-950 dark:peer-focus-visible:ring-neutral-300',
         )}
       >
         <motion.span
-          className="absolute inset-[1px] rounded-[4px] bg-neutral-900 dark:bg-neutral-100"
+          className="absolute inset-[1px] rounded-[4px] bg-[#052B42]"
           initial={false}
           animate={{ scale: filled ? 1 : 0.5, opacity: filled ? 1 : 0 }}
           transition={instant ? INSTANT : SPRING_SNAPPY}
@@ -1858,7 +1858,7 @@ export function DataTable<T>({
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 8, scale: 0.98 }}
                     transition={motionOn ? SPRING_ENTRANCE : INSTANT}
-                    className="pointer-events-auto flex max-w-full items-center gap-1 rounded-full bg-neutral-900 p-1 ps-3 whitespace-nowrap text-neutral-100 shadow-[0_8px_24px_rgba(0,0,0,0.18)] dark:bg-neutral-100 dark:text-neutral-900"
+                    className="pointer-events-auto flex max-w-full items-center gap-1 rounded-full border border-[#052B42]/15 bg-white p-1 ps-3 whitespace-nowrap text-[#052B42] shadow-[0_8px_24px_rgba(5,43,66,0.16)]"
                   >
                     <span className="pe-1 text-xs font-medium tabular-nums">
                       <FlipDigits value={selected.length} instant={!motionOn} /> selected
@@ -1870,7 +1870,7 @@ export function DataTable<T>({
                         onClick={() => void copySelection()}
                         aria-label={`Copy ${selected.length} rows to the clipboard`}
                         className={cn(
-                          'flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm font-medium hover:bg-white/10 focus-visible:ring-1 focus-visible:ring-current focus-visible:outline-hidden dark:hover:bg-black/10',
+                          'flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm font-medium hover:bg-[#052B42]/[0.06] focus-visible:ring-1 focus-visible:ring-current focus-visible:outline-hidden',
                           PRESS,
                         )}
                       >
