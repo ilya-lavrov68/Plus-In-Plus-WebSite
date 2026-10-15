@@ -91,7 +91,13 @@ function ProfilePanel({ user, onClose }: { user: UserProfile; onClose: () => voi
         <div className="min-w-0">
           <p className="break-words text-lg font-semibold text-[#052B42]">{profileName(user) || user.email}</p>
           <p className="break-all text-sm text-[#052B42]">{user.email}</p>
-          {user.role === "ADMIN" ? <p className="mt-1 text-xs font-medium text-[#397248]">{t("adminSession")}</p> : null}
+          {/* Роль показываем явно: сотрудник должен понимать, с какими правами
+              он вошёл. */}
+          {user.role === "ADMIN" || user.role === "MANAGER" ? (
+            <p className="mt-1 text-xs font-medium text-[#397248]">
+              {user.role === "ADMIN" ? t("adminSession") : t("managerSession")}
+            </p>
+          ) : null}
         </div>
       </div>
 
@@ -143,9 +149,15 @@ function ProfilePanel({ user, onClose }: { user: UserProfile; onClose: () => voi
           <Button type="button" variant="outline" className="w-full gap-2" disabled={pending} onClick={() => { setEditing(true); setError(null); setNotice(null); }}>
             <Pencil aria-hidden="true" className="h-4 w-4" />{t("editProfile")}
           </Button>
-          {user.role === "ADMIN" ? (
-            <Link href="/admin/dashboard" onClick={onClose} className="flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium text-[#052B42] underline-offset-4 hover:underline">
-              {t("adminDashboard")}<ArrowUpRight aria-hidden="true" className="h-4 w-4" />
+          {/* Менеджер идёт в свою часть — управление сайтом ему не показываем. */}
+          {user.role === "ADMIN" || user.role === "MANAGER" ? (
+            <Link
+              href={user.role === "ADMIN" ? "/admin/dashboard" : "/manager/orders"}
+              onClick={onClose}
+              className="flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium text-[#052B42] underline-offset-4 hover:underline"
+            >
+              {user.role === "ADMIN" ? t("adminDashboard") : t("managerDashboard")}
+              <ArrowUpRight aria-hidden="true" className="h-4 w-4" />
             </Link>
           ) : null}
           <Button type="button" variant="ghost" className="w-full gap-2" disabled={pending} onClick={handleLogout}>

@@ -34,7 +34,7 @@ model User {
   firstName    String? // Имя (для отображения после входа и в заявках)
   lastName     String? // Фамилия
   avatar       String? // Путь к файлу аватарки в /public/uploads/avatars/
-  role         String        @default("USER") // "USER" | "ADMIN"
+  role         String        @default("USER") // "USER" | "MANAGER" | "ADMIN"
   isBlocked    Boolean       @default(false)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @default(now()) @updatedAt

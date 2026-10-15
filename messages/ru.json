@@ -358,8 +358,8 @@
     "confirmPassword": "Подтвердите пароль",
     "firstName": "Имя",
     "lastName": "Фамилия",
-    "adminMode": "Режим администратора",
-    "adminModeHelp": "Только для действующих администраторов.",
+    "adminMode": "Вход для сотрудников",
+    "adminModeHelp": "Только для менеджеров и администраторов.",
     "loginButton": "Войти",
     "registerButton": "Зарегистрироваться",
     "signingIn": "Вход…",
@@ -395,7 +395,9 @@
     "loginFailed": "Не удалось войти.",
     "registerFailed": "Не удалось зарегистрироваться.",
     "sessionRefreshFailed": "Не удалось обновить сессию. Перезагрузите страницу.",
-    "genericError": "Что-то пошло не так. Попробуйте ещё раз."
+    "genericError": "Что-то пошло не так. Попробуйте ещё раз.",
+    "managerSession": "Сессия менеджера",
+    "managerDashboard": "Панель менеджера"
   },
   "nav": {
     "sections": {
@@ -805,7 +807,12 @@
     "noPayments": "Счетов пока нет.",
     "backToOrders": "К заявкам",
     "savePrice": "Сохранить цену",
-    "invoicePending": "Ссылка на оплату появится после подключения платёжной системы."
+    "invoicePending": "Ссылка на оплату появится после подключения платёжной системы.",
+    "managerBrand": "Менеджер",
+    "roleAdmin": "Администратор",
+    "roleManager": "Менеджер",
+    "breadcrumbManager": "Менеджер",
+    "paidOrdersCount": "{count} оплаченных заказов"
   },
   "errors": {
     "notFound": "Страница не найдена",
@@ -827,7 +834,8 @@
     "contactDescription": "Свяжитесь с дизайн-студией Plus In Plus.",
     "admin": "Админ-панель — Plus In Plus",
     "siteDescription": "Plus In Plus — студия графического и цифрового дизайна.",
-    "siteTitle": "Plus In Plus — дизайн-студия"
+    "siteTitle": "Plus In Plus — дизайн-студия",
+    "manager": "Менеджер — заявки"
   },
   "actions": {
     "accountCreatedPleaseLogIn": "Аккаунт создан. Войдите в него.",

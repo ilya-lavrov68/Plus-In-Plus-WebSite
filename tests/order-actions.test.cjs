@@ -51,7 +51,11 @@ prisma.$transaction = async (callback) => callback(prisma);
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
   if (name === "@/lib/prisma") return { prisma };
-  if (name === "@/lib/admin-session") return { requireAdmin: async () => admin };
+  // Заявки ведёт requireStaff: администратор и менеджер.
+  if (name === "@/lib/admin-session") return {
+    requireAdmin: async () => (admin && admin.id !== "usr-manager" ? admin : null),
+    requireStaff: async () => (admin ? { ...admin, isAdmin: admin.id !== "usr-manager" } : null),
+  };
   if (name === "@/lib/auth-secret") return { isAuthConfigured: () => true };
   if (name === "@/auth") return { auth: async () => (customer ? { user: { id: customer.id } } : null) };
   if (name === "next/cache") return { revalidatePath: (url) => invalidated.push(url) };
@@ -188,6 +192,26 @@ test("setOrderPrice: не трогает закрытые заказы", async (
 
 test("setOrderPrice: недоступен без прав администратора", async () => {
   admin = null;
+  const id = seedOrder();
+  const result = await setOrderPrice({ orderId: id, amountRub: "35000" });
+  assert.equal(result.ok, false);
+  assert.equal(orders.get(id).total, 0);
+});
+
+test("setOrderPrice: менеджер может согласовать цену", async () => {
+  // Менеджер работает с заявками — это его основная задача.
+  admin = { id: "usr-manager", email: "manager@test" };
+  const id = seedOrder();
+  const result = await setOrderPrice({ orderId: id, amountRub: "35000" });
+
+  assert.equal(result.ok, true);
+  assert.equal(orders.get(id).total, 3_500_000);
+  assert.equal(orders.get(id).managerId, "usr-manager", "в заявке записан согласовавший");
+});
+
+test("setOrderPrice: обычный пользователь не может согласовать цену", async () => {
+  admin = null;
+  customer = { id: "usr-1", email: "user@test" };
   const id = seedOrder();
   const result = await setOrderPrice({ orderId: id, amountRub: "35000" });
   assert.equal(result.ok, false);

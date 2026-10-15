@@ -358,8 +358,8 @@
     "confirmPassword": "Confirm password",
     "firstName": "First name",
     "lastName": "Last name",
-    "adminMode": "Admin mode",
-    "adminModeHelp": "For existing administrators only.",
+    "adminMode": "Staff sign-in",
+    "adminModeHelp": "For managers and administrators only.",
     "loginButton": "Log in",
     "registerButton": "Register",
     "signingIn": "Signing in…",
@@ -395,7 +395,9 @@
     "loginFailed": "Unable to log in.",
     "registerFailed": "Unable to register.",
     "sessionRefreshFailed": "Unable to refresh your session. Please reload the page.",
-    "genericError": "Something went wrong. Please try again."
+    "genericError": "Something went wrong. Please try again.",
+    "managerSession": "Manager session",
+    "managerDashboard": "Manager panel"
   },
   "nav": {
     "sections": {
@@ -805,7 +807,12 @@
     "noPayments": "No invoices yet.",
     "backToOrders": "Back to requests",
     "savePrice": "Save price",
-    "invoicePending": "The payment link appears once the provider is connected."
+    "invoicePending": "The payment link appears once the provider is connected.",
+    "managerBrand": "Manager",
+    "roleAdmin": "Administrator",
+    "roleManager": "Manager",
+    "breadcrumbManager": "Manager",
+    "paidOrdersCount": "{count} paid orders"
   },
   "errors": {
     "notFound": "Page not found",
@@ -827,7 +834,8 @@
     "contactDescription": "Get in touch with the Plus In Plus design studio.",
     "admin": "Admin — Plus In Plus",
     "siteDescription": "Plus In Plus — a graphic and digital design studio.",
-    "siteTitle": "Plus In Plus — design studio"
+    "siteTitle": "Plus In Plus — design studio",
+    "manager": "Manager — orders"
   },
   "actions": {
     "accountCreatedPleaseLogIn": "Your account was created. Please log in.",

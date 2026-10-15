@@ -11,12 +11,28 @@ const requestPathname = (request: { nextUrl?: { pathname?: string }; url?: strin
   return "/";
 };
 
+/**
+ * Две служебные части сайта с разными правами.
+ *
+ * /admin   — только администратор: управление сайтом.
+ * /manager — администратор и менеджер: работа с заявками.
+ *
+ * Менеджера, зашедшего в /admin, отправляем в его часть, а не на главную:
+ * это его рабочее место, просто не с теми правами.
+ */
 const authMiddleware = NextAuth(authConfig).auth((request) => {
   const pathname = requestPathname(request);
-  if (!pathname.startsWith("/admin")) return NextResponse.next();
+  const isAdminArea = pathname === "/admin" || pathname.startsWith("/admin/");
+  const isManagerArea = pathname === "/manager" || pathname.startsWith("/manager/");
+  if (!isAdminArea && !isManagerArea) return NextResponse.next();
 
-  if (!isAuthConfigured() || !request.auth?.user?.id || request.auth.user.role !== "ADMIN") {
+  const role = request.auth?.user?.role;
+  const signedIn = Boolean(isAuthConfigured() && request.auth?.user?.id);
+  if (!signedIn || role === "USER" || (role !== "ADMIN" && role !== "MANAGER")) {
     return NextResponse.redirect(new URL("/", request.url));
+  }
+  if (isAdminArea && role !== "ADMIN") {
+    return NextResponse.redirect(new URL("/manager/orders", request.url));
   }
   return NextResponse.next();
 });
@@ -41,12 +57,13 @@ export function middleware(
 ) {
   const pathname = requestPathname(request);
   const isAdmin = pathname === "/admin" || pathname.startsWith("/admin/");
-  if (isAdmin) return authMiddleware(request, event);
+  const isManager = pathname === "/manager" || pathname.startsWith("/manager/");
+  if (isAdmin || isManager) return authMiddleware(request, event);
 
   const segment = pathname.split("/")[1];
   if (isLocale(segment)) {
     const localizedPath = pathname.slice(segment.length + 1) || "/";
-    if (localizedPath === "/admin" || localizedPath.startsWith("/admin/")) {
+    if (localizedPath.startsWith("/admin") || localizedPath.startsWith("/manager")) {
       const adminUrl = request.nextUrl.clone();
       adminUrl.pathname = localizedPath;
       return NextResponse.redirect(adminUrl);

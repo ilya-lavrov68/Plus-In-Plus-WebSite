@@ -6,7 +6,9 @@ import { auth } from "@/auth";
 
 import { getActionTranslator } from "@/lib/action-i18n";
 import { recordActivity } from "@/lib/activity-log";
-import { requireAdmin } from "@/lib/admin-session";
+// Заявки ведут и администратор, и менеджер: согласование цены и выставление
+// счёта — работа менеджера. Управление сайтом (requireAdmin) тут не нужно.
+import { requireStaff } from "@/lib/admin-session";
 import { isAuthConfigured } from "@/lib/auth-secret";
 import { ORDER_STATUSES, type OrderStatus } from "@/lib/admin-orders";
 import { prisma } from "@/lib/prisma";
@@ -198,7 +200,7 @@ export async function setOrderPrice(input: {
 }): Promise<OrderActionResult> {
   const t = await getActionTranslator();
 
-  const admin = await requireAdmin();
+  const admin = await requireStaff();
   if (!admin) return { ok: false, error: t("unauthorized") };
   if (!prisma) return { ok: false, error: t("genericError") };
 
@@ -299,7 +301,7 @@ export async function updateOrderStatus(input: {
 }): Promise<OrderActionResult> {
   const t = await getActionTranslator();
 
-  const admin = await requireAdmin();
+  const admin = await requireStaff();
   if (!admin) return { ok: false, error: t("unauthorized") };
   if (!prisma) return { ok: false, error: t("genericError") };
 

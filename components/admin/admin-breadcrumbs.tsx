@@ -8,6 +8,8 @@ import { useTranslations } from "next-intl";
 /** Segment of the admin URL → key of the `admin` namespace. */
 const segmentKeys: Record<string, string> = {
   admin: "breadcrumbAdmin",
+  manager: "breadcrumbManager",
+  orders: "orders",
   dashboard: "dashboard",
   services: "services",
   blog: "blog",

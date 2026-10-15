@@ -1,5 +1,5 @@
 import type { DefaultSession } from "next-auth";
-import type { UserProfile } from "@/lib/user-profile";
+import type { UserProfile, UserRole } from "@/lib/user-profile";
 import "@auth/core/jwt";
 
 declare module "next-auth" {
@@ -21,6 +21,6 @@ declare module "@auth/core/jwt" {
     firstName: string | null;
     lastName: string | null;
     avatar: string | null;
-    role: "USER" | "ADMIN";
+    role: UserRole;
   }
 }

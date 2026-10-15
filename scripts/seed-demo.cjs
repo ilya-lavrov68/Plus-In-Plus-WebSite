@@ -106,6 +106,9 @@ const posts = [
 // [email, password, firstName, lastName, role, isBlocked]
 const users = [
   ["admin@plusinplus.test", "Admin12345", "Demo", "Admin", "ADMIN", 0],
+  // Менеджер: работает только с заявками, в управление сайтом (услуги, блог,
+  // пользователи, настройки) войти не может.
+  ["manager@plusinplus.test", "Manager12345", "Анна", "Морозова", "MANAGER", 0],
   ["user1@plusinplus.test", "User12345", "Иван", "Петров", "USER", 0],
   ["user2@plusinplus.test", "User12345", "Мария", "Сидорова", "USER", 1],
 ];

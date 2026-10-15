@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { AdminDataTable } from "@/components/admin/admin-data-table";
 import type { DataTableColumn } from "@/components/admin/admin-data-table";
 import { OrderStatusBadge } from "@/components/admin/order-status-badge";
+import type { OrdersBasePath } from "@/components/admin/orders-view";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -39,7 +40,16 @@ function dateTime(value: Date): string {
   }).format(value);
 }
 
-export function OrdersTable({ orders, statuses }: { orders: AdminOrderRow[]; statuses: readonly string[] }) {
+export function OrdersTable({
+  orders,
+  statuses,
+  basePath,
+}: {
+  orders: AdminOrderRow[];
+  statuses: readonly string[];
+  /** Куда ведут ссылки на заявку: /admin/orders или /manager/orders. */
+  basePath: OrdersBasePath;
+}) {
   const t = useTranslations("admin");
   const tc = useTranslations("common");
   const [pageSize, setPageSize] = useState(10);
@@ -52,7 +62,7 @@ export function OrdersTable({ orders, statuses }: { orders: AdminOrderRow[]; sta
         sortable: true,
         cell: (row) => (
           <Link
-            href={`/admin/orders/${encodeURIComponent(row.id)}`}
+            href={`${basePath}/${encodeURIComponent(row.id)}`}
             className="font-medium underline-offset-4 hover:underline"
           >
             {row.number}
@@ -103,7 +113,7 @@ export function OrdersTable({ orders, statuses }: { orders: AdminOrderRow[]; sta
         cell: (row) => <span className="text-muted-foreground">{dateTime(row.createdAt)}</span>,
       },
     ],
-    [t],
+    [t, basePath],
   );
 
   return (
@@ -142,7 +152,7 @@ export function OrdersTable({ orders, statuses }: { orders: AdminOrderRow[]; sta
       }
       rowActions={(row) => (
         <Button asChild variant="ghost" size="sm">
-          <Link href={`/admin/orders/${encodeURIComponent(row.id)}`}>{t("openOrder")}</Link>
+          <Link href={`${basePath}/${encodeURIComponent(row.id)}`}>{t("openOrder")}</Link>
         </Button>
       )}
     />
