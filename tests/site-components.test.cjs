@@ -23,6 +23,11 @@ Module._load = function (name, parent, isMain) {
   if (name === "@/lib/prisma") return { prisma: null };
   if (name === "next-auth/react") return { useSession: () => ({ data: null, status: "unauthenticated" }) };
   if (name === "@/app/actions/auth") return {};
+  // Заглушка, а не реальный экшен: orders тянет @/auth → NextAuth, который
+  // в этом процессе не может разрешить next/server (ESM). Тестам разметки
+  // страниц поведение экшена не нужно.
+  if (name === "@/app/actions/orders") return { requestQuote: async () => ({ ok: true, orderNumber: "ПИП-000001" }) };
+  if (name === "@/auth") return { auth: async () => null, handlers: {} };
   if (name.startsWith("@/")) name = path.resolve(__dirname, "..", name.slice(2));
   return originalLoad.call(this, name, parent, isMain);
 };
@@ -865,4 +870,127 @@ test("category cards use all four bundled gradients in reference order", () => {
   } finally {
     view.unmount();
   }
+});
+
+// ── Конфигуратор услуги ─────────────────────────────────────────────────────
+const { ServiceConfigurator } = require("../components/site/service-configurator.tsx");
+
+/** Услуга с множителем (тираж) и надбавкой (ламинация). */
+const pricing = {
+  serviceId: "svc-cards",
+  title: "Business cards",
+  basePrice: 89000,
+  priceType: "fixed",
+  currency: "RUB",
+  isOrderable: true,
+  groups: [
+    {
+      id: "g-qty", name: "Тираж", required: true, sortOrder: 0,
+      options: [
+        { id: "o-50", label: "50 шт", priceDelta: 0, priceFactor: 1, isDefault: true, sortOrder: 0 },
+        { id: "o-100", label: "100 шт", priceDelta: 0, priceFactor: 1.6, isDefault: false, sortOrder: 1 },
+      ],
+    },
+    {
+      id: "g-lam", name: "Ламинация", required: false, sortOrder: 1,
+      options: [
+        { id: "o-none", label: "Без ламинации", priceDelta: 0, priceFactor: 1, isDefault: true, sortOrder: 0 },
+        { id: "o-matte", label: "Матовая", priceDelta: 25000, priceFactor: 1, isDefault: false, sortOrder: 1 },
+      ],
+    },
+  ],
+};
+
+/** Собирает видимый текст узла: children — это смесь строк и элементов. */
+function flatText(node) {
+  return node.children
+    .map((child) => (typeof child === "string" ? child : flatText(child)))
+    .join("");
+}
+
+test("configurator: renders every option group with its options", () => {
+  let tree;
+  act(() => { tree = create(React.createElement(ServiceConfigurator, { pricing, onSubmit: async () => ({ ok: true }) })); });
+  const legends = tree.root.findAllByType("legend");
+  assert.equal(legends.length, 2);
+  // Необязательная группа помечена, чтобы клиент видел, что можно не выбирать.
+  const lam = legends.find((node) => flatText(node).includes("Ламинация"));
+  assert.ok(lam, "optional group is rendered");
+  assert.match(flatText(lam), /optional/);
+  assert.equal(tree.root.findAllByType("input").filter((n) => n.props.type === "radio").length, 4);
+  tree.unmount();
+});
+
+test("configurator: starts from the default option of every group", () => {
+  let tree;
+  act(() => { tree = create(React.createElement(ServiceConfigurator, { pricing, onSubmit: async () => ({ ok: true }) })); });
+  const checked = tree.root.findAllByType("input")
+    .filter((n) => n.props.type === "radio" && n.props.checked)
+    .map((n) => n.props.value);
+  // Обязательная группа и необязательная: у каждой выбран свой isDefault.
+  // Иначе флаг isDefault для необязательных групп был бы мёртвым.
+  assert.deepEqual(checked.sort(), ["o-50", "o-none"]);
+  tree.unmount();
+});
+
+test("configurator: choosing an option recalculates the estimate", () => {
+  let tree;
+  act(() => { tree = create(React.createElement(ServiceConfigurator, { pricing, onSubmit: async () => ({ ok: true }) })); });
+
+  const priceText = () => {
+    const spans = tree.root.findAllByType("span");
+    const node = spans.find((s) => /font-geist/.test(s.props.className ?? ""));
+    return node ? node.children.join("") : "";
+  };
+
+  // База: 89 000 коп. = 890 ₽
+  assert.match(priceText(), /890/);
+
+  const radioFor = (value) =>
+    tree.root.findAllByType("input").find((n) => n.props.type === "radio" && n.props.value === value);
+
+  // Тираж ×1.6 → 142 400 коп. = 1 424 ₽
+  act(() => { radioFor("o-100").props.onChange(); });
+  assert.match(priceText(), /1\s?424/);
+
+  // Плюс ламинация +25 000 коп.: (89 000 + 25 000) × 1.6 = 182 400 коп. = 1 824 ₽
+  act(() => { radioFor("o-matte").props.onChange(); });
+  assert.match(priceText(), /1\s?824/);
+
+  tree.unmount();
+});
+
+test("configurator: submit passes exactly the selected option ids", async () => {
+  let received = null;
+  let tree;
+  act(() => {
+    tree = create(React.createElement(ServiceConfigurator, {
+      pricing,
+      onSubmit: async (ids) => { received = ids; return { ok: true, orderNumber: "ПИП-000042" }; },
+    }));
+  });
+
+  const radioFor = (value) =>
+    tree.root.findAllByType("input").find((n) => n.props.type === "radio" && n.props.value === value);
+  act(() => { radioFor("o-100").props.onChange(); });
+
+  const form = tree.root.findByType("form");
+  await act(async () => { await form.props.onSubmit({ preventDefault() {} }); });
+
+  assert.deepEqual(received, ["o-100", "o-none"]);
+  // Заявка принята — вместо формы показывается подтверждение с номером.
+  assert.match(tree.root.findAllByType("p").map(flatText).join(" "), /ПИП-000042/);
+  tree.unmount();
+});
+
+test("configurator: unauthenticated visitors cannot submit", () => {
+  let tree;
+  act(() => { tree = create(React.createElement(ServiceConfigurator, { pricing, onSubmit: async () => ({ ok: true }) })); });
+  // next-auth/react здесь заглушён как unauthenticated, поэтому вместо кнопки
+  // отправки показывается приглашение войти.
+  const buttons = tree.root.findAllByType("button");
+  const submit = buttons.find((b) => b.props.type === "submit");
+  assert.equal(submit, undefined, "no submit button without a session");
+  assert.ok(tree.root.findAllByType("button").some((b) => b.props.disabled));
+  tree.unmount();
 });

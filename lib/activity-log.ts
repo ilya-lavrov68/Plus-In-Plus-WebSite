@@ -2,7 +2,8 @@ import type { Prisma } from "@/lib/generated/prisma/client";
 
 export interface ActivityInput {
   action: string;
-  entityType: "service" | "post" | "user" | "setting";
+  /** "order" добавлен вместе с заявками на расчёт и заказами. */
+  entityType: "service" | "post" | "user" | "setting" | "order";
   entityId: string;
   title: string;
   actorId: string;

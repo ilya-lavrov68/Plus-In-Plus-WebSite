@@ -126,9 +126,18 @@ const count = async (table) => Number((await client.execute(`SELECT count(*) c F
   await client.execute("DELETE FROM users");
 
   for (const s of services) {
+    const [title, slug, category, shortDesc, fullDesc, includes, shapes, resultText,
+      coverImage, isPublished, sortOrder, basePrice, priceType, isOrderable] = s;
+    // Поля перечислены явно, а не через spread: при spread легко ошибиться с
+    // порядком (currency и isOrderable уже один раз поменялись местами),
+    // а SQLite не проверяет соответствие типов при вставке.
     await client.execute({
       sql: "INSERT INTO services (id,title,slug,category,shortDesc,fullDesc,includes,shapes,resultText,coverImage,isPublished,sortOrder,basePrice,priceType,currency,isOrderable,createdAt,updatedAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-      args: [`svc-${s[1]}`, ...s, "RUB", now, now],
+      args: [
+        `svc-${slug}`, title, slug, category, shortDesc, fullDesc, includes, shapes,
+        resultText, coverImage, isPublished, sortOrder, basePrice, priceType,
+        "RUB", isOrderable, now, now,
+      ],
     });
   }
 
