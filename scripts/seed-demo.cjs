@@ -34,6 +34,15 @@ const bcrypt = require("bcryptjs");
 
 const client = createClient({ url: config.url, authToken: config.authToken });
 const now = Date.now();
+/**
+ * Дата в том виде, в каком её пишет Prisma.
+ *
+ * Раньше сид писал числа (epoch-миллисекунды), а сам Prisma — строки ISO.
+ * В SQLite число всегда меньше любой строки, поэтому сравнение
+ * «createdAt >= <дата>» в сырых запросах молча отбрасывало все записи сида.
+ * Приводим всё к одному виду — к тому, что пишет приложение.
+ */
+const at = (ms) => (ms === null ? null : new Date(ms).toISOString());
 
 // [title, slug, category, shortDesc, fullDesc, includes(json), shapes(json),
 //  resultText, coverImage, isPublished, sortOrder,
@@ -127,6 +136,7 @@ const count = async (table) => Number((await client.execute(`SELECT count(*) c F
   await client.execute("DELETE FROM services");
   await client.execute("DELETE FROM posts");
   await client.execute("DELETE FROM users");
+  await client.execute("DELETE FROM page_views");
 
   for (const s of services) {
     const [title, slug, category, shortDesc, fullDesc, includes, shapes, resultText,
@@ -198,18 +208,18 @@ const count = async (table) => Number((await client.execute(`SELECT count(*) c F
 
   for (const [number, email, status, estimated, agreed, note, daysAgo, paid, managerEmail, managerNote, slug, quantity] of orderRows) {
     const createdMs = now - daysAgo * 86_400_000;
-    const paidMs = paid ? createdMs + 3_600_000 : null;
+    const paidMs = paid ? at(createdMs + 3_600_000) : null;
     const orderId = `ord-${number.slice(-6)}`;
     const userId = `usr-${email.split("@")[0]}`;
     const managerId = managerEmail ? `usr-${managerEmail.split("@")[0]}` : null;
     // Цена зафиксирована, когда менеджер её выставил — то есть для всех
     // статусов начиная с awaiting_payment.
     const priced = ["awaiting_payment", "paid", "in_progress", "completed"].includes(status);
-    const priceAgreedAt = priced ? createdMs + 1_800_000 : null;
+    const priceAgreedAt = priced ? at(createdMs + 1_800_000) : null;
 
     await client.execute({
       sql: "INSERT INTO orders (id,number,userId,status,estimatedAmount,subtotal,discount,total,currency,customerNote,managerNote,managerId,priceAgreedAt,createdAt,updatedAt,paidAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-      args: [orderId, number, userId, status, estimated, agreed, 0, agreed, "RUB", note, managerNote, managerId, priceAgreedAt, createdMs, createdMs, paidMs],
+      args: [orderId, number, userId, status, estimated, agreed, 0, agreed, "RUB", note, managerNote, managerId, priceAgreedAt, at(createdMs), at(createdMs), paidMs],
     });
 
     const unitAgreed = agreed > 0 ? Math.round(agreed / quantity) : 0;
@@ -231,7 +241,50 @@ const count = async (table) => Number((await client.execute(`SELECT count(*) c F
           `pay-${number.slice(-6)}`, orderId, "robokassa", number.slice(-6),
           paid ? "succeeded" : "pending",
           agreed, "RUB", `https://auth.robokassa.ru/Merchant/Index.aspx?InvId=${number.slice(-6)}`,
-          priceAgreedAt ?? createdMs, priceAgreedAt ?? createdMs, paidMs,
+          priceAgreedAt ?? at(createdMs), priceAgreedAt ?? at(createdMs), paidMs,
+        ],
+      });
+    }
+  }
+
+  // ── Демо-просмотры: без них аналитика пуста ───────────────────────────────
+  // Раскидываем по последним 30 дням с разными источниками и устройствами,
+  // чтобы в отчёте были видны и тренд, и разбивка.
+  // [путь, доля просмотров, устройство]
+  const viewRows = [
+    ["/", 34, "mobile"],
+    ["/shop", 18, "desktop"],
+    ["/shop/business-cards", 12, "mobile"],
+    ["/blog", 9, "desktop"],
+    ["/shop/sign-design", 8, "desktop"],
+    ["/contact", 6, "mobile"],
+    ["/shop/large-format", 5, "desktop"],
+    ["/about", 4, "tablet"],
+    ["/shop/photo-docs", 3, "mobile"],
+    ["/shop/car-branding", 1, "desktop"],
+  ];
+  const sources = [null, null, "yandex.ru", "google.com", "vk.com", "t.me"];
+  const utms = [null, null, null, null, "vk-post", "yandex-display"];
+
+  for (const [path, share, device] of viewRows) {
+    // На главные страницы трафика приходит больше — так же, как в жизни.
+    for (let i = 0; i < share * 3; i += 1) {
+      const daysAgo = (i * 7) % 30;
+      const createdMs = now - daysAgo * 86_400_000 - ((i * 37) % 86_400_000);
+      const source = sources[(i + path.length) % sources.length];
+      const utm = utms[(i + share) % utms.length];
+      await client.execute({
+        sql: "INSERT INTO page_views (id,path,sessionId,visitorId,referrer,utmSource,device,durationMs,createdAt) VALUES (?,?,?,?,?,?,?,?,?)",
+        args: [
+          `pv-${path.replace(/[^a-z]/gi, "")}-${i}`,
+          path,
+          `sess-${daysAgo}-${(i % 11) + 1}`,
+          `vis-${(i % 37) + 1}`,
+          source,
+          utm,
+          device,
+          15_000 + ((i * 13_000) % 240_000),
+          at(createdMs),
         ],
       });
     }
@@ -240,7 +293,9 @@ const count = async (table) => Number((await client.execute(`SELECT count(*) c F
   console.log(`[seed-demo] Услуг: ${await count("services")} (5 опубликовано) | Постов: ${await count("posts")} (4 опубликовано) | Пользователей: ${await count("users")}`);
   console.log(`[seed-demo] Групп опций: ${await count("service_option_groups")} | Опций: ${await count("service_options")}`);
   console.log(`[seed-demo] Заказов: ${await count("orders")} | Позиций: ${await count("order_items")} | Платежей: ${await count("payments")}`);
+  console.log(`[seed-demo] Просмотров: ${await count("page_views")}`);
   console.log("\n  АДМИН:  admin@plusinplus.test / Admin12345");
+  console.log("  МЕНЕДЖЕР: manager@plusinplus.test / Manager12345 (только заявки)");
   console.log("  ЮЗЕРЫ:  user1@plusinplus.test / User12345 (активный)");
   console.log("          user2@plusinplus.test / User12345 (заблокированный)");
 })();

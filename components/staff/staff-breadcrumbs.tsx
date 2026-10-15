@@ -14,6 +14,7 @@ const segmentKeys: Record<string, string> = {
   manager: "breadcrumbManager",
   orders: "orders",
   dashboard: "dashboard",
+  analytics: "analytics",
   services: "services",
   blog: "blog",
   users: "users",

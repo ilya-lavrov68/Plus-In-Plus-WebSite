@@ -60,6 +60,12 @@ export function middleware(
   const isManager = pathname === "/manager" || pathname.startsWith("/manager/");
   if (isAdmin || isManager) return authMiddleware(request, event);
 
+  // Служебные адреса (API, статические файлы) не имеют языка и не должны
+  // гонять браузер по редиректу ради префикса. Иначе каждый вызов — лишний
+  // переход, а POST приходится повторять.
+  if (pathname === "/api" || pathname.startsWith("/api/")) return NextResponse.next();
+  if (pathname === "/_next" || pathname.startsWith("/_next/")) return NextResponse.next();
+
   const segment = pathname.split("/")[1];
   if (isLocale(segment)) {
     const localizedPath = pathname.slice(segment.length + 1) || "/";
