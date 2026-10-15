@@ -1,10 +1,14 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { auth } from "@/auth";
 
 import { getActionTranslator } from "@/lib/action-i18n";
 import { recordActivity } from "@/lib/activity-log";
+import { requireAdmin } from "@/lib/admin-session";
 import { isAuthConfigured } from "@/lib/auth-secret";
+import { ORDER_STATUSES, type OrderStatus } from "@/lib/admin-orders";
 import { prisma } from "@/lib/prisma";
 import { calculateEstimate } from "@/lib/pricing";
 
@@ -171,4 +175,164 @@ export async function requestQuote(input: {
   }
 
   return { ok: true, orderNumber };
+}
+
+export interface OrderActionResult {
+  ok: boolean;
+  error?: string;
+}
+
+/**
+ * Менеджер фиксирует согласованную цену и выставляет счёт.
+ *
+ * Именно здесь расчётная цена превращается в реальную: до вызова total равен
+ * нулю и заказ оплатить нельзя, после — total заполнен и создаётся платёж.
+ *
+ * Сумма приходит в рублях строкой (менеджер вводит её в форме), внутри
+ * переводится в копейки. Хранить деньги в рублях с плавающей точкой нельзя.
+ */
+export async function setOrderPrice(input: {
+  orderId: string;
+  amountRub: string;
+  managerNote?: string;
+}): Promise<OrderActionResult> {
+  const t = await getActionTranslator();
+
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, error: t("unauthorized") };
+  if (!prisma) return { ok: false, error: t("genericError") };
+
+  const raw = String(input.amountRub ?? "").trim().replace(",", ".");
+  // Пустое поле — не «бесплатно». Number("") === 0, поэтому пустоту надо
+  // отсечь до преобразования, иначе заявка выставится на 0 ₽.
+  if (!raw) return { ok: false, error: t("invalidAmount") };
+  const rubles = Number(raw);
+  if (!Number.isFinite(rubles) || rubles < 0) return { ok: false, error: t("invalidAmount") };
+  // Ограничение сверху: опечатка вроде лишнего нуля не должна пройти в счёт.
+  if (rubles > 100_000_000) return { ok: false, error: t("invalidAmount") };
+  const total = Math.round(rubles * 100);
+
+  const order = await prisma.order.findUnique({
+    where: { id: input.orderId },
+    include: { items: true },
+  });
+  if (!order) return { ok: false, error: t("orderNotFound") };
+  if (order.status === "cancelled" || order.status === "refunded") {
+    return { ok: false, error: t("orderClosed") };
+  }
+
+  const note = typeof input.managerNote === "string" ? input.managerNote.trim().slice(0, 2000) : "";
+  const now = new Date();
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.order.update({
+        where: { id: order.id },
+        data: {
+          total,
+          subtotal: total,
+          status: "awaiting_payment",
+          managerId: admin.id,
+          managerNote: note || null,
+          priceAgreedAt: now,
+        },
+      });
+
+      // Согласованная цена раскладывается по позициям пропорционально их
+      // расчётной стоимости: скидка или наценка менеджера распределяется,
+      // а не прибивается к первой позиции.
+      const estimatedTotal = order.items.reduce(
+        (sum, item) => sum + item.estimatedUnitPrice * item.quantity,
+        0,
+      );
+      for (const item of order.items) {
+        const share = estimatedTotal
+          ? (item.estimatedUnitPrice * item.quantity) / estimatedTotal
+          : 1 / Math.max(1, order.items.length);
+        const itemTotal = Math.round(total * share);
+        await tx.orderItem.update({
+          where: { id: item.id },
+          data: {
+            unitPrice: item.quantity ? Math.round(itemTotal / item.quantity) : itemTotal,
+            totalPrice: itemTotal,
+          },
+        });
+      }
+
+      // Счёт. Ссылки на оплату пока нет — её сгенерирует платёжный провайдер,
+      // когда будет подключён. Платеж создаётся сразу, чтобы у заказа была
+      // история попыток, даже если ссылку получить не удалось.
+      await tx.payment.create({
+        data: {
+          orderId: order.id,
+          provider: "robokassa",
+          externalId: null,
+          status: "pending",
+          amount: total,
+          currency: order.currency,
+          paymentUrl: null,
+        },
+      });
+
+      await recordActivity(tx, {
+        action: "priced",
+        entityType: "order",
+        entityId: order.id,
+        title: `${order.number} — ${(total / 100).toLocaleString("ru-RU")} ₽`,
+        actorId: admin.id,
+      });
+    });
+  } catch (error) {
+    console.error("Failed to set the order price:", error);
+    return { ok: false, error: t("genericError") };
+  }
+
+  revalidatePath(`/admin/orders/${order.id}`);
+  revalidatePath("/admin/orders");
+  return { ok: true };
+}
+
+/** Перевод заказа в следующий статус вручную (например, «в работу»). */
+export async function updateOrderStatus(input: {
+  orderId: string;
+  status: string;
+}): Promise<OrderActionResult> {
+  const t = await getActionTranslator();
+
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, error: t("unauthorized") };
+  if (!prisma) return { ok: false, error: t("genericError") };
+
+  if (!ORDER_STATUSES.includes(input.status as OrderStatus)) {
+    return { ok: false, error: t("invalidStatus") };
+  }
+
+  const order = await prisma.order.findUnique({ where: { id: input.orderId } });
+  if (!order) return { ok: false, error: t("orderNotFound") };
+
+  // Оплаченные статусы выставляет только платёжный webhook: менеджер не
+  // должен иметь возможности отметить заказ оплаченным вручную.
+  if (input.status === "paid" && order.status !== "paid") {
+    return { ok: false, error: t("paidOnlyByPayment") };
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.order.update({ where: { id: order.id }, data: { status: input.status } });
+      await recordActivity(tx, {
+        action: "updated",
+        entityType: "order",
+        entityId: order.id,
+        title: `${order.number} — ${input.status}`,
+        actorId: admin.id,
+      });
+    });
+  } catch (error) {
+    console.error("Failed to update the order status:", error);
+    return { ok: false, error: t("genericError") };
+  }
+
+  revalidatePath(`/admin/orders/${order.id}`);
+  revalidatePath("/admin/orders");
+  return { ok: true };
 }
