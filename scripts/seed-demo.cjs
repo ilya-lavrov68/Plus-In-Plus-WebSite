@@ -36,15 +36,62 @@ const client = createClient({ url: config.url, authToken: config.authToken });
 const now = Date.now();
 
 // [title, slug, category, shortDesc, fullDesc, includes(json), shapes(json),
-//  resultText, coverImage, isPublished, sortOrder]
+//  resultText, coverImage, isPublished, sortOrder,
+//  basePrice(копейки), priceType, isOrderable]
 const services = [
-  ["Вывески и наружная реклама", "sign-design", "large", "Изготовление вывесок любого формата.", "Полный цикл: замер, дизайн-макет, производство и монтаж.", '["замер","макет","производство","монтаж"]', '["прямоугольник","фигурная","объёмная"]', "Готовая вывеска под ключ", "/uploads/services/sign.svg", 1, 1],
-  ["Печать визиток", "business-cards", "small", "Оперативная печать визиток.", "Печать от 50 штук, срок от одного дня.", '["дизайн","печать","резка"]', '["стандарт","евро","скруглённые углы"]', "Тираж визиток в руки", "/uploads/services/cards.svg", 1, 2],
-  ["Брендирование авто", "car-branding", "large", "Оклейка автомобилей плёнкой.", "Оклейка плёнкой любого класса, частичная или полная.", '["подбор плёнки","оклейка","гарантия"]', '["полная","частичная"]', "Брендированный автомобиль", "/uploads/services/car.svg", 1, 3],
-  ["Широкоформатная печать", "large-format", "large", "Печать баннеров и постеров.", "Широкоформатная печать до трёх метров.", '["макет","печать","люверсы"]', '["баннер","постер","сетка"]', "Готовое полотно", "/uploads/services/banner.svg", 1, 4],
-  ["Фото на документы", "photo-docs", "small", "Фотография на документы за пять минут.", "Моментальная печать, цифровая копия в подарок.", '["съёмка","печать","копия"]', '["30x40","35x45"]', "Комплект фото", "/uploads/services/photo.svg", 1, 5],
-  ["Лазерная гравировка", "laser-engraving", "small", "Гравировка на дереве, металле и акриле.", "Персональная гравировка подарков и табличек.", '["макет","гравировка"]', '["дерево","металл","акрил"]', "Готовое изделие", "/uploads/services/laser.svg", 0, 6],
+  ["Вывески и наружная реклама", "sign-design", "large", "Изготовление вывесок любого формата.", "Полный цикл: замер, дизайн-макет, производство и монтаж.", '["замер","макет","производство","монтаж"]', '["прямоугольник","фигурная","объёмная"]', "Готовая вывеска под ключ", "/uploads/services/sign.svg", 1, 1, 1_500_000, "from", 1],
+  ["Печать визиток", "business-cards", "small", "Оперативная печать визиток.", "Печать от 50 штук, срок от одного дня.", '["дизайн","печать","резка"]', '["стандарт","евро","скруглённые углы"]', "Тираж визиток в руки", "/uploads/services/cards.svg", 1, 2, 89_000, "fixed", 1],
+  ["Брендирование авто", "car-branding", "large", "Оклейка автомобилей плёнкой.", "Оклейка плёнкой любого класса, частичная или полная.", '["подбор плёнки","оклейка","гарантия"]', '["полная","частичная"]', "Брендированный автомобиль", "/uploads/services/car.svg", 1, 3, 2_000_000, "from", 1],
+  ["Широкоформатная печать", "large-format", "large", "Печать баннеров и постеров.", "Широкоформатная печать до трёх метров.", '["макет","печать","люверсы"]', '["баннер","постер","сетка"]', "Готовое полотно", "/uploads/services/banner.svg", 1, 4, 45_000, "fixed", 1],
+  ["Фото на документы", "photo-docs", "small", "Фотография на документы за пять минут.", "Моментальная печать, цифровая копия в подарок.", '["съёмка","печать","копия"]', '["30x40","35x45"]', "Комплект фото", "/uploads/services/photo.svg", 1, 5, 35_000, "fixed", 1],
+  ["Лазерная гравировка", "laser-engraving", "small", "Гравировка на дереве, металле и акриле.", "Персональная гравировка подарков и табличек.", '["макет","гравировка"]', '["дерево","металл","акрил"]', "Готовое изделие", "/uploads/services/laser.svg", 0, 6, 120_000, "quote", 0],
 ];
+
+// Группы опций по услугам. priceDelta — копейки, priceFactor — множитель.
+// Цена: round((basePrice + Σ priceDelta) * Π priceFactor)
+const optionGroups = {
+  "business-cards": [
+    ["Тираж", 1, [
+      ["50 шт", 0, 1],
+      ["100 шт", 0, 1.6],
+      ["250 шт", 0, 3.2],
+      ["500 шт", 0, 5.5],
+    ]],
+    ["Плотность", 1, [
+      ["300 г/м²", 0, 1],
+      ["350 г/м²", 15_000, 1],
+    ]],
+    ["Ламинация", 0, [
+      ["Без ламинации", 0, 1],
+      ["Матовая", 25_000, 1],
+      ["Глянцевая", 25_000, 1],
+      ["Софт-тач", 45_000, 1],
+    ]],
+  ],
+  "sign-design": [
+    ["Материал", 1, [
+      ["ПВХ 5 мм", 0, 1],
+      ["Акрил 5 мм", 400_000, 1],
+      ["Композит", 650_000, 1],
+    ]],
+    ["Подсветка", 0, [
+      ["Без подсветки", 0, 1],
+      ["Светодиодная", 800_000, 1],
+    ]],
+  ],
+  "large-format": [
+    ["Размер", 1, [
+      ["1 × 2 м", 0, 1],
+      ["2 × 3 м", 0, 2.8],
+      ["3 × 6 м", 0, 6.5],
+    ]],
+    ["Материал", 1, [
+      ["Баннер 440 г/м²", 0, 1],
+      ["Сетка", 10_000, 1],
+      ["Фотобумага", 30_000, 1],
+    ]],
+  ],
+};
 
 // [title, slug, excerpt, content, coverImage, readTime, source, sourceUrl,
 //  isFeatured, isPublished, publishedAt]
@@ -68,15 +115,39 @@ const count = async (table) => Number((await client.execute(`SELECT count(*) c F
 (async () => {
   console.log(`[seed-demo] Database: ${describeDatabaseUrl(config.url)}`);
 
+  await client.execute("DELETE FROM order_items");
+  await client.execute("DELETE FROM payments");
+  await client.execute("DELETE FROM orders");
+  await client.execute("DELETE FROM cart_items");
+  await client.execute("DELETE FROM service_options");
+  await client.execute("DELETE FROM service_option_groups");
   await client.execute("DELETE FROM services");
   await client.execute("DELETE FROM posts");
   await client.execute("DELETE FROM users");
 
   for (const s of services) {
     await client.execute({
-      sql: "INSERT INTO services (id,title,slug,category,shortDesc,fullDesc,includes,shapes,resultText,coverImage,isPublished,sortOrder,createdAt,updatedAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-      args: [`svc-${s[1]}`, ...s, now, now],
+      sql: "INSERT INTO services (id,title,slug,category,shortDesc,fullDesc,includes,shapes,resultText,coverImage,isPublished,sortOrder,basePrice,priceType,currency,isOrderable,createdAt,updatedAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+      args: [`svc-${s[1]}`, ...s, "RUB", now, now],
     });
+  }
+
+  let groupCount = 0;
+  let optionCount = 0;
+  for (const [slug, groups] of Object.entries(optionGroups)) {
+    for (const [name, required, options] of groups) {
+      const groupId = `grp-${slug}-${groupCount++}`;
+      await client.execute({
+        sql: "INSERT INTO service_option_groups (id,serviceId,name,required,sortOrder) VALUES (?,?,?,?,?)",
+        args: [groupId, `svc-${slug}`, name, required, groupCount],
+      });
+      for (const [label, priceDelta, priceFactor] of options) {
+        await client.execute({
+          sql: "INSERT INTO service_options (id,groupId,label,priceDelta,priceFactor,isDefault,sortOrder) VALUES (?,?,?,?,?,?,?)",
+          args: [`opt-${optionCount++}`, groupId, label, priceDelta, priceFactor, 0, optionCount],
+        });
+      }
+    }
   }
 
   for (const p of posts) {
@@ -94,7 +165,60 @@ const count = async (table) => Number((await client.execute(`SELECT count(*) c F
     });
   }
 
+  // ── Демо-заказы: без них панель дохода пуста ──────────────────────────────
+  // Разные статусы и разные даты, чтобы графики и фильтры было чем наполнить.
+  const orderRows = [
+    // [number, userEmail, status, subtotal, total, note, daysAgo, оплачен?]
+    ["ПИП-000001", "user1@plusinplus.test", "completed", 142_400, 142_400, "Визитки, матовая ламинация", 38, true],
+    ["ПИП-000002", "user1@plusinplus.test", "paid", 2_900_000, 2_900_000, "Вывеска, акрил, с подсветкой", 21, true],
+    ["ПИП-000003", "user2@plusinplus.test", "in_progress", 89_000, 89_000, "Визитки 100 шт", 12, true],
+    ["ПИП-000004", "user1@plusinplus.test", "awaiting_payment", 313_500, 313_500, "Баннер 2×3 м, сетка", 5, false],
+    ["ПИП-000005", "user2@plusinplus.test", "cancelled", 45_000, 45_000, "Отменён клиентом", 3, false],
+    ["ПИП-000006", "user1@plusinplus.test", "paid", 126_000, 126_000, "Фото на документы ×3", 1, true],
+  ];
+
+  for (const [number, email, status, subtotal, total, note, daysAgo, paid] of orderRows) {
+    const createdMs = now - daysAgo * 86_400_000;
+    const paidMs = paid ? createdMs + 3_600_000 : null;
+    const orderId = `ord-${number.slice(-6)}`;
+    const userId = `usr-${email.split("@")[0]}`;
+
+    await client.execute({
+      sql: "INSERT INTO orders (id,number,userId,status,subtotal,discount,total,currency,customerNote,createdAt,updatedAt,paidAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+      args: [orderId, number, userId, status, subtotal, 0, total, "RUB", note, createdMs, createdMs, paidMs],
+    });
+
+    const serviceSlug = number === "ПИП-000002" ? "sign-design"
+      : number === "ПИП-000003" ? "business-cards"
+      : number === "ПИП-000004" ? "large-format"
+      : number === "ПИП-000006" ? "photo-docs"
+      : "business-cards";
+    const quantity = number === "ПИП-000006" ? 3 : 1;
+
+    await client.execute({
+      sql: "INSERT INTO order_items (id,orderId,serviceId,title,quantity,unitPrice,totalPrice,optionsSnapshot) VALUES (?,?,?,?,?,?,?,?)",
+      args: [
+        `oi-${number.slice(-6)}`, orderId, `svc-${serviceSlug}`,
+        services.find((s) => s[1] === serviceSlug)[0],
+        quantity, Math.round(total / quantity), total,
+        '[{"group":"demo","option":"demo"}]',
+      ],
+    });
+
+    await client.execute({
+      sql: "INSERT INTO payments (id,orderId,provider,externalId,status,amount,currency,paymentUrl,createdAt,updatedAt,paidAt) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+      args: [
+        `pay-${number.slice(-6)}`, orderId, "robokassa", number.slice(-6),
+        paid ? "succeeded" : status === "cancelled" ? "failed" : "pending",
+        total, "RUB", `https://auth.robokassa.ru/Merchant/Index.aspx?InvId=${number.slice(-6)}`,
+        createdMs, createdMs, paidMs,
+      ],
+    });
+  }
+
   console.log(`[seed-demo] Услуг: ${await count("services")} (5 опубликовано) | Постов: ${await count("posts")} (4 опубликовано) | Пользователей: ${await count("users")}`);
+  console.log(`[seed-demo] Групп опций: ${await count("service_option_groups")} | Опций: ${await count("service_options")}`);
+  console.log(`[seed-demo] Заказов: ${await count("orders")} | Позиций: ${await count("order_items")} | Платежей: ${await count("payments")}`);
   console.log("\n  АДМИН:  admin@plusinplus.test / Admin12345");
   console.log("  ЮЗЕРЫ:  user1@plusinplus.test / User12345 (активный)");
   console.log("          user2@plusinplus.test / User12345 (заблокированный)");
