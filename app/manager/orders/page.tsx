@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { OrdersView } from "@/components/admin/orders-view";
+import { OrdersView } from "@/components/orders/orders-view";
 import { requireStaff } from "@/lib/admin-session";
 
 export const dynamic = "force-dynamic";

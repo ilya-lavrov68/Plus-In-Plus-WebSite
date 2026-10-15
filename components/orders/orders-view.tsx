@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Hourglass, Receipt, TrendingUp } from "lucide-react";
 
-import { OrdersTable } from "@/components/admin/orders-table";
+import { OrdersTable } from "@/components/orders/orders-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAdminOrders, getOrderStats } from "@/lib/admin-orders";
 import type { StaffSession } from "@/lib/admin-session";

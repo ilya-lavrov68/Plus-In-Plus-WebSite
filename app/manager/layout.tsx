@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { AdminBreadcrumbs } from "@/components/admin/admin-breadcrumbs";
+import { StaffBreadcrumbs } from "@/components/staff/staff-breadcrumbs";
 import { ManagerNav } from "@/components/manager/manager-nav";
 import { Separator } from "@/components/ui/separator";
 import { requireStaff } from "@/lib/admin-session";
@@ -50,7 +50,7 @@ export default async function ManagerLayout({
         </div>
       </aside>
       <section className="min-w-0 flex-1" aria-label={t("content")}>
-        <AdminBreadcrumbs />
+        <StaffBreadcrumbs />
         {children}
       </section>
     </div>

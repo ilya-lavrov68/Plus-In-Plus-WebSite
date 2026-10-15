@@ -2,9 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 
-import { OrderPriceForm } from "@/components/admin/order-price-form";
-import { OrderStatusBadge } from "@/components/admin/order-status-badge";
-import type { OrdersBasePath } from "@/components/admin/orders-view";
+import { OrderPriceForm } from "@/components/orders/order-price-form";
+import { OrderStatusBadge } from "@/components/orders/order-status-badge";
+import type { OrdersBasePath } from "@/components/orders/orders-view";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAdminOrder } from "@/lib/admin-orders";
 import { formatKopecks } from "@/lib/pricing";

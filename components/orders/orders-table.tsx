@@ -6,8 +6,8 @@ import { useTranslations } from "next-intl";
 
 import { AdminDataTable } from "@/components/admin/admin-data-table";
 import type { DataTableColumn } from "@/components/admin/admin-data-table";
-import { OrderStatusBadge } from "@/components/admin/order-status-badge";
-import type { OrdersBasePath } from "@/components/admin/orders-view";
+import { OrderStatusBadge } from "@/components/orders/order-status-badge";
+import type { OrdersBasePath } from "@/components/orders/orders-view";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 

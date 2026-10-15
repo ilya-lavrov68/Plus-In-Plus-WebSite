@@ -5,7 +5,10 @@ import { ChevronRight, ArrowLeft } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 
-/** Segment of the admin URL → key of the `admin` namespace. */
+/**
+ * Сегмент служебного URL → ключ в пространстве `admin`.
+ * Одна реализация на обе части сайта: /admin и /manager.
+ */
 const segmentKeys: Record<string, string> = {
   admin: "breadcrumbAdmin",
   manager: "breadcrumbManager",
@@ -18,7 +21,7 @@ const segmentKeys: Record<string, string> = {
   new: "breadcrumbNew",
 };
 
-export function AdminBreadcrumbs() {
+export function StaffBreadcrumbs() {
   const t = useTranslations("admin");
   const tc = useTranslations("common");
   const pathname = usePathname() || "/admin/dashboard";
