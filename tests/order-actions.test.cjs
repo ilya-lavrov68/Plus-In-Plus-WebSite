@@ -59,6 +59,15 @@ Module._load = function (name, parent, isMain) {
   if (name === "@/lib/auth-secret") return { isAuthConfigured: () => true };
   if (name === "@/auth") return { auth: async () => (customer ? { user: { id: customer.id } } : null) };
   if (name === "next/cache") return { revalidatePath: (url) => invalidated.push(url) };
+  // Выставление счёта в этих тестах не проверяем — здесь важна цена, статус
+  // и права. Провайдер оплаты покрыт отдельным файлом.
+  if (name === "@/lib/payments/invoice") return { issueInvoice: async ({ amount, orderNumber }) => {
+    const row = { id: `pay-${++sequence}`, orderId: "ord-test", provider: "robokassa",
+      externalId: String(Number(orderNumber.replace(/\D/g, "")) * 1000),
+      status: "pending", amount, currency: "RUB", paymentUrl: null, createdAt: new Date() };
+    payments.set(row.id, row);
+    return { paymentId: row.id, paymentUrl: null, invId: Number(row.externalId) };
+  } };
   if (name.startsWith("@/")) name = path.resolve(__dirname, "..", name.slice(2));
   return originalLoad.call(this, name, parent, isMain);
 };

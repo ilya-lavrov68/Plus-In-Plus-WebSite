@@ -922,5 +922,22 @@
       "listTooLong": "Use no more than 100 items per list.",
       "invalidData": "Invalid data."
     }
+  },
+  "payment": {
+    "alreadyPaidBody": "The confirmation arrived after you left the payment page. The order is marked as paid.",
+    "alreadyPaidTitle": "Everything is fine, the order is paid",
+    "amount": "Amount",
+    "backHome": "Back to the homepage",
+    "backToOrders": "My orders",
+    "failBody": "The bank declined the operation or it was cancelled. Nothing has been charged — you can try again.",
+    "failTitle": "The payment did not go through",
+    "invoiceNumber": "Invoice",
+    "linkNotSigned": "The link could not be verified, so the status is shown as it is stored on our side.",
+    "pendingBody": "We do not see a confirmation from the payment system. If you have already paid, please contact the manager.",
+    "pendingTitle": "Payment is not confirmed yet",
+    "successBody": "We have received the payment and have already started working on your order. The manager will contact you.",
+    "successTitle": "Thank you, the payment went through",
+    "waitingBody": "The bank has not sent the confirmation yet. It usually takes a couple of minutes — the order will update automatically.",
+    "waitingTitle": "Payment is being processed"
   }
 }

@@ -9,6 +9,7 @@ import { recordActivity } from "@/lib/activity-log";
 // Заявки ведут и администратор, и менеджер: согласование цены и выставление
 // счёта — работа менеджера. Управление сайтом (requireAdmin) тут не нужно.
 import { requireStaff } from "@/lib/admin-session";
+import { issueInvoice } from "@/lib/payments/invoice";
 import { isAuthConfigured } from "@/lib/auth-secret";
 import { ORDER_STATUSES, type OrderStatus } from "@/lib/admin-orders";
 import { prisma } from "@/lib/prisma";
@@ -216,7 +217,8 @@ export async function setOrderPrice(input: {
 
   const order = await prisma.order.findUnique({
     where: { id: input.orderId },
-    include: { items: true },
+    // Почта нужна, чтобы Робокасса сама заполнила её в форме оплаты.
+    include: { items: true, user: { select: { email: true } } },
   });
   if (!order) return { ok: false, error: t("orderNotFound") };
   if (order.status === "cancelled" || order.status === "refunded") {
@@ -261,19 +263,14 @@ export async function setOrderPrice(input: {
         });
       }
 
-      // Счёт. Ссылки на оплату пока нет — её сгенерирует платёжный провайдер,
-      // когда будет подключён. Платеж создаётся сразу, чтобы у заказа была
-      // история попыток, даже если ссылку получить не удалось.
-      await tx.payment.create({
-        data: {
-          orderId: order.id,
-          provider: "robokassa",
-          externalId: null,
-          status: "pending",
-          amount: total,
-          currency: order.currency,
-          paymentUrl: null,
-        },
+      // Счёт. Ссылку даёт платёжный провайдер; если он не настроен, счёт
+      // всё равно остаётся в базе — историю платежей терять не должны.
+      await issueInvoice({
+        orderId: order.id,
+        orderNumber: order.number,
+        amount: total,
+        currency: order.currency,
+        customerEmail: order.user?.email ?? null,
       });
 
       await recordActivity(tx, {
