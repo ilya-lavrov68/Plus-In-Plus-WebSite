@@ -237,7 +237,7 @@ test("header opens one large multi-column menu on hover and supports mobile acco
 
     const links = panel.findAllByType("a");
     assert.ok(links.length > 0);
-    assert.ok(panel.findAllByType("img").some((image) => image.props.src === "/assets/gradients/hero-gradient.svg"));
+    assert.ok(panel.findAllByType("img").some((image) => image.props.src === "/assets/gradients/hero-gradient.jpg"));
     assert.ok(panel.findAllByType("a").some((link) => content(link).includes("Inside the Plus In Plus studio")));
   }
 
@@ -329,11 +329,11 @@ test("announcement bar can be dismissed and remembers its choice in localStorage
 test("category and service cards use the supplied artwork with responsive brand hover motion", () => {
   const category = create(React.createElement(CategoryCard, {
     title: "Category",
-    gradientImageSrc: "/assets/gradients/category-bg.svg",
+    gradientImageSrc: "/assets/gradients/category-bg.jpg",
     href: "/shop",
   }));
   const categoryImage = category.root.findByType("img");
-  assert.equal(categoryImage.props.src, "/assets/gradients/category-bg.svg");
+  assert.equal(categoryImage.props.src, "/assets/gradients/category-bg.jpg");
   assert.match(categoryImage.props.className, /transition-\[filter,opacity\]/);
   assert.match(categoryImage.props.className, /group-hover:grayscale/);
   assert.match(categoryImage.props.className, /group-hover:opacity-70/);
@@ -856,10 +856,10 @@ test("category cards use all four bundled gradients in reference order", () => {
   const view = create(React.createElement(CategoriesSection));
   try {
     const expected = [
-      ["Website mockup", "/assets/gradients/category-bg.svg"],
-      ["Badge design", "/assets/gradients/category-bg2.svg"],
-      ["Poster design", "/assets/gradients/category-bg3.svg"],
-      ["Banner design", "/assets/gradients/category-bg4.svg"],
+      ["Website mockup", "/assets/gradients/category-bg.jpg"],
+      ["Badge design", "/assets/gradients/category-bg2.jpg"],
+      ["Poster design", "/assets/gradients/category-bg3.jpg"],
+      ["Banner design", "/assets/gradients/category-bg4.jpg"],
     ];
     const cards = view.root.findAllByType(CategoryCard);
     assert.deepEqual(cards.map(({ props }) => [props.title, props.gradientImageSrc]), expected);

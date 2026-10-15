@@ -14,18 +14,22 @@
 
 /* ---------------------------------------------------------------------------
    Brand typography
-   - Geist: headings and large display text (self-hosted from the `geist`
-     npm package, OFL-1.1). The bundled variable file covers Latin + Cyrillic
-     (verified against the font's cmap: 134 Cyrillic code points).
-   - Google Sans Flex: body text, buttons, navigation, captions and footer
-     links (self-hosted from `@fontsource-variable/google-sans-flex`,
-     OFL-1.1). Google Sans Flex ships **no Cyrillic subset** (latin,
-     latin-ext, math, symbols, … only), so its file would silently fall back
-     to a system font for Russian and the text would look thinner.
-   - Inter: the Cyrillic companion of Google Sans Flex, self-hosted from
-     `@fontsource-variable/inter` (OFL-1.1). It is registered with the
-     Cyrillic `unicode-range` only, so Latin keeps rendering in Google Sans
-     Flex while Russian renders in Inter at exactly the same weights
+   The .woff2 files are vendored in public/assets/fonts/ and committed, so
+   nothing has to be installed or fetched to render the site. Do not add the
+   upstream npm packages back: they were removed because nothing imported
+   them — only the extracted files below are used.
+
+   To update a font, drop the new subset file next to the old one and keep
+   the same `unicode-range`. Sources (all OFL-1.1):
+   - Geist: headings and large display text. The variable file covers Latin
+     + Cyrillic (verified against the font's cmap: 134 Cyrillic code points).
+   - Google Sans Flex: body text, buttons, navigation, captions, footer links.
+     It ships **no Cyrillic subset** (latin, latin-ext, math, symbols only),
+     so on its own it would silently fall back to a system font for Russian
+     and the text would look thinner.
+   - Inter: the Cyrillic companion of Google Sans Flex, registered with the
+     Cyrillic `unicode-range` only. Latin keeps rendering in Google Sans Flex
+     while Russian renders in Inter at exactly the same weights
      (400 / 500 / 600), never in an arbitrary system font.
    --------------------------------------------------------------------------- */
 @font-face {

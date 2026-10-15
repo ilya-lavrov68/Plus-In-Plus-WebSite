@@ -5,10 +5,10 @@ import { useTranslations } from "next-intl";
 import { CategoryCard } from "@/components/site/category-card";
 
 const categories = [
-  { key: "websiteMockup", gradientImageSrc: "/assets/gradients/category-bg.svg" },
-  { key: "badgeDesign", gradientImageSrc: "/assets/gradients/category-bg2.svg" },
-  { key: "posterDesign", gradientImageSrc: "/assets/gradients/category-bg3.svg" },
-  { key: "bannerDesign", gradientImageSrc: "/assets/gradients/category-bg4.svg" },
+  { key: "websiteMockup", gradientImageSrc: "/assets/gradients/category-bg.jpg" },
+  { key: "badgeDesign", gradientImageSrc: "/assets/gradients/category-bg2.jpg" },
+  { key: "posterDesign", gradientImageSrc: "/assets/gradients/category-bg3.jpg" },
+  { key: "bannerDesign", gradientImageSrc: "/assets/gradients/category-bg4.jpg" },
 ];
 
 export function CategoriesSection() {

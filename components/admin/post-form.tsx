@@ -15,7 +15,7 @@ import { toast } from "@/components/ui/use-toast";
 import { SafeImage } from "@/components/site/safe-image";
 import { CoverImageHelp } from "@/components/admin/cover-image-help";
 import { ImageAlbumUploader } from "@/components/admin/image-album-uploader";
-import { RichTextEditor } from "@/components/admin/rich-text-editor";
+import { LazyRichTextEditor } from "@/components/admin/lazy-rich-text-editor";
 import { IMAGE_ACCEPT, MAX_COVER_BYTES } from "@/lib/upload-policy";
 import { parseJsonArray } from "@/lib/db-helpers";
 import { slugify } from "@/lib/slug";
@@ -135,7 +135,7 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
 
       <div className="space-y-2">
         <Label htmlFor="post-content">{t("form.contentLabel")}</Label>
-        <RichTextEditor name="content" initialValue={initial?.content} />
+        <LazyRichTextEditor name="content" initialValue={initial?.content} />
         <p className="text-xs text-muted-foreground">
           {t("form.contentHelp")}
         </p>
