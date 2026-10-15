@@ -40,7 +40,9 @@ model User {
   updatedAt    DateTime      @default(now()) @updatedAt
   activities   ActivityLog[]
   cartItems    CartItem[]
-  orders       Order[]
+  orders       Order[] @relation("CustomerOrders")
+  // Заказы, по которым этот пользователь согласовал цену как менеджер.
+  managedOrders Order[] @relation("ManagedOrders")
 
   @@map("users")
 }
@@ -196,21 +198,44 @@ model CartItem {
   @@map("cart_items")
 }
 
+/// Заказ живёт по цепочке «заявка → согласование → счёт → оплата»:
+///
+///   quote_requested  клиент выбрал опции, отправил заявку. Сумма пока
+///                    только расчётная (estimatedAmount).
+///   negotiating      менеджер обсуждает с клиентом (звонок, уточнение ТЗ).
+///   awaiting_payment цена согласована, счёт выставлен — клиенту ушла ссылка
+///                    на оплату. total заполнен, именно его надо оплатить.
+///   paid             деньги пришли.
+///   in_progress      работа началась.
+///   completed        закрыт.
+///   cancelled / refunded — в любой момент.
+///
+/// Ключевое: цену назначает менеджер, а не калькулятор. Калькулятор даёт
+/// только ориентир, поэтому расчётная и финальная суммы лежат в разных полях
+/// и никогда не перезаписывают друг друга — по ним потом считается, насколько
+/// расчёт разошёлся с factом.
 model Order {
   id        String   @id @default(cuid())
   // Человекочитаемый номер для переписки с клиентом (ПИП-000123),
   // а не cuid — его неудобно диктовать по телефону.
   number    String   @unique
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  // pending → awaiting_payment → paid → in_progress → completed
-  // Любая ветка может уйти в cancelled или refunded.
-  status    String   @default("pending")
-  subtotal  Int // копейки, до скидки
+  user      User     @relation("CustomerOrders", fields: [userId], references: [id], onDelete: Cascade)
+  status    String   @default("quote_requested")
+  // Что насчитал калькулятор по выбранным опциям. Ориентир для клиента
+  // и точка отсчёта для менеджера.
+  estimatedAmount Int @default(0)
+  subtotal  Int      @default(0) // сумма позиций по согласованной цене
   discount  Int      @default(0)
-  total     Int // копейки, к оплате
+  // Согласованная менеджером цена — то, что реально к оплате.
+  // Пока менеджер её не выставил, остаётся 0 и заказ не оплатить.
+  total     Int      @default(0)
   currency  String   @default("RUB")
-  customerNote String?
+  customerNote String? // пожелания клиента
+  managerNote  String? // почему цена отличается от расчётной
+  managerId String? // кто согласовал цену и выставил счёт
+  manager   User?    @relation("ManagedOrders", fields: [managerId], references: [id], onDelete: SetNull)
+  priceAgreedAt DateTime? // когда цена зафиксирована и счёт выставлен
   items     OrderItem[]
   payments  Payment[]
   createdAt DateTime @default(now())
@@ -220,6 +245,7 @@ model Order {
   @@index([userId])
   @@index([status])
   @@index([createdAt])
+  @@index([managerId])
   @@map("orders")
 }
 
@@ -233,8 +259,10 @@ model OrderItem {
   service   Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
   title     String // название на момент заказа
   quantity  Int     @default(1)
-  unitPrice Int // копейки за единицу, уже с учётом опций
-  totalPrice Int // unitPrice * quantity
+  // Что насчитал калькулятор по опциям — на момент заявки.
+  estimatedUnitPrice Int @default(0)
+  unitPrice Int     @default(0) // согласованная цена за единицу
+  totalPrice Int    @default(0) // unitPrice * quantity
   // JSON: [{ group, option, priceDelta, priceFactor }] — что именно выбрал клиент.
   optionsSnapshot String @default("[]")
 

@@ -563,7 +563,11 @@ test("stage 7.1: hero is oversized and category introduction is centered", () =>
   assert.equal(heroButtons.length, 2);
   for (const button of heroButtons) {
     assert.match(button.props.className, /rounded-xl/);
-    assert.match(button.props.className, /px-8 py-3/);
+    // Геометрия та же, но задана брендовым размером кнопки: раньше высота
+    // получалась из py-3 + line-height text-base (24 + 12 + 12 = 48px),
+    // теперь это явный h-12. Проверяем итоговые отступы, а не способ их записи.
+    assert.match(button.props.className, /px-8/);
+    assert.match(button.props.className, /h-12/);
     assert.match(button.props.className, /font-medium/);
     assert.match(button.props.className, /text-base/);
     assert.doesNotMatch(button.props.className, /scale|zoom/);
@@ -749,7 +753,9 @@ test("footer: light-blue Nebius-style layout with CTA, five columns, legal row a
   const subscribe = form.findByType("button");
   assert.equal(content(subscribe), "Subscribe");
   assert.equal(subscribe.props.type, "submit");
-  assert.match(subscribe.props.className, /bg-navy/);
+  // navy — это #052B42 в tailwind.config, так что bg-navy и bg-[#052B42]
+  // дают один и тот же цвет. Брендовая кнопка пишет цвет литералом.
+  assert.match(subscribe.props.className, /bg-(?:navy|\[#052B42\])/);
   assert.match(subscribe.props.className, /text-white/);
   assert.match(subscribe.props.className, /rounded-lg/);
   assert.match(subscribe.props.className, /text-sm/);

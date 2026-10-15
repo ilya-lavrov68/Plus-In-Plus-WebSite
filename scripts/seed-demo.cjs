@@ -167,53 +167,62 @@ const count = async (table) => Number((await client.execute(`SELECT count(*) c F
 
   // ── Демо-заказы: без них панель дохода пуста ──────────────────────────────
   // Разные статусы и разные даты, чтобы графики и фильтры было чем наполнить.
+  // [number, клиент, статус, расчёт из опций, согласованная цена,
+  //  пожелание клиента, daysAgo, оплачен?, менеджер?, комментарий менеджера,
+  //  slug услуги, количество]
   const orderRows = [
-    // [number, userEmail, status, subtotal, total, note, daysAgo, оплачен?]
-    ["ПИП-000001", "user1@plusinplus.test", "completed", 142_400, 142_400, "Визитки, матовая ламинация", 38, true],
-    ["ПИП-000002", "user1@plusinplus.test", "paid", 2_900_000, 2_900_000, "Вывеска, акрил, с подсветкой", 21, true],
-    ["ПИП-000003", "user2@plusinplus.test", "in_progress", 89_000, 89_000, "Визитки 100 шт", 12, true],
-    ["ПИП-000004", "user1@plusinplus.test", "awaiting_payment", 313_500, 313_500, "Баннер 2×3 м, сетка", 5, false],
-    ["ПИП-000005", "user2@plusinplus.test", "cancelled", 45_000, 45_000, "Отменён клиентом", 3, false],
-    ["ПИП-000006", "user1@plusinplus.test", "paid", 126_000, 126_000, "Фото на документы ×3", 1, true],
+    ["ПИП-000001", "user1@plusinplus.test", "completed", 142_400, 142_400, "Визитки, матовая ламинация", 38, true, "admin@plusinplus.test", null, "business-cards", 1],
+    // Менеджер поднял цену: клиент попросил срочный тираж
+    ["ПИП-000002", "user1@plusinplus.test", "completed", 2_600_000, 2_900_000, "Вывеска, акрил, с подсветкой", 21, true, "admin@plusinplus.test", "Срочный заказ, доплата за ночную смену", "sign-design", 1],
+    ["ПИП-000003", "user2@plusinplus.test", "in_progress", 89_000, 89_000, "Визитки 100 шт", 12, true, "admin@plusinplus.test", null, "business-cards", 1],
+    // Менеджер дал скидку: постоянный клиент
+    ["ПИП-000004", "user1@plusinplus.test", "awaiting_payment", 313_500, 290_000, "Баннер 2×3 м, сетка", 5, false, "admin@plusinplus.test", "Скидка постоянному клиенту 23 500 ₽", "large-format", 1],
+    ["ПИП-000005", "user2@plusinplus.test", "cancelled", 45_000, 45_000, "Отменён клиентом", 3, false, null, "Клиент передумал", "large-format", 1],
+    ["ПИП-000006", "user1@plusinplus.test", "paid", 126_000, 126_000, "Фото на документы ×3", 1, true, "admin@plusinplus.test", null, "photo-docs", 3],
+    // Свежие заявки — то, что менеджер видит в очереди
+    ["ПИП-000007", "user2@plusinplus.test", "quote_requested", 1_560_000, 0, "Нужна вывеска на фасад, 3×1.5 м", 0, false, null, null, "sign-design", 1],
+    ["ПИП-000008", "user1@plusinplus.test", "negotiating", 574_000, 0, "Визитки 500 шт, нужен макет", 0, false, "admin@plusinplus.test", "Ждём макет от клиента", "business-cards", 1],
   ];
 
-  for (const [number, email, status, subtotal, total, note, daysAgo, paid] of orderRows) {
+  for (const [number, email, status, estimated, agreed, note, daysAgo, paid, managerEmail, managerNote, slug, quantity] of orderRows) {
     const createdMs = now - daysAgo * 86_400_000;
     const paidMs = paid ? createdMs + 3_600_000 : null;
     const orderId = `ord-${number.slice(-6)}`;
     const userId = `usr-${email.split("@")[0]}`;
+    const managerId = managerEmail ? `usr-${managerEmail.split("@")[0]}` : null;
+    // Цена зафиксирована, когда менеджер её выставил — то есть для всех
+    // статусов начиная с awaiting_payment.
+    const priced = ["awaiting_payment", "paid", "in_progress", "completed"].includes(status);
+    const priceAgreedAt = priced ? createdMs + 1_800_000 : null;
 
     await client.execute({
-      sql: "INSERT INTO orders (id,number,userId,status,subtotal,discount,total,currency,customerNote,createdAt,updatedAt,paidAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
-      args: [orderId, number, userId, status, subtotal, 0, total, "RUB", note, createdMs, createdMs, paidMs],
+      sql: "INSERT INTO orders (id,number,userId,status,estimatedAmount,subtotal,discount,total,currency,customerNote,managerNote,managerId,priceAgreedAt,createdAt,updatedAt,paidAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+      args: [orderId, number, userId, status, estimated, agreed, 0, agreed, "RUB", note, managerNote, managerId, priceAgreedAt, createdMs, createdMs, paidMs],
     });
 
-    const serviceSlug = number === "ПИП-000002" ? "sign-design"
-      : number === "ПИП-000003" ? "business-cards"
-      : number === "ПИП-000004" ? "large-format"
-      : number === "ПИП-000006" ? "photo-docs"
-      : "business-cards";
-    const quantity = number === "ПИП-000006" ? 3 : 1;
-
+    const unitAgreed = agreed > 0 ? Math.round(agreed / quantity) : 0;
     await client.execute({
-      sql: "INSERT INTO order_items (id,orderId,serviceId,title,quantity,unitPrice,totalPrice,optionsSnapshot) VALUES (?,?,?,?,?,?,?,?)",
+      sql: "INSERT INTO order_items (id,orderId,serviceId,title,quantity,estimatedUnitPrice,unitPrice,totalPrice,optionsSnapshot) VALUES (?,?,?,?,?,?,?,?,?)",
       args: [
-        `oi-${number.slice(-6)}`, orderId, `svc-${serviceSlug}`,
-        services.find((s) => s[1] === serviceSlug)[0],
-        quantity, Math.round(total / quantity), total,
+        `oi-${number.slice(-6)}`, orderId, `svc-${slug}`,
+        services.find((s) => s[1] === slug)[0],
+        quantity, Math.round(estimated / quantity), unitAgreed, agreed,
         '[{"group":"demo","option":"demo"}]',
       ],
     });
 
-    await client.execute({
-      sql: "INSERT INTO payments (id,orderId,provider,externalId,status,amount,currency,paymentUrl,createdAt,updatedAt,paidAt) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-      args: [
-        `pay-${number.slice(-6)}`, orderId, "robokassa", number.slice(-6),
-        paid ? "succeeded" : status === "cancelled" ? "failed" : "pending",
-        total, "RUB", `https://auth.robokassa.ru/Merchant/Index.aspx?InvId=${number.slice(-6)}`,
-        createdMs, createdMs, paidMs,
-      ],
-    });
+    // Счёт создаётся только когда цена согласована.
+    if (priced) {
+      await client.execute({
+        sql: "INSERT INTO payments (id,orderId,provider,externalId,status,amount,currency,paymentUrl,createdAt,updatedAt,paidAt) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        args: [
+          `pay-${number.slice(-6)}`, orderId, "robokassa", number.slice(-6),
+          paid ? "succeeded" : "pending",
+          agreed, "RUB", `https://auth.robokassa.ru/Merchant/Index.aspx?InvId=${number.slice(-6)}`,
+          priceAgreedAt ?? createdMs, priceAgreedAt ?? createdMs, paidMs,
+        ],
+      });
+    }
   }
 
   console.log(`[seed-demo] Услуг: ${await count("services")} (5 опубликовано) | Постов: ${await count("posts")} (4 опубликовано) | Пользователей: ${await count("users")}`);
