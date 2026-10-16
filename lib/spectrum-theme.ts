@@ -45,9 +45,9 @@ export const spectrumTheme = {
    * `full` is reserved for the header pill buttons and small icon chips.
    */
   borderRadius: {
-    sm: "0.375rem", // 6px  — rounded-md: inputs, small controls
-    md: "0.75rem", // 12px — rounded-xl: buttons, cards, panels
-    lg: "1rem", // 16px — rounded-2xl: large surfaces, modals
+    sm: "0.5rem", // 8px  — rounded-sm: small inner controls (tabs, menu items)
+    md: "0.75rem", // 12px — rounded-md/rounded-xl: buttons, inputs, controls
+    lg: "1rem", // 16px — rounded-lg/rounded-2xl: cards, dialogs, large surfaces
     full: "9999px", // rounded-full: header buttons, pills
   },
 

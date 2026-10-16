@@ -41,8 +41,10 @@ export const buttonVariants = cva(
         link: "text-[#052B42] underline-offset-4 hover:underline",
       },
       size: {
+        // One radius for every size: a small button must not be sharper
+        // than the default one standing next to it.
         default: "h-11 px-6 rounded-xl",
-        sm: "h-9 px-4 rounded-lg",
+        sm: "h-9 px-4 rounded-xl",
         lg: "h-12 px-8 rounded-xl",
         icon: "h-11 w-11 rounded-xl",
       },

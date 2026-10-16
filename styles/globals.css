@@ -127,9 +127,17 @@
   --color-navy: #052B42;
   --color-lavender: #e8f0fe;
 
-  --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
+  /* -------------------------------------------------------------------------
+     Unified corner radii (brand scale, mirrors lib/spectrum-theme.ts):
+       rounded-sm  8px  — small inner controls (tab triggers, menu items)
+       rounded-md 12px  — inputs, selects, toasts: SAME radius as buttons
+       rounded-lg 16px  — cards, dialogs, panels: SAME as rounded-2xl, so the
+                          shadcn Card and the Spectrum UI table frames match.
+     One scale everywhere: a 4px input never sits next to a 12px button again.
+     ---------------------------------------------------------------------- */
+  --radius-lg: 1rem;
+  --radius-md: 0.75rem;
+  --radius-sm: 0.5rem;
 
   --duration-200: 200ms;
   --duration-250: 250ms;
@@ -175,7 +183,7 @@
     --border: 0 0% 90%;
     --input: 0 0% 90%;
     --ring: var(--navy-foreground);
-    --radius: 0.375rem;
+    --radius: 0.75rem; /* base control radius — matches rounded-xl buttons */
 
     /* -----------------------------------------------------------------------
        Spectrum UI brand tokens.
@@ -194,7 +202,7 @@
     --spectrum-muted: #052b4280;
     --spectrum-destructive: #b4232a;
     --spectrum-border: #052b4229;
-    --spectrum-radius-sm: 0.375rem;
+    --spectrum-radius-sm: 0.5rem;
     --spectrum-radius-md: 0.75rem;
     --spectrum-radius-lg: 1rem;
     --spectrum-radius-full: 9999px;

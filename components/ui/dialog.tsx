@@ -62,7 +62,7 @@ const DialogContent = React.forwardRef<
       side={side}
       closeLabel={t("close")}
       className={cn(
-        "border-border bg-background duration-250 ease-out sm:rounded-xl",
+        "border-border bg-background duration-250 ease-out sm:rounded-2xl",
         className
       )}
       {...props}
