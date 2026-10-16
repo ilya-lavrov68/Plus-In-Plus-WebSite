@@ -1,16 +1,16 @@
 import { Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import { GradientBackdrop } from "@/components/site/gradient-backdrop";
+import { DitheredShaderBackdrop } from "@/components/site/dithered-shader-backdrop";
 import { Logo } from "@/components/site/logo";
 import { cn } from "@/lib/utils";
 
 export interface InternalPageHeaderProps {
-  /** Large page title rendered on the shared gradient hero, e.g. "BLOG" or "SHOP". */
+  /** Large page title rendered on the shared shader hero, e.g. "BLOG" or "SHOP". */
   title: string;
 }
 
-/** Shared gradient title, brand-lockup and search header for internal pages. */
+/** Shared shader title, brand-lockup and search header for internal pages. */
 export function InternalPageHeader({ title }: InternalPageHeaderProps) {
   const t = useTranslations("common");
   return (
@@ -19,7 +19,7 @@ export function InternalPageHeader({ title }: InternalPageHeaderProps) {
         aria-label={`${title} — ${t("loadingPage")}`}
         className="relative isolate -mt-16 flex h-[clamp(400px,40.52vw,778px)] items-end overflow-hidden bg-[#CFE0FF]"
       >
-        <GradientBackdrop src="/assets/gradients/hero-gradient.jpg" priority />
+        <DitheredShaderBackdrop />
         <div className="relative z-10 w-full px-6 pb-2 sm:px-12 lg:px-24">
           <h1 className="whitespace-nowrap font-geist text-[clamp(3.5rem,15vw,19rem)] font-semibold leading-[0.8] tracking-[-0.055em] text-[#052B42]">
             {title}

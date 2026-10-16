@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 
-import { GradientBackdrop } from "@/components/site/gradient-backdrop";
+import { DitheredShaderBackdrop } from "@/components/site/dithered-shader-backdrop";
 import { Button } from "@/components/ui/button";
 
 export function HeroSection() {
@@ -11,7 +11,7 @@ export function HeroSection() {
       aria-labelledby="hero-heading"
       className="relative isolate -mt-16 flex h-[clamp(460px,40.52vw,778px)] items-center justify-center overflow-hidden bg-[#CFE0FF]"
     >
-      <GradientBackdrop src="/assets/gradients/hero-gradient.jpg" priority />
+      <DitheredShaderBackdrop />
       <div className="relative z-10 mx-auto flex w-full max-w-[1640px] flex-col items-center px-5 text-center sm:px-8">
         <h1
           id="hero-heading"
