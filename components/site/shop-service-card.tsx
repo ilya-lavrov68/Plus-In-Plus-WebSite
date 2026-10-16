@@ -21,7 +21,7 @@ export function ShopServiceCard({ title, href, imageSrc }: ShopServiceCardProps)
     <Link
       href={href}
       aria-label={t("moreDetails", { title })}
-      className="group flex h-full w-full flex-col overflow-hidden rounded-[2.5rem] bg-[#CFE0FF] text-[#052B42] transition-shadow duration-200 ease-out hover:shadow-[0_12px_28px_rgba(5,43,66,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42] focus-visible:ring-offset-2 xl:rounded-[70px]"
+      className="group flex h-full w-full flex-col overflow-hidden rounded-[1.75rem] bg-[#CFE0FF] text-[#052B42] transition-shadow duration-200 ease-out hover:shadow-[0_12px_28px_rgba(5,43,66,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42] focus-visible:ring-offset-2"
     >
       <div className="relative aspect-[3/2] w-full shrink-0 overflow-hidden bg-[#F0F0F0]">
         <SafeImage

@@ -183,7 +183,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     <>
       <InternalPageHeader title={t("pageTitle")} />
 
-      <section className="rounded-t-[3.5rem] bg-[#CFE0FF] pb-0 pt-[clamp(4rem,9.55vw,11.5rem)] text-[#052B42] sm:rounded-t-[4rem] lg:rounded-t-[100px]">
+      <section className="rounded-t-[2.5rem] bg-[#CFE0FF] pb-0 pt-[clamp(4rem,9.55vw,11.5rem)] text-[#052B42] sm:rounded-t-[3.5rem] lg:rounded-t-[100px]">
         <ArticleTitleRow
           t={t}
           title={displayTitle}

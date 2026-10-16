@@ -7,7 +7,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 
 const FIELD_CLASS =
-  "mt-2 w-full rounded-lg border border-navy/30 bg-white/50 px-3 py-2.5 font-body text-sm text-navy placeholder:text-navy/50 transition-colors duration-200 ease-out focus-visible:border-navy focus-visible:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy/30";
+  "mt-2 w-full rounded-xl border border-navy/30 bg-white/50 px-3 py-2.5 font-body text-sm text-navy placeholder:text-navy/50 transition-colors duration-200 ease-out focus-visible:border-navy focus-visible:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy/30";
 
 const CHECKBOX_CLASS = "mt-0.5 h-3.5 w-3.5 shrink-0 cursor-pointer accent-navy";
 

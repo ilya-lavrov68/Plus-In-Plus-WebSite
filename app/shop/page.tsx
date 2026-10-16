@@ -42,7 +42,7 @@ export default async function ShopPage() {
 
       <section
         aria-labelledby="shop-our-services"
-        className="rounded-t-[3rem] bg-[#CFE0FF] pt-[clamp(4.5rem,9.65vw,11.55rem)] text-[#052B42] sm:rounded-t-[4rem] lg:rounded-t-[100px]"
+        className="rounded-t-[2.5rem] bg-[#CFE0FF] pt-[clamp(4.5rem,9.65vw,11.55rem)] text-[#052B42] sm:rounded-t-[3.5rem] lg:rounded-t-[100px]"
       >
         <div className="mx-auto max-w-[1550px] px-5 sm:px-8 lg:px-10">
           <h2 id="shop-our-services" className="font-geist text-3xl font-semibold tracking-[-0.045em] sm:text-4xl lg:text-5xl">
@@ -50,7 +50,7 @@ export default async function ShopPage() {
           </h2>
         </div>
 
-        <div className="mt-10 rounded-[2.5rem] bg-white px-5 pb-14 pt-10 sm:mt-12 sm:rounded-[4rem] sm:px-8 sm:py-12 lg:mt-14 lg:rounded-[100px] lg:px-[42px] lg:pb-[226px] lg:pt-[66px]">
+        <div className="mt-10 rounded-[2.5rem] bg-white px-5 pb-14 pt-10 sm:mt-12 sm:rounded-[3.5rem] sm:px-8 sm:py-12 lg:mt-14 lg:rounded-[100px] lg:px-[42px] lg:pb-[226px] lg:pt-[66px]">
           <section aria-labelledby="small-designs">
             <h3
               id="small-designs"

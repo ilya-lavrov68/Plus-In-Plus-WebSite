@@ -17,6 +17,7 @@ const requestPathname = (request: { nextUrl?: { pathname?: string }; url?: strin
  * /admin   — только администратор: управление сайтом.
  * /manager — администратор и менеджер: работа с заявками.
  * /orders  — любой вошедший: личный кабинет со своими заявками и счетами.
+ * /cart    — любой вошедший: корзина (она хранится в БД и привязана к аккаунту).
  *
  * Менеджера, зашедшего в /admin, отправляем в его часть, а не на главную:
  * это его рабочее место, просто не с теми правами.
@@ -25,7 +26,11 @@ const authMiddleware = NextAuth(authConfig).auth((request) => {
   const pathname = requestPathname(request);
   const isAdminArea = pathname === "/admin" || pathname.startsWith("/admin/");
   const isManagerArea = pathname === "/manager" || pathname.startsWith("/manager/");
-  const isOrdersArea = pathname === "/orders" || pathname.startsWith("/orders/");
+  const isOrdersArea =
+    pathname === "/orders" ||
+    pathname.startsWith("/orders/") ||
+    pathname === "/cart" ||
+    pathname.startsWith("/cart/");
   if (!isAdminArea && !isManagerArea && !isOrdersArea) return NextResponse.next();
 
   const role = request.auth?.user?.role;
@@ -69,7 +74,11 @@ export function middleware(
   const pathname = requestPathname(request);
   const isAdmin = pathname === "/admin" || pathname.startsWith("/admin/");
   const isManager = pathname === "/manager" || pathname.startsWith("/manager/");
-  const isOrders = pathname === "/orders" || pathname.startsWith("/orders/");
+  const isOrders =
+    pathname === "/orders" ||
+    pathname.startsWith("/orders/") ||
+    pathname === "/cart" ||
+    pathname.startsWith("/cart/");
   if (isAdmin || isManager || isOrders) return authMiddleware(request, event);
 
   // Служебные адреса (API, статические файлы) не имеют языка и не должны

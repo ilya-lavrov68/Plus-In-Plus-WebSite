@@ -748,7 +748,7 @@ test("footer: light-blue Nebius-style layout with CTA, five columns, legal row a
   assert.equal(fields.email.type, "email");
   assert.equal(fields.email.required, true);
   assert.match(fields.email.className, /border border-navy\/30/);
-  assert.match(fields.email.className, /rounded-lg/);
+  assert.match(fields.email.className, /rounded-xl/);
   assert.match(fields.email.className, /bg-white\/50/);
   for (const name of ["plusInPlusNews", "designInsights"]) {
     assert.equal(fields[name].type, "checkbox");
@@ -762,7 +762,7 @@ test("footer: light-blue Nebius-style layout with CTA, five columns, legal row a
   // дают один и тот же цвет. Брендовая кнопка пишет цвет литералом.
   assert.match(subscribe.props.className, /bg-(?:navy|\[#052B42\])/);
   assert.match(subscribe.props.className, /text-white/);
-  assert.match(subscribe.props.className, /rounded-lg/);
+  assert.match(subscribe.props.className, /rounded-xl/);
   assert.match(subscribe.props.className, /text-sm/);
 
   // Step 5: legal links on one line plus the copyright.

@@ -41,7 +41,7 @@ export function InternalPageHeader({ title }: InternalPageHeaderProps) {
               type="search"
               name="q"
               placeholder={t("searchPlaceholder")}
-              className="h-14 w-full rounded-[24px] border-0 bg-[#EFEFEF] py-2 pl-6 pr-14 font-body text-base text-[#052B42] placeholder:text-[#052B42]/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42] lg:h-[70px] lg:text-lg"
+              className="h-14 w-full rounded-[1.75rem] border-0 bg-[#EFEFEF] py-2 pl-6 pr-14 font-body text-base text-[#052B42] placeholder:text-[#052B42]/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42] lg:h-[70px] lg:text-lg"
             />
             <Search
               aria-hidden="true"
@@ -75,7 +75,7 @@ export function InternalPageContent({
     <section
       aria-labelledby={labelledBy}
       className={cn(
-        "rounded-t-[3rem] bg-[#CFE0FF] pb-16 pt-[clamp(3.5rem,9vw,11rem)] text-[#052B42] sm:rounded-t-[4rem] lg:rounded-t-[100px]",
+        "rounded-t-[2.5rem] bg-[#CFE0FF] pb-16 pt-[clamp(3.5rem,9vw,11rem)] text-[#052B42] sm:rounded-t-[3.5rem] lg:rounded-t-[100px]",
         sectionClassName,
       )}
     >

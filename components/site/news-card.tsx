@@ -82,7 +82,7 @@ export function NewsCard({
   return (
     <article
       aria-hidden={!isActive}
-      className="group flex min-w-0 flex-col overflow-hidden rounded-[2rem] bg-white text-[#052B42] lg:rounded-[40px]"
+      className="group flex min-w-0 flex-col overflow-hidden rounded-[1.75rem] bg-white text-[#052B42]"
     >
       <div className="relative aspect-[350/273] w-full shrink-0 overflow-hidden bg-[#F0F0F0]">
         <span className="absolute inset-0 z-0 flex items-center justify-center bg-[#E93838] font-body text-sm font-semibold text-white">
