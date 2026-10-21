@@ -36,6 +36,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Fails when package.json, package-lock.json and the imports in the sources disagree —
+      # the mismatch that otherwise shows up as "Module not found" and a 500 on every page.
+      - name: Check the environment (deps, lockfile, Prisma client, database)
+        run: npm run doctor
+
       - name: Lint
         run: npm run lint
 

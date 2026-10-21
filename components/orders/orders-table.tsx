@@ -138,13 +138,13 @@ export function OrdersTable({
       emptyState={<p className="py-8 text-center text-sm text-muted-foreground">{t("noOrders")}</p>}
       toolbar={
         <Select value={String(pageSize)} onValueChange={(value) => setPageSize(Number(value))}>
-          <SelectTrigger className="h-9 w-[7.5rem]" aria-label={t("rowsPerPage")}>
+          <SelectTrigger className="h-9 w-[7.5rem]" aria-label={t("rows")}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {[10, 25, 50].map((size) => (
               <SelectItem key={size} value={String(size)}>
-                {t("rows", { count: size })}
+                {t("rowsPerPage", { count: size })}
               </SelectItem>
             ))}
           </SelectContent>

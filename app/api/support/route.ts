@@ -6,6 +6,13 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { recordActivity } from "@/lib/activity-log";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit, getClientAddress, hashRateLimitIdentifier } from "@/lib/rate-limit";
+
+const WINDOW_MS = 10 * 60 * 1000;
+/** A contact form needs a handful of attempts, not a hundred: the endpoint writes to the DB. */
+const ADDRESS_LIMIT = 5;
+const EMAIL_LIMIT = 3;
+const MAX_BODY_BYTES = 32 * 1024;
 
 function formatOrderNumber(sequence: number): string {
   return `ПИП-${String(sequence).padStart(6, "0")}`;
@@ -17,6 +24,23 @@ export async function POST(request: Request) {
       { ok: false, error: "Database connection is temporarily unavailable." },
       { status: 503 }
     );
+  }
+
+  // Публичная точка без входа: без ограничения её использовали бы и для спама заявками,
+  // и для создания сотен аккаунтов на чужие адреса.
+  const address = getClientAddress(
+    request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for"),
+  );
+  if (!checkRateLimit(hashRateLimitIdentifier(`support-address:${address}`), ADDRESS_LIMIT, WINDOW_MS).allowed) {
+    return NextResponse.json(
+      { ok: false, error: "Too many requests. Please wait a few minutes and try again." },
+      { status: 429 }
+    );
+  }
+
+  const declaredLength = Number(request.headers.get("content-length") ?? 0);
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) {
+    return NextResponse.json({ ok: false, error: "The message is too long." }, { status: 413 });
   }
 
   let body: Record<string, unknown>;
@@ -64,6 +88,13 @@ export async function POST(request: Request) {
     );
   }
 
+  if (!checkRateLimit(hashRateLimitIdentifier(`support-email:${email}`), EMAIL_LIMIT, WINDOW_MS).allowed) {
+    return NextResponse.json(
+      { ok: false, error: "Too many requests for this email. Please wait a few minutes." },
+      { status: 429 }
+    );
+  }
+
   if (message.length < 3) {
     return NextResponse.json(
       { ok: false, error: "Please describe your project idea or request." },
@@ -96,20 +127,14 @@ export async function POST(request: Request) {
     if (!customerId) {
       const existingByEmail = await prisma.user.findUnique({
         where: { email },
-        select: { id: true, firstName: true, lastName: true },
+        select: { id: true },
       });
 
       if (existingByEmail) {
+        // Заявку с аккаунтом связываем, но сам аккаунт не меняем: имя и фамилия пришли из
+        // неподтверждённого письма, а писать ими в чужой профиль нельзя. Контакты в любом
+        // случае остаются в тексте заявки (customerNote).
         customerId = existingByEmail.id;
-        if (!existingByEmail.firstName || !existingByEmail.lastName) {
-          await prisma.user.update({
-            where: { id: existingByEmail.id },
-            data: {
-              firstName: existingByEmail.firstName || firstName,
-              lastName: existingByEmail.lastName || lastName,
-            },
-          });
-        }
       } else {
         const randomPasswordHash = await bcrypt.hash(
           crypto.randomBytes(24).toString("hex"),

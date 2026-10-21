@@ -4,28 +4,71 @@
 // so a fresh clone or a schema change never produces "table does not exist".
 // A failing sync is reported loudly but does not block the server: the public
 // pages render empty states without a database.
-const { spawn } = require("node:child_process");
+const { spawn, spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 const { loadDatabaseModule } = require("./lib/database-module.cjs");
 const { checkSchema } = require("./lib/schema-check.cjs");
-const { checkDependencies, formatReport } = require("./lib/dependency-check.cjs");
+const {
+  checkDependencies,
+  formatReport,
+  needsInstall,
+  npmCommand,
+} = require("./lib/dependency-check.cjs");
 const { cliAvailable, generateClient, pushSchema, rootDir } = require("./lib/prisma-cli.cjs");
 
 const nextBin = path.join(rootDir, "node_modules", "next", "dist", "bin", "next");
 
-// A stale install is the most common reason a dev server renders nothing but 500s, so it is
-// reported before anything else starts.
-function checkInstall() {
-  if (!fs.existsSync(nextBin)) {
-    console.error("[dev] Next.js is not installed — run `npm install` first.");
-    process.exit(1);
+function runNpmInstall() {
+  console.log("[dev] Running `npm install` to repair the install…");
+  const install = spawnSync(npmCommand(), ["install", "--no-audit", "--no-fund"], {
+    cwd: rootDir,
+    stdio: "inherit",
+    // Node refuses to spawn .cmd files without a shell (EINVAL) since the 2024 CVE fix.
+    shell: process.platform === "win32",
+  });
+  return install.status === 0;
+}
+
+/**
+ * A stale install is the most common reason a dev server renders nothing but 500s with
+ * `Module not found`, so it is diagnosed — and repaired — before Next.js starts. Set
+ * PIP_NO_AUTO_INSTALL=1 to only get the report.
+ */
+function ensureInstall() {
+  const autoInstall = process.env.PIP_NO_AUTO_INSTALL !== "1";
+  let result = checkDependencies();
+  let report = formatReport(result);
+
+  if (report.length === 0 && fs.existsSync(nextBin)) return;
+  for (const line of report) console.warn(line);
+
+  if (!autoInstall || !needsInstall(result)) {
+    if (!fs.existsSync(nextBin)) {
+      console.error("[dev] Next.js is not installed — run `npm install` first.");
+      process.exit(1);
+    }
+    if (report.length > 0) console.warn("");
+    return;
   }
 
-  const report = formatReport(checkDependencies());
-  if (report.length === 0) return;
+  const installed = runNpmInstall();
+  if (!installed) console.warn("[dev] `npm install` reported an error — see the output above.");
 
+  result = checkDependencies();
+  report = formatReport(result);
+
+  if (report.length === 0 && fs.existsSync(nextBin)) {
+    console.log("[dev] Dependencies are complete.");
+    return;
+  }
+
+  console.warn("");
   for (const line of report) console.warn(line);
+  if (!fs.existsSync(nextBin)) {
+    console.error("[dev] Next.js is still not installed — fix the errors above, then run `npm install`.");
+    process.exit(1);
+  }
   console.warn("");
 }
 
@@ -73,7 +116,7 @@ async function syncSchema(config, env) {
 }
 
 function main() {
-  checkInstall();
+  ensureInstall();
 
   const env = { ...process.env };
   let config = null;
