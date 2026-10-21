@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Lock } from "lucide-react";
 
 import { OrderPriceForm } from "@/components/orders/order-price-form";
 import { OrderStatusBadge } from "@/components/orders/order-status-badge";
 import type { OrdersBasePath } from "@/components/orders/orders-view";
+import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAdminOrder } from "@/lib/admin-orders";
+import { requireStaff } from "@/lib/admin-session";
 import { formatKopecks } from "@/lib/pricing";
 import { getRequestTranslations } from "@/lib/server-i18n";
 
@@ -59,6 +62,11 @@ export async function OrderDetailView({
 }) {
   const t = await getRequestTranslations("admin");
 
+  // Кто смотрит карточку: заблокированный заказ правит только основатель.
+  // Страница и так за гардами /admin и /manager, здесь роль нужна форме.
+  const staff = await requireStaff();
+  const canEditLocked = Boolean(staff?.isFounder);
+
   const order = await getAdminOrder(orderId);
   if (!order) notFound();
 
@@ -78,6 +86,12 @@ export async function OrderDetailView({
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <h1 className="text-3xl font-bold tracking-tight">{order.number}</h1>
         <OrderStatusBadge status={order.status} />
+        {order.isLocked ? (
+          <Badge variant="outline" className="gap-1.5">
+            <Lock aria-hidden="true" className="h-3.5 w-3.5" />
+            {t("orderLockedBadge")}
+          </Badge>
+        ) : null}
       </div>
       <p className="mt-2 text-sm text-muted-foreground">
         {t("created")}: {formatDate(order.createdAt)}
@@ -120,6 +134,8 @@ export async function OrderDetailView({
                 currentTotal={order.total}
                 currentNote={order.managerNote}
                 currency={currency}
+                isLocked={order.isLocked}
+                canEditLocked={canEditLocked}
               />
             </CardContent>
           </Card>
@@ -226,6 +242,17 @@ export async function OrderDetailView({
               ) : (
                 <p className="text-sm text-muted-foreground">{t("noPayments")}</p>
               )}
+
+              {/* Оплата по согласованной цене: маршрут сам достанет или
+                  создаст счёт и уведёт на форму Робокассы. */}
+              {order.status === "awaiting_payment" && priced ? (
+                <a
+                  href={`/api/payment/create?orderId=${encodeURIComponent(order.id)}`}
+                  className={`${buttonVariants({ variant: "default", size: "sm" })} mt-4 w-full`}
+                >
+                  {t("payNow")}
+                </a>
+              ) : null}
             </CardContent>
           </Card>
         </div>

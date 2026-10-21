@@ -51,9 +51,11 @@ export async function authorizeCredentials(
 
   // Always compare before reporting a failed admin lookup, including for unknown emails.
   const validPassword = await bcrypt.compare(password, account?.passwordHash ?? DUMMY_PASSWORD_HASH);
-  // Вход в служебную часть — явный opt-in. MANAGER и ADMIN проходят,
-  // обычный USER нет, даже если включит переключатель.
-  if (adminMode && account?.role !== "ADMIN" && account?.role !== "MANAGER") {
+  // Вход в служебную часть — явный opt-in. FOUNDER, ADMIN и MANAGER
+  // проходят, обычный USER нет, даже если включит переключатель.
+  const isStaffRole =
+    account?.role === "FOUNDER" || account?.role === "ADMIN" || account?.role === "MANAGER";
+  if (adminMode && !isStaffRole) {
     throw new AdminAccountNotFound();
   }
   if (!account || !validPassword) return null;
@@ -69,10 +71,11 @@ export async function authorizeCredentials(
     image: localAvatarPath(account.avatar),
     // Staff mode is an explicit privilege opt-in, never a database role mutation.
     // Роль берётся из базы, а не выдумывается: менеджер получает MANAGER,
-    // администратор — ADMIN. Без opt-in оба входят как USER.
+    // администратор — ADMIN, основатель — FOUNDER. Без opt-in все входят
+    // как USER.
     role:
-      adminMode && (account.role === "ADMIN" || account.role === "MANAGER")
-        ? (account.role as "ADMIN" | "MANAGER")
+      adminMode && isStaffRole
+        ? (account.role as "FOUNDER" | "ADMIN" | "MANAGER")
         : ("USER" as const),
   };
 }

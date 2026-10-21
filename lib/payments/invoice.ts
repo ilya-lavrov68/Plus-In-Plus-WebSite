@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { buildPaymentUrl, isRobokassaConfigured } from "@/lib/payments/robokassa";
+import { buildPaymentUrl } from "@/lib/payments/robokassa";
+import { resolveRobokassaConfig } from "@/lib/payments/robokassa-config";
 
 export interface IssueInvoiceInput {
   orderId: string;
@@ -42,6 +43,11 @@ export function invoiceNumber(orderNumber: string, attempt: number): number {
 export async function issueInvoice(input: IssueInvoiceInput): Promise<IssuedInvoice | null> {
   if (!prisma) return null;
 
+  // Ключи: сначала настройки в БД (вкладка Settings), потом env, потом
+  // демо-магазин. Одна и та же конфигурация используется и для подписи
+  // ссылки здесь, и для проверки уведомления в Result URL.
+  const { config } = await resolveRobokassaConfig();
+
   const existing = await prisma.payment.findMany({
     where: { orderId: input.orderId },
     orderBy: { createdAt: "desc" },
@@ -51,7 +57,7 @@ export async function issueInvoice(input: IssueInvoiceInput): Promise<IssuedInvo
   const reusable = existing.find((payment) => payment.status === "pending" && payment.amount === input.amount);
   if (reusable) {
     // Ссылки могло и не быть — например, провайдер подключили позже.
-    if (reusable.paymentUrl || !isRobokassaConfigured()) {
+    if (reusable.paymentUrl || !config) {
       return {
         paymentId: reusable.id,
         paymentUrl: reusable.paymentUrl,
@@ -69,13 +75,16 @@ export async function issueInvoice(input: IssueInvoiceInput): Promise<IssuedInvo
   }
 
   const invId = invoiceNumber(input.orderNumber, existing.length);
-  const paymentUrl = buildPaymentUrl({
-    amount: input.amount,
-    invId,
-    description: `Оплата заказа ${input.orderNumber}`,
-    email: input.customerEmail,
-    extra: { OrderId: input.orderId },
-  });
+  const paymentUrl = buildPaymentUrl(
+    {
+      amount: input.amount,
+      invId,
+      description: `Оплата заказа ${input.orderNumber}`,
+      email: input.customerEmail,
+      extra: { OrderId: input.orderId },
+    },
+    config,
+  );
 
   const payment = await prisma.payment.create({
     data: {

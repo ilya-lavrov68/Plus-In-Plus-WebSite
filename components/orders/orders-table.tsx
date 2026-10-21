@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { Lock } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { AdminDataTable } from "@/components/admin/admin-data-table";
@@ -19,6 +20,8 @@ export interface AdminOrderRow {
   total: number;
   currency: string;
   customerEmail: string;
+  /** Заблокирован от редактирования (править может только FOUNDER). */
+  isLocked: boolean;
   createdAt: Date;
 }
 
@@ -61,12 +64,17 @@ export function OrdersTable({
         header: t("orderNumber"),
         sortable: true,
         cell: (row) => (
-          <Link
-            href={`${basePath}/${encodeURIComponent(row.id)}`}
-            className="font-medium underline-offset-4 hover:underline"
-          >
-            {row.number}
-          </Link>
+          <span className="inline-flex items-center gap-1.5">
+            <Link
+              href={`${basePath}/${encodeURIComponent(row.id)}`}
+              className="font-medium underline-offset-4 hover:underline"
+            >
+              {row.number}
+            </Link>
+            {row.isLocked ? (
+              <Lock aria-label={t("orderLockedBadge")} className="h-3.5 w-3.5 text-muted-foreground" />
+            ) : null}
+          </span>
         ),
       },
       {

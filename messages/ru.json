@@ -402,7 +402,8 @@
     "genericError": "Что-то пошло не так. Попробуйте ещё раз.",
     "managerSession": "Сессия менеджера",
     "managerDashboard": "Панель менеджера",
-    "myOrders": "Мои заказы"
+    "myOrders": "Мои заказы",
+    "founderSession": "Сессия основателя"
   },
   "nav": {
     "sections": {
@@ -758,7 +759,27 @@
       "parserInterval": "Интервал обновления (минуты)",
       "saved": "Настройки сохранены.",
       "saveFailed": "Не удалось сохранить настройки.",
-      "saveSettings": "Сохранить настройки"
+      "saveSettings": "Сохранить настройки",
+      "payments": "Платежи (Робокасса)",
+      "paymentsHint": "Ключи магазина Робокассы. Значения с этой страницы имеют приоритет над переменными окружения и применяются без перезапуска сайта.",
+      "robokassaActiveSource": "Сейчас активен источник",
+      "robokassaSourceSettings": "настройки на этой странице",
+      "robokassaSourceEnv": "переменные окружения (.env)",
+      "robokassaSourceDemo": "демо-магазин TestMerchant (тест, без денег)",
+      "robokassaSourceNone": "не настроен (production без ключей)",
+      "robokassaLogin": "MerchantLogin (логин магазина)",
+      "robokassaPassword1": "Password #1 (подпись формы оплаты)",
+      "robokassaPassword2": "Password #2 (проверка уведомлений)",
+      "robokassaHashAlgo": "Алгоритм подписи",
+      "robokassaTestMode": "Режим работы",
+      "robokassaTestOn": "Тестовый (деньги не списываются)",
+      "robokassaTestOff": "Боевой",
+      "robokassaDemoHint": "Пока поля пусты, в разработке работает демо-магазин TestMerchant: карта 4111 1111 1111 1111, срок 12/30, CVV 123 — деньги не спишутся. В кабинете Робокассы укажите Result URL: /api/payments/robokassa/result, Success URL: /payment/success, Fail URL: /payment/fail.",
+      "notifications": "Уведомления",
+      "notificationsHint": "Куда присылать новые заявки и события оплаты.",
+      "notificationEmail": "Email для уведомлений",
+      "telegramBotToken": "Токен Telegram-бота",
+      "telegramChatId": "Telegram chat ID"
     },
     "noPostsHelp": "Создайте первый пост блога, чтобы увидеть его здесь.",
     "noServicesHelp": "Создайте первую услугу, чтобы увидеть её здесь.",
@@ -857,7 +878,18 @@
     "candleClose": "Закрытие",
     "candleDayTotal": "Оборот дня",
     "candleDayCount": "Заявок за день",
-    "trafficTitle": "Трафик"
+    "trafficTitle": "Трафик",
+    "roleFounder": "Основатель",
+    "roleUser": "Клиент",
+    "founderProtected": "Неприкосновенен",
+    "orderLockedBadge": "Зафиксирован",
+    "orderLockedNotice": "Заказ заблокирован: цена зафиксирована. Редактировать может только основатель.",
+    "orderLockedFounderNotice": "Заказ заблокирован. Как основатель, вы можете его редактировать или снять блокировку.",
+    "lockAfterSave": "Зафиксировать цену и заблокировать",
+    "lockAfterSaveHint": "После этого заказ сможет редактировать только основатель.",
+    "agreeLockAndIssue": "Зафиксировать цену, заблокировать и выставить счёт",
+    "unlockOrder": "Снять блокировку",
+    "payNow": "Оплатить"
   },
   "errors": {
     "notFound": "Страница не найдена",
@@ -970,7 +1002,9 @@
     "invalidPrice": "Введите корректную цену.",
     "invalidPriceType": "Неизвестный тип цены.",
     "cartEmpty": "Корзина пуста — добавить в заявку нечего.",
-    "cartItemUnavailable": "Одна из услуг в корзине больше недоступна. Уберите её и попробуйте снова."
+    "cartItemUnavailable": "Одна из услуг в корзине больше недоступна. Уберите её и попробуйте снова.",
+    "founderInvulnerable": "Действие запрещено: основатель неприкосновенен.",
+    "orderLocked": "Заказ заблокирован. Редактировать может только основатель."
   },
   "payment": {
     "alreadyPaidBody": "Подтверждение пришло уже после того, как вы ушли со страницы оплаты. Заказ отмечен оплаченным.",

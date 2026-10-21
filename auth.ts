@@ -45,10 +45,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.avatar = localAvatarPath(account.avatar);
           // Never trust useSession().update(data), nor elevate an existing USER session
           // when somebody promotes its account in the DB. A new admin login is required.
-          token.role = token.role === "ADMIN" && account.role === "ADMIN"
-            ? "ADMIN"
-            : token.role === "MANAGER" && account.role === "MANAGER"
-              ? "MANAGER"
+          // Роль сохраняется только при точном совпадении токена и базы: любое
+          // изменение роли в БД (повышение или понижение) требует нового входа.
+          token.role =
+            token.role === account.role &&
+            (token.role === "FOUNDER" || token.role === "ADMIN" || token.role === "MANAGER")
+              ? token.role
               : "USER";
         } catch (error) {
           console.error("Session refresh failed:", error);

@@ -131,9 +131,13 @@ function ProfilePanel({
             {profileName(user) || user.email}
           </p>
           <p className="break-all text-sm text-muted-foreground">{user.email}</p>
-          {user.role === "ADMIN" || user.role === "MANAGER" ? (
+          {user.role === "FOUNDER" || user.role === "ADMIN" || user.role === "MANAGER" ? (
             <p className="mt-1 text-xs font-medium text-foreground">
-              {user.role === "ADMIN" ? t("adminSession") : t("managerSession")}
+              {user.role === "FOUNDER"
+                ? t("founderSession")
+                : user.role === "ADMIN"
+                  ? t("adminSession")
+                  : t("managerSession")}
             </p>
           ) : null}
         </div>
@@ -248,17 +252,17 @@ function ProfilePanel({
             {t("myOrders")}
           </Link>
 
-          {user.role === "ADMIN" || user.role === "MANAGER" ? (
+          {user.role === "FOUNDER" || user.role === "ADMIN" || user.role === "MANAGER" ? (
             <Link
               href={
-                user.role === "ADMIN" ? "/admin/dashboard" : "/manager/orders"
+                user.role === "MANAGER" ? "/manager/orders" : "/admin/dashboard"
               }
               onClick={onClose}
               className="flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium text-foreground underline-offset-4 hover:underline"
             >
-              {user.role === "ADMIN"
-                ? t("adminDashboard")
-                : t("managerDashboard")}
+              {user.role === "MANAGER"
+                ? t("managerDashboard")
+                : t("adminDashboard")}
               <ArrowUpRight aria-hidden="true" className="h-4 w-4" />
             </Link>
           ) : null}

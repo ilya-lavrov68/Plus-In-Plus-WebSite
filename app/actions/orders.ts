@@ -198,6 +198,8 @@ export async function setOrderPrice(input: {
   orderId: string;
   amountRub: string;
   managerNote?: string;
+  /** «Зафиксировать цену и заблокировать»: дальше правит только FOUNDER. */
+  lock?: boolean;
 }): Promise<OrderActionResult> {
   const t = await getActionTranslator();
 
@@ -224,9 +226,15 @@ export async function setOrderPrice(input: {
   if (order.status === "cancelled" || order.status === "refunded") {
     return { ok: false, error: t("orderClosed") };
   }
+  // ЖЁСТКОЕ ПРАВИЛО: заблокированный заказ редактирует только основатель.
+  // Проверка на сервере, а не только дизейбл полей в UI: форму можно обойти.
+  if (order.isLocked && !admin.isFounder) {
+    return { ok: false, error: t("orderLocked") };
+  }
 
   const note = typeof input.managerNote === "string" ? input.managerNote.trim().slice(0, 2000) : "";
   const now = new Date();
+  const lockNow = input.lock === true && !order.isLocked;
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -239,6 +247,9 @@ export async function setOrderPrice(input: {
           managerId: admin.id,
           managerNote: note || null,
           priceAgreedAt: now,
+          // «Зафиксировать цену и заблокировать» — одним действием, чтобы не
+          // было окна, в котором счёт уже у клиента, а цену ещё можно менять.
+          ...(lockNow ? { isLocked: true, lockedAt: now, lockedById: admin.id } : {}),
         },
       });
 
@@ -280,6 +291,16 @@ export async function setOrderPrice(input: {
         title: `${order.number} — ${(total / 100).toLocaleString("ru-RU")} ₽`,
         actorId: admin.id,
       });
+
+      if (lockNow) {
+        await recordActivity(tx, {
+          action: "locked",
+          entityType: "order",
+          entityId: order.id,
+          title: `${order.number} — заблокирован для редактирования`,
+          actorId: admin.id,
+        });
+      }
     });
   } catch (error) {
     console.error("Failed to set the order price:", error);
@@ -309,6 +330,12 @@ export async function updateOrderStatus(input: {
   const order = await prisma.order.findUnique({ where: { id: input.orderId } });
   if (!order) return { ok: false, error: t("orderNotFound") };
 
+  // Заблокированный заказ трогает только основатель — включая статус:
+  // иначе замок обходили бы сменой статуса вместо цены.
+  if (order.isLocked && !admin.isFounder) {
+    return { ok: false, error: t("orderLocked") };
+  }
+
   // Оплаченные статусы выставляет только платёжный webhook: менеджер не
   // должен иметь возможности отметить заказ оплаченным вручную.
   if (input.status === "paid" && order.status !== "paid") {
@@ -333,5 +360,63 @@ export async function updateOrderStatus(input: {
 
   revalidatePath(`/admin/orders/${order.id}`);
   revalidatePath("/admin/orders");
+  return { ok: true };
+}
+
+/**
+ * Блокировка заказа от редактирования — отдельным действием, без смены цены.
+ *
+ * Заблокировать может любой сотрудник (менеджер фиксирует условия сделки).
+ * Разблокировать — ТОЛЬКО основатель: именно в этом смысл замка, иначе
+ * менеджер снимал бы его сам перед каждой правкой.
+ */
+export async function setOrderLocked(input: {
+  orderId: string;
+  locked: boolean;
+}): Promise<OrderActionResult> {
+  const t = await getActionTranslator();
+
+  const admin = await requireStaff();
+  if (!admin) return { ok: false, error: t("unauthorized") };
+  if (!prisma) return { ok: false, error: t("genericError") };
+  if (typeof input.locked !== "boolean") return { ok: false, error: t("genericError") };
+
+  const order = await prisma.order.findUnique({ where: { id: input.orderId } });
+  if (!order) return { ok: false, error: t("orderNotFound") };
+  if (order.isLocked === input.locked) return { ok: true };
+
+  if (!input.locked && !admin.isFounder) {
+    return { ok: false, error: t("orderLocked") };
+  }
+  if (order.status === "cancelled" || order.status === "refunded") {
+    return { ok: false, error: t("orderClosed") };
+  }
+
+  const now = new Date();
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.order.update({
+        where: { id: order.id },
+        data: input.locked
+          ? { isLocked: true, lockedAt: now, lockedById: admin.id }
+          : { isLocked: false, lockedAt: null, lockedById: null },
+      });
+      await recordActivity(tx, {
+        action: input.locked ? "locked" : "unlocked",
+        entityType: "order",
+        entityId: order.id,
+        title: `${order.number} — ${input.locked ? "заблокирован для редактирования" : "разблокирован основателем"}`,
+        actorId: admin.id,
+      });
+    });
+  } catch (error) {
+    console.error("Failed to change the order lock:", error);
+    return { ok: false, error: t("genericError") };
+  }
+
+  revalidatePath(`/admin/orders/${order.id}`);
+  revalidatePath("/admin/orders");
+  revalidatePath(`/manager/orders/${order.id}`);
+  revalidatePath("/manager/orders");
   return { ok: true };
 }

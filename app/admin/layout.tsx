@@ -46,14 +46,16 @@ export default async function AdminLayout({
               <BrandMark className="h-7" label="Plus In Plus" />
             </Link>
             <Badge variant="secondary" className="text-[11px] font-medium">
-              {t("roleAdmin")}
+              {admin.isFounder ? t("roleFounder") : t("roleAdmin")}
             </Badge>
           </div>
           <p className="mt-3 truncate text-xs text-muted-foreground" title={admin.email}>
             {admin.email}
           </p>
           <Separator className="my-4" />
-          <AdminNav />
+          {/* Settings в меню видит только основатель: там ключи Робокассы
+              и токены. Скрытие в UI дублируется серверной проверкой. */}
+          <AdminNav isFounder={admin.isFounder} />
         </div>
       </aside>
       <section className="min-w-0 flex-1" aria-label={t("content")}>

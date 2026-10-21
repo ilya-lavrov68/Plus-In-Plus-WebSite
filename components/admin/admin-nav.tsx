@@ -29,15 +29,18 @@ const links = [
   { key: "blog", href: "/admin/blog", icon: BookOpen },
   { key: "orders", href: "/admin/orders", icon: ShoppingCart },
   { key: "users", href: "/admin/users", icon: Users },
-  { key: "settings", href: "/admin/settings", icon: Settings },
+  // Settings — только основателю: там пароли Робокассы и токены уведомлений.
+  // Обычному админу ссылку даже не показываем (сервер всё равно не пустит).
+  { key: "settings", href: "/admin/settings", icon: Settings, founderOnly: true },
 ];
 
-export function AdminNav() {
+export function AdminNav({ isFounder = false }: { isFounder?: boolean }) {
   const t = useTranslations("admin");
   const ta = useTranslations("auth");
   const pathname = usePathname();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const visibleLinks = links.filter((link) => !("founderOnly" in link && link.founderOnly) || isFounder);
 
   async function handleLogout() {
     setPending(true);
@@ -58,7 +61,7 @@ export function AdminNav() {
 
   return (
     <nav aria-label={t("navigation")} className="flex flex-col gap-1">
-      {links.map(({ key, href, icon: Icon }) => {
+      {visibleLinks.map(({ key, href, icon: Icon }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
         return (
           <Link

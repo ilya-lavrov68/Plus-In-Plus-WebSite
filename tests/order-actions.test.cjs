@@ -80,7 +80,7 @@ Module._load = function (name, parent, isMain) {
   return originalLoad.call(this, name, parent, isMain);
 };
 
-const { setOrderPrice, updateOrderStatus } = require("../app/actions/orders.ts");
+const { setOrderLocked, setOrderPrice, updateOrderStatus } = require("../app/actions/orders.ts");
 const { getCustomerOrders } = require("../lib/customer-orders.ts");
 
 /** Заявка с расчётом 30 000 ₽ и одной позицией. */
@@ -325,4 +325,85 @@ test("getCustomerOrders: заказ без цены остаётся без кн
   const [order] = await getCustomerOrders();
   assert.equal(order.total, 0, "цены нет");
   assert.equal(order.invoices.length, 0, "счёт не выставлен");
+});
+
+// ---------------------------------------------------------------------------
+// Блокировка заказа: зафиксированная цена неприкосновенна для всех,
+// кроме основателя.
+// ---------------------------------------------------------------------------
+
+const LOCKED_ERROR = "Order is locked. Only Founder can edit.";
+
+test("менеджер фиксирует цену и блокирует заказ одним действием", async () => {
+  admin = { id: "usr-manager", email: "manager@test" };
+  const id = seedOrder();
+
+  const result = await setOrderPrice({ orderId: id, amountRub: "31000", lock: true });
+  assert.equal(result.ok, true);
+
+  const order = orders.get(id);
+  assert.equal(order.total, 3_100_000);
+  assert.equal(order.isLocked, true, "заказ заблокирован");
+  assert.equal(order.lockedById, "usr-manager", "записан, кто заблокировал");
+  assert.ok(logs.some((entry) => entry.action === "locked"), "блокировка попала в журнал");
+});
+
+test("заблокированный заказ нельзя переценить — ни менеджеру, ни админу", async () => {
+  const id = seedOrder({ status: "awaiting_payment", total: 3_000_000, isLocked: true });
+
+  admin = { id: "usr-manager", email: "manager@test" };
+  const byManager = await setOrderPrice({ orderId: id, amountRub: "1000" });
+  assert.equal(byManager.ok, false);
+  assert.equal(byManager.error, LOCKED_ERROR);
+
+  admin = { id: "usr-admin", email: "admin@test" };
+  const byAdmin = await setOrderPrice({ orderId: id, amountRub: "1000" });
+  assert.equal(byAdmin.ok, false, "обычный админ — не основатель");
+  assert.equal(byAdmin.error, LOCKED_ERROR);
+
+  assert.equal(orders.get(id).total, 3_000_000, "цена не изменилась");
+});
+
+test("основатель может редактировать заблокированный заказ", async () => {
+  const id = seedOrder({ status: "awaiting_payment", total: 3_000_000, isLocked: true });
+  admin = { id: "usr-founder", email: "founder@test", isFounder: true };
+
+  const result = await setOrderPrice({ orderId: id, amountRub: "29000" });
+  assert.equal(result.ok, true);
+  assert.equal(orders.get(id).total, 2_900_000);
+  assert.equal(orders.get(id).isLocked, true, "правка основателя блокировку не снимает");
+});
+
+test("статус заблокированного заказа менеджеру не поменять", async () => {
+  const id = seedOrder({ status: "awaiting_payment", total: 3_000_000, isLocked: true });
+  admin = { id: "usr-manager", email: "manager@test" };
+
+  const result = await updateOrderStatus({ orderId: id, status: "cancelled" });
+  assert.equal(result.ok, false);
+  assert.equal(result.error, LOCKED_ERROR);
+  assert.equal(orders.get(id).status, "awaiting_payment");
+});
+
+test("разблокировать заказ может только основатель", async () => {
+  const id = seedOrder({ status: "awaiting_payment", total: 3_000_000, isLocked: true });
+
+  admin = { id: "usr-manager", email: "manager@test" };
+  const byManager = await setOrderLocked({ orderId: id, locked: false });
+  assert.equal(byManager.ok, false, "менеджер не снимает собственный замок");
+  assert.equal(orders.get(id).isLocked, true);
+
+  admin = { id: "usr-founder", email: "founder@test", isFounder: true };
+  const byFounder = await setOrderLocked({ orderId: id, locked: false });
+  assert.equal(byFounder.ok, true);
+  assert.equal(orders.get(id).isLocked, false);
+  assert.equal(orders.get(id).lockedById, null);
+});
+
+test("заблокировать уже оценённый заказ может любой сотрудник", async () => {
+  const id = seedOrder({ status: "awaiting_payment", total: 3_000_000, isLocked: false });
+  admin = { id: "usr-manager", email: "manager@test" };
+
+  const result = await setOrderLocked({ orderId: id, locked: true });
+  assert.equal(result.ok, true);
+  assert.equal(orders.get(id).isLocked, true);
 });

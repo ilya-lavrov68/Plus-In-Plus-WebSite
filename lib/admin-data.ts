@@ -46,7 +46,7 @@ export async function getAdminStats() {
   const [services, publishedServices, posts, publishedPosts, users, admins] = await Promise.all([
     db.service.count(), db.service.count({ where: { isPublished: true } }),
     db.post.count(), db.post.count({ where: { isPublished: true } }),
-    db.user.count(), db.user.count({ where: { role: "ADMIN" } }),
+    db.user.count(), db.user.count({ where: { role: { in: ["ADMIN", "FOUNDER"] } } }),
   ]);
 
   let views7d = 0;

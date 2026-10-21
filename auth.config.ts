@@ -20,8 +20,11 @@ export const authConfig = {
       session.user.lastName = token.lastName ?? null;
       session.user.avatar = localAvatarPath(token.avatar);
       // Роль берётся только из токена, который подписан нами. Всё, что не
-      // ADMIN и не MANAGER, сводится к USER.
-      session.user.role = token.role === "ADMIN" || token.role === "MANAGER" ? token.role : "USER";
+      // FOUNDER, не ADMIN и не MANAGER, сводится к USER.
+      session.user.role =
+        token.role === "FOUNDER" || token.role === "ADMIN" || token.role === "MANAGER"
+          ? token.role
+          : "USER";
       session.user.name = profileName(session.user);
       session.user.image = session.user.avatar;
       return session;

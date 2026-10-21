@@ -45,7 +45,11 @@ export default async function ManagerLayout({
               <BrandMark className="h-7" label="Plus In Plus" />
             </Link>
             <Badge variant="secondary" className="text-[11px] font-medium">
-              {staff.isAdmin ? t("roleAdmin") : t("roleManager")}
+              {staff.isFounder
+                ? t("roleFounder")
+                : staff.isAdmin
+                  ? t("roleAdmin")
+                  : t("roleManager")}
             </Badge>
           </div>
           <p className="mt-3 truncate text-xs text-muted-foreground" title={staff.email}>

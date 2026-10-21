@@ -34,7 +34,7 @@ model User {
   firstName    String? // Имя (для отображения после входа и в заявках)
   lastName     String? // Фамилия
   avatar       String? // Путь к файлу аватарки в /public/uploads/avatars/
-  role         String        @default("USER") // "USER" | "MANAGER" | "ADMIN"
+  role         String        @default("USER") // "USER" | "MANAGER" | "ADMIN" | "FOUNDER"
   isBlocked    Boolean       @default(false)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @default(now()) @updatedAt
@@ -43,6 +43,8 @@ model User {
   orders       Order[] @relation("CustomerOrders")
   // Заказы, по которым этот пользователь согласовал цену как менеджер.
   managedOrders Order[] @relation("ManagedOrders")
+  // Заказы, которые этот пользователь заблокировал от редактирования.
+  lockedOrders  Order[] @relation("LockedOrders")
 
   @@map("users")
 }
@@ -236,6 +238,14 @@ model Order {
   managerId String? // кто согласовал цену и выставил счёт
   manager   User?    @relation("ManagedOrders", fields: [managerId], references: [id], onDelete: SetNull)
   priceAgreedAt DateTime? // когда цена зафиксирована и счёт выставлен
+  // ── Блокировка редактирования ────────────────────────────────────────────
+  // Заблокированный заказ нельзя редактировать (цена, комментарий, статус):
+  // менеджер зафиксировал условия сделки, и менять их может только FOUNDER.
+  // Оплата при этом продолжает работать — webhook меняет статус минуя замок.
+  isLocked   Boolean   @default(false)
+  lockedAt   DateTime?
+  lockedById String? // кто заблокировал
+  lockedBy   User?     @relation("LockedOrders", fields: [lockedById], references: [id], onDelete: SetNull)
   items     OrderItem[]
   payments  Payment[]
   createdAt DateTime @default(now())
@@ -295,6 +305,11 @@ model Payment {
   @@map("payments")
 }
 
+/// Настройки сайта «ключ → значение»: пульт управления без правки .env.
+/// Ведёт их только FOUNDER (вкладка Settings в админке): здесь лежат в том
+/// числе секреты — robokassaLogin/robokassaPassword1/robokassaPassword2,
+/// telegramBotToken. Поэтому читать всю таблицу можно только на
+/// founder-only странице; платёжная логика ходит сюда серверно.
 model SiteSetting {
   id        String   @id @default(cuid())
   key       String   @unique
