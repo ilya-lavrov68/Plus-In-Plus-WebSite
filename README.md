@@ -189,6 +189,16 @@ npm run db:promote-admin -- you@domain.ru
 npm run dev
 ```
 
+Если `node_modules` устарел после `git pull` (обычный симптом — `Module not found: Can't resolve '…'`
+и 500 на всех страницах), `npm run dev` сам это заметит, назовёт недостающие пакеты и выполнит
+`npm install`. Отключить автоустановку: `PIP_NO_AUTO_INSTALL=1 npm run dev`.
+
+Полная проверка окружения (пакеты, lock-файл, Prisma-клиент, БД, `AUTH_SECRET`, версия Node):
+
+```bash
+npm run doctor
+```
+
 - Сайт: `http://localhost:3000`
 - Админка: войдите на `/login` с включённым тумблером **«Режим администратора»** → откроется `/admin/dashboard`
 - Просмотр БД в браузере: `npx prisma studio` (`http://localhost:5555`)

@@ -1,8 +1,31 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit, getClientAddress, hashRateLimitIdentifier } from "@/lib/rate-limit";
 
 const DEVICES = new Set(["desktop", "mobile", "tablet"]);
+const WINDOW_MS = 10 * 60 * 1000;
+/**
+ * Аналитика пишется с браузера без входа, поэтому её можно накрутить — и заодно раздуть
+ * таблицу page_views. Предел щедрый: за офисным NAT спокойно сидит несколько десятков
+ * людей, а вот скрипт, пишущий по 100 строк в секунду, упирается сразу.
+ */
+const ADDRESS_LIMIT = 600;
+const MAX_BODY_BYTES = 8 * 1024;
+
+function requestAddress(request: Request): string {
+  return getClientAddress(request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for"));
+}
+
+function limitExceeded(request: Request, scope: string): boolean {
+  const key = hashRateLimitIdentifier(`page-view:${scope}:${requestAddress(request)}`);
+  return !checkRateLimit(key, ADDRESS_LIMIT, WINDOW_MS).allowed;
+}
+
+function payloadTooLarge(request: Request): boolean {
+  const declared = Number(request.headers.get("content-length") ?? 0);
+  return Number.isFinite(declared) && declared > MAX_BODY_BYTES;
+}
 
 function clean(value: unknown, max: number): string | null {
   return typeof value === "string" && value.trim() ? value.trim().slice(0, max) : null;
@@ -14,6 +37,8 @@ function clean(value: unknown, max: number): string | null {
  */
 export async function POST(request: Request) {
   if (!prisma) return NextResponse.json({ ok: false }, { status: 503 });
+  if (limitExceeded(request, "post")) return NextResponse.json({ ok: false }, { status: 429 });
+  if (payloadTooLarge(request)) return NextResponse.json({ ok: false }, { status: 413 });
   try {
     const body = await request.json().catch(() => ({}));
     const path = clean(body?.path, 300) ?? "/";
@@ -50,6 +75,8 @@ export async function POST(request: Request) {
  */
 export async function PATCH(request: Request) {
   if (!prisma) return NextResponse.json({ ok: false }, { status: 503 });
+  if (limitExceeded(request, "patch")) return NextResponse.json({ ok: false }, { status: 429 });
+  if (payloadTooLarge(request)) return NextResponse.json({ ok: false }, { status: 413 });
   try {
     const body = await request.json().catch(() => ({}));
     const id = clean(body?.id, 100);

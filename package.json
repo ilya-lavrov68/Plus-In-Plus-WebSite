@@ -12,6 +12,7 @@
     "db:seed-demo": "node scripts/seed-demo.cjs",
     "deploy:verify": "node scripts/verify-deployment.cjs",
     "dev": "node scripts/dev.cjs",
+    "doctor": "node scripts/doctor.cjs",
     "lint": "next lint",
     "postinstall": "node scripts/prisma-generate.cjs",
     "prisma:generate": "node scripts/prisma-generate.cjs",

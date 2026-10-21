@@ -270,5 +270,17 @@ it). Details: [README → Database](README.md#database).
   token, table contents or user data. It is safe to expose publicly.
 - Production sends `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`
   and `Permissions-Policy` headers; HSTS is added when `AUTH_URL` uses HTTPS.
+- `Content-Security-Policy` is built per request in `middleware.ts` with a fresh nonce
+  (Next.js copies it onto its inline scripts). Production: `frame-ancestors 'none'`,
+  no `unsafe-inline`/`unsafe-eval` for scripts. If a future integration needs an external
+  script, add its origin to `lib/security-headers.ts` — do not weaken the policy ad hoc.
+  `PIP_CSP=report-only` (observe violations without blocking) and `PIP_CSP=off`
+  (emergency switch) are available; they are read by the middleware at runtime.
+- `npm run doctor` checks the install, the Prisma client, the database target, `AUTH_SECRET`
+  and `engines.node`; it never prints secret values.
+- Public write endpoints (`/api/support`, `/api/page-view`) are rate-limited per IP, and the
+  contact form per email address. Single-process limits only — put a CDN/WAF in front for
+  multiple instances. The admin import preview only fetches public http(s) pages
+  (`lib/ssrf-guard.ts`): loopback, private, link-local and cloud-metadata addresses are refused.
 - Login, registration and profile updates are rate-limited in-process — for more
   than one instance, enforce shared limits at the proxy/CDN as well.
