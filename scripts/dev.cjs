@@ -5,12 +5,29 @@
 // A failing sync is reported loudly but does not block the server: the public
 // pages render empty states without a database.
 const { spawn } = require("node:child_process");
+const fs = require("node:fs");
 const path = require("node:path");
 const { loadDatabaseModule } = require("./lib/database-module.cjs");
 const { checkSchema } = require("./lib/schema-check.cjs");
+const { checkDependencies, formatReport } = require("./lib/dependency-check.cjs");
 const { cliAvailable, generateClient, pushSchema, rootDir } = require("./lib/prisma-cli.cjs");
 
 const nextBin = path.join(rootDir, "node_modules", "next", "dist", "bin", "next");
+
+// A stale install is the most common reason a dev server renders nothing but 500s, so it is
+// reported before anything else starts.
+function checkInstall() {
+  if (!fs.existsSync(nextBin)) {
+    console.error("[dev] Next.js is not installed — run `npm install` first.");
+    process.exit(1);
+  }
+
+  const report = formatReport(checkDependencies());
+  if (report.length === 0) return;
+
+  for (const line of report) console.warn(line);
+  console.warn("");
+}
 
 async function syncSchema(config, env) {
   if (!cliAvailable()) {
@@ -56,6 +73,8 @@ async function syncSchema(config, env) {
 }
 
 function main() {
+  checkInstall();
+
   const env = { ...process.env };
   let config = null;
 
