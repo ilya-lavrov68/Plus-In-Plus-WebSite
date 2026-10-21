@@ -4,11 +4,22 @@ import Link from "next/link";
 import { useState } from "react";
 import { logout } from "@/app/actions/auth";
 import { usePathname } from "next/navigation";
-import { BarChart3, BookOpen, LayoutDashboard, LogOut, Palette, Settings, ShoppingCart, Users } from "lucide-react";
+import {
+  BarChart3,
+  BookOpen,
+  ExternalLink,
+  LayoutDashboard,
+  LogOut,
+  Palette,
+  Settings,
+  ShoppingCart,
+  Users,
+} from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useTranslations } from "next-intl";
 
 import { buttonVariants } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -33,7 +44,10 @@ export function AdminNav() {
     setError(null);
     try {
       const result = await logout();
-      if (!result.ok) { setError(result.error ?? ta("logoutFailed")); return; }
+      if (!result.ok) {
+        setError(result.error ?? ta("logoutFailed"));
+        return;
+      }
       await signOut({ redirectTo: "/" });
     } catch {
       setError(ta("logoutRetry"));
@@ -53,28 +67,51 @@ export function AdminNav() {
             aria-current={active ? "page" : undefined}
             className={cn(
               buttonVariants({ variant: "ghost", size: "sm" }),
-              "justify-start gap-3 px-3",
-              active ? "bg-accent text-accent-foreground font-semibold" : "text-muted-foreground"
+              "h-9 justify-start gap-3 rounded-lg px-3",
+              active
+                ? "bg-secondary text-foreground font-medium"
+                : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <Icon aria-hidden="true" className="h-4 w-4" />
-            {t(key)}
+            <Icon aria-hidden="true" className="h-4 w-4 shrink-0" />
+            <span className="truncate">{t(key)}</span>
           </Link>
         );
       })}
+
+      <Separator className="my-2" />
+
+      <Link
+        href="/"
+        className={cn(
+          buttonVariants({ variant: "ghost", size: "sm" }),
+          "h-9 justify-start gap-3 rounded-lg px-3 text-muted-foreground hover:text-foreground"
+        )}
+      >
+        <ExternalLink aria-hidden="true" className="h-4 w-4 shrink-0" />
+        <span className="truncate">{t("viewSite")}</span>
+      </Link>
+
       <button
         type="button"
         onClick={handleLogout}
         disabled={pending}
         className={cn(
           buttonVariants({ variant: "ghost", size: "sm" }),
-          "justify-start gap-3 px-3 text-muted-foreground"
+          "h-9 justify-start gap-3 rounded-lg px-3 text-muted-foreground hover:text-foreground"
         )}
       >
-        <LogOut aria-hidden="true" className="h-4 w-4" />
-        {pending ? ta("loggingOut") : ta("logout")}
+        <LogOut aria-hidden="true" className="h-4 w-4 shrink-0" />
+        <span className="truncate">
+          {pending ? ta("loggingOut") : ta("logout")}
+        </span>
       </button>
-      {error ? <p role="alert" className="mt-2 text-sm text-red-800">{error}</p> : null}
+
+      {error ? (
+        <p role="alert" className="mt-2 px-3 text-xs text-red-400">
+          {error}
+        </p>
+      ) : null}
     </nav>
   );
 }

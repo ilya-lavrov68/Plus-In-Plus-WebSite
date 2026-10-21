@@ -1,11 +1,5 @@
-// Fills the local development database with demo content so the shop, blog and
-// admin tables have something to render.
-//
-//   npm run db:seed-demo
-//
-// Refuses to touch a remote (Turso) database: it deletes rows before inserting,
-// so it is meant for the disposable local file only. Run `npm run db:push`
-// first if the tables do not exist yet.
+// Fills the local development database with Plus In Plus studio services,
+// articles, demo accounts, orders, and analytics events.
 const path = require("node:path");
 
 const rootDir = path.join(__dirname, "..");
@@ -34,95 +28,321 @@ const bcrypt = require("bcryptjs");
 
 const client = createClient({ url: config.url, authToken: config.authToken });
 const now = Date.now();
-/**
- * Дата в том виде, в каком её пишет Prisma.
- *
- * Раньше сид писал числа (epoch-миллисекунды), а сам Prisma — строки ISO.
- * В SQLite число всегда меньше любой строки, поэтому сравнение
- * «createdAt >= <дата>» в сырых запросах молча отбрасывало все записи сида.
- * Приводим всё к одному виду — к тому, что пишет приложение.
- */
 const at = (ms) => (ms === null ? null : new Date(ms).toISOString());
 
 // [title, slug, category, shortDesc, fullDesc, includes(json), shapes(json),
-//  resultText, coverImage, isPublished, sortOrder,
-//  basePrice(копейки), priceType, isOrderable]
+//  resultText, coverImage, isPublished, sortOrder, basePrice(kopecks), priceType, isOrderable]
 const services = [
-  ["Вывески и наружная реклама", "sign-design", "large", "Изготовление вывесок любого формата.", "Полный цикл: замер, дизайн-макет, производство и монтаж.", '["замер","макет","производство","монтаж"]', '["прямоугольник","фигурная","объёмная"]', "Готовая вывеска под ключ", "/uploads/services/sign.svg", 1, 1, 1_500_000, "from", 1],
-  ["Печать визиток", "business-cards", "small", "Оперативная печать визиток.", "Печать от 50 штук, срок от одного дня.", '["дизайн","печать","резка"]', '["стандарт","евро","скруглённые углы"]', "Тираж визиток в руки", "/uploads/services/cards.svg", 1, 2, 89_000, "fixed", 1],
-  ["Брендирование авто", "car-branding", "large", "Оклейка автомобилей плёнкой.", "Оклейка плёнкой любого класса, частичная или полная.", '["подбор плёнки","оклейка","гарантия"]', '["полная","частичная"]', "Брендированный автомобиль", "/uploads/services/car.svg", 1, 3, 2_000_000, "from", 1],
-  ["Широкоформатная печать", "large-format", "large", "Печать баннеров и постеров.", "Широкоформатная печать до трёх метров.", '["макет","печать","люверсы"]', '["баннер","постер","сетка"]', "Готовое полотно", "/uploads/services/banner.svg", 1, 4, 45_000, "fixed", 1],
-  ["Фото на документы", "photo-docs", "small", "Фотография на документы за пять минут.", "Моментальная печать, цифровая копия в подарок.", '["съёмка","печать","копия"]', '["30x40","35x45"]', "Комплект фото", "/uploads/services/photo.svg", 1, 5, 35_000, "fixed", 1],
-  ["Лазерная гравировка", "laser-engraving", "small", "Гравировка на дереве, металле и акриле.", "Персональная гравировка подарков и табличек.", '["макет","гравировка"]', '["дерево","металл","акрил"]', "Готовое изделие", "/uploads/services/laser.svg", 0, 6, 120_000, "quote", 0],
+  [
+    "Sign Design",
+    "sign-design",
+    "small",
+    "Custom storefront signs, dimensional channel letters, and realistic 3D facade previews.",
+    "A sign is the face of your business and the first thing a customer sees. It sets the tone and conveys the character of your brand long before a customer walks through the door. We design signage that grabs attention, blends harmoniously with the urban environment, and works for your image 24/7.",
+    JSON.stringify([
+      "Concept development: Analyzing your brand, target audience, and architectural features of the facade.",
+      "Design of any complexity: From minimalist flat panels to complex shapes.",
+      "3D visualization (Mockup): Showing how your future sign will look directly on your building in both daylight and nighttime.",
+      "Production-ready files: Providing layouts strictly in accordance with technical requirements, ready to be sent to the manufacturing workshop.",
+    ]),
+    JSON.stringify([
+      "Volumetric letters (illuminated, non-illuminated, or halo-lit).",
+      "Lightboxes of classic and custom shapes.",
+      "Neon signs for striking interiors and storefronts.",
+      "Blade signs (panel-brackets) to attract pedestrian traffic.",
+      " Rooftop installations and large-scale facade structures.",
+      "Office plaques and navigation signs.",
+    ]),
+    "You get a stylish, noticeable, and thought-out design that sets you apart from competitors and turns passersby into loyal customers.",
+    "/assets/shop/sign-design.jpg",
+    1,
+    1,
+    1_500_000,
+    "from",
+    1,
+  ],
+  [
+    "Bag Design",
+    "bag-design",
+    "small",
+    "Tactile retail, event, and gift bag layouts that carry your brand identity across the city.",
+    "Branded bags turn every purchase or event handout into a clean, walking brand statement with balanced typography, dielines, and print finishes.",
+    JSON.stringify([
+      "Brand & material pairing: Selecting paper stocks, handles, and tactile finishes.",
+      "Structural dieline layout: Exact gusset, fold, and bleed preparation.",
+      "3D photorealistic mockup: Studio lighting visualization before printing.",
+      "Print-ready package: CMYK/Pantone files with foil and spot-UV masks.",
+    ]),
+    JSON.stringify([
+      "Matte laminated boutique bags.",
+      "Natural kraft retail carriers.",
+      "Conference welcome bags.",
+      "Square luxury gift bags.",
+    ]),
+    "A distinctive, durable bag design ready for immediate production.",
+    "/assets/shop/bag-design.jpg",
+    1,
+    2,
+    650_000,
+    "from",
+    1,
+  ],
+  [
+    "Outdoor glass poster",
+    "outdoor-glass-poster",
+    "small",
+    "High-contrast window displays and architectural glass graphics readable day and night.",
+    "Storefront windows are your most valuable street-level media surface, calibrated carefully against glare, reflections, and viewing angles.",
+    JSON.stringify([
+      "Facade sightline planning.",
+      "Glare-safe contrast hierarchy.",
+      "Day & evening storefront preview.",
+      "Cut-contour & print files.",
+    ]),
+    JSON.stringify([
+      "Full-height window campaigns.",
+      "Backlit light-pocket posters.",
+      "Die-cut vinyl typography.",
+      "Frosted glass privacy bands.",
+    ]),
+    "Crisp, inviting window graphics ready for print and clean installation.",
+    "/assets/shop/outdoor-glass-poster.jpg",
+    1,
+    3,
+    490_000,
+    "from",
+    1,
+  ],
+  [
+    "Banner Design",
+    "banner-design",
+    "small",
+    "Clean event backdrops, roll-ups, and street banners engineered for instant clarity.",
+    "Whether framing a stage, trade booth, or street entrance, a banner has seconds to communicate your message cleanly.",
+    JSON.stringify([
+      "Viewing-distance layout.",
+      "Modular multi-size adaptation.",
+      "On-site realistic mockup.",
+      "Prepress & grommet-safe margins.",
+    ]),
+    JSON.stringify([
+      "Retractable roll-up stands.",
+      "Press-wall & stage backdrops.",
+      "Facade tension banners.",
+      "Wayfinding totems.",
+    ]),
+    "Sharp, balanced banners ready for any venue or storefront.",
+    "/assets/shop/banner-design.jpg",
+    1,
+    4,
+    390_000,
+    "fixed",
+    1,
+  ],
+  [
+    "Large Billboard on a building",
+    "large-billboard",
+    "large",
+    "Monumental facade wraps and multi-story building media built for citywide visibility.",
+    "Monumental building wraps command attention across entire districts and avenues, engineered around facade geometry and long-range legibility.",
+    JSON.stringify([
+      "Architectural facade mapping.",
+      "Long-range typographic scale.",
+      "Day & floodlit night visualization.",
+      "Segmented prepress tile delivery.",
+    ]),
+    JSON.stringify([
+      "Multi-story mesh facade wraps.",
+      "Gable-end landmark murals.",
+      "Illuminated tension frames.",
+      "Corner wraparound media.",
+    ]),
+    "Monumental building-scale artwork engineered for clean installation.",
+    "/assets/shop/large-billboard-building.jpg",
+    1,
+    5,
+    3_500_000,
+    "from",
+    1,
+  ],
+  [
+    "Rooftop advertising",
+    "rooftop-advertising",
+    "large",
+    "Skyline-defining illuminated rooftop letters and brand crowns visible from kilometers away.",
+    "Rooftop structures crown city skylines with luminous dimensional typography designed for day and night recognition.",
+    JSON.stringify([
+      "Skyline & horizon study.",
+      "Day/night LED illumination design.",
+      "Photorealistic aerial & street renders.",
+      "Fabrication-ready vector specs.",
+    ]),
+    JSON.stringify([
+      "Dimensional channel letters.",
+      "Freestanding brand emblems.",
+      "Panoramic rooftop lightboxes.",
+      "Open-frame LED structures.",
+    ]),
+    "Architectural rooftop design package ready for fabrication.",
+    "/assets/shop/rooftop-advertising.jpg",
+    1,
+    6,
+    4_200_000,
+    "quote",
+    1,
+  ],
+  [
+    "Advertisement on the fence",
+    "advertisement-on-the-fence",
+    "large",
+    "Continuous street-level perimeter branding for developments, venues, and urban sites.",
+    "Modular fence campaigns turn hundreds of meters of site perimeter into a rhythmic, high-contrast brand narrative.",
+    JSON.stringify([
+      "Rhythmic panel pacing.",
+      "Modular gate & corner sizing.",
+      "Weatherproof high-contrast palette.",
+      "Full street-perspective mockup.",
+    ]),
+    JSON.stringify([
+      "Solid composite hoarding panels.",
+      "Wind-mesh perimeter banners.",
+      "Sequential development hoardings.",
+      "Festival crowd-barrier wraps.",
+    ]),
+    "Numbered panel-by-panel production layouts with full street visualization.",
+    "/assets/shop/advertisement-on-the-fence.jpg",
+    1,
+    7,
+    1_900_000,
+    "from",
+    1,
+  ],
+  [
+    "Billboard",
+    "billboard",
+    "large",
+    "Three-second highway and arterial road billboards crafted for instant recall.",
+    "High-impact 6×3 m, superboard, and digital DOOH outdoor layouts built around one unmistakable focal idea.",
+    JSON.stringify([
+      "3-second distance legibility check.",
+      "Single clear focal composition.",
+      "Static & digital DOOH adaptation.",
+      "Day & night traffic context mockup.",
+    ]),
+    JSON.stringify([
+      "Standard 6×3 m roadside boards.",
+      "12×4 m highway superboards.",
+      "Digital LED DOOH screens.",
+      "Die-cut extender formats.",
+    ]),
+    "Press- and DOOH-ready master files calibrated to operator specs.",
+    "/assets/shop/billboard.jpg",
+    1,
+    8,
+    950_000,
+    "fixed",
+    1,
+  ],
 ];
 
-// Группы опций по услугам. priceDelta — копейки, priceFactor — множитель.
-// Цена: round((basePrice + Σ priceDelta) * Π priceFactor)
 const optionGroups = {
-  "business-cards": [
-    ["Тираж", 1, [
-      ["50 шт", 0, 1],
-      ["100 шт", 0, 1.6],
-      ["250 шт", 0, 3.2],
-      ["500 шт", 0, 5.5],
-    ]],
-    ["Плотность", 1, [
-      ["300 г/м²", 0, 1],
-      ["350 г/м²", 15_000, 1],
-    ]],
-    ["Ламинация", 0, [
-      ["Без ламинации", 0, 1],
-      ["Матовая", 25_000, 1],
-      ["Глянцевая", 25_000, 1],
-      ["Софт-тач", 45_000, 1],
-    ]],
-  ],
   "sign-design": [
-    ["Материал", 1, [
-      ["ПВХ 5 мм", 0, 1],
-      ["Акрил 5 мм", 400_000, 1],
-      ["Композит", 650_000, 1],
-    ]],
-    ["Подсветка", 0, [
-      ["Без подсветки", 0, 1],
-      ["Светодиодная", 800_000, 1],
-    ]],
+    [
+      "Material",
+      1,
+      [
+        ["PVC 5 mm", 0, 1],
+        ["Acrylic 5 mm", 400_000, 1],
+        ["Brushed Composite", 650_000, 1],
+      ],
+    ],
+    [
+      "Illumination",
+      0,
+      [
+        ["Non-illuminated", 0, 1],
+        ["Face-lit LED", 800_000, 1],
+        ["Halo-lit Contour LED", 950_000, 1],
+      ],
+    ],
   ],
-  "large-format": [
-    ["Размер", 1, [
-      ["1 × 2 м", 0, 1],
-      ["2 × 3 м", 0, 2.8],
-      ["3 × 6 м", 0, 6.5],
-    ]],
-    ["Материал", 1, [
-      ["Баннер 440 г/м²", 0, 1],
-      ["Сетка", 10_000, 1],
-      ["Фотобумага", 30_000, 1],
-    ]],
+  billboard: [
+    [
+      "Format",
+      1,
+      [
+        ["6 × 3 m Standard", 0, 1],
+        ["12 × 4 m Superboard", 0, 1.8],
+        ["Digital DOOH Package", 250_000, 1],
+      ],
+    ],
   ],
 };
 
-// [title, slug, excerpt, content, coverImage, readTime, source, sourceUrl,
-//  isFeatured, isPublished, publishedAt]
 const posts = [
-  ["Как выбрать материал для наружной вывески", "vyveska-material", "Разбираем, какие материалы выдерживают климат и как это влияет на бюджет.", "<p>Материалы для наружной рекламы: ПВХ, акрил, композит, нержавеющая сталь.</p>", "/uploads/blog/material.svg", 6, "manual", null, 1, 1, "2026-09-12"],
-  ["Пять ошибок в макете визитки", "vizitka-oshibki", "Частые ошибки, из-за которых тираж приходится перепечатывать.", "<p>Разбор типовых ошибок в макетах визитных карточек.</p>", "/uploads/blog/cards.svg", 4, "manual", null, 1, 1, "2026-09-28"],
-  ["Оклейка автомобиля: вопросы и ответы", "okleyka-avto", "Отвечаем на частые вопросы о сроке службы плёнки и уходе за ней.", "<p>Ответы на популярные вопросы об оклейке автомобилей.</p>", "/uploads/blog/car.svg", 5, "vk", "https://vk.com", 0, 1, "2026-10-02"],
-  ["Тренды наружной рекламы 2026", "trendy-2026", "Что меняется в наружной рекламе и на что обратить внимание.", "<p>Обзор трендов наружной рекламы на 2026 год.</p>", "/uploads/blog/trends.svg", 7, "telegram", "https://t.me", 0, 1, "2026-10-08"],
-  ["Черновик: гравировка на дереве", "gravirovka-derevo", "Черновик статьи о гравировке по дереву.", "<p>Черновик.</p>", "/uploads/blog/laser.svg", 3, "manual", null, 0, 0, null],
+  [
+    "We're Up and Running",
+    "we-re-up-and-running",
+    "Now our new website is live—and it’s more than just an updated showcase. It’s a clearer story of how we help products become cohesive and ready for growth.",
+    "<p>Now our new website is live—and it’s more than just an updated showcase. It’s a clearer story of how we help products become cohesive and ready for growth.</p>",
+    "/assets/shop/sign-design.jpg",
+    4,
+    "manual",
+    null,
+    1,
+    1,
+    "2026-10-07",
+  ],
+  [
+    "How Exterior Signage Shapes First Impressions",
+    "how-exterior-signage-shapes-first-impressions",
+    "From viewing angles at dusk to halo-lit typography—practical principles behind signs people remember.",
+    "<p>Great storefront signage balances facade architecture, clean letterforms, and illumination across both bright midday light and night streets.</p><p>By previewing every sign in 3D before fabrication, teams avoid costly guesswork and launch with confidence.</p>",
+    "/assets/shop/sign-design-2.jpg",
+    5,
+    "manual",
+    null,
+    0,
+    1,
+    "2026-10-03",
+  ],
+  [
+    "Designing Large-Format Billboards That Read in Three Seconds",
+    "designing-large-format-billboards-that-read-in-three-seconds",
+    "Why restraint, contrast, and scale matter more than ever across city highways and building wraps.",
+    "<p>Outdoor campaigns succeed when hierarchy is unmistakable within three seconds: one focal visual, bold contrast, and zero competing clutter.</p>",
+    "/assets/shop/large-billboard-building.jpg",
+    4,
+    "manual",
+    null,
+    0,
+    1,
+    "2026-09-24",
+  ],
+  [
+    "Print & Packaging Systems for Events and Retail",
+    "print-and-packaging-systems-for-events-and-retail",
+    "How cohesive bags, banners, and glass posters turn physical spaces into a unified brand experience.",
+    "<p>Cohesive physical collateral unifies every touchpoint from street window displays to event stages and retail packaging.</p>",
+    "/assets/shop/bag-design.jpg",
+    3,
+    "manual",
+    null,
+    0,
+    1,
+    "2026-09-15",
+  ],
 ];
 
-// [email, password, firstName, lastName, role, isBlocked]
 const users = [
-  ["admin@plusinplus.test", "Admin12345", "Demo", "Admin", "ADMIN", 0],
-  // Менеджер: работает только с заявками, в управление сайтом (услуги, блог,
-  // пользователи, настройки) войти не может.
-  ["manager@plusinplus.test", "Manager12345", "Анна", "Морозова", "MANAGER", 0],
-  ["user1@plusinplus.test", "User12345", "Иван", "Петров", "USER", 0],
-  ["user2@plusinplus.test", "User12345", "Мария", "Сидорова", "USER", 1],
+  ["admin@plusinplus.test", "AdminPassphrase123", "Demo", "Admin", "ADMIN", 0],
+  ["manager@plusinplus.test", "ManagerPassphrase123", "Anna", "Morozova", "MANAGER", 0],
+  ["user1@plusinplus.test", "ClientPassphrase123", "Ivan", "Petrov", "USER", 0],
+  ["user2@plusinplus.test", "ClientPassphrase123", "Maria", "Sidorova", "USER", 1],
 ];
 
-const count = async (table) => Number((await client.execute(`SELECT count(*) c FROM ${table}`)).rows[0].c);
+const count = async (table) =>
+  Number((await client.execute(`SELECT count(*) c FROM ${table}`)).rows[0].c);
 
 (async () => {
   console.log(`[seed-demo] Database: ${describeDatabaseUrl(config.url)}`);
@@ -139,17 +359,43 @@ const count = async (table) => Number((await client.execute(`SELECT count(*) c F
   await client.execute("DELETE FROM page_views");
 
   for (const s of services) {
-    const [title, slug, category, shortDesc, fullDesc, includes, shapes, resultText,
-      coverImage, isPublished, sortOrder, basePrice, priceType, isOrderable] = s;
-    // Поля перечислены явно, а не через spread: при spread легко ошибиться с
-    // порядком (currency и isOrderable уже один раз поменялись местами),
-    // а SQLite не проверяет соответствие типов при вставке.
+    const [
+      title,
+      slug,
+      category,
+      shortDesc,
+      fullDesc,
+      includes,
+      shapes,
+      resultText,
+      coverImage,
+      isPublished,
+      sortOrder,
+      basePrice,
+      priceType,
+      isOrderable,
+    ] = s;
     await client.execute({
       sql: "INSERT INTO services (id,title,slug,category,shortDesc,fullDesc,includes,shapes,resultText,coverImage,isPublished,sortOrder,basePrice,priceType,currency,isOrderable,createdAt,updatedAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
       args: [
-        `svc-${slug}`, title, slug, category, shortDesc, fullDesc, includes, shapes,
-        resultText, coverImage, isPublished, sortOrder, basePrice, priceType,
-        "RUB", isOrderable, now, now,
+        `svc-${slug}`,
+        title,
+        slug,
+        category,
+        shortDesc,
+        fullDesc,
+        includes,
+        shapes,
+        resultText,
+        coverImage,
+        isPublished,
+        sortOrder,
+        basePrice,
+        priceType,
+        "RUB",
+        isOrderable,
+        at(now),
+        at(now),
       ],
     });
   }
@@ -163,10 +409,19 @@ const count = async (table) => Number((await client.execute(`SELECT count(*) c F
         sql: "INSERT INTO service_option_groups (id,serviceId,name,required,sortOrder) VALUES (?,?,?,?,?)",
         args: [groupId, `svc-${slug}`, name, required, groupCount],
       });
-      for (const [label, priceDelta, priceFactor] of options) {
+      for (let idx = 0; idx < options.length; idx += 1) {
+        const [label, priceDelta, priceFactor] = options[idx];
         await client.execute({
           sql: "INSERT INTO service_options (id,groupId,label,priceDelta,priceFactor,isDefault,sortOrder) VALUES (?,?,?,?,?,?,?)",
-          args: [`opt-${optionCount++}`, groupId, label, priceDelta, priceFactor, 0, optionCount],
+          args: [
+            `opt-${optionCount++}`,
+            groupId,
+            label,
+            priceDelta,
+            priceFactor,
+            idx === 0 ? 1 : 0,
+            optionCount,
+          ],
         });
       }
     }
@@ -175,7 +430,22 @@ const count = async (table) => Number((await client.execute(`SELECT count(*) c F
   for (const p of posts) {
     await client.execute({
       sql: "INSERT INTO posts (id,title,slug,excerpt,content,coverImage,readTime,source,sourceUrl,isFeatured,isPublished,publishedAt,createdAt,updatedAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-      args: [`post-${p[1]}`, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10] ? Date.parse(p[10]) : null, now, now],
+      args: [
+        `post-${p[1]}`,
+        p[0],
+        p[1],
+        p[2],
+        p[3],
+        p[4],
+        p[5],
+        p[6],
+        p[7],
+        p[8],
+        p[9],
+        p[10] ? at(Date.parse(p[10])) : null,
+        at(now),
+        at(now),
+      ],
     });
   }
 
@@ -183,27 +453,24 @@ const count = async (table) => Number((await client.execute(`SELECT count(*) c F
     const passwordHash = await bcrypt.hash(password, 12);
     await client.execute({
       sql: "INSERT INTO users (id,email,passwordHash,firstName,lastName,role,isBlocked,createdAt,updatedAt) VALUES (?,?,?,?,?,?,?,?,?)",
-      args: [`usr-${email.split("@")[0]}`, email, passwordHash, firstName, lastName, role, isBlocked, now, now],
+      args: [
+        `usr-${email.split("@")[0]}`,
+        email,
+        passwordHash,
+        firstName,
+        lastName,
+        role,
+        isBlocked,
+        at(now),
+        at(now),
+      ],
     });
   }
 
-  // ── Демо-заказы: без них панель дохода пуста ──────────────────────────────
-  // Разные статусы и разные даты, чтобы графики и фильтры было чем наполнить.
-  // [number, клиент, статус, расчёт из опций, согласованная цена,
-  //  пожелание клиента, daysAgo, оплачен?, менеджер?, комментарий менеджера,
-  //  slug услуги, количество]
   const orderRows = [
-    ["ПИП-000001", "user1@plusinplus.test", "completed", 142_400, 142_400, "Визитки, матовая ламинация", 38, true, "admin@plusinplus.test", null, "business-cards", 1],
-    // Менеджер поднял цену: клиент попросил срочный тираж
-    ["ПИП-000002", "user1@plusinplus.test", "completed", 2_600_000, 2_900_000, "Вывеска, акрил, с подсветкой", 21, true, "admin@plusinplus.test", "Срочный заказ, доплата за ночную смену", "sign-design", 1],
-    ["ПИП-000003", "user2@plusinplus.test", "in_progress", 89_000, 89_000, "Визитки 100 шт", 12, true, "admin@plusinplus.test", null, "business-cards", 1],
-    // Менеджер дал скидку: постоянный клиент
-    ["ПИП-000004", "user1@plusinplus.test", "awaiting_payment", 313_500, 290_000, "Баннер 2×3 м, сетка", 5, false, "admin@plusinplus.test", "Скидка постоянному клиенту 23 500 ₽", "large-format", 1],
-    ["ПИП-000005", "user2@plusinplus.test", "cancelled", 45_000, 45_000, "Отменён клиентом", 3, false, null, "Клиент передумал", "large-format", 1],
-    ["ПИП-000006", "user1@plusinplus.test", "paid", 126_000, 126_000, "Фото на документы ×3", 1, true, "admin@plusinplus.test", null, "photo-docs", 3],
-    // Свежие заявки — то, что менеджер видит в очереди
-    ["ПИП-000007", "user2@plusinplus.test", "quote_requested", 1_560_000, 0, "Нужна вывеска на фасад, 3×1.5 м", 0, false, null, null, "sign-design", 1],
-    ["ПИП-000008", "user1@plusinplus.test", "negotiating", 574_000, 0, "Визитки 500 шт, нужен макет", 0, false, "admin@plusinplus.test", "Ждём макет от клиента", "business-cards", 1],
+    ["PIP-000001", "user1@plusinplus.test", "completed", 2_300_000, 2_300_000, "Sign Design with halo LED", 21, true, "admin@plusinplus.test", null, "sign-design", 1],
+    ["PIP-000002", "user1@plusinplus.test", "awaiting_payment", 950_000, 950_000, "6x3m Highway Billboard", 5, false, "admin@plusinplus.test", "Approved for production", "billboard", 1],
+    ["PIP-000003", "user1@plusinplus.test", "quote_requested", 1_900_000, 0, "Storefront acrylic sign", 0, false, null, null, "sign-design", 1],
   ];
 
   for (const [number, email, status, estimated, agreed, note, daysAgo, paid, managerEmail, managerNote, slug, quantity] of orderRows) {
@@ -212,8 +479,6 @@ const count = async (table) => Number((await client.execute(`SELECT count(*) c F
     const orderId = `ord-${number.slice(-6)}`;
     const userId = `usr-${email.split("@")[0]}`;
     const managerId = managerEmail ? `usr-${managerEmail.split("@")[0]}` : null;
-    // Цена зафиксирована, когда менеджер её выставил — то есть для всех
-    // статусов начиная с awaiting_payment.
     const priced = ["awaiting_payment", "paid", "in_progress", "completed"].includes(status);
     const priceAgreedAt = priced ? at(createdMs + 1_800_000) : null;
 
@@ -226,76 +491,40 @@ const count = async (table) => Number((await client.execute(`SELECT count(*) c F
     await client.execute({
       sql: "INSERT INTO order_items (id,orderId,serviceId,title,quantity,estimatedUnitPrice,unitPrice,totalPrice,optionsSnapshot) VALUES (?,?,?,?,?,?,?,?,?)",
       args: [
-        `oi-${number.slice(-6)}`, orderId, `svc-${slug}`,
+        `oi-${number.slice(-6)}`,
+        orderId,
+        `svc-${slug}`,
         services.find((s) => s[1] === slug)[0],
-        quantity, Math.round(estimated / quantity), unitAgreed, agreed,
-        '[{"group":"demo","option":"demo"}]',
+        quantity,
+        Math.round(estimated / quantity),
+        unitAgreed,
+        agreed,
+        '[{"group":"Material","option":"Acrylic 5 mm"}]',
       ],
     });
 
-    // Счёт создаётся только когда цена согласована.
     if (priced) {
       await client.execute({
         sql: "INSERT INTO payments (id,orderId,provider,externalId,status,amount,currency,paymentUrl,createdAt,updatedAt,paidAt) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
         args: [
-          `pay-${number.slice(-6)}`, orderId, "robokassa", number.slice(-6),
+          `pay-${number.slice(-6)}`,
+          orderId,
+          "robokassa",
+          number.slice(-6),
           paid ? "succeeded" : "pending",
-          agreed, "RUB", `https://auth.robokassa.ru/Merchant/Index.aspx?InvId=${number.slice(-6)}`,
-          priceAgreedAt ?? at(createdMs), priceAgreedAt ?? at(createdMs), paidMs,
+          agreed,
+          "RUB",
+          `https://auth.robokassa.ru/Merchant/Index.aspx?InvId=${number.slice(-6)}`,
+          priceAgreedAt ?? at(createdMs),
+          priceAgreedAt ?? at(createdMs),
+          paidMs,
         ],
       });
     }
   }
 
-  // ── Демо-просмотры: без них аналитика пуста ───────────────────────────────
-  // Раскидываем по последним 30 дням с разными источниками и устройствами,
-  // чтобы в отчёте были видны и тренд, и разбивка.
-  // [путь, доля просмотров, устройство]
-  const viewRows = [
-    ["/", 34, "mobile"],
-    ["/shop", 18, "desktop"],
-    ["/shop/business-cards", 12, "mobile"],
-    ["/blog", 9, "desktop"],
-    ["/shop/sign-design", 8, "desktop"],
-    ["/contact", 6, "mobile"],
-    ["/shop/large-format", 5, "desktop"],
-    ["/about", 4, "tablet"],
-    ["/shop/photo-docs", 3, "mobile"],
-    ["/shop/car-branding", 1, "desktop"],
-  ];
-  const sources = [null, null, "yandex.ru", "google.com", "vk.com", "t.me"];
-  const utms = [null, null, null, null, "vk-post", "yandex-display"];
-
-  for (const [path, share, device] of viewRows) {
-    // На главные страницы трафика приходит больше — так же, как в жизни.
-    for (let i = 0; i < share * 3; i += 1) {
-      const daysAgo = (i * 7) % 30;
-      const createdMs = now - daysAgo * 86_400_000 - ((i * 37) % 86_400_000);
-      const source = sources[(i + path.length) % sources.length];
-      const utm = utms[(i + share) % utms.length];
-      await client.execute({
-        sql: "INSERT INTO page_views (id,path,sessionId,visitorId,referrer,utmSource,device,durationMs,createdAt) VALUES (?,?,?,?,?,?,?,?,?)",
-        args: [
-          `pv-${path.replace(/[^a-z]/gi, "")}-${i}`,
-          path,
-          `sess-${daysAgo}-${(i % 11) + 1}`,
-          `vis-${(i % 37) + 1}`,
-          source,
-          utm,
-          device,
-          15_000 + ((i * 13_000) % 240_000),
-          at(createdMs),
-        ],
-      });
-    }
-  }
-
-  console.log(`[seed-demo] Услуг: ${await count("services")} (5 опубликовано) | Постов: ${await count("posts")} (4 опубликовано) | Пользователей: ${await count("users")}`);
-  console.log(`[seed-demo] Групп опций: ${await count("service_option_groups")} | Опций: ${await count("service_options")}`);
-  console.log(`[seed-demo] Заказов: ${await count("orders")} | Позиций: ${await count("order_items")} | Платежей: ${await count("payments")}`);
-  console.log(`[seed-demo] Просмотров: ${await count("page_views")}`);
-  console.log("\n  АДМИН:  admin@plusinplus.test / Admin12345");
-  console.log("  МЕНЕДЖЕР: manager@plusinplus.test / Manager12345 (только заявки)");
-  console.log("  ЮЗЕРЫ:  user1@plusinplus.test / User12345 (активный)");
-  console.log("          user2@plusinplus.test / User12345 (заблокированный)");
+  console.log(
+    `[seed-demo] Seeded ${await count("services")} services, ${await count("posts")} posts, ${await count("users")} users, ${await count("orders")} orders.`,
+  );
+  client.close();
 })();

@@ -35,7 +35,7 @@ export function RichTextEditor({ name, initialValue = "" }: { name: string; init
             title={t(`editor.${action.titleKey}`)}
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => action.run(editor)}
-            className="inline-flex h-8 min-w-8 items-center justify-center rounded-md px-2 font-body text-sm font-semibold text-[#052B42] transition-colors duration-200 ease-out hover:bg-[#00C56D]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42]"
+            className="inline-flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-sm font-semibold text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {action.label}
           </button>

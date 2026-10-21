@@ -8,22 +8,13 @@ import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 
-/**
- * Корзина в шапке — постоянная иконка рядом с аватаркой, в одном ряду и по
- * одной оси с ней (а не пункт внутри модального окна аккаунта). Ведёт на
- * страницу /cart; количество позиций показывает зелёный бейдж.
- *
- * Счётчик приходит из /api/cart/count и обновляется по событию
- * `pip:cart-updated`, которое рассылают все действия с корзиной.
- */
-
-/** Одно имя события на всех: конфигуратор, страница корзины, шапка. */
 export const CART_UPDATED_EVENT = "pip:cart-updated";
 
-/** Сообщить шапке (и всем, кто слушает), что корзина изменилась. */
 export function notifyCartUpdated(count?: number) {
   if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent(CART_UPDATED_EVENT, { detail: { count } }));
+  window.dispatchEvent(
+    new CustomEvent(CART_UPDATED_EVENT, { detail: { count } })
+  );
 }
 
 export function CartButton({ className }: { className?: string }) {
@@ -53,7 +44,6 @@ export function CartButton({ className }: { className?: string }) {
     return () => window.removeEventListener(CART_UPDATED_EVENT, onUpdated);
   }, [session?.user, refresh]);
 
-  // Корзина требует входа: гостю иконка ничего не даст, поэтому не показываем.
   if (!session?.user) return null;
 
   return (
@@ -61,15 +51,15 @@ export function CartButton({ className }: { className?: string }) {
       href="/cart"
       aria-label={count > 0 ? t("openWithCount", { count }) : t("open")}
       className={cn(
-        "relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-navy transition-colors duration-200 ease-out hover:bg-navy/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2",
-        className,
+        "relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-foreground transition-colors duration-200 ease-out hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        className
       )}
     >
       <ShoppingCart aria-hidden="true" className="h-5 w-5" strokeWidth={2} />
       {count > 0 ? (
         <span
           aria-hidden="true"
-          className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#00C56D] px-1 text-[10px] font-semibold leading-none text-[#052B42]"
+          className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground"
         >
           {count > 99 ? "99+" : count}
         </span>

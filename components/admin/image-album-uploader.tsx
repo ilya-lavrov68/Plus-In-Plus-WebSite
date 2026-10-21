@@ -167,7 +167,7 @@ export function ImageAlbumUploader({
             {images.map((url, index) => (
               <div
                 key={`${url}-${index}`}
-                className="group relative aspect-video overflow-hidden rounded-lg border border-border bg-[#F0F0F0]"
+                className="group relative aspect-video overflow-hidden rounded-lg border border-border bg-muted"
               >
                 <Image
                   src={url}

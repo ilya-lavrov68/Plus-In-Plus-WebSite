@@ -20,16 +20,6 @@ import type { CartLine } from "@/lib/cart";
 import { formatKopecks } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 
-/**
- * Страница корзины.
- *
- * Количество меняет Spectrum UI QuantityStepper; каждая правка уходит
- * server action-ом и подтверждается router.refresh() — суммы считает сервер,
- * клиент их только показывает. Кнопка внизу превращает корзину в одну
- * заявку на расчёт: цену согласует менеджер, поэтому итог подписан как
- * расчётный, а не как счёт к оплате.
- */
-
 export interface CartViewProps {
   lines: CartLine[];
   totalEstimate: number;
@@ -88,14 +78,15 @@ export function CartView({ lines, totalEstimate, currency }: CartViewProps) {
     }
   }
 
-  // Заявка создана — подтверждение вместо списка.
   if (orderNumber) {
     return (
-      <div className="rounded-2xl border border-[#052B42]/15 bg-white p-8 text-center shadow-sm">
-        <p className="font-geist text-xl font-semibold text-[#052B42]">
+      <div className="rounded-2xl border border-border bg-card p-8 text-center">
+        <p className="text-xl font-semibold text-foreground">
           {t("submitted", { number: orderNumber })}
         </p>
-        <p className="mt-2 text-sm text-[#052B42]/70">{t("submittedHint")}</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {t("submittedHint")}
+        </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Button asChild>
             <Link href="/orders">{t("toOrders")}</Link>
@@ -111,7 +102,11 @@ export function CartView({ lines, totalEstimate, currency }: CartViewProps) {
   if (!lines.length) {
     return (
       <div>
-        <EmptyState icon={ShoppingCart} title={t("emptyTitle")} description={t("emptyBody")} />
+        <EmptyState
+          icon={ShoppingCart}
+          title={t("emptyTitle")}
+          description={t("emptyBody")}
+        />
         <div className="mt-6 text-center">
           <Button asChild variant="outline">
             <Link href="/shop">{t("toShop")}</Link>
@@ -130,13 +125,13 @@ export function CartView({ lines, totalEstimate, currency }: CartViewProps) {
           <li
             key={line.id}
             className={cn(
-              "flex gap-4 rounded-2xl border border-[#052B42]/12 bg-white p-4 shadow-sm sm:p-5",
-              line.unavailable && "opacity-70",
+              "flex gap-4 rounded-2xl border border-border bg-card p-4 sm:p-5",
+              line.unavailable && "opacity-70"
             )}
           >
             <Link
               href={`/shop/${line.slug}`}
-              className="relative hidden h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-[#052B42]/[0.04] sm:block"
+              className="relative hidden h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-muted sm:block"
             >
               <SafeImage
                 src={line.coverImage}
@@ -150,7 +145,7 @@ export function CartView({ lines, totalEstimate, currency }: CartViewProps) {
               <div className="flex items-start justify-between gap-3">
                 <Link
                   href={`/shop/${line.slug}`}
-                  className="font-geist text-base font-semibold text-[#052B42] underline-offset-4 hover:underline"
+                  className="text-base font-semibold text-foreground underline-offset-4 hover:underline"
                 >
                   {line.title}
                 </Link>
@@ -159,20 +154,24 @@ export function CartView({ lines, totalEstimate, currency }: CartViewProps) {
                   onClick={() => remove(line.id)}
                   disabled={pendingId === line.id}
                   aria-label={t("remove")}
-                  className="font-medium -mr-1 -mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#052B42]/50 transition-colors duration-200 ease-out hover:bg-[#B4232A]/[0.07] hover:text-[#B4232A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B4232A]"
+                  className="-mr-1 -mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg font-medium text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <Trash2 aria-hidden="true" className="h-4 w-4" />
                 </button>
               </div>
 
               {line.options.length ? (
-                <p className="mt-1 text-xs leading-relaxed text-[#052B42]/60">
-                  {line.options.map((option) => `${option.group}: ${option.option}`).join(" · ")}
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  {line.options
+                    .map((option) => `${option.group}: ${option.option}`)
+                    .join(" · ")}
                 </p>
               ) : null}
 
               {line.unavailable ? (
-                <p className="mt-2 text-xs font-medium text-[#B4232A]">{t("itemUnavailable")}</p>
+                <p className="mt-2 text-xs font-medium text-destructive">
+                  {t("itemUnavailable")}
+                </p>
               ) : null}
 
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
@@ -183,11 +182,14 @@ export function CartView({ lines, totalEstimate, currency }: CartViewProps) {
                   size="sm"
                   disabled={pendingId === line.id || line.unavailable}
                   onValueChange={(quantity) => {
-                    if (quantity !== line.quantity) void changeQuantity(line.id, quantity);
+                    if (quantity !== line.quantity)
+                      void changeQuantity(line.id, quantity);
                   }}
                 />
-                <span className="font-geist text-base font-semibold tabular-nums text-[#052B42]">
-                  {line.showPrice ? formatKopecks(line.lineEstimate, line.currency) : t("priceOnRequest")}
+                <span className="text-base font-semibold tabular-nums text-foreground">
+                  {line.showPrice
+                    ? formatKopecks(line.lineEstimate, line.currency)
+                    : t("priceOnRequest")}
                 </span>
               </div>
             </div>
@@ -195,17 +197,26 @@ export function CartView({ lines, totalEstimate, currency }: CartViewProps) {
         ))}
       </ul>
 
-      <aside className="rounded-2xl border border-[#052B42]/12 bg-white p-5 shadow-sm sm:p-6 lg:sticky lg:top-24">
-        <h2 className="font-geist text-lg font-semibold text-[#052B42]">{t("summary")}</h2>
-        <div className="mt-4 flex items-baseline justify-between gap-3 border-t border-[#052B42]/10 pt-4">
-          <span className="text-sm text-[#052B42]/70">{t("estimatedTotal")}</span>
-          <span className="font-geist text-2xl font-semibold tabular-nums text-[#052B42]">
+      <aside className="rounded-2xl border border-border bg-card p-5 sm:p-6 lg:sticky lg:top-24">
+        <h2 className="text-lg font-semibold text-foreground">
+          {t("summary")}
+        </h2>
+        <div className="mt-4 flex items-baseline justify-between gap-3 border-t border-border pt-4">
+          <span className="text-sm text-muted-foreground">
+            {t("estimatedTotal")}
+          </span>
+          <span className="text-2xl font-semibold tabular-nums text-foreground">
             {formatKopecks(totalEstimate, currency)}
           </span>
         </div>
-        <p className="mt-2 text-xs leading-relaxed text-[#052B42]/60">{t("managerNote")}</p>
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+          {t("managerNote")}
+        </p>
 
-        <label htmlFor="cart-note" className="mt-4 block text-sm font-medium text-[#052B42]">
+        <label
+          htmlFor="cart-note"
+          className="mt-4 block text-sm font-medium text-foreground"
+        >
           {t("noteLabel")}
         </label>
         <textarea
@@ -215,16 +226,18 @@ export function CartView({ lines, totalEstimate, currency }: CartViewProps) {
           maxLength={2000}
           rows={3}
           placeholder={t("notePlaceholder")}
-          className="mt-1.5 w-full rounded-xl border border-[#052B42]/15 bg-white px-3 py-2 text-sm text-[#052B42] placeholder:text-[#052B42]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42]"
+          className="mt-1.5 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
 
         {error ? (
-          <p role="alert" className="mt-3 text-sm text-[#B4232A]">
+          <p role="alert" className="mt-3 text-sm text-destructive">
             {error}
           </p>
         ) : null}
         {hasUnavailable ? (
-          <p className="mt-3 text-xs text-[#052B42]/60">{t("unavailableHint")}</p>
+          <p className="mt-3 text-xs text-muted-foreground">
+            {t("unavailableHint")}
+          </p>
         ) : null}
 
         <Button
@@ -239,7 +252,7 @@ export function CartView({ lines, totalEstimate, currency }: CartViewProps) {
         </Button>
         <Link
           href="/shop"
-          className="mt-3 block text-center text-sm font-medium text-[#052B42] underline-offset-4 hover:underline"
+          className="mt-3 block text-center text-sm font-medium text-foreground underline-offset-4 hover:underline"
         >
           {t("continueShopping")}
         </Link>

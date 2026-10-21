@@ -6,26 +6,21 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 /**
- * Цветные метки статусов заказа.
- *
- * Палитра намеренно не брендовая: зелёный #00C56D и тёмно-синий #052B42
- * зарезервированы за кнопками, и статус в тех же тонах читался бы как
- * призыв нажать. Для меток взяты приглушённые оттенки, чтобы статус
- * считывался как информация, а не как действие.
+ * Muted status badges for customer & staff order tables, harmonized with the
+ * dark Hero 138 neutral palette.
  */
 const STATUS_STYLES: Record<string, string> = {
-  // Ждёт действий менеджера — самый заметный.
-  quote_requested: "border-amber-300 bg-amber-50 text-amber-900",
-  negotiating: "border-amber-300 bg-amber-50 text-amber-900",
-  awaiting_payment: "border-sky-300 bg-sky-50 text-sky-900",
-  paid: "border-emerald-300 bg-emerald-50 text-emerald-900",
-  in_progress: "border-sky-300 bg-sky-50 text-sky-900",
-  completed: "border-emerald-300 bg-emerald-50 text-emerald-900",
-  cancelled: "border-neutral-300 bg-neutral-100 text-neutral-600",
-  refunded: "border-neutral-300 bg-neutral-100 text-neutral-600",
+  quote_requested: "border-amber-500/35 bg-amber-500/15 text-amber-200",
+  negotiating: "border-amber-500/35 bg-amber-500/15 text-amber-200",
+  awaiting_payment: "border-sky-500/35 bg-sky-500/15 text-sky-200",
+  paid: "border-emerald-500/35 bg-emerald-500/15 text-emerald-200",
+  in_progress: "border-sky-500/35 bg-sky-500/15 text-sky-200",
+  completed: "border-emerald-500/35 bg-emerald-500/15 text-emerald-200",
+  cancelled: "border-border bg-muted text-muted-foreground",
+  refunded: "border-border bg-muted text-muted-foreground",
 };
 
-const FALLBACK_STYLE = "border-neutral-300 bg-neutral-100 text-neutral-600";
+const FALLBACK_STYLE = "border-border bg-muted text-muted-foreground";
 
 export interface OrderStatusBadgeProps {
   status: string;
@@ -34,8 +29,6 @@ export interface OrderStatusBadgeProps {
 
 export function OrderStatusBadge({ status, className }: OrderStatusBadgeProps) {
   const t = useTranslations("admin");
-  // Ключ может отсутствовать, если в БД лежит статус, которого нет в каталоге.
-  // Показываем сам статус, а не текст ошибки переводчика.
   let label: string;
   try {
     label = t(`status_${status}`);
@@ -46,7 +39,11 @@ export function OrderStatusBadge({ status, className }: OrderStatusBadgeProps) {
   return (
     <Badge
       variant="outline"
-      className={cn(STATUS_STYLES[status] ?? FALLBACK_STYLE, "whitespace-nowrap", className)}
+      className={cn(
+        STATUS_STYLES[status] ?? FALLBACK_STYLE,
+        "whitespace-nowrap",
+        className
+      )}
     >
       {label}
     </Badge>

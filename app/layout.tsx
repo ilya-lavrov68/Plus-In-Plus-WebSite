@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 
-import { AnnouncementBar } from "@/components/site/announcement-bar";
-import { Header } from "@/components/site/header";
+import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
 import { Providers } from "@/app/providers";
 import { SITE_NAME, SITE_URL, absoluteUrl } from "@/lib/seo";
@@ -22,6 +21,11 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: SITE_URL,
     title,
     description,
+    icons: {
+      icon: "/assets/logos/lnpip.svg",
+      shortcut: "/assets/logos/lnpip.svg",
+      apple: "/assets/logos/lnpip.svg",
+    },
     openGraph: {
       type: "website",
       title,
@@ -41,13 +45,12 @@ export default async function RootLayout({
   const locale = await getRequestLocale();
 
   return (
-    <html lang={locale} data-locale={locale}>
-      <body className="flex min-h-screen flex-col">
+    <html lang={locale} data-locale={locale} className="dark">
+      <body className="flex min-h-screen flex-col bg-background text-foreground antialiased">
         <NextIntlClientProvider locale={locale} messages={messages[locale]}>
           <Providers>
-            <AnnouncementBar />
-            <Header />
-            <main className="flex-1 pt-16">{children}</main>
+            <Navbar />
+            <main className="flex-1 pt-20">{children}</main>
             <Footer />
           </Providers>
         </NextIntlClientProvider>

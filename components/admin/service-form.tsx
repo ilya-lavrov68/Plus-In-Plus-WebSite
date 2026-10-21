@@ -88,7 +88,10 @@ export function ServiceForm({ mode, serviceId, initial }: ServiceFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
+    <form
+      onSubmit={handleSubmit}
+      className="max-w-3xl space-y-6 rounded-2xl border border-border bg-card p-6 sm:p-8"
+    >
       <div className="space-y-2">
         <Label htmlFor="service-title">{tc("title")}</Label>
         <Input id="service-title" name="title" maxLength={160} required defaultValue={initial?.title} />
@@ -169,13 +172,13 @@ export function ServiceForm({ mode, serviceId, initial }: ServiceFormProps) {
         />
         <CoverImageHelp kind="services" file={coverFile} mode={mode} />
         {mode === "edit" && initial?.coverImage ? (
-          <div className="relative mt-2 h-24 w-40 overflow-hidden rounded-md border border-border bg-[#F0F0F0]">
+          <div className="relative mt-2 h-24 w-40 overflow-hidden rounded-lg border border-border bg-muted">
             <SafeImage
               src={initial.coverImage}
               alt={t("currentCover")}
               fill
               sizes="160px"
-              className="object-contain"
+              className="object-cover"
             />
           </div>
         ) : null}

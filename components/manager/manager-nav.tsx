@@ -4,19 +4,16 @@ import Link from "next/link";
 import { useState } from "react";
 import { logout } from "@/app/actions/auth";
 import { usePathname } from "next/navigation";
-import { LogOut, ShoppingCart } from "lucide-react";
+import { ExternalLink, LayoutDashboard, LogOut, ShoppingCart } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useTranslations } from "next-intl";
 
 import { buttonVariants } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
 /**
  * Навигация менеджера: только заявки.
- *
- * Здесь намеренно нет услуг, блога, пользователей и настроек — управление
- * сайтом остаётся у администратора. Даже если менеджер узнает адрес
- * /admin/services, middleware и requireAdmin его не пустят.
  */
 const links = [{ key: "orders", href: "/manager/orders", icon: ShoppingCart }];
 
@@ -55,29 +52,43 @@ export function ManagerNav({ canEditSite }: { canEditSite: boolean }) {
             aria-current={active ? "page" : undefined}
             className={cn(
               buttonVariants({ variant: "ghost", size: "sm" }),
-              "justify-start gap-3 px-3",
-              active ? "bg-accent text-accent-foreground font-semibold" : "text-muted-foreground",
+              "h-9 justify-start gap-3 rounded-lg px-3",
+              active
+                ? "bg-secondary text-foreground font-medium"
+                : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <Icon aria-hidden="true" className="h-4 w-4" />
-            {t(key)}
+            <Icon aria-hidden="true" className="h-4 w-4 shrink-0" />
+            <span className="truncate">{t(key)}</span>
           </Link>
         );
       })}
 
-      {/* Администратор тоже может работать здесь как менеджер, поэтому ему
-          показываем дорогу обратно в управление сайтом. */}
       {canEditSite ? (
         <Link
           href="/admin/dashboard"
           className={cn(
             buttonVariants({ variant: "ghost", size: "sm" }),
-            "justify-start gap-3 px-3 text-muted-foreground",
+            "h-9 justify-start gap-3 rounded-lg px-3 text-muted-foreground hover:text-foreground"
           )}
         >
-          {t("dashboard")}
+          <LayoutDashboard aria-hidden="true" className="h-4 w-4 shrink-0" />
+          <span className="truncate">{t("dashboard")}</span>
         </Link>
       ) : null}
+
+      <Separator className="my-2" />
+
+      <Link
+        href="/"
+        className={cn(
+          buttonVariants({ variant: "ghost", size: "sm" }),
+          "h-9 justify-start gap-3 rounded-lg px-3 text-muted-foreground hover:text-foreground"
+        )}
+      >
+        <ExternalLink aria-hidden="true" className="h-4 w-4 shrink-0" />
+        <span className="truncate">{t("viewSite")}</span>
+      </Link>
 
       <button
         type="button"
@@ -85,14 +96,17 @@ export function ManagerNav({ canEditSite }: { canEditSite: boolean }) {
         disabled={pending}
         className={cn(
           buttonVariants({ variant: "ghost", size: "sm" }),
-          "justify-start gap-3 px-3 text-muted-foreground",
+          "h-9 justify-start gap-3 rounded-lg px-3 text-muted-foreground hover:text-foreground"
         )}
       >
-        <LogOut aria-hidden="true" className="h-4 w-4" />
-        {pending ? ta("loggingOut") : ta("logout")}
+        <LogOut aria-hidden="true" className="h-4 w-4 shrink-0" />
+        <span className="truncate">
+          {pending ? ta("loggingOut") : ta("logout")}
+        </span>
       </button>
+
       {error ? (
-        <p role="alert" className="mt-2 text-sm text-red-800">
+        <p role="alert" className="mt-2 px-3 text-xs text-red-400">
           {error}
         </p>
       ) : null}

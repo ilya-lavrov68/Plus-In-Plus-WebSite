@@ -20,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
  */
 export default async function CartPage() {
   const [session, t] = await Promise.all([auth(), getRequestTranslations("cart")]);
-  if (!session?.user?.id) redirect("/?auth=login");
+  if (!session?.user?.id) redirect("/login");
 
   const cart = await getCart();
 

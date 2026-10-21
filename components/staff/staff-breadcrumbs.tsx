@@ -34,13 +34,36 @@ export function StaffBreadcrumbs() {
   }));
 
   return (
-    <div className="mb-6 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-      <button type="button" onClick={() => router.back()} className="font-medium inline-flex items-center gap-1 rounded-md px-2 py-1 transition-colors duration-200 ease-out hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        <ArrowLeft className="h-4 w-4" /> {tc("back")}
+    <div className="mb-6 flex flex-wrap items-center gap-2.5 text-sm text-muted-foreground">
+      <button
+        type="button"
+        onClick={() => router.back()}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground transition-colors duration-200 ease-out hover:border-foreground/25 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" />
+        <span>{tc("back")}</span>
       </button>
       <span aria-hidden="true" className="h-4 w-px bg-border" />
-      <nav aria-label={tc("breadcrumb")} className="flex items-center gap-1">
-        {crumbs.map((crumb, index) => <span key={crumb.href} className="inline-flex items-center gap-1"><Link href={crumb.href} className="rounded-sm hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{crumb.label}</Link>{index < crumbs.length - 1 ? <ChevronRight aria-hidden="true" className="h-3.5 w-3.5" /> : null}</span>)}
+      <nav aria-label={tc("breadcrumb")} className="flex flex-wrap items-center gap-1.5">
+        {crumbs.map((crumb, index) => {
+          const isLast = index === crumbs.length - 1;
+          return (
+            <span key={crumb.href} className="inline-flex items-center gap-1.5">
+              <Link
+                href={crumb.href}
+                aria-current={isLast ? "page" : undefined}
+                className={
+                  isLast
+                    ? "rounded-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    : "rounded-sm transition-colors duration-200 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                }
+              >
+                {crumb.label}
+              </Link>
+              {!isLast ? <ChevronRight aria-hidden="true" className="h-3.5 w-3.5 opacity-60" /> : null}
+            </span>
+          );
+        })}
       </nav>
     </div>
   );

@@ -1,126 +1,72 @@
-import { ArrowRight, Building2, PenTool } from "lucide-react";
 import type { Metadata } from "next";
 
-import { EmptyState } from "@/components/site/empty-state";
-import { InternalPageHeader } from "@/components/site/internal-page-header";
-import { OtherNewsSection } from "@/components/site/other-news-section";
-import { ShopServiceCard } from "@/components/site/shop-service-card";
-import { getPublishedPosts, getPublishedServices, serviceHref, toNewsItem } from "@/lib/data";
-import { getServiceArtwork } from "@/lib/shop-assets";
+import { Blog11 } from "@/components/blocks/blog11";
+import { Hero138 } from "@/components/blocks/hero138";
+import { Services11Catalog } from "@/components/blocks/services11";
+import { getPublishedPosts, getPublishedServices } from "@/lib/data";
 import { createPageMetadata } from "@/lib/seo";
 import { getRequestLocale } from "@/lib/request-locale";
-import { getRequestTranslations } from "@/lib/server-i18n";
+import { mergeCatalogPosts, mergeCatalogServices } from "@/lib/studio-catalog";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getRequestTranslations("metadata");
   const locale = await getRequestLocale();
   return createPageMetadata({
-    title: t("shop"),
-    description: t("shopDescription"),
+    title: "Our Services — Plus In Plus",
+    description:
+      "Small designs, storefront signs, packaging, and city-scale large billboard formats by Plus In Plus.",
     path: "/shop",
     locale,
   });
 }
 
-const serviceRailClass =
-  "mt-7 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mt-8 sm:gap-5 xl:mt-16 xl:gap-11";
-const serviceCardItemClass =
-  "h-[clamp(360px,31.25vw,600px)] w-[clamp(260px,23.4375vw,450px)] shrink-0 snap-start";
-
 export default async function ShopPage() {
-  const t = await getRequestTranslations("shop");
-  const [services, posts] = await Promise.all([getPublishedServices(), getPublishedPosts()]);
-  const smallServices = services.filter((service) => service.category === "small");
-  const largeServices = services.filter((service) => service.category === "large");
-  const newsItems = posts.map(toNewsItem);
+  const [dbServices, dbPosts] = await Promise.all([
+    getPublishedServices(),
+    getPublishedPosts(),
+  ]);
+
+  const allServices = mergeCatalogServices(dbServices);
+  const smallServices = allServices.filter((s) => s.category === "small");
+  const largeServices = allServices.filter((s) => s.category === "large");
+  const posts = mergeCatalogPosts(dbPosts);
 
   return (
     <>
-      <InternalPageHeader title={t("pageTitle")} />
+      <Hero138
+        headingMuted=""
+        headingPrimary="Our Services"
+        descriptionLead="From tactile branded bags and storefront signage to building wraps and highway billboards—"
+        descriptionStrong="every project includes a realistic mockup and print-ready files."
+        primaryCta={{ label: "Small designs", href: "#small-designs" }}
+        secondaryCta={{ label: "Large designs", href: "#large-designs" }}
+        footnote=""
+        showMediaStage={false}
+        className="border-b border-border"
+      />
 
-      <section
-        aria-labelledby="shop-our-services"
-        className="rounded-t-[2.5rem] bg-[#CFE0FF] pt-[clamp(4.5rem,9.65vw,11.55rem)] text-[#052B42] sm:rounded-t-[3.5rem] lg:rounded-t-[100px]"
-      >
-        <div className="mx-auto max-w-[1550px] px-5 sm:px-8 lg:px-10">
-          <h2 id="shop-our-services" className="font-geist text-3xl font-semibold tracking-[-0.045em] sm:text-4xl lg:text-5xl">
-            {t("title")}
-          </h2>
-        </div>
+      <Services11Catalog
+        id="small-designs"
+        heading="Small designs"
+        subtitle="Precision layouts, tactile packaging, glass posters, and custom signage built to stand out up close."
+        services={smallServices}
+      />
 
-        <div className="mt-10 rounded-[2.5rem] bg-white px-5 pb-14 pt-10 sm:mt-12 sm:rounded-[3.5rem] sm:px-8 sm:py-12 lg:mt-14 lg:rounded-[100px] lg:px-[42px] lg:pb-[226px] lg:pt-[66px]">
-          <section aria-labelledby="small-designs">
-            <h3
-              id="small-designs"
-              className="flex items-center gap-3 font-geist text-2xl font-semibold tracking-[-0.035em] sm:text-3xl lg:text-4xl"
-            >
-              {t("smallDesigns")}
-              <ArrowRight aria-hidden="true" className="h-6 w-6 sm:h-7 sm:w-7" />
-            </h3>
+      <Services11Catalog
+        id="large-designs"
+        heading="Large designs"
+        subtitle="Above It All. Rough Roads, Louder Message."
+        services={largeServices}
+        className="bg-muted/30"
+      />
 
-            {smallServices.length ? (
-              <ul className={serviceRailClass}>
-                {smallServices.map((service) => (
-                  <li key={service.id} className={serviceCardItemClass}>
-                    <ShopServiceCard
-                      title={service.title}
-                      href={serviceHref(service)}
-                      imageSrc={getServiceArtwork(service)}
-                    />
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="mt-5 rounded-[1.75rem] bg-[#CFE0FF]/45">
-                <EmptyState
-                  icon={PenTool}
-                  title={t("noSmallDesigns.title")}
-                  description={t("noSmallDesigns.description")}
-                />
-              </div>
-            )}
-          </section>
-
-          <section aria-labelledby="large-designs" className="mt-12 sm:mt-16 lg:mt-16">
-            <h3
-              id="large-designs"
-              className="flex items-center gap-3 font-geist text-2xl font-semibold tracking-[-0.035em] sm:text-3xl lg:text-4xl"
-            >
-              {t("largeDesigns")}
-              <ArrowRight aria-hidden="true" className="h-6 w-6 sm:h-7 sm:w-7" />
-            </h3>
-            <p className="mt-3 font-body text-base leading-relaxed sm:text-lg">
-              {t("largeDesignsSubtitle")}
-            </p>
-
-            {largeServices.length ? (
-              <ul className="mt-7 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mt-8 sm:gap-5 xl:mt-8 xl:gap-11">
-                {largeServices.map((service) => (
-                  <li key={service.id} className={serviceCardItemClass}>
-                    <ShopServiceCard
-                      title={service.title}
-                      href={serviceHref(service)}
-                      imageSrc={getServiceArtwork(service)}
-                    />
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="mt-5 rounded-[1.75rem] bg-[#CFE0FF]/45">
-                <EmptyState
-                  icon={Building2}
-                  title={t("noLargeDesigns.title")}
-                  description={t("noLargeDesigns.description")}
-                />
-              </div>
-            )}
-          </section>
-        </div>
-      </section>
-
-      <OtherNewsSection items={newsItems} id="shop-other-news" />
+      <Blog11
+        id="shop-other-news"
+        heading="Other News"
+        description="Latest announcements, case notes, and studio releases from Plus In Plus."
+        posts={posts.slice(0, 3)}
+      />
     </>
   );
 }
