@@ -34,7 +34,7 @@ export function UsersTable({ users }: { users: AdminUserRow[] }) {
   const [pending, setPending] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  const changeRole = async (id: string, role: "USER" | "ADMIN") => {
+  const changeRole = async (id: string, role: "USER" | "MANAGER" | "ADMIN") => {
     setPending(id);
     setMessage(null);
     const result = await updateUserRole(id, role);
@@ -88,21 +88,31 @@ export function UsersTable({ users }: { users: AdminUserRow[] }) {
       id: "role",
       header: t("role"),
       sortable: true,
-      cell: (user) => (
-        <Select
-          value={user.role}
-          onValueChange={(value) => changeRole(user.id, value as "USER" | "ADMIN")}
-          disabled={pending === user.id}
-        >
-          <SelectTrigger className="w-28">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="USER">USER</SelectItem>
-            <SelectItem value="ADMIN">ADMIN</SelectItem>
-          </SelectContent>
-        </Select>
-      ),
+      // Основатель неприкосновенен: вместо селекта — бейдж. Сервер всё равно
+      // откажет (founderInvulnerable), но и в интерфейсе соблазна быть не
+      // должно. Остальным: USER → MANAGER → ADMIN (назначение менеджером —
+      // просто выбор роли MANAGER).
+      cell: (user) =>
+        user.role === "FOUNDER" ? (
+          <Badge variant="outline" className="border-amber-500/40 bg-amber-500/15 text-amber-300">
+            {t("roleFounder")}
+          </Badge>
+        ) : (
+          <Select
+            value={user.role}
+            onValueChange={(value) => changeRole(user.id, value as "USER" | "MANAGER" | "ADMIN")}
+            disabled={pending === user.id}
+          >
+            <SelectTrigger className="w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="USER">{t("roleUser")}</SelectItem>
+              <SelectItem value="MANAGER">{t("roleManager")}</SelectItem>
+              <SelectItem value="ADMIN">{t("roleAdmin")}</SelectItem>
+            </SelectContent>
+          </Select>
+        ),
     },
     {
       id: "status",
@@ -149,7 +159,14 @@ export function UsersTable({ users }: { users: AdminUserRow[] }) {
         searchPlaceholder={t("searchByEmailOrName")}
         searchText={(user) => `${user.email} ${user.firstName ?? ""} ${user.lastName ?? ""}`}
         defaultSort={{ columnId: "createdAt", direction: "desc" }}
-        rowActions={(user) => (
+        // У основателя действий нет: его нельзя заблокировать и сбросить ему
+        // пароль из админки (сервер дублирует отказ).
+        rowActions={(user) =>
+          user.role === "FOUNDER" ? (
+            <span className="px-2 text-xs text-muted-foreground" title={t("founderProtected")}>
+              {t("founderProtected")}
+            </span>
+          ) : (
           <div className="flex items-center gap-1">
             <Button
               type="button"

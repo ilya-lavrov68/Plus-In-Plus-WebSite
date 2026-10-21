@@ -4,7 +4,8 @@ import { CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
-import { readConfig, signatureMatches, successSignature } from "@/lib/payments/robokassa";
+import { signatureMatches, successSignature } from "@/lib/payments/robokassa";
+import { resolveRobokassaConfig } from "@/lib/payments/robokassa-config";
 import { getRequestTranslations } from "@/lib/server-i18n";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +33,9 @@ export default async function PaymentSuccessPage({ searchParams }: PaymentPagePr
   const signature = first(query.SignatureValue);
   const orderId = first(query.shp_OrderId);
 
-  const config = readConfig();
+  // Ключи могут лежать в настройках БД или быть демо — проверять подпись
+  // надо той же конфигурацией, которой ссылка подписывалась.
+  const { config } = await resolveRobokassaConfig();
   const signed =
     config !== null &&
     signatureMatches(

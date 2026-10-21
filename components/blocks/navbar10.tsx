@@ -338,7 +338,7 @@ const Navbar10 = ({ services = STUDIO_SERVICES }: Navbar10Props) => {
   };
 
   const dashboardHref =
-    session?.user?.role === "ADMIN"
+    session?.user?.role === "FOUNDER" || session?.user?.role === "ADMIN"
       ? "/admin/dashboard"
       : session?.user?.role === "MANAGER"
         ? "/manager/orders"

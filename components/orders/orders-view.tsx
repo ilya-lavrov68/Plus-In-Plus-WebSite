@@ -82,6 +82,7 @@ export async function OrdersView({
               total: order.total,
               currency: order.currency,
               customerEmail: order.customer.email,
+              isLocked: order.isLocked,
               createdAt: order.createdAt,
             }))}
             // Только те статусы, что реально встретились: пустые пилюли в

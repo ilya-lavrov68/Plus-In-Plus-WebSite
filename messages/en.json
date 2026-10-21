@@ -402,7 +402,8 @@
     "genericError": "Something went wrong. Please try again.",
     "managerSession": "Manager session",
     "managerDashboard": "Manager panel",
-    "myOrders": "My orders"
+    "myOrders": "My orders",
+    "founderSession": "Founder session"
   },
   "nav": {
     "sections": {
@@ -758,7 +759,27 @@
       "parserInterval": "Refresh interval (minutes)",
       "saved": "Settings saved.",
       "saveFailed": "Settings could not be saved.",
-      "saveSettings": "Save settings"
+      "saveSettings": "Save settings",
+      "payments": "Payments (Robokassa)",
+      "paymentsHint": "Robokassa shop keys. Values saved here take precedence over environment variables and apply without restarting the site.",
+      "robokassaActiveSource": "Active key source",
+      "robokassaSourceSettings": "settings on this page",
+      "robokassaSourceEnv": "environment variables (.env)",
+      "robokassaSourceDemo": "demo shop TestMerchant (test, no real money)",
+      "robokassaSourceNone": "not configured (production without keys)",
+      "robokassaLogin": "MerchantLogin (shop login)",
+      "robokassaPassword1": "Password #1 (signs the payment form)",
+      "robokassaPassword2": "Password #2 (verifies notifications)",
+      "robokassaHashAlgo": "Signature algorithm",
+      "robokassaTestMode": "Mode",
+      "robokassaTestOn": "Test (no real money moves)",
+      "robokassaTestOff": "Live",
+      "robokassaDemoHint": "While these fields are empty, development uses the TestMerchant demo shop: card 4111 1111 1111 1111, expiry 12/30, CVV 123 — no money moves. In the Robokassa dashboard set Result URL: /api/payments/robokassa/result, Success URL: /payment/success, Fail URL: /payment/fail.",
+      "notifications": "Notifications",
+      "notificationsHint": "Where to send new requests and payment events.",
+      "notificationEmail": "Notification email",
+      "telegramBotToken": "Telegram bot token",
+      "telegramChatId": "Telegram chat ID"
     },
     "noPostsHelp": "Create the first blog post to see it here.",
     "noServicesHelp": "Create the first service to see it here.",
@@ -857,7 +878,18 @@
     "candleClose": "Close",
     "candleDayTotal": "Day turnover",
     "candleDayCount": "Orders that day",
-    "trafficTitle": "Traffic"
+    "trafficTitle": "Traffic",
+    "roleFounder": "Founder",
+    "roleUser": "Customer",
+    "founderProtected": "Protected",
+    "orderLockedBadge": "Locked",
+    "orderLockedNotice": "This order is locked: the price is fixed. Only the founder can edit it.",
+    "orderLockedFounderNotice": "This order is locked. As the founder, you can edit it or remove the lock.",
+    "lockAfterSave": "Fix the price and lock the order",
+    "lockAfterSaveHint": "After that, only the founder will be able to edit this order.",
+    "agreeLockAndIssue": "Fix price, lock and issue invoice",
+    "unlockOrder": "Remove lock",
+    "payNow": "Pay now"
   },
   "errors": {
     "notFound": "Page not found",
@@ -970,7 +1002,9 @@
     "invalidPrice": "Enter a valid price.",
     "invalidPriceType": "Unknown price type.",
     "cartEmpty": "The cart is empty — there is nothing to send.",
-    "cartItemUnavailable": "One of the services in the cart is no longer available. Remove it and try again."
+    "cartItemUnavailable": "One of the services in the cart is no longer available. Remove it and try again.",
+    "founderInvulnerable": "Action denied. Founder is invulnerable.",
+    "orderLocked": "Order is locked. Only Founder can edit."
   },
   "payment": {
     "alreadyPaidBody": "The confirmation arrived after you left the payment page. The order is marked as paid.",

@@ -32,6 +32,11 @@ export default async function AdminAnalyticsPage() {
   const [admin, t] = await Promise.all([requireAdmin(), getRequestTranslations("admin")]);
   if (!admin) redirect("/");
 
+  // Финансы видит только основатель: выручка и средний чек — коммерческая
+  // информация, обычному админу для работы с сайтом она не нужна. Данные
+  // даже не запрашиваем, а не просто прячем в интерфейсе.
+  const isFounder = admin.isFounder;
+
   const [summary, pages, sources, devices, series, finance, revenueCandles, salesCandles] =
     await Promise.all([
       getTrafficSummary(DAYS),
@@ -39,9 +44,9 @@ export default async function AdminAnalyticsPage() {
       getTrafficSources(DAYS),
       getDeviceSplit(DAYS),
       getDailySeries(DAYS),
-      getFinanceSummary(DAYS),
-      getRevenueCandles(DAYS),
-      getSalesCandles(DAYS),
+      isFounder ? getFinanceSummary(DAYS) : Promise.resolve(null),
+      isFounder ? getRevenueCandles(DAYS) : Promise.resolve([]),
+      isFounder ? getSalesCandles(DAYS) : Promise.resolve([]),
     ]);
 
   const maxDayViews = Math.max(1, ...series.map((day) => day.views));
@@ -55,12 +60,14 @@ export default async function AdminAnalyticsPage() {
     { title: t("analyticsAvgTime"), icon: Clock, value: duration(summary.avgSeconds) },
   ];
 
-  const financeCards = [
-    { title: t("financeRevenue"), icon: Wallet, value: formatKopecks(finance.revenue) },
-    { title: t("financePayments"), icon: CreditCard, value: String(finance.paymentsCount) },
-    { title: t("financeOrders"), icon: ShoppingCart, value: String(finance.ordersCount) },
-    { title: t("financeAvgCheck"), icon: Receipt, value: formatKopecks(finance.averageCheck) },
-  ];
+  const financeCards = finance
+    ? [
+        { title: t("financeRevenue"), icon: Wallet, value: formatKopecks(finance.revenue) },
+        { title: t("financePayments"), icon: CreditCard, value: String(finance.paymentsCount) },
+        { title: t("financeOrders"), icon: ShoppingCart, value: String(finance.ordersCount) },
+        { title: t("financeAvgCheck"), icon: Receipt, value: formatKopecks(finance.averageCheck) },
+      ]
+    : [];
 
   // Подписи для свечей передаются строками: компонент графика клиентский,
   // а переводы живут на сервере.
@@ -77,7 +84,9 @@ export default async function AdminAnalyticsPage() {
       <h1 className="text-3xl font-bold tracking-tight">{t("analytics")}</h1>
       <p className="mt-2 text-muted-foreground">{t("analyticsSubtitle", { days: DAYS })}</p>
 
-      {/* ── Финансы: доход и продажи как свечные графики ──────────────────── */}
+      {/* ── Финансы: доход и продажи как свечные графики (только FOUNDER) ─── */}
+      {isFounder && finance ? (
+        <>
       <h2 className="mt-10 text-xl font-semibold tracking-tight">{t("financeTitle")}</h2>
       <p className="mt-1 text-sm text-muted-foreground">{t("financeSubtitle", { days: DAYS })}</p>
 
@@ -124,6 +133,8 @@ export default async function AdminAnalyticsPage() {
           </CardContent>
         </Card>
       </div>
+        </>
+      ) : null}
 
       {/* ── Трафик ─────────────────────────────────────────────────────────── */}
       <h2 className="mt-10 text-xl font-semibold tracking-tight">{t("trafficTitle")}</h2>

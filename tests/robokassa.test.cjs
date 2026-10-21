@@ -210,10 +210,34 @@ describe("ссылка на оплату", () => {
     assert.equal(new URL(url).searchParams.get("IsTest"), "1");
   });
 
-  test("без настроек ссылки нет, но и падения нет", () => {
+  test("без настроек в разработке работает демо-магазин TestMerchant", () => {
     delete process.env.ROBOKASSA_PASSWORD1;
     assert.equal(robokassa.isRobokassaConfigured(), false);
-    assert.equal(robokassa.buildPaymentUrl({ amount: 100, invId: 1, description: "тест" }), null);
+    // ТЗ: ключей нет — используем тестовые (TestMerchant / qwe / qwe),
+    // деньги не списываются (IsTest=1).
+    const url = new URL(robokassa.buildPaymentUrl({ amount: 100, invId: 1, description: "тест" }));
+    assert.equal(url.searchParams.get("MerchantLogin"), "TestMerchant");
+    assert.equal(url.searchParams.get("IsTest"), "1");
+    assert.equal(url.searchParams.get("SignatureValue"), md5("TestMerchant:1.00:1:qwe"));
+  });
+
+  test("в production без ключей демо не подставляется: ссылки нет, но и падения нет", () => {
+    // Пароль демо-магазина публичен: в production поддельное «уведомление об
+    // оплате» подписал бы кто угодно. Поэтому без ключей — честный null.
+    delete process.env.ROBOKASSA_PASSWORD1;
+    const savedNodeEnv = process.env.NODE_ENV;
+    const savedDemo = process.env.ROBOKASSA_DEMO_MODE;
+    process.env.NODE_ENV = "production";
+    delete process.env.ROBOKASSA_DEMO_MODE;
+    try {
+      assert.equal(robokassa.buildPaymentUrl({ amount: 100, invId: 1, description: "тест" }), null);
+      // …а с явным флагом демо разрешено и в production (для сквозной проверки).
+      process.env.ROBOKASSA_DEMO_MODE = "1";
+      assert.ok(robokassa.buildPaymentUrl({ amount: 100, invId: 1, description: "тест" }));
+    } finally {
+      if (savedNodeEnv === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = savedNodeEnv;
+      if (savedDemo === undefined) delete process.env.ROBOKASSA_DEMO_MODE; else process.env.ROBOKASSA_DEMO_MODE = savedDemo;
+    }
   });
 
   test("описание обрезается по длине", () => {
@@ -307,7 +331,7 @@ describe("повторное выставление счёта", () => {
     assert.equal(second.invId, 7001, "вторая попытка — следующий номер счёта");
   });
 
-  test("без настроенного провайдера счёт всё равно сохраняется", async () => {
+  test("без ключей в разработке счёт получает демо-ссылку TestMerchant", async () => {
     const { issueInvoice } = require("../lib/payments/invoice.ts");
     const savedLogin = process.env.ROBOKASSA_MERCHANT_LOGIN;
     const savedPass1 = process.env.ROBOKASSA_PASSWORD1;
@@ -320,11 +344,94 @@ describe("повторное выставление счёта", () => {
         orderId: "ord-7", orderNumber: "ПИП-000007", amount: 1_600_000,
         currency: "RUB", customerEmail: "c@test",
       });
-      assert.equal(result.paymentUrl, null, "ссылки нет — провайдер не настроен");
+      // Демо-режим из ТЗ: оплата проверяется без регистрации магазина.
+      assert.equal(new URL(result.paymentUrl).searchParams.get("MerchantLogin"), "TestMerchant");
       assert.ok(result.paymentId, "счёт в базе остаётся: историю не теряем");
     } finally {
       process.env.ROBOKASSA_MERCHANT_LOGIN = savedLogin;
       process.env.ROBOKASSA_PASSWORD1 = savedPass1;
     }
+  });
+
+  test("в production без ключей счёт сохраняется, но без ссылки", async () => {
+    const { issueInvoice } = require("../lib/payments/invoice.ts");
+    const savedLogin = process.env.ROBOKASSA_MERCHANT_LOGIN;
+    const savedPass1 = process.env.ROBOKASSA_PASSWORD1;
+    const savedNodeEnv = process.env.NODE_ENV;
+    delete process.env.ROBOKASSA_MERCHANT_LOGIN;
+    delete process.env.ROBOKASSA_PASSWORD1;
+    process.env.NODE_ENV = "production";
+    delete process.env.ROBOKASSA_DEMO_MODE;
+
+    invoiceDb.reset();
+    try {
+      const result = await issueInvoice({
+        orderId: "ord-7", orderNumber: "ПИП-000007", amount: 1_600_000,
+        currency: "RUB", customerEmail: "c@test",
+      });
+      assert.equal(result.paymentUrl, null, "ссылки нет — провайдер не настроен");
+      assert.ok(result.paymentId, "счёт в базе остаётся: историю не теряем");
+    } finally {
+      process.env.ROBOKASSA_MERCHANT_LOGIN = savedLogin;
+      process.env.ROBOKASSA_PASSWORD1 = savedPass1;
+      if (savedNodeEnv === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = savedNodeEnv;
+    }
+  });
+});
+
+describe("выбор конфигурации (Settings → env → демо)", () => {
+  test("настройки из БД имеют приоритет над env", () => {
+    const { config, source } = robokassa.pickConfig({
+      robokassaLogin: "db-shop",
+      robokassaPassword1: "db-one",
+      robokassaPassword2: "db-two",
+      robokassaTestMode: "1",
+    });
+    assert.equal(source, "settings");
+    assert.equal(config.merchantLogin, "db-shop");
+    assert.equal(config.isTest, true);
+  });
+
+  test("частично заполненные настройки в БД не считаются настроенными", () => {
+    // Полунастроенный магазин хуже ненастроенного: подпись не сойдётся.
+    const { config, source } = robokassa.pickConfig({ robokassaLogin: "db-shop" });
+    assert.equal(source, "env", "падаем на env, а не на полупустой набор");
+    assert.equal(config.merchantLogin, LOGIN);
+  });
+
+  test("без БД и env в разработке выбирается демо", () => {
+    delete process.env.ROBOKASSA_MERCHANT_LOGIN;
+    const { config, source } = robokassa.pickConfig({});
+    assert.equal(source, "demo");
+    assert.equal(config.merchantLogin, "TestMerchant");
+    assert.equal(robokassa.isDemoConfig(config), true);
+  });
+
+  test("generatePaymentLink и verifyPaymentHash — та же подпись, что и у основных функций", () => {
+    const config = robokassa.readConfig();
+    const link = robokassa.generatePaymentLink(
+      { invId: 42, amountKopecks: 10000, description: "Счёт", extra: { OrderId: "ord-42" } },
+      config,
+    );
+    const parsed = new URL(link);
+    assert.equal(
+      parsed.searchParams.get("SignatureValue"),
+      md5(`${LOGIN}:100.00:42:${PASS1}:shp_OrderId=ord-42`),
+    );
+
+    const good = robokassa.resultSignature(config, "100.00", 42, { shp_OrderId: "ord-42" });
+    assert.equal(
+      robokassa.verifyPaymentHash(config, {
+        outSum: "100.00", invId: 42, signatureValue: good, extra: { shp_OrderId: "ord-42" },
+      }),
+      true,
+    );
+    assert.equal(
+      robokassa.verifyPaymentHash(config, {
+        outSum: "1.00", invId: 42, signatureValue: good, extra: { shp_OrderId: "ord-42" },
+      }),
+      false,
+      "подделка суммы не проходит",
+    );
   });
 });

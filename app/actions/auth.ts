@@ -37,7 +37,8 @@ export interface AuthActionResult {
   /** Alias of `success`, kept for callers written in earlier stages. */
   ok: boolean;
   error?: string;
-  redirectTo?: "/admin/dashboard";
+  /** Служебный дом после входа: админка или рабочее место менеджера. */
+  redirectTo?: "/admin/dashboard" | "/manager/orders";
   accountCreated?: boolean;
   /** Effective privilege of the created session: ADMIN row + admin mode requested. */
   isAdmin?: boolean;
@@ -112,7 +113,8 @@ export async function loginUser(input: LoginSubmission): Promise<AuthActionResul
   const adminMode = submission.adminMode === true;
 
   // Admin mode is a privilege opt-in, not a role mutation: it passes only for an
-  // existing ADMIN row (registration always creates USER accounts).
+  // existing staff row (FOUNDER, ADMIN or MANAGER — registration always
+  // creates USER accounts).
   let account: { role: string } | null;
   try {
     account = await prisma.user.findUnique({ where: { email }, select: { role: true } });
@@ -120,9 +122,16 @@ export async function loginUser(input: LoginSubmission): Promise<AuthActionResul
     console.error("Login lookup failed:", error);
     return { ok: false, success: false, error: t("unableToLogIn") };
   }
-  if (adminMode && account?.role !== "ADMIN") {
+  const staffRole =
+    account?.role === "FOUNDER" || account?.role === "ADMIN" || account?.role === "MANAGER"
+      ? account.role
+      : null;
+  if (adminMode && !staffRole) {
     return { ok: false, success: false, error: t("adminNotFound") };
   }
+  // Куда вести сотрудника после служебного входа: менеджеру — в его заявки,
+  // администратору и основателю — в админку.
+  const staffHome = staffRole === "MANAGER" ? "/manager/orders" : "/admin/dashboard";
 
   try {
     await signIn("credentials", {
@@ -130,7 +139,7 @@ export async function loginUser(input: LoginSubmission): Promise<AuthActionResul
       password,
       adminMode: String(adminMode),
       redirect: false,
-      redirectTo: adminMode ? "/admin/dashboard" : "/",
+      redirectTo: adminMode ? staffHome : "/",
     });
   } catch (error) {
     if (error instanceof CredentialsSignin) {
@@ -147,9 +156,9 @@ export async function loginUser(input: LoginSubmission): Promise<AuthActionResul
     return { ok: false, success: false, error: t("unableToLogIn") };
   }
 
-  const isAdmin = adminMode && account?.role === "ADMIN";
-  return isAdmin
-    ? { ok: true, success: true, isAdmin: true, redirectTo: "/admin/dashboard" }
+  const isAdmin = adminMode && (staffRole === "FOUNDER" || staffRole === "ADMIN");
+  return adminMode && staffRole
+    ? { ok: true, success: true, isAdmin, redirectTo: staffHome }
     : { ok: true, success: true, isAdmin: false };
 }
 

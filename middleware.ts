@@ -87,10 +87,11 @@ const authMiddleware = NextAuth(authConfig).auth((request) => {
     return NextResponse.redirect(new URL(isOrdersArea ? "/login" : "/", request.url));
   }
   if (isOrdersArea) return NextResponse.next();
-  if (role !== "ADMIN" && role !== "MANAGER") {
+  if (role !== "FOUNDER" && role !== "ADMIN" && role !== "MANAGER") {
     return NextResponse.redirect(new URL("/", request.url));
   }
-  if (isAdminArea && role !== "ADMIN") {
+  // Админка — администратору и основателю; менеджера ведём в его заявки.
+  if (isAdminArea && role !== "FOUNDER" && role !== "ADMIN") {
     return NextResponse.redirect(new URL("/manager/orders", request.url));
   }
   return NextResponse.next();

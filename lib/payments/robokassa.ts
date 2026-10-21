@@ -26,13 +26,51 @@ export interface RobokassaConfig {
 const HASH_ALGOS: readonly RobokassaHashAlgo[] = ["md5", "ripemd160", "sha256", "sha512"];
 const BASE_URL = "https://auth.robokassa.ru/Merchant/Index.aspx";
 
-/** Хоть один из двух паролей задан — значит подключение настроено. */
+/** Откуда взялась активная конфигурация — подсказка во вкладке Settings. */
+export type RobokassaConfigSource = "settings" | "env" | "demo" | "none";
+
+export interface ResolvedRobokassa {
+  /** null — только в production без ключей и без разрешённого демо-режима. */
+  config: RobokassaConfig | null;
+  source: RobokassaConfigSource;
+}
+
+/**
+ * Демо-магазин Робокассы: общедоступные тестовые ключи. Деньги не
+ * списываются, оплата «проходит» с любой картой (например 4111 1111 1111
+ * 1111, срок 12/30, CVV 123). Нужен, чтобы проверять оплату до регистрации
+ * настоящего магазина.
+ *
+ * ВАЖНО: пароль демо-магазина публичен («qwe»), поэтому в production
+ * демо-режим по умолчанию ВЫКЛЮЧЕН — иначе любой, кто знает InvId, подписал
+ * бы поддельное уведомление об оплате. Включить осознанно можно переменной
+ * ROBOKASSA_DEMO_MODE=1. В разработке демо работает из коробки.
+ */
+export const DEMO_CONFIG: RobokassaConfig = {
+  merchantLogin: "TestMerchant",
+  password1: "qwe",
+  password2: "qwe",
+  hashAlgo: "md5",
+  isTest: true,
+};
+
+/** Разрешён ли демо-режим в этом окружении. */
+export function demoAllowed(): boolean {
+  return process.env.NODE_ENV !== "production" || process.env.ROBOKASSA_DEMO_MODE === "1";
+}
+
+/** Это демо-конфигурация (публичный тестовый магазин)? */
+export function isDemoConfig(config: RobokassaConfig): boolean {
+  return config.merchantLogin === DEMO_CONFIG.merchantLogin;
+}
+
+/** Хоть один настоящий источник ключей задан — значит подключение настроено. */
 export function isRobokassaConfigured(): boolean {
   return Boolean(readConfig());
 }
 
 /**
- * Все настройки из переменных окружения. Возвращает null, если не заданы
+ * Конфигурация из переменных окружения. Возвращает null, если не заданы
  * логин и оба пароля: в этом случае счёт выставить нельзя, но сайт
  * продолжает работать.
  */
@@ -53,6 +91,51 @@ export function readConfig(): RobokassaConfig | null {
     hashAlgo,
     isTest: process.env.ROBOKASSA_TEST_MODE === "1",
   };
+}
+
+/**
+ * Конфигурация из настроек сайта (таблица SiteSetting, вкладка Settings —
+ * её ведёт только FOUNDER). Пароли нигде не хардкодятся: источник правды —
+ * БД или env. Частично заполненный набор считается незаданным: полунастроен-
+ * ный магазин хуже ненастроенного, подпись просто не сойдётся.
+ */
+export function configFromSettings(
+  settings: Record<string, string | undefined>,
+): RobokassaConfig | null {
+  const merchantLogin = settings.robokassaLogin?.trim();
+  const password1 = settings.robokassaPassword1?.trim();
+  const password2 = settings.robokassaPassword2?.trim();
+  if (!merchantLogin || !password1 || !password2) return null;
+
+  const algo = (settings.robokassaHashAlgo?.trim().toLowerCase() ??
+    "md5") as RobokassaHashAlgo;
+  return {
+    merchantLogin,
+    password1,
+    password2,
+    hashAlgo: HASH_ALGOS.includes(algo) ? algo : "md5",
+    isTest: settings.robokassaTestMode === "1",
+  };
+}
+
+/**
+ * Выбор активной конфигурации по приоритету:
+ *   1. Настройки в БД (Settings) — основатель меняет ключи без редеплоя;
+ *   2. Переменные окружения;
+ *   3. Демо-магазин TestMerchant — если разрешён в этом окружении;
+ *   4. null — production без ключей: счетов со ссылками нет, сайт работает.
+ */
+export function pickConfig(
+  settings: Record<string, string | undefined> = {},
+): ResolvedRobokassa {
+  const fromSettings = configFromSettings(settings);
+  if (fromSettings) return { config: fromSettings, source: "settings" };
+
+  const fromEnv = readConfig();
+  if (fromEnv) return { config: fromEnv, source: "env" };
+
+  if (demoAllowed()) return { config: DEMO_CONFIG, source: "demo" };
+  return { config: null, source: "none" };
 }
 
 /**
@@ -152,9 +235,17 @@ export interface BuildPaymentUrlInput {
   extra?: Record<string, string>;
 }
 
-/** Ссылка на форму оплаты, которую показываем клиенту. */
-export function buildPaymentUrl(input: BuildPaymentUrlInput): string | null {
-  const config = readConfig();
+/**
+ * Ссылка на форму оплаты, которую показываем клиенту.
+ *
+ * Конфигурацию можно передать явно (серверный код читает её из настроек БД);
+ * без неё берётся env, а в разработке — демо-магазин.
+ */
+export function buildPaymentUrl(
+  input: BuildPaymentUrlInput,
+  provided?: RobokassaConfig | null,
+): string | null {
+  const config = provided === undefined ? pickConfig().config : provided;
   if (!config) return null;
 
   const outSum = formatOutSum(input.amount);
@@ -186,4 +277,54 @@ export function signatureMatches(expected: string, actual: string | undefined | 
   const b = Buffer.from(String(actual).toUpperCase(), "utf8");
   if (a.length !== b.length) return false;
   return crypto.timingSafeEqual(a, b);
+}
+
+// ---------------------------------------------------------------------------
+// Именованные обёртки под терминологию ТЗ: «сформировать ссылку» и
+// «проверить хеш ResultURL». Логика та же, что у buildPaymentUrl /
+// resultSignature + signatureMatches — дублировать подпись нельзя.
+// ---------------------------------------------------------------------------
+
+export interface GeneratePaymentLinkInput {
+  /** Наш идентификатор счёта — Робокасса вернёт его как InvId. */
+  invId: number;
+  /** Сумма в копейках (внутри сайта деньги только целыми копейками). */
+  amountKopecks: number;
+  description: string;
+  email?: string | null;
+  extra?: Record<string, string>;
+}
+
+/** Формирует подписанную ссылку на оплату (SignatureValue по Password1). */
+export function generatePaymentLink(
+  input: GeneratePaymentLinkInput,
+  config?: RobokassaConfig | null,
+): string | null {
+  return buildPaymentUrl(
+    {
+      amount: input.amountKopecks,
+      invId: input.invId,
+      description: input.description,
+      email: input.email,
+      extra: input.extra,
+    },
+    config,
+  );
+}
+
+/**
+ * Проверяет подпись серверного уведомления (ResultURL): хеш считается по
+ * Password2 — это и есть подтверждение, что вызов пришёл от Робокассы.
+ */
+export function verifyPaymentHash(
+  config: RobokassaConfig,
+  params: {
+    outSum: string;
+    invId: number | string;
+    signatureValue: string | undefined | null;
+    extra?: Record<string, string>;
+  },
+): boolean {
+  const expected = resultSignature(config, params.outSum, params.invId, params.extra ?? {});
+  return signatureMatches(expected, params.signatureValue);
 }

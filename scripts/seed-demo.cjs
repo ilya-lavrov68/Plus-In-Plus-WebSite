@@ -335,6 +335,7 @@ const posts = [
 ];
 
 const users = [
+  ["founder@plusinplus.test", "FounderPassphrase123", "Demo", "Founder", "FOUNDER", 0],
   ["admin@plusinplus.test", "AdminPassphrase123", "Demo", "Admin", "ADMIN", 0],
   ["manager@plusinplus.test", "ManagerPassphrase123", "Anna", "Morozova", "MANAGER", 0],
   ["user1@plusinplus.test", "ClientPassphrase123", "Ivan", "Petrov", "USER", 0],

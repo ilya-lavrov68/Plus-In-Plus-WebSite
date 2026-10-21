@@ -1,13 +1,17 @@
-// Grants or revokes the ADMIN role for an existing account.
+// Grants or revokes a staff role for an existing account.
 //
-//   npm run db:promote-admin                              → list accounts (id, email, role)
-//   npm run db:promote-admin -- owner@example.com          → promote to ADMIN
-//   npm run db:promote-admin -- owner@example.com --revoke → back to USER
+//   npm run db:promote-admin                               → list accounts (id, email, role)
+//   npm run db:promote-admin -- owner@example.com           → promote to ADMIN
+//   npm run db:promote-admin -- owner@example.com --founder → promote to FOUNDER
+//   npm run db:promote-admin -- owner@example.com --manager → promote to MANAGER
+//   npm run db:promote-admin -- owner@example.com --revoke  → back to USER
 //
-// The app never creates administrators itself (registration always writes USER), so
-// this is the supported manual step. It writes directly to the database, bypassing
-// validation and the activity log; the change applies to the next login, never to a
-// live session. Add the production TURSO_DATABASE_URL / TURSO_AUTH_TOKEN to target
+// The app never creates staff itself (registration always writes USER), so
+// this is the supported manual step. FOUNDER in particular can ONLY be granted
+// here: the admin UI refuses to create or modify founders (invulnerability
+// rule). The script writes directly to the database, bypassing validation and
+// the activity log; the change applies to the next login, never to a live
+// session. Add the production TURSO_DATABASE_URL / TURSO_AUTH_TOKEN to target
 // Turso instead of the local file.
 const { loadDatabaseModule } = require("./lib/database-module.cjs");
 
@@ -15,6 +19,8 @@ async function main() {
   const [emailArg, ...flags] = process.argv.slice(2);
   const email = emailArg?.trim().toLowerCase();
   const revoke = flags.includes("--revoke");
+  const founder = flags.includes("--founder");
+  const manager = flags.includes("--manager");
 
   const { resolveDatabaseConfig, describeDatabaseUrl } = loadDatabaseModule();
   const config = resolveDatabaseConfig({ allowDevelopmentFallback: true });
@@ -35,9 +41,9 @@ async function main() {
         return;
       }
       for (const row of rows.rows) {
-        console.log(`  ${String(row.role).padEnd(5)} ${String(row.email).padEnd(32)} ${String(row.createdAt)}  ${String(row.id)}`);
+        console.log(`  ${String(row.role).padEnd(7)} ${String(row.email).padEnd(32)} ${String(row.createdAt)}  ${String(row.id)}`);
       }
-      console.log("[admin] Promote with: npm run db:promote-admin -- <email>");
+      console.log("[admin] Promote with: npm run db:promote-admin -- <email> [--founder|--manager|--revoke]");
       return;
     }
 
@@ -52,10 +58,18 @@ async function main() {
       process.exit(1);
     }
 
-    const role = revoke ? "USER" : "ADMIN";
+    const role = revoke ? "USER" : founder ? "FOUNDER" : manager ? "MANAGER" : "ADMIN";
     if (existing.rows[0].role === role) {
       console.log(`[admin] ${email} already has the ${role} role — nothing to do.`);
       return;
+    }
+    // Demoting a founder is possible only here (the UI forbids it) — make the
+    // operator notice, this removes the account's invulnerability.
+    if (existing.rows[0].role === "FOUNDER" && role !== "FOUNDER") {
+      console.warn(`[admin] WARNING: ${email} is the FOUNDER. Demoting to ${role} removes founder protection (Settings, finances, locked orders).`);
+    }
+    if (role === "FOUNDER") {
+      console.warn(`[admin] NOTE: FOUNDER is invulnerable in the admin UI and sees Settings/finances. Keep exactly one founder account.`);
     }
 
     await client.execute({ sql: "update users set role = ?, updatedAt = ? where email = ?", args: [role, new Date().toISOString().replace("Z", "+00:00"), email] });

@@ -64,6 +64,9 @@ export interface AdminOrderView {
   currency: string;
   customerNote: string | null;
   managerNote: string | null;
+  /** Заблокирован от редактирования: править может только FOUNDER. */
+  isLocked: boolean;
+  lockedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
   priceAgreedAt: Date | null;
@@ -84,6 +87,8 @@ type OrderRow = {
   currency: string;
   customerNote: string | null;
   managerNote: string | null;
+  isLocked?: boolean;
+  lockedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
   priceAgreedAt: Date | null;
@@ -105,6 +110,8 @@ function toAdminOrderView(row: OrderRow): AdminOrderView {
     currency: row.currency,
     customerNote: row.customerNote,
     managerNote: row.managerNote,
+    isLocked: Boolean(row.isLocked),
+    lockedAt: row.lockedAt ?? null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     priceAgreedAt: row.priceAgreedAt,

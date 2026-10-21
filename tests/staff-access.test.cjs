@@ -29,7 +29,7 @@ Module._load = function (name, parent, isMain) {
   return originalLoad.call(this, name, parent, isMain);
 };
 
-const { requireAdmin, requireStaff } = require("../lib/admin-session.ts");
+const { requireAdmin, requireFounder, requireStaff } = require("../lib/admin-session.ts");
 
 const ID = "usr-1";
 
@@ -110,4 +110,53 @@ test("роль, которой нет в списке, никуда не про�
   login("SUPERUSER");
   assert.equal(await requireAdmin(), null);
   assert.equal(await requireStaff(), null);
+});
+
+// ---------------------------------------------------------------------------
+// Основатель (FOUNDER)
+// ---------------------------------------------------------------------------
+
+test("основатель проходит везде: админка, заявки и founder-only зоны", async () => {
+  login("FOUNDER");
+  const admin = await requireAdmin();
+  assert.ok(admin, "основатель управляет сайтом");
+  assert.equal(admin.role, "FOUNDER");
+  assert.equal(admin.isFounder, true);
+
+  const founder = await requireFounder();
+  assert.ok(founder, "Settings и финансы — основателю");
+  assert.equal(founder.role, "FOUNDER");
+
+  const staff = await requireStaff();
+  assert.ok(staff);
+  assert.equal(staff.isAdmin, true);
+  assert.equal(staff.isFounder, true, "по isFounder форма цены разрешает правку заблокированного заказа");
+});
+
+test("обычный админ не проходит в founder-only зоны", async () => {
+  login("ADMIN");
+  // Settings (ключи Робокассы) и финансы обычному админу недоступны.
+  assert.equal(await requireFounder(), null);
+  const admin = await requireAdmin();
+  assert.equal(admin.isFounder, false);
+});
+
+test("менеджер тем более не проходит в founder-only зоны", async () => {
+  login("MANAGER");
+  assert.equal(await requireFounder(), null);
+});
+
+test("снятая в базе роль FOUNDER не живёт в старом токене", async () => {
+  // В токене FOUNDER, в базе уже ADMIN: эффективная роль — меньшая.
+  login("FOUNDER", "ADMIN");
+  assert.equal(await requireFounder(), null, "founder-доступ по устаревшему токену запрещён");
+  const admin = await requireAdmin();
+  assert.ok(admin, "админкой пользоваться ещё можно");
+  assert.equal(admin.isFounder, false);
+});
+
+test("админ не повышается до основателя задним числом через базу", async () => {
+  // В токене ADMIN, в базе поставили FOUNDER: нужен новый вход.
+  login("ADMIN", "FOUNDER");
+  assert.equal(await requireFounder(), null, "тихое повышение до основателя невозможно");
 });
