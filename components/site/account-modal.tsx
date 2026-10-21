@@ -4,14 +4,32 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { ArrowUpRight, FileText, LogOut, Pencil, ShieldCheck, Upload } from "lucide-react";
+import {
+  ArrowUpRight,
+  FileText,
+  LogOut,
+  Pencil,
+  ShieldCheck,
+  Upload,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import { loginUser, logout, registerUser, updateUserProfile } from "@/app/actions/auth";
+import {
+  loginUser,
+  logout,
+  registerUser,
+  updateUserProfile,
+} from "@/app/actions/auth";
 import type { AuthActionResult } from "@/app/actions/auth";
 import { UserAvatar } from "@/components/site/user-avatar";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -26,10 +44,23 @@ export interface AccountModalProps {
 }
 
 function FormError({ message }: { message: string | null }) {
-  return message ? <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-800">{message}</p> : null;
+  return message ? (
+    <p
+      role="alert"
+      className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+    >
+      {message}
+    </p>
+  ) : null;
 }
 
-function ProfilePanel({ user, onClose }: { user: UserProfile; onClose: () => void }) {
+function ProfilePanel({
+  user,
+  onClose,
+}: {
+  user: UserProfile;
+  onClose: () => void;
+}) {
   const t = useTranslations("auth");
   const tc = useTranslations("common");
   const router = useRouter();
@@ -50,10 +81,15 @@ function ProfilePanel({ user, onClose }: { user: UserProfile; onClose: () => voi
     setNotice(null);
     try {
       const result = await updateUserProfile(formData);
-      if (!result.ok) { setError(result.error ?? t("saveFailed")); return; }
-      // Fetch the DB-backed session. No client-supplied id, role or profile claims.
+      if (!result.ok) {
+        setError(result.error ?? t("saveFailed"));
+        return;
+      }
       const refreshed = await update();
-      if (!refreshed?.user) { setError(t("saveFailedReload")); return; }
+      if (!refreshed?.user) {
+        setError(t("saveFailedReload"));
+        return;
+      }
       setEditing(false);
       setFilename(null);
       setNotice(t("profileUpdated"));
@@ -71,8 +107,10 @@ function ProfilePanel({ user, onClose }: { user: UserProfile; onClose: () => voi
     setError(null);
     try {
       const result = await logout();
-      if (!result.ok) { setError(result.error ?? t("logoutFailed")); return; }
-      // Clear Auth.js's client cache and broadcast the server-side logout to other tabs.
+      if (!result.ok) {
+        setError(result.error ?? t("logoutFailed"));
+        return;
+      }
       await signOut({ redirect: false, redirectTo: "/" });
       onClose();
       if (pathname.startsWith("/admin")) router.replace("/");
@@ -86,15 +124,15 @@ function ProfilePanel({ user, onClose }: { user: UserProfile; onClose: () => voi
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4 rounded-xl bg-slate-50 p-4">
+      <div className="flex items-center gap-4 rounded-xl border border-border bg-secondary/60 p-4">
         <UserAvatar user={user} />
         <div className="min-w-0">
-          <p className="break-words text-lg font-semibold text-[#052B42]">{profileName(user) || user.email}</p>
-          <p className="break-all text-sm text-[#052B42]">{user.email}</p>
-          {/* Роль показываем явно: сотрудник должен понимать, с какими правами
-              он вошёл. */}
+          <p className="break-words text-lg font-semibold text-foreground">
+            {profileName(user) || user.email}
+          </p>
+          <p className="break-all text-sm text-muted-foreground">{user.email}</p>
           {user.role === "ADMIN" || user.role === "MANAGER" ? (
-            <p className="mt-1 text-xs font-medium text-[#397248]">
+            <p className="mt-1 text-xs font-medium text-foreground">
               {user.role === "ADMIN" ? t("adminSession") : t("managerSession")}
             </p>
           ) : null}
@@ -107,17 +145,39 @@ function ProfilePanel({ user, onClose }: { user: UserProfile; onClose: () => voi
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="profile-first-name">{tc("firstName")}</Label>
-                <Input id="profile-first-name" name="firstName" autoComplete="given-name" maxLength={80} defaultValue={user.firstName ?? ""} />
+                <Input
+                  id="profile-first-name"
+                  name="firstName"
+                  autoComplete="given-name"
+                  maxLength={80}
+                  defaultValue={user.firstName ?? ""}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="profile-last-name">{tc("lastName")}</Label>
-                <Input id="profile-last-name" name="lastName" autoComplete="family-name" maxLength={80} defaultValue={user.lastName ?? ""} />
+                <Input
+                  id="profile-last-name"
+                  name="lastName"
+                  autoComplete="family-name"
+                  maxLength={80}
+                  defaultValue={user.lastName ?? ""}
+                />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="profile-avatar" className="inline-flex items-center gap-2"><Upload aria-hidden="true" className="h-4 w-4" />{tc("avatar")}</Label>
+              <Label
+                htmlFor="profile-avatar"
+                className="inline-flex items-center gap-2"
+              >
+                <Upload aria-hidden="true" className="h-4 w-4" />
+                {tc("avatar")}
+              </Label>
               <Input
-                id="profile-avatar" name="avatar" type="file" accept={IMAGE_ACCEPT} aria-describedby="avatar-help"
+                id="profile-avatar"
+                name="avatar"
+                type="file"
+                accept={IMAGE_ACCEPT}
+                aria-describedby="avatar-help"
                 onChange={(event) => {
                   const file = event.target.files?.[0];
                   setError(null);
@@ -130,47 +190,87 @@ function ProfilePanel({ user, onClose }: { user: UserProfile; onClose: () => voi
                   setFilename(file?.name ?? null);
                 }}
               />
-              <p id="avatar-help" className="text-xs leading-relaxed text-[#052B42]">
+              <p
+                id="avatar-help"
+                className="text-xs leading-relaxed text-muted-foreground"
+              >
                 {t("avatarHelp")}
                 {filename ? ` ${t("avatarSelected", { name: filename })}` : ""}
               </p>
             </div>
             <FormError message={error} />
             <div className="flex gap-3">
-              <Button type="submit" className="flex-1">{pending ? tc("saving") : tc("save")}</Button>
-              <Button type="button" variant="outline" onClick={() => { setEditing(false); setError(null); setFilename(null); }}>{tc("cancel")}</Button>
+              <Button type="submit" className="flex-1">
+                {pending ? tc("saving") : tc("save")}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setEditing(false);
+                  setError(null);
+                  setFilename(null);
+                }}
+              >
+                {tc("cancel")}
+              </Button>
             </div>
           </fieldset>
         </form>
       ) : (
         <div className="space-y-3">
-          {notice ? <p role="status" className="text-sm text-[#397248]">{notice}</p> : null}
+          {notice ? (
+            <p role="status" className="text-sm text-foreground">
+              {notice}
+            </p>
+          ) : null}
           <FormError message={error} />
-          <Button type="button" variant="outline" className="w-full gap-2" disabled={pending} onClick={() => { setEditing(true); setError(null); setNotice(null); }}>
-            <Pencil aria-hidden="true" className="h-4 w-4" />{t("editProfile")}
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full gap-2"
+            disabled={pending}
+            onClick={() => {
+              setEditing(true);
+              setError(null);
+              setNotice(null);
+            }}
+          >
+            <Pencil aria-hidden="true" className="h-4 w-4" />
+            {t("editProfile")}
           </Button>
           <Link
             href="/orders"
             onClick={onClose}
-            className="flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium text-[#052B42] underline-offset-4 hover:underline"
+            className="flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium text-foreground underline-offset-4 hover:underline"
           >
             <FileText aria-hidden="true" className="h-4 w-4" />
             {t("myOrders")}
           </Link>
 
-          {/* Менеджер идёт в свою часть — управление сайтом ему не показываем. */}
           {user.role === "ADMIN" || user.role === "MANAGER" ? (
             <Link
-              href={user.role === "ADMIN" ? "/admin/dashboard" : "/manager/orders"}
+              href={
+                user.role === "ADMIN" ? "/admin/dashboard" : "/manager/orders"
+              }
               onClick={onClose}
-              className="flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium text-[#052B42] underline-offset-4 hover:underline"
+              className="flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium text-foreground underline-offset-4 hover:underline"
             >
-              {user.role === "ADMIN" ? t("adminDashboard") : t("managerDashboard")}
+              {user.role === "ADMIN"
+                ? t("adminDashboard")
+                : t("managerDashboard")}
               <ArrowUpRight aria-hidden="true" className="h-4 w-4" />
             </Link>
           ) : null}
-          <Button type="button" variant="ghost" className="w-full gap-2" disabled={pending} onClick={handleLogout}>
-            <LogOut aria-hidden="true" className="h-4 w-4" />{pending ? t("loggingOut") : t("logout")}
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full gap-2"
+            disabled={pending}
+            onClick={handleLogout}
+          >
+            <LogOut aria-hidden="true" className="h-4 w-4" />
+            {pending ? t("loggingOut") : t("logout")}
           </Button>
         </div>
       )}
@@ -178,7 +278,6 @@ function ProfilePanel({ user, onClose }: { user: UserProfile; onClose: () => voi
   );
 }
 
-/** One dialog for authentication, profile management and logout. */
 export function AccountModal({ open, onOpenChange }: AccountModalProps) {
   const t = useTranslations("auth");
   const router = useRouter();
@@ -204,13 +303,12 @@ export function AccountModal({ open, onOpenChange }: AccountModalProps) {
     onOpenChange(value);
   }
 
-  /**
-   * Admin logins go straight to the dashboard; a regular login or a registration
-   * closes the modal and refreshes the session so the header shows the avatar.
-   */
   async function finishLogin(result: AuthActionResult) {
     const refreshed = await update();
-    if (!refreshed?.user) { setError(t("sessionRefreshFailed")); return; }
+    if (!refreshed?.user) {
+      setError(t("sessionRefreshFailed"));
+      return;
+    }
     setAdminMode(false);
     if (result.isAdmin && result.redirectTo) {
       onOpenChange(false);
@@ -228,8 +326,15 @@ export function AccountModal({ open, onOpenChange }: AccountModalProps) {
     setError(null);
     setPending(true);
     try {
-      const result = await loginUser({ email: String(data.get("email") ?? ""), password: String(data.get("password") ?? ""), adminMode });
-      if (!result.ok) { setError(result.error ?? t("loginFailed")); return; }
+      const result = await loginUser({
+        email: String(data.get("email") ?? ""),
+        password: String(data.get("password") ?? ""),
+        adminMode,
+      });
+      if (!result.ok) {
+        setError(result.error ?? t("loginFailed"));
+        return;
+      }
       await finishLogin(result);
     } catch {
       setError(t("genericError"));
@@ -246,19 +351,27 @@ export function AccountModal({ open, onOpenChange }: AccountModalProps) {
     const password = String(data.get("password") ?? "");
     const confirmPassword = String(data.get("confirmPassword") ?? "");
     setError(null);
-    if (password !== confirmPassword) { setError(t("passwordsDoNotMatch")); return; }
+    if (password !== confirmPassword) {
+      setError(t("passwordsDoNotMatch"));
+      return;
+    }
     setPending(true);
     try {
       const result = await registerUser({
-        firstName: String(data.get("firstName") ?? ""), lastName: String(data.get("lastName") ?? ""),
-        email, password, confirmPassword,
+        firstName: String(data.get("firstName") ?? ""),
+        lastName: String(data.get("lastName") ?? ""),
+        email,
+        password,
+        confirmPassword,
       });
       if (!result.ok) {
-        if (result.accountCreated) { switchTab("login"); setLoginEmail(email); }
+        if (result.accountCreated) {
+          switchTab("login");
+          setLoginEmail(email);
+        }
         setError(result.error ?? t("registerFailed"));
         return;
       }
-      // Registration logs the new account in, so it closes the modal like a login.
       await finishLogin(result);
     } catch {
       setError(t("genericError"));
@@ -277,41 +390,105 @@ export function AccountModal({ open, onOpenChange }: AccountModalProps) {
         }}
       >
         <DialogHeader>
-          <DialogTitle>{session?.user ? t("yourAccount") : t("welcome")}</DialogTitle>
+          <DialogTitle>
+            {session?.user ? t("yourAccount") : t("welcome")}
+          </DialogTitle>
           <DialogDescription>
             {session?.user ? t("manageProfile") : t("joinCommunity")}
           </DialogDescription>
         </DialogHeader>
 
-        {session?.user ? <ProfilePanel user={session.user} onClose={() => onOpenChange(false)} /> : status === "loading" ? (
-          <p role="status" className="py-8 text-center text-sm text-[#052B42]">{t("loadingAccount")}</p>
+        {session?.user ? (
+          <ProfilePanel
+            user={session.user}
+            onClose={() => onOpenChange(false)}
+          />
+        ) : status === "loading" ? (
+          <p
+            role="status"
+            className="py-8 text-center text-sm text-muted-foreground"
+          >
+            {t("loadingAccount")}
+          </p>
         ) : (
           <Tabs value={tab} onValueChange={switchTab}>
             <TabsList className="mb-3 grid w-full grid-cols-2">
-              <TabsTrigger value="login" disabled={pending}>{t("login")}</TabsTrigger>
-              <TabsTrigger value="register" disabled={pending}>{t("register")}</TabsTrigger>
+              <TabsTrigger value="login" disabled={pending}>
+                {t("login")}
+              </TabsTrigger>
+              <TabsTrigger value="register" disabled={pending}>
+                {t("register")}
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="login">
               <form aria-label={t("login")} onSubmit={handleLogin}>
                 <fieldset disabled={pending} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="login-email">{t("email")}</Label>
-                    <Input id="login-email" name="email" type="email" autoComplete="email" required maxLength={254} defaultValue={loginEmail} />
+                    <Input
+                      id="login-email"
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      maxLength={254}
+                      defaultValue={loginEmail}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="login-password">{t("password")}</Label>
-                    <Input id="login-password" name="password" type="password" autoComplete="current-password" required maxLength={72} />
+                    <Input
+                      id="login-password"
+                      name="password"
+                      type="password"
+                      autoComplete="current-password"
+                      required
+                      maxLength={72}
+                    />
                   </div>
-                  <div className={cn("flex items-center justify-between gap-4 rounded-lg border p-3 transition-colors", adminMode ? "border-[#397248] bg-green-50" : "border-border")}>
+                  <div
+                    className={cn(
+                      "flex items-center justify-between gap-4 rounded-lg border p-3 transition-colors",
+                      adminMode
+                        ? "border-primary bg-secondary"
+                        : "border-border"
+                    )}
+                  >
                     <div>
-                      <Label htmlFor="admin-mode" className="flex cursor-pointer items-center gap-2"><ShieldCheck aria-hidden="true" className="h-4 w-4" />{t("adminMode")}</Label>
-                      <p id="admin-mode-help" className="mt-1 text-xs text-[#052B42]">{t("adminModeHelp")}</p>
+                      <Label
+                        htmlFor="admin-mode"
+                        className="flex cursor-pointer items-center gap-2"
+                      >
+                        <ShieldCheck aria-hidden="true" className="h-4 w-4" />
+                        {t("adminMode")}
+                      </Label>
+                      <p
+                        id="admin-mode-help"
+                        className="mt-1 text-xs text-muted-foreground"
+                      >
+                        {t("adminModeHelp")}
+                      </p>
                     </div>
-                    <Switch id="admin-mode" aria-describedby="admin-mode-help" checked={adminMode} onCheckedChange={(value) => { setAdminMode(value); setError(null); }} disabled={pending} />
+                    <Switch
+                      id="admin-mode"
+                      aria-describedby="admin-mode-help"
+                      checked={adminMode}
+                      onCheckedChange={(value) => {
+                        setAdminMode(value);
+                        setError(null);
+                      }}
+                      disabled={pending}
+                    />
                   </div>
                   <FormError message={error} />
-                  <Button type="submit" className="w-full">{pending ? t("signingIn") : t("loginButton")}</Button>
-                  <button type="button" className="font-medium w-full rounded text-sm text-[#052B42] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => switchTab("register")}>
+                  <Button type="submit" className="w-full">
+                    {pending ? t("signingIn") : t("loginButton")}
+                  </Button>
+                  <button
+                    type="button"
+                    className="w-full rounded text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    onClick={() => switchTab("register")}
+                  >
                     {t("noAccount")}
                   </button>
                 </fieldset>
@@ -322,29 +499,78 @@ export function AccountModal({ open, onOpenChange }: AccountModalProps) {
                 <fieldset disabled={pending} className="space-y-4">
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="register-first-name">{t("firstName")}</Label>
-                      <Input id="register-first-name" name="firstName" autoComplete="given-name" required maxLength={80} />
+                      <Label htmlFor="register-first-name">
+                        {t("firstName")}
+                      </Label>
+                      <Input
+                        id="register-first-name"
+                        name="firstName"
+                        autoComplete="given-name"
+                        required
+                        maxLength={80}
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="register-last-name">{t("lastName")}</Label>
-                      <Input id="register-last-name" name="lastName" autoComplete="family-name" required maxLength={80} />
+                      <Label htmlFor="register-last-name">
+                        {t("lastName")}
+                      </Label>
+                      <Input
+                        id="register-last-name"
+                        name="lastName"
+                        autoComplete="family-name"
+                        required
+                        maxLength={80}
+                      />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="register-email">{t("email")}</Label>
-                    <Input id="register-email" name="email" type="email" autoComplete="email" required maxLength={254} />
+                    <Input
+                      id="register-email"
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      maxLength={254}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="register-password">{t("password")}</Label>
-                    <Input id="register-password" name="password" type="password" autoComplete="new-password" required minLength={12} maxLength={72} aria-describedby="password-help" />
-                    <p id="password-help" className="text-xs text-[#052B42]">{t("passwordHelp")}</p>
+                    <Input
+                      id="register-password"
+                      name="password"
+                      type="password"
+                      autoComplete="new-password"
+                      required
+                      minLength={12}
+                      maxLength={72}
+                      aria-describedby="password-help"
+                    />
+                    <p
+                      id="password-help"
+                      className="text-xs text-muted-foreground"
+                    >
+                      {t("passwordHelp")}
+                    </p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="register-confirm-password">{t("confirmPassword")}</Label>
-                    <Input id="register-confirm-password" name="confirmPassword" type="password" autoComplete="new-password" required minLength={12} maxLength={72} />
+                    <Label htmlFor="register-confirm-password">
+                      {t("confirmPassword")}
+                    </Label>
+                    <Input
+                      id="register-confirm-password"
+                      name="confirmPassword"
+                      type="password"
+                      autoComplete="new-password"
+                      required
+                      minLength={12}
+                      maxLength={72}
+                    />
                   </div>
                   <FormError message={error} />
-                  <Button type="submit" className="w-full">{pending ? t("creatingAccount") : t("registerButton")}</Button>
+                  <Button type="submit" className="w-full">
+                    {pending ? t("creatingAccount") : t("registerButton")}
+                  </Button>
                 </fieldset>
               </form>
             </TabsContent>

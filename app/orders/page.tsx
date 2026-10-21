@@ -37,7 +37,7 @@ function formatDate(value: Date | null): string {
  */
 export default async function CustomerOrdersPage() {
   const [session, t] = await Promise.all([auth(), getRequestTranslations("orders")]);
-  if (!session?.user?.id) redirect("/?auth=login");
+  if (!session?.user?.id) redirect("/login");
 
   const orders = await getCustomerOrders();
 
@@ -125,7 +125,7 @@ export default async function CustomerOrdersPage() {
                     ) : null}
 
                     {payable ? (
-                      <Button asChild className="bg-[#00C56D] text-[#052B42] hover:bg-[#00B361]">
+                      <Button asChild>
                         <a href={payable.paymentUrl ?? undefined}>
                           {t("pay")} {formatKopecks(payable.amount, currency)}
                         </a>

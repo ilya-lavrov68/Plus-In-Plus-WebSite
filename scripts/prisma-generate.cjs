@@ -42,13 +42,20 @@ function generatePrismaClient() {
     return 0;
   }
 
-  const result = spawnSync(process.execPath, [prismaCli, "generate"], {
+  const result = spawnSync(process.execPath, [prismaCli, "generate", "--no-engine"], {
     cwd: rootDir,
     stdio: "inherit",
     env: createGenerateEnv(),
   });
 
   if (result.status === 0) {
+    const generatedClassFile = path.join(rootDir, "lib", "generated", "prisma", "internal", "class.ts");
+    if (fs.existsSync(generatedClassFile)) {
+      const content = fs.readFileSync(generatedClassFile, "utf8");
+      if (content.includes('"copyEngine": false')) {
+        fs.writeFileSync(generatedClassFile, content.replace('"copyEngine": false', '"copyEngine": true'));
+      }
+    }
     return 0;
   }
 

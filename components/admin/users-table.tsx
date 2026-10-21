@@ -111,7 +111,7 @@ export function UsersTable({ users }: { users: AdminUserRow[] }) {
       value: (user) => (user.isBlocked ? "Blocked" : "Active"),
       cell: (user) =>
         user.isBlocked ? (
-          <Badge variant="outline" className="border-red-300 text-red-700">
+          <Badge variant="outline" className="border-red-500/35 bg-red-500/15 text-red-300">
             {t("blocked")}
           </Badge>
         ) : (

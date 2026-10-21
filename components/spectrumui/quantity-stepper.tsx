@@ -275,22 +275,16 @@ export function QuantityStepper({
   )
 
   const buttonClasses = cn(
-    "flex shrink-0 touch-manipulation items-center justify-center rounded-full text-neutral-600 transition-colors",
-    "hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800",
-    "focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-neutral-950 dark:focus-visible:ring-neutral-300",
+    "flex shrink-0 touch-manipulation items-center justify-center rounded-full text-muted-foreground transition-colors",
+    "hover:bg-white/[0.08] hover:text-foreground",
+    "focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring",
     button,
   )
-
-  // The squish rides the press state (whileTap), so it holds steady during
-  // hold-to-repeat instead of re-triggering on every repeated step
-  const pressSquish =
-    shouldReduceMotion || disabled ? undefined : { scale: 0.85 }
 
   const rollTransition = shouldReduceMotion
     ? { duration: 0 }
     : flash > 0
-      ? // Never roll while the boundary shake is running
-        { duration: 0 }
+      ? { duration: 0 }
       : repeating
         ? ROLL_REPEAT_TRANSITION
         : ROLL_SPRING
@@ -300,9 +294,7 @@ export function QuantityStepper({
       role="group"
       aria-label="Quantity"
       className={cn(
-        "inline-flex select-none items-center rounded-full bg-white",
-        "shadow-[0px_0px_0px_1px_rgba(0,0,0,0.06),0px_1px_2px_0px_rgba(0,0,0,0.04),0px_2px_4px_0px_rgba(0,0,0,0.04)]",
-        "dark:border dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-none",
+        "inline-flex select-none items-center rounded-full border border-border bg-card",
         disabled && "pointer-events-none opacity-50",
         container,
         className,
@@ -317,7 +309,6 @@ export function QuantityStepper({
         onPointerUp={stopRepeat}
         onPointerLeave={stopRepeat}
         onPointerCancel={stopRepeat}
-        whileTap={pressSquish}
         transition={shouldReduceMotion ? { duration: 0 } : SPRING_SNAPPY}
         className={cn(buttonClasses, atMin && "opacity-40")}
       >
@@ -335,10 +326,8 @@ export function QuantityStepper({
         animate={shakeControls}
         className={cn(
           "flex items-center justify-center overflow-hidden px-1 font-medium tabular-nums transition-colors",
-          "focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-neutral-950 dark:focus-visible:ring-neutral-300",
-          flash > 0
-            ? "text-rose-500 dark:text-rose-400"
-            : "text-neutral-900 dark:text-neutral-100",
+          "focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring",
+          flash > 0 ? "text-red-400" : "text-foreground",
           valueClasses,
         )}
       >
@@ -367,7 +356,6 @@ export function QuantityStepper({
         onPointerUp={stopRepeat}
         onPointerLeave={stopRepeat}
         onPointerCancel={stopRepeat}
-        whileTap={pressSquish}
         transition={shouldReduceMotion ? { duration: 0 } : SPRING_SNAPPY}
         className={cn(buttonClasses, atMax && "opacity-40")}
       >

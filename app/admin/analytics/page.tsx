@@ -166,7 +166,7 @@ export default async function AdminAnalyticsPage() {
                       aria-label={t("analyticsShare", { count: page.views })}
                     >
                       <div
-                        className="h-full rounded-full bg-[#052B42]"
+                        className="h-full rounded-full bg-primary"
                         style={{ width: `${Math.round((page.views / maxPageViews) * 100)}%` }}
                       />
                     </div>
@@ -235,7 +235,7 @@ export default async function AdminAnalyticsPage() {
                 <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-1">
                   {/* Высота столбца — доля от самого удачного дня. */}
                   <div
-                    className="w-full rounded-t bg-[#00C56D]"
+                    className="w-full rounded-t bg-primary"
                     style={{ height: `${Math.max(4, Math.round((day.views / maxDayViews) * 100))}%` }}
                     title={`${day.date}: ${day.views}`}
                   />

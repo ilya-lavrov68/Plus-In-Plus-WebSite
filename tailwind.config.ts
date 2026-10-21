@@ -26,9 +26,6 @@ const config: Config = {
       transitionTimingFunction: {
         DEFAULT: "cubic-bezier(0, 0, 0.2, 1)",
       },
-      // Latin: Google Sans Flex. Cyrillic: Inter (Google Sans Flex has no
-      // Cyrillic subset, so an explicit Cyrillic-capable fallback keeps the
-      // Russian interface from dropping to a system font and getting thinner).
       fontFamily: {
         sans: ["Google Sans Flex", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
         "sans-flex": ["Google Sans Flex", "Inter", "sans-serif"],
@@ -36,7 +33,6 @@ const config: Config = {
         heading: ["Geist", "Inter", "sans-serif"],
         body: ["Google Sans Flex", "Inter", "sans-serif"],
       },
-      // Explicit weights so the same numbers apply to both locales.
       fontWeight: {
         normal: "400",
         medium: "500",
@@ -49,9 +45,6 @@ const config: Config = {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
-        // Brand colors from the mockups: flat fills only, no gradients.
-        navy: "#052B42",
-        lavender: "#D9E1FF",
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",

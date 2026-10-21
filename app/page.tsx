@@ -1,39 +1,24 @@
-import type { Metadata } from "next";
-
-import { CategoriesSection } from "@/components/site/categories-section";
-import { FeaturesSection } from "@/components/site/features-section";
-import { HeroSection } from "@/components/site/hero-section";
-import { NewsSection } from "@/components/site/news-section";
-import { PartnersSection } from "@/components/site/partners-section";
-import { getPublishedPosts, toNewsItem } from "@/lib/data";
-import { createPageMetadata } from "@/lib/seo";
-import { getRequestLocale } from "@/lib/request-locale";
-import { getRequestTranslations } from "@/lib/server-i18n";
+import { BlogSection } from "@/components/site/blog-section";
+import { Community } from "@/components/site/community";
+import { CtaSection } from "@/components/site/cta-section";
+import { Features } from "@/components/site/features";
+import { Hero } from "@/components/site/hero";
+import { getPublishedPosts } from "@/lib/data";
+import { mergeCatalogPosts } from "@/lib/studio-catalog";
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getRequestTranslations("metadata");
-  const locale = await getRequestLocale();
-  return createPageMetadata({
-    title: t("home"),
-    description: t("homeDescription"),
-    path: "/",
-    locale,
-  });
-}
-
 export default async function HomePage() {
-  const posts = await getPublishedPosts();
-  const newsItems = posts.map(toNewsItem);
+  const dbPosts = await getPublishedPosts();
+  const posts = mergeCatalogPosts(dbPosts).slice(0, 3);
 
   return (
     <>
-      <HeroSection />
-      <CategoriesSection />
-      <FeaturesSection />
-      <PartnersSection />
-      <NewsSection items={newsItems} />
+      <Hero />
+      <Features />
+      <Community />
+      <BlogSection id="news" heading="News from Plus In Plus" posts={posts} />
+      <CtaSection />
     </>
   );
 }

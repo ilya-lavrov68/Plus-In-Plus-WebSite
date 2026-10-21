@@ -7,7 +7,6 @@ import { useLocale, useTranslations } from "next-intl";
 
 import { localizedPath, localeFromPath, type Locale } from "@/i18n";
 
-/** Native names of the languages: they must not be translated. */
 const labels: Record<Locale, string> = { en: "English", ru: "Русский" };
 
 export function LanguageSwitcher() {
@@ -17,7 +16,6 @@ export function LanguageSwitcher() {
   const [open, setOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  // The visible URL wins over the provider locale right after a switch.
   const locale = localeFromPath(pathname) || activeLocale;
 
   useEffect(() => {
@@ -39,7 +37,7 @@ export function LanguageSwitcher() {
       document.cookie = `pip-locale=${nextLocale}; path=/; max-age=31536000; samesite=lax`;
       document.documentElement.dataset.localeTransition = "true";
     } catch {
-      // Navigation still works when storage is disabled.
+      // Storage disabled fallback
     }
 
     setOpen(false);
@@ -62,7 +60,7 @@ export function LanguageSwitcher() {
         aria-expanded={open}
         aria-haspopup="listbox"
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-navy transition-colors duration-200 ease-out hover:bg-navy/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-200 ease-out hover:bg-white/[0.07] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Languages aria-hidden="true" className="h-5 w-5" strokeWidth={1.8} />
       </button>
@@ -70,7 +68,7 @@ export function LanguageSwitcher() {
         <div
           role="listbox"
           aria-label={t("language")}
-          className="absolute right-0 top-full z-50 mt-3 min-w-32 rounded-xl border border-[#052B42]/10 bg-white p-1.5 shadow-lg"
+          className="absolute top-full right-0 z-50 mt-2 min-w-32 rounded-xl border border-border bg-popover p-1.5 shadow-lg"
         >
           {(Object.keys(labels) as Locale[]).map((option) => (
             <button
@@ -79,15 +77,21 @@ export function LanguageSwitcher() {
               role="option"
               aria-selected={option === locale}
               onClick={() => changeLocale(option)}
-              className="font-medium flex w-full items-center justify-between rounded-lg px-3 py-2 text-left font-body text-sm text-[#052B42] transition-colors duration-200 ease-out hover:bg-[#052B42]/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#052B42]"
+              className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium text-popover-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {labels[option]}
-              <span className="ml-4 text-xs uppercase text-[#052B42]/55">{option}</span>
+              <span className="ml-4 text-xs text-muted-foreground uppercase">
+                {option}
+              </span>
             </button>
           ))}
         </div>
       ) : null}
-      {switching ? <span className="sr-only" role="status">{t("changingLanguage")}</span> : null}
+      {switching ? (
+        <span className="sr-only" role="status">
+          {t("changingLanguage")}
+        </span>
+      ) : null}
     </div>
   );
 }

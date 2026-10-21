@@ -1,36 +1,41 @@
 import type { Metadata } from "next";
 
-import { ContactForm } from "@/components/site/contact-form";
-import { InternalPageContent, InternalPageHeader } from "@/components/site/internal-page-header";
-import { createPageMetadata } from "@/lib/seo";
+import { Contact29 } from "@/components/blocks/contact29";
+import { getPublishedServices } from "@/lib/data";
 import { getRequestLocale } from "@/lib/request-locale";
-import { getRequestTranslations } from "@/lib/server-i18n";
+import { createPageMetadata } from "@/lib/seo";
+import { mergeCatalogServices } from "@/lib/studio-catalog";
+
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getRequestTranslations("metadata");
   const locale = await getRequestLocale();
   return createPageMetadata({
-    title: t("contact"),
-    description: t("contactDescription"),
+    title: "Contact us — Plus In Plus",
+    description:
+      "Have an idea for signage, web mockups, or outdoor media? Send a message to Plus In Plus.",
     path: "/contact",
     locale,
   });
 }
 
-export default async function ContactPage() {
-  const t = await getRequestTranslations("contact");
-  return (
-    <>
-      <InternalPageHeader title={t("pageTitle")} />
+interface ContactPageProps {
+  searchParams?: Promise<{ service?: string }>;
+}
 
-      <InternalPageContent labelledBy="contact-heading" sectionClassName="pt-12 sm:pt-16 lg:pt-20">
-        <h2 id="contact-heading" className="text-center font-geist text-3xl font-semibold tracking-[-0.04em] text-[#052B42] sm:text-4xl">
-          {t("title")}
-        </h2>
-        <div className="mt-8 sm:mt-10">
-          <ContactForm />
-        </div>
-      </InternalPageContent>
-    </>
+export default async function ContactPage({ searchParams }: ContactPageProps) {
+  const [params, dbServices] = await Promise.all([
+    searchParams ? searchParams : Promise.resolve(undefined),
+    getPublishedServices(),
+  ]);
+
+  const services = mergeCatalogServices(dbServices);
+
+  return (
+    <Contact29
+      title="Contact us"
+      services={services}
+      initialService={params?.service}
+    />
   );
 }

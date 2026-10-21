@@ -3,7 +3,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AdminNav } from "@/components/admin/admin-nav";
+import { BrandMark } from "@/components/site/logo";
 import { StaffBreadcrumbs } from "@/components/staff/staff-breadcrumbs";
+import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { requireAdmin } from "@/lib/admin-session";
 import { getRequestTranslations } from "@/lib/server-i18n";
@@ -16,31 +18,41 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * Admin shell: sidebar (Dashboard, Services, Blog, Users) + content.
- * The session and ADMIN role are verified both in middleware.ts and here.
+ * Единая оболочка админки: серверная проверка роли и боковая навигация
+ * в палитре Hero 138.
  */
 export default async function AdminLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [admin, t] = await Promise.all([requireAdmin(), getRequestTranslations("admin")]);
+  const [admin, t] = await Promise.all([
+    requireAdmin(),
+    getRequestTranslations("admin"),
+  ]);
   if (!admin) {
     redirect("/");
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-7xl flex-col gap-0 px-4 py-10 sm:px-8 lg:flex-row lg:gap-10">
-      <aside className="w-full shrink-0 lg:w-60">
-        <div className="lg:sticky lg:top-24">
-          <Link
-            href="/admin/dashboard"
-            className="inline-block rounded-sm text-lg font-semibold tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {t("brand")}
-          </Link>
-          <p className="mt-1 text-sm text-muted-foreground">{admin.email}</p>
-          <Separator className="my-5" />
+    <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6 lg:flex-row lg:gap-8 lg:px-8 lg:py-10">
+      <aside className="w-full shrink-0 lg:w-64">
+        <div className="rounded-2xl border border-border bg-card p-5 lg:sticky lg:top-24">
+          <div className="flex items-center justify-between gap-3">
+            <Link
+              href="/admin/dashboard"
+              className="inline-flex items-center rounded-md p-1 transition-opacity duration-200 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <BrandMark className="h-7" label="Plus In Plus" />
+            </Link>
+            <Badge variant="secondary" className="text-[11px] font-medium">
+              {t("roleAdmin")}
+            </Badge>
+          </div>
+          <p className="mt-3 truncate text-xs text-muted-foreground" title={admin.email}>
+            {admin.email}
+          </p>
+          <Separator className="my-4" />
           <AdminNav />
         </div>
       </aside>

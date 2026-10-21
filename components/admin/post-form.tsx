@@ -93,7 +93,10 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
+    <form
+      onSubmit={handleSubmit}
+      className="max-w-3xl space-y-6 rounded-2xl border border-border bg-card p-6 sm:p-8"
+    >
       <div className="space-y-2">
         <Label htmlFor="post-title">{tc("title")}</Label>
         <Input
@@ -148,7 +151,7 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
             id="post-source"
             name="source"
             defaultValue={initial?.source ?? "manual"}
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring [&_option]:bg-card [&_option]:text-foreground"
           >
             <option value="manual">{t("form.sourceManual")}</option>
             <option value="telegram">Telegram</option>
@@ -216,13 +219,13 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
         />
         <CoverImageHelp kind="blog" file={coverFile} mode={mode} />
         {mode === "edit" && initial?.coverImage ? (
-          <div className="relative mt-2 h-24 w-40 overflow-hidden rounded-md border border-border bg-[#F0F0F0]">
+          <div className="relative mt-2 h-24 w-40 overflow-hidden rounded-lg border border-border bg-muted">
             <SafeImage
               src={initial.coverImage}
               alt={t("currentCover")}
               fill
               sizes="160px"
-              className="object-contain"
+              className="object-cover"
             />
           </div>
         ) : null}

@@ -95,7 +95,7 @@ export function PostsTable({ posts }: { posts: AdminPostRow[] }) {
             <div className="font-mono text-xs text-muted-foreground">/{post.slug}</div>
           </div>
           {post.isFeatured ? (
-            <Badge className="bg-[#00C56D] text-[#052B42]">{t("featured")}</Badge>
+            <Badge variant="default">{t("featured")}</Badge>
           ) : null}
         </div>
       ),
@@ -167,7 +167,6 @@ export function PostsTable({ posts }: { posts: AdminPostRow[] }) {
               size="sm"
               onClick={() => runBulk("publish", clear)}
               disabled={pending}
-              className="bg-[#00C56D] text-[#052B42] hover:bg-[#00B361]"
             >
               {t("publish")}
             </Button>
@@ -177,7 +176,6 @@ export function PostsTable({ posts }: { posts: AdminPostRow[] }) {
               variant="outline"
               onClick={() => runBulk("unpublish", clear)}
               disabled={pending}
-              className="border-[#052B42]/20 bg-transparent text-[#052B42] hover:bg-[#052B42]/[0.06]"
             >
               {t("unpublish")}
             </Button>
@@ -187,7 +185,7 @@ export function PostsTable({ posts }: { posts: AdminPostRow[] }) {
               variant="outline"
               onClick={() => runBulk("delete", clear)}
               disabled={pending}
-              className="border-[#B4232A]/30 bg-transparent text-[#B4232A] hover:bg-[#B4232A]/[0.06]"
+              className="border-red-500/35 bg-red-500/10 text-red-300 hover:border-red-400/50 hover:bg-red-500/20"
             >
               <Trash2 className="mr-1 h-4 w-4" />
               {tc("delete")}

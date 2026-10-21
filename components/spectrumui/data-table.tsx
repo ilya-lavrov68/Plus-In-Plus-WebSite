@@ -282,7 +282,7 @@ const SPRING_ENTRANCE = { type: 'spring', stiffness: 260, damping: 20 } as const
 /* Press feedback is always 0.96; anything below 0.95 reads as a squash.
  * Named properties so this can sit on the same node as a color hover. */
 const PRESS =
-  'transition-[transform,color,background-color,opacity,border-color] duration-150 ease-out active:scale-[0.96]';
+  'transition-[color,background-color,opacity,border-color] duration-150 ease-out';
 /* Stroke length is not a position or a scale, so it takes an ease. */
 const DRAW = { duration: 0.18, ease: 'easeOut' } as const;
 /**
@@ -296,7 +296,7 @@ const WAVE_STEP = 0.06;
 const INSTANT = { duration: 0 } as const;
 
 const FOCUS =
-  'focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-neutral-950 dark:focus-visible:ring-neutral-300';
+  'focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring';
 const EASE = 'ease-[cubic-bezier(0.2,0,0,1)]';
 
 const DENSITY: Record<DataTableDensity, { head: string; cell: string; text: string; pad: string }> =
@@ -331,53 +331,48 @@ interface Surface {
 
 const SURFACE: Record<DataTableVariant, Surface> = {
   default: {
-    frame:
-      'rounded-2xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950',
-    head: 'bg-neutral-50 dark:bg-neutral-900',
-    headRule: 'border-b border-neutral-200 dark:border-neutral-800',
-    divider: 'border-t border-neutral-100 dark:border-neutral-900',
-    rowFill: 'bg-white dark:bg-neutral-950',
+    frame: 'rounded-2xl border border-border bg-card',
+    head: 'bg-muted/50',
+    headRule: 'border-b border-border',
+    divider: 'border-t border-border/70',
+    rowFill: 'bg-card',
     stripe: '',
     cell: '',
   },
   bordered: {
-    frame:
-      'rounded-2xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950',
-    head: 'bg-neutral-50 dark:bg-neutral-900',
-    headRule: 'border-b border-neutral-200 dark:border-neutral-800',
-    divider: 'border-t border-neutral-200 dark:border-neutral-800',
-    rowFill: 'bg-white dark:bg-neutral-950',
+    frame: 'rounded-2xl border border-border bg-card',
+    head: 'bg-muted/50',
+    headRule: 'border-b border-border',
+    divider: 'border-t border-border',
+    rowFill: 'bg-card',
     stripe: '',
-    cell: 'border-s border-neutral-200 first:border-s-0 dark:border-neutral-800',
+    cell: 'border-s border-border first:border-s-0',
   },
   striped: {
-    frame:
-      'rounded-2xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950',
-    head: 'bg-white dark:bg-neutral-950',
-    headRule: 'border-b border-neutral-200 dark:border-neutral-800',
+    frame: 'rounded-2xl border border-border bg-card',
+    head: 'bg-card',
+    headRule: 'border-b border-border',
     divider: '',
-    rowFill: 'bg-white dark:bg-neutral-950',
-    stripe: 'bg-neutral-50 dark:bg-neutral-900',
+    rowFill: 'bg-card',
+    stripe: 'bg-muted/40',
     cell: '',
   },
   minimal: {
     frame: 'bg-transparent',
     head: 'bg-transparent',
-    headPinned: 'bg-white dark:bg-neutral-950',
-    headRule: 'border-b border-neutral-200 dark:border-neutral-800',
-    divider: 'border-t border-neutral-100 dark:border-neutral-900',
-    // No frame to sit on, so no fill either.
+    headPinned: 'bg-card',
+    headRule: 'border-b border-border',
+    divider: 'border-t border-border/70',
     rowFill: 'bg-transparent',
     stripe: '',
     cell: '',
   },
   panel: {
-    frame:
-      'rounded-2xl bg-white shadow-[0_1px_2px_-1px_rgba(0,0,0,0.06),0_2px_4px_0_rgba(0,0,0,0.04)] ring-1 ring-neutral-950/8 dark:bg-neutral-950 dark:shadow-none dark:ring-white/10',
-    head: 'bg-neutral-50 dark:bg-neutral-900',
-    headRule: 'border-b border-neutral-200 dark:border-neutral-800',
-    divider: 'border-t border-neutral-100 dark:border-neutral-900',
-    rowFill: 'bg-white dark:bg-neutral-950',
+    frame: 'rounded-2xl border border-border bg-card',
+    head: 'bg-muted/50',
+    headRule: 'border-b border-border',
+    divider: 'border-t border-border/70',
+    rowFill: 'bg-card',
     stripe: '',
     cell: '',
   },
@@ -484,8 +479,8 @@ function FilterPill({
         PRESS,
         plain && 'capitalize',
         active
-          ? 'text-neutral-100 dark:text-neutral-900'
-          : 'text-neutral-500 hover:bg-neutral-900/[0.04] hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-100/[0.06] dark:hover:text-neutral-100',
+          ? 'text-primary-foreground'
+          : 'text-muted-foreground hover:bg-white/[0.06] hover:text-foreground',
         FOCUS,
       )}
     >
@@ -493,11 +488,11 @@ function FilterPill({
         (motionOn ? (
           <motion.span
             layoutId={layoutId}
-            className="absolute inset-0 rounded-full bg-[#052B42]"
+            className="absolute inset-0 rounded-full bg-primary"
             transition={SPRING_FLUID}
           />
         ) : (
-          <span className="absolute inset-0 rounded-full bg-[#052B42]" />
+          <span className="absolute inset-0 rounded-full bg-primary" />
         ))}
       <span className="relative z-10">{label}</span>
       <span
@@ -558,19 +553,19 @@ function EmptyHint({
       }}
     >
       <motion.div variants={EMPTY_ITEM} transition={motionOn ? SPRING_ICON : INSTANT}>
-        <IconDocument className="mb-2 size-7 text-neutral-300 dark:text-neutral-700" />
+        <IconDocument className="mb-2 size-7 text-muted-foreground" />
       </motion.div>
       <motion.p
         variants={EMPTY_ITEM}
         transition={motionOn ? SPRING_ICON : INSTANT}
-        className="text-sm font-medium text-neutral-900 dark:text-neutral-100"
+        className="text-sm font-medium text-foreground"
       >
         {filtered ? 'No matching rows' : 'Nothing here yet'}
       </motion.p>
       <motion.p
         variants={EMPTY_ITEM}
         transition={motionOn ? SPRING_ICON : INSTANT}
-        className="text-sm text-neutral-500 dark:text-neutral-400"
+        className="text-sm text-muted-foreground"
       >
         {filtered
           ? 'Try different search terms or filters.'
@@ -583,7 +578,7 @@ function EmptyHint({
           variants={EMPTY_ITEM}
           transition={motionOn ? SPRING_ICON : INSTANT}
           className={cn(
-            'mt-3 rounded-xl border border-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-900 hover:bg-neutral-50 dark:border-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-900',
+            'mt-3 rounded-xl border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted',
             PRESS,
             FOCUS,
           )}
@@ -643,18 +638,18 @@ function SelectBox({
           'relative grid size-[18px] place-items-center overflow-hidden rounded-[5px] border',
           'transition-[border-color] duration-150 ease-out',
           filled
-            ? "border-[#052B42]"
-            : 'border-neutral-300 bg-white hover:border-neutral-400 dark:border-neutral-700 dark:bg-neutral-950 dark:hover:border-neutral-500',
-          'peer-focus-visible:ring-1 peer-focus-visible:ring-neutral-950 dark:peer-focus-visible:ring-neutral-300',
+            ? "border-primary"
+            : 'border-border bg-background hover:border-foreground/40',
+          'peer-focus-visible:ring-1 peer-focus-visible:ring-ring',
         )}
       >
         <motion.span
-          className="absolute inset-[1px] rounded-[4px] bg-[#052B42]"
+          className="absolute inset-[1px] rounded-[4px] bg-primary"
           initial={false}
-          animate={{ scale: filled ? 1 : 0.5, opacity: filled ? 1 : 0 }}
+          animate={{ opacity: filled ? 1 : 0 }}
           transition={instant ? INSTANT : SPRING_SNAPPY}
         />
-        <span className="relative z-10 grid size-full place-items-center text-neutral-100 dark:text-neutral-900">
+        <span className="relative z-10 grid size-full place-items-center text-primary-foreground">
           {indeterminate ? (
             <span className="block h-[2.2px] w-[9px] rounded-full bg-current" />
           ) : (
@@ -1190,7 +1185,7 @@ export function DataTable<T>({
             )}
           >
             {title && (
-              <h3 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+              <h3 className="text-sm font-medium text-foreground">
                 {title}
               </h3>
             )}
@@ -1233,7 +1228,7 @@ export function DataTable<T>({
 
               {searchable && (
                 <div className="group/search relative w-full transition-[width] duration-300 sm:w-56 sm:focus-within:w-72 ease-[cubic-bezier(0.2,0,0,1)]">
-                  <IconSearch className="pointer-events-none absolute inset-y-0 start-2.5 my-auto size-4 text-neutral-400 transition-[color,opacity] duration-150 ease-out group-focus-within/search:text-neutral-700 dark:text-neutral-500 dark:group-focus-within/search:text-neutral-300" />
+                  <IconSearch className="pointer-events-none absolute inset-y-0 start-2.5 my-auto size-4 text-muted-foreground transition-[color,opacity] duration-150 ease-out group-focus-within/search:text-foreground" />
                   <input
                     type="search"
                     value={query}
@@ -1241,9 +1236,9 @@ export function DataTable<T>({
                     placeholder={searchPlaceholder}
                     aria-label={searchPlaceholder}
                     className={cn(
-                      'h-9 w-full rounded-xl border border-neutral-200 bg-white ps-8 pe-8 text-base text-neutral-900 placeholder:text-neutral-400 sm:text-sm dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500',
+                      'h-9 w-full rounded-xl border border-border bg-background ps-8 pe-8 text-base text-foreground placeholder:text-muted-foreground sm:text-sm',
                       'transition-[border-color] duration-150 ease-out',
-                      'focus:border-neutral-400 dark:focus:border-neutral-500',
+                      'focus:border-foreground/40',
                       '[&::-webkit-search-cancel-button]:hidden',
                       FOCUS,
                     )}
@@ -1254,18 +1249,12 @@ export function DataTable<T>({
                         type="button"
                         onClick={() => changeQuery('')}
                         aria-label="Clear search"
-                        initial={
-                          motionOn ? { opacity: 0, scale: 0.25, filter: 'blur(4px)' } : false
-                        }
-                        animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-                        exit={
-                          motionOn
-                            ? { opacity: 0, scale: 0.25, filter: 'blur(4px)' }
-                            : { opacity: 0 }
-                        }
+                        initial={motionOn ? { opacity: 0 } : false}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
                         transition={motionOn ? SPRING_ICON : INSTANT}
                         className={cn(
-                          'absolute inset-y-0 end-1 my-auto grid size-7 place-items-center rounded-lg text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100',
+                          'absolute inset-y-0 end-1 my-auto grid size-7 place-items-center rounded-lg text-muted-foreground hover:text-foreground',
                           PRESS,
                           FOCUS,
                         )}
@@ -1429,7 +1418,7 @@ export function DataTable<T>({
                           ...(pinned ? { insetInlineStart: pinStart.first } : null),
                         }}
                         className={cn(
-                          'relative font-medium text-neutral-600 dark:text-neutral-400',
+                          'relative font-medium text-muted-foreground',
                           scale.pad,
                           ALIGN[align],
                           surface.cell,
@@ -1444,10 +1433,10 @@ export function DataTable<T>({
                             type="button"
                             onClick={() => toggleSort(column)}
                             className={cn(
-                              'group/sort -mx-1.5 inline-flex max-w-full items-center gap-1 rounded-xl px-1.5 py-1 font-medium hover:text-neutral-900 dark:hover:text-neutral-100',
+                              'group/sort -mx-1.5 inline-flex max-w-full items-center gap-1 rounded-xl px-1.5 py-1 font-medium hover:text-foreground',
                               PRESS,
                               align === 'end' && 'flex-row-reverse',
-                              active && 'text-neutral-900 dark:text-neutral-100',
+                              active && 'text-foreground',
                               FOCUS,
                             )}
                           >
@@ -1459,12 +1448,11 @@ export function DataTable<T>({
                             <motion.span
                               aria-hidden="true"
                               className={cn(
-                                'grid size-3.5 shrink-0 place-items-center',
-                                'transition-[opacity,scale] duration-150',
+                                'grid size-3.5 shrink-0 place-items-center transition-opacity duration-150',
                                 EASE,
                                 active
-                                  ? 'scale-100 opacity-100'
-                                  : 'scale-75 opacity-0 group-hover/sort:scale-100 group-hover/sort:opacity-40 group-focus-visible/sort:scale-100 group-focus-visible/sort:opacity-40',
+                                  ? 'opacity-100'
+                                  : 'opacity-0 group-hover/sort:opacity-40 group-focus-visible/sort:opacity-40',
                               )}
                               initial={false}
                               animate={{ rotate: active && sort?.direction === 'asc' ? 180 : 0 }}
@@ -1571,7 +1559,7 @@ export function DataTable<T>({
                     // the row's opaque fill instead of under it. Selection is the
                     // checkbox — no extra rail or wash on the row.
                     const tint =
-                      'transition-colors duration-100 ease-out group-hover/row:bg-neutral-900/[0.025] dark:group-hover/row:bg-neutral-100/[0.045]';
+                      'transition-colors duration-100 ease-out group-hover/row:bg-white/[0.03]';
 
                     return (
                       <React.Fragment key={id}>
@@ -1700,7 +1688,7 @@ export function DataTable<T>({
                                     : undefined
                                 }
                                 className={cn(
-                                  'text-neutral-700 dark:text-neutral-300',
+                                  'text-foreground/90',
                                   tint,
                                   scale.pad,
                                   scale.cell,
@@ -1708,11 +1696,8 @@ export function DataTable<T>({
                                   surface.cell,
                                   column.numeric && 'tabular-nums',
                                   column.hideBelow && HIDE_BELOW[column.hideBelow],
-                                  // Fixed layout cannot grow, so a long value has
-                                  // to end in an ellipsis rather than escape.
                                   measured && 'truncate',
-                                  columnIndex === 0 &&
-                                    'font-medium text-neutral-900 dark:text-neutral-100',
+                                  columnIndex === 0 && 'font-medium text-foreground',
                                   pinFirstColumn &&
                                     columnIndex === 0 &&
                                     cn('sticky z-1', surface.rowFill, pinnedShadow),
@@ -1756,7 +1741,7 @@ export function DataTable<T>({
                                 initial="closed"
                                 animate="open"
                                 exit="closed"
-                                className="bg-neutral-50 dark:bg-neutral-900"
+                                className="bg-muted/40"
                               >
                                 <td colSpan={columnCount} className="p-0">
                                   <motion.div
@@ -1854,11 +1839,11 @@ export function DataTable<T>({
               <AnimatePresence>
                 {selected.length > 0 && (
                   <motion.div
-                    initial={{ opacity: 0, y: 12, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
                     transition={motionOn ? SPRING_ENTRANCE : INSTANT}
-                    className="pointer-events-auto flex max-w-full items-center gap-1 rounded-full border border-[#052B42]/15 bg-white p-1 ps-3 whitespace-nowrap text-[#052B42] shadow-[0_8px_24px_rgba(5,43,66,0.16)]"
+                    className="pointer-events-auto flex max-w-full items-center gap-1 rounded-full border border-border bg-popover p-1 ps-3 whitespace-nowrap text-popover-foreground shadow-lg"
                   >
                     <span className="pe-1 text-xs font-medium tabular-nums">
                       <FlipDigits value={selected.length} instant={!motionOn} /> selected
@@ -1870,19 +1855,17 @@ export function DataTable<T>({
                         onClick={() => void copySelection()}
                         aria-label={`Copy ${selected.length} rows to the clipboard`}
                         className={cn(
-                          'flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm font-medium hover:bg-[#052B42]/[0.06] focus-visible:ring-1 focus-visible:ring-current focus-visible:outline-hidden',
+                          'flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm font-medium hover:bg-accent focus-visible:ring-1 focus-visible:ring-current focus-visible:outline-hidden',
                           PRESS,
                         )}
                       >
-                        {/* Contextual icon swap: scale, opacity and blur, never
-                            a visibility toggle. */}
                         <span className="relative grid size-4 place-items-center">
                           <AnimatePresence initial={false} mode="popLayout">
                             <motion.span
                               key={copied ? 'done' : 'copy'}
-                              initial={{ opacity: 0, scale: 0.25, filter: 'blur(4px)' }}
-                              animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-                              exit={{ opacity: 0, scale: 0.25, filter: 'blur(4px)' }}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
                               transition={motionOn ? SPRING_ICON : INSTANT}
                               className="absolute inset-0 grid place-items-center"
                             >
@@ -1938,12 +1921,12 @@ export function DataTable<T>({
           <nav
             aria-label="Pagination"
             className={cn(
-              'flex items-center justify-between gap-3 border-t border-neutral-100 py-2.5 dark:border-neutral-900',
+              'flex items-center justify-between gap-3 border-t border-border py-2.5',
               scale.pad,
               variant === 'minimal' && 'px-0',
             )}
           >
-            <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            <p className="text-xs text-muted-foreground">
               <FlipDigits
                 value={`${rangeStart}–${rangeEnd} of ${sorted.length}`}
                 instant={!motionOn}
@@ -1956,7 +1939,7 @@ export function DataTable<T>({
                 disabled={safePage === 0}
                 aria-label="Previous page"
                 className={cn(
-                  'group/page grid size-8 place-items-center rounded-xl text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 disabled:pointer-events-none disabled:opacity-40 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-100',
+                  'group/page grid size-8 place-items-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40',
                   PRESS,
                   FOCUS,
                 )}
@@ -1969,7 +1952,7 @@ export function DataTable<T>({
                 disabled={safePage >= pageCount - 1}
                 aria-label="Next page"
                 className={cn(
-                  'group/page grid size-8 place-items-center rounded-xl text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 disabled:pointer-events-none disabled:opacity-40 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-100',
+                  'group/page grid size-8 place-items-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40',
                   PRESS,
                   FOCUS,
                 )}
