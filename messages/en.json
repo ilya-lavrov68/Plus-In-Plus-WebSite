@@ -55,6 +55,25 @@
     "loadingContent": "Loading content",
     "partnersLogoAlt": "Plus In Plus and TS Connect"
   },
+  "cookies": {
+    "title": "🍪 We use cookies",
+    "body": "We use cookies to improve your experience, analyze site traffic, and personalize content. By clicking \"Accept all\", you consent to our use of cookies. Read our <link>Privacy Policy</link>.",
+    "acceptAll": "Accept all",
+    "rejectAll": "Reject all",
+    "customize": "Customize",
+    "close": "Close",
+    "preferencesTitle": "Cookie preferences",
+    "save": "Save preferences",
+    "necessary": "Necessary cookies",
+    "necessaryDesc": "Required for the website to function properly",
+    "alwaysOn": "Always on",
+    "analytics": "Analytics cookies",
+    "analyticsDesc": "Help us understand how visitors interact with the website",
+    "marketing": "Marketing cookies",
+    "marketingDesc": "Used to deliver relevant advertisements",
+    "functional": "Functional cookies",
+    "functionalDesc": "Enable enhanced functionality and personalization"
+  },
   "header": {
     "forPlay": "FOR PLAY",
     "shop": "SHOP",
@@ -145,6 +164,9 @@
     "defaultPostExcerpt": "A closer look at the ideas, process, and people behind the work."
   },
   "shop": {
+    "comingSoonTitle": "Shop is coming soon",
+    "comingSoonBody": "We're working on our merchandise. Stay tuned!",
+    "comingSoonBack": "Back to home",
     "pageTitle": "SHOP",
     "title": "Our Services",
     "smallDesigns": "Small designs",
@@ -1026,11 +1048,14 @@
   "orders": {
     "agreed": "Agreed price",
     "created": "Created",
+    "declined": "Request declined. Please contact us for details.",
     "emptyBody": "Choose a service in the shop, pick the options and send a request — the manager will confirm the price.",
     "emptyTitle": "No orders yet",
     "estimate": "Estimate",
     "invoicePending": "The invoice is issued, but the payment link is not ready yet. Please try again a little later.",
     "managerComment": "Manager comment",
+    "newRequest": "New request",
+    "paidThanks": "Paid. Thank you!",
     "pay": "Pay",
     "subtitle": "Requests you have sent and invoices issued for them.",
     "title": "My orders",

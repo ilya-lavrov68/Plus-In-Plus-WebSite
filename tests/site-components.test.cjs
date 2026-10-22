@@ -100,6 +100,7 @@ const { ProductDetail1 } = require("../components/blocks/product-detail1.tsx");
 const { Signup10 } = require("../components/blocks/signup10.tsx");
 const { CandlestickChart } = require("../components/spectrumui/candlestick-chart.tsx");
 const { ServiceConfigurator } = require("../components/site/service-configurator.tsx");
+const { CookieBanner } = require("../components/site/cookie-banner.tsx");
 const { STUDIO_SERVICES, STUDIO_BLOG_POSTS } = require("../lib/studio-catalog.ts");
 
 beforeEach(() => {
@@ -154,9 +155,13 @@ test("Navbar10 and Footer7 render all required navigation items and footer colum
     footerView = create(React.createElement(Footer7));
   });
   const navText = textOf(navView.root);
-  for (const item of ["FOR PLAY", "SHOP", "ABOUT PIP", "SOCNET", "Contact", "Log in"]) {
+  // Раздел SHOP временно скрыт из навигации до появления мерча: в меню
+  // остаются FOR PLAY, ABOUT PIP и SOCNET, прямой путь /shop показывает
+  // заглушку, а FOR PLAY хранит «Order a design» и «Design services».
+  for (const item of ["FOR PLAY", "ABOUT PIP", "SOCNET", "Contact", "Log in"]) {
     assert.ok(navText.includes(item), `Missing navbar item: ${item}`);
   }
+  assert.ok(!navText.includes("SHOP"), "SHOP must be hidden from the navbar while the shop is disabled");
   const navImgs = navView.root.findAllByType("img").map((img) => img.props.src);
   assert.ok(
     navImgs.includes("/assets/logos/npip.svg"),
@@ -404,6 +409,95 @@ test("ServiceConfigurator calculates live estimate and zero legacy brand colors 
     }
   }
   for (const d of dirs) scan(path.join(__dirname, "..", d));
+});
+
+
+test("CookieBanner asks once, remembers the choice, and reveals detailed preferences", async () => {
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const storage = new Map();
+  global.window.localStorage = {
+    getItem: (key) => (storage.has(key) ? storage.get(key) : null),
+    setItem: (key, value) => storage.set(key, String(value)),
+    removeItem: (key) => storage.delete(key),
+  };
+  const buttons = (view) => view.root.findAllByType("button");
+  const buttonText = (node) => textOf(node).trim();
+
+  // 1. До истечения задержки баннера нет — страница открывается без прыжков.
+  let view;
+  act(() => {
+    view = create(React.createElement(CookieBanner));
+  });
+  assert.ok(!view.root.findAllByType("button").length, "banner must stay hidden before the delay");
+
+  // 2. Через секунду баннер появляется с тремя вариантами действий.
+  await act(async () => {
+    await sleep(1300);
+  });
+  const labels = buttons(view).map(buttonText);
+  assert.ok(labels.includes("🍪 We use cookies") || textOf(view.root).includes("We use cookies"), "banner title missing");
+  for (const action of ["Accept all", "Reject all", "Customize"]) {
+    assert.ok(labels.includes(action), `missing action: ${action}`);
+  }
+
+  // 3. «Customize» раскрывает настройки, необходимые cookie всегда включены.
+  act(() => {
+    buttons(view).find((button) => buttonText(button) === "Customize").props.onClick();
+  });
+  let text = textOf(view.root);
+  for (const section of ["Cookie preferences", "Necessary cookies", "Analytics cookies", "Marketing cookies", "Functional cookies", "Always on", "Save preferences"]) {
+    assert.ok(text.includes(section), `missing preferences section: ${section}`);
+  }
+
+  // 4. Переключаем аналитику и сохраняем: в localStorage попадает выбор.
+  const switches = buttons(view).filter((button) => button.props.role === "switch");
+  assert.equal(switches.length, 3, "expected three toggle switches");
+  act(() => {
+    switches[0].props.onClick(); // analytics on
+    switches[1].props.onClick(); // marketing on, вернём обратно
+    switches[1].props.onClick();
+  });
+  act(() => {
+    buttons(view).find((button) => buttonText(button) === "Save preferences").props.onClick();
+  });
+  assert.ok(!view.root.findAllByType("button").length, "banner must close after saving");
+  const saved = JSON.parse(storage.get("cookie-consent"));
+  assert.equal(saved.analytics, true);
+  assert.equal(saved.marketing, false);
+  assert.equal(saved.functional, false);
+  assert.equal(saved.necessary, true);
+  assert.ok(saved.timestamp, "consent timestamp missing");
+
+  // 5. Повторный визит: баннер больше не показывается.
+  let secondVisit;
+  act(() => {
+    secondVisit = create(React.createElement(CookieBanner));
+  });
+  await act(async () => {
+    await sleep(1300);
+  });
+  assert.ok(!secondVisit.root.findAllByType("button").length, "banner must not reappear after consent");
+  act(() => secondVisit.unmount());
+
+  // 6. «Accept all» включает все категории и закрывает баннер.
+  storage.delete("cookie-consent");
+  let third;
+  act(() => {
+    third = create(React.createElement(CookieBanner));
+  });
+  await act(async () => {
+    await sleep(1300);
+  });
+  act(() => {
+    buttons(third).find((button) => buttonText(button) === "Accept all").props.onClick();
+  });
+  const accepted = JSON.parse(storage.get("cookie-consent"));
+  assert.equal(accepted.analytics, true);
+  assert.equal(accepted.marketing, true);
+  assert.equal(accepted.functional, true);
+  assert.ok(!third.root.findAllByType("button").length, "banner must close after accept all");
+  act(() => third.unmount());
+  act(() => view.unmount());
 });
 
 test("Signup10 centers brand mark and headings, and CandlestickChart uses dark Hero 138 contrast", () => {

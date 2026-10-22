@@ -1,72 +1,52 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
-import { Blog11 } from "@/components/blocks/blog11";
-import { Hero138 } from "@/components/blocks/hero138";
-import { Services11Catalog } from "@/components/blocks/services11";
-import { getPublishedPosts, getPublishedServices } from "@/lib/data";
+import { Button } from "@/components/ui/button";
 import { createPageMetadata } from "@/lib/seo";
 import { getRequestLocale } from "@/lib/request-locale";
-import { mergeCatalogPosts, mergeCatalogServices } from "@/lib/studio-catalog";
+import { getRequestTranslations } from "@/lib/server-i18n";
 
+/**
+ * Страница /shop.
+ *
+ * Раздел временно отключён до появления мерча: из навигации он убран, а по
+ * прямой ссылке показывается заглушка. Страницы отдельных услуг
+ * (/shop/[slug]) продолжают работать — именно через их конфигуратор клиент
+ * отправляет заявку на расчёт, поэтому этот маршрут не трогаем.
+ */
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();
-  return createPageMetadata({
-    title: "Our Services — Plus In Plus",
-    description:
-      "Small designs, storefront signs, packaging, and city-scale large billboard formats by Plus In Plus.",
-    path: "/shop",
-    locale,
-  });
+  const t = await getRequestTranslations("shop");
+  return {
+    ...createPageMetadata({
+      title: t("comingSoonTitle"),
+      description: t("comingSoonBody"),
+      path: "/shop",
+      locale,
+    }),
+    // Заглушке в поисковой выдаче делать нечего.
+    robots: { index: false, follow: true },
+  };
 }
 
-export default async function ShopPage() {
-  const [dbServices, dbPosts] = await Promise.all([
-    getPublishedServices(),
-    getPublishedPosts(),
-  ]);
-
-  const allServices = mergeCatalogServices(dbServices);
-  const smallServices = allServices.filter((s) => s.category === "small");
-  const largeServices = allServices.filter((s) => s.category === "large");
-  const posts = mergeCatalogPosts(dbPosts);
+export default async function ShopComingSoonPage() {
+  const t = await getRequestTranslations("shop");
 
   return (
-    <>
-      <Hero138
-        headingMuted=""
-        headingPrimary="Our Services"
-        descriptionLead="From tactile branded bags and storefront signage to building wraps and highway billboards—"
-        descriptionStrong="every project includes a realistic mockup and print-ready files."
-        primaryCta={{ label: "Small designs", href: "#small-designs" }}
-        secondaryCta={{ label: "Large designs", href: "#large-designs" }}
-        footnote=""
-        showMediaStage={false}
-        className="border-b border-border"
-      />
-
-      <Services11Catalog
-        id="small-designs"
-        heading="Small designs"
-        subtitle="Precision layouts, tactile packaging, glass posters, and custom signage built to stand out up close."
-        services={smallServices}
-      />
-
-      <Services11Catalog
-        id="large-designs"
-        heading="Large designs"
-        subtitle="Above It All. Rough Roads, Louder Message."
-        services={largeServices}
-        className="bg-muted/30"
-      />
-
-      <Blog11
-        id="shop-other-news"
-        heading="Other News"
-        description="Latest announcements, case notes, and studio releases from Plus In Plus."
-        posts={posts.slice(0, 3)}
-      />
-    </>
+    <div className="flex min-h-[60vh] items-center justify-center px-4 py-24">
+      <div className="text-center">
+        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+          {t("comingSoonTitle")}
+        </h1>
+        <p className="mx-auto mt-4 max-w-md text-lg text-muted-foreground">
+          {t("comingSoonBody")}
+        </p>
+        <Button asChild className="mt-8">
+          <Link href="/">{t("comingSoonBack")}</Link>
+        </Button>
+      </div>
+    </div>
   );
 }
