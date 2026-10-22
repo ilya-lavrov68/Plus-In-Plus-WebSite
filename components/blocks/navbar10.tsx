@@ -4,10 +4,8 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import {
   BookOpen,
-  Building2,
   ChevronRight,
   Compass,
-  Frame,
   Globe,
   Layers,
   LayoutDashboard,
@@ -15,7 +13,6 @@ import {
   MessageSquare,
   Paintbrush,
   Send,
-  ShoppingBag,
   Sparkles,
   Users,
   Video,
@@ -56,7 +53,6 @@ import {
 } from "@/components/ui/navigation-menu";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import { STUDIO_SERVICES, type CatalogServiceItem } from "@/lib/studio-catalog";
 
 export interface MenuLink {
   label?: string;
@@ -83,8 +79,10 @@ export interface MenuItem {
   groupLinks?: MenuGroup[];
 }
 
+// Раздел SHOP скрыт из навигации, поэтому услуги (services) шапке больше не
+// нужны: пропс оставлен исторически и игнорируется.
 export interface Navbar10Props {
-  services?: CatalogServiceItem[];
+  services?: unknown[];
 }
 
 type DesktopMenuItemProps = {
@@ -105,39 +103,10 @@ type NavLinkProps = {
   onMouseLeave?: MouseEventHandler<HTMLAnchorElement>;
 };
 
-const SERVICE_ICONS: Record<string, LucideIcon> = {
-  "sign-design": Frame,
-  "bag-design": ShoppingBag,
-  "outdoor-glass-poster": Layers,
-  "banner-design": Sparkles,
-  "large-billboard": Building2,
-  "large-billboard-building": Building2,
-  "rooftop-advertising": Globe,
-  "advertisement-on-the-fence": Layers,
-  billboard: Compass,
-};
-
-function buildNavigation(services: CatalogServiceItem[]): MenuItem[] {
-  const smallLinks: MenuLink[] = services
-    .filter((s) => s.category !== "large")
-    .map((service) => ({
-      label: service.title,
-      icon: SERVICE_ICONS[service.slug] ?? Sparkles,
-      description: service.shortDesc,
-      url: `/shop/${service.slug}`,
-    }));
-
-  const largeLinks: MenuLink[] = services
-    .filter((s) => s.category === "large")
-    .map((service) => ({
-      label: service.title,
-      icon: SERVICE_ICONS[service.slug] ?? Building2,
-      description: service.shortDesc,
-      url: `/shop/${service.slug}`,
-    }));
-
-  const featuredShopService = services[0] ?? STUDIO_SERVICES[0];
-
+function buildNavigation(): MenuItem[] {
+  // Раздел SHOP временно скрыт из навигации до появления мерча. Прямые ссылки
+  // на страницы услуг (/shop/[slug]) продолжают работать — заявки создаются
+  // через них, а /shop показывает заглушку «Shop is coming soon».
   return [
     {
       title: "FOR PLAY",
@@ -170,25 +139,6 @@ function buildNavigation(services: CatalogServiceItem[]): MenuItem[] {
           description: "Product thinking tested across live digital systems",
           url: "/#features",
           image: "/assets/shop/banner-design.jpg",
-        },
-      ],
-    },
-    {
-      title: "SHOP",
-      id: 3,
-      imageLink: {
-        url: `/shop/${featuredShopService.slug}`,
-        image: featuredShopService.coverImage,
-        label: featuredShopService.title,
-      },
-      groupLinks: [
-        {
-          title: "Small designs",
-          links: smallLinks,
-        },
-        {
-          title: "Large designs",
-          links: largeLinks,
         },
       ],
     },
@@ -287,12 +237,6 @@ function buildNavigation(services: CatalogServiceItem[]): MenuItem[] {
           url: "/blog",
         },
         {
-          label: "Shop Services",
-          icon: ShoppingBag,
-          description: "Browse all studio design services",
-          url: "/shop",
-        },
-        {
           label: "Contact Studio",
           icon: MessageSquare,
           description: "Send a message directly to our team",
@@ -305,10 +249,10 @@ function buildNavigation(services: CatalogServiceItem[]): MenuItem[] {
 
 const MOBILE_BREAKPOINT = 1024;
 
-const Navbar10 = ({ services = STUDIO_SERVICES }: Navbar10Props) => {
+const Navbar10 = ({}: Navbar10Props = {}) => {
   const [open, setOpen] = useState<boolean>(false);
   const { data: session } = useSession();
-  const navigation = useMemo(() => buildNavigation(services), [services]);
+  const navigation = useMemo(() => buildNavigation(), []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -692,7 +636,7 @@ const FeaturedLink = ({ link }: { link: MenuLink }) => {
       className="group relative flex w-full overflow-hidden rounded-xl bg-muted px-8 py-7"
     >
       <div className="relative z-10 flex w-full items-center gap-6">
-        <div className="flex size-12 shrink-0 rounded-lg border bg-background shadow-lg">
+        <div className="flex size-12 shrink-0 rounded-lg bg-background shadow-lg">
           {link.icon && (
             <link.icon className="m-auto size-5 stroke-foreground" />
           )}
@@ -716,7 +660,7 @@ const NavLink = forwardRef<HTMLAnchorElement, NavLinkProps>(
     const inner = (
       <>
         {link.icon && (
-          <div className="flex size-6 shrink-0 rounded-md border shadow transition-colors duration-200 group-hover/navlink:border-foreground/30 group-hover/navlink:bg-accent">
+          <div className="flex size-6 shrink-0 rounded-md transition-colors duration-200 group-hover/navlink:bg-accent">
             <link.icon className="m-auto size-3.5" />
           </div>
         )}

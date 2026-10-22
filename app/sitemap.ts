@@ -17,11 +17,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 1,
     },
-    {
-      url: absoluteUrl("/shop"),
-      changeFrequency: "weekly",
-      priority: 0.8,
-    },
+    // /shop — временная заглушка «coming soon» и закрыта от индексации,
+    // поэтому в карте сайта ей делать нечего. Отдельные услуги остаются.
     {
       url: absoluteUrl("/blog"),
       changeFrequency: "weekly",

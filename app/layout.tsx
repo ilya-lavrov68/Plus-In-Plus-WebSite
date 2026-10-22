@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from "next-intl";
 
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
+import { CookieBanner } from "@/components/site/cookie-banner";
 import { Providers } from "@/app/providers";
 import { SITE_NAME, SITE_URL, absoluteUrl } from "@/lib/seo";
 import { getRequestLocale } from "@/lib/request-locale";
@@ -52,6 +53,8 @@ export default async function RootLayout({
             <Navbar />
             <main className="flex-1 pt-20">{children}</main>
             <Footer />
+            {/* Уведомление о cookie: один раз, пока посетитель не сделает выбор. */}
+            <CookieBanner />
           </Providers>
         </NextIntlClientProvider>
       </body>

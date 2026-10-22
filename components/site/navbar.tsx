@@ -1,9 +1,12 @@
 import { Navbar10 } from "@/components/blocks/navbar10";
-import { getPublishedServices } from "@/lib/data";
-import { mergeCatalogServices } from "@/lib/studio-catalog";
 
-export async function Navbar() {
-  const dbServices = await getPublishedServices();
-  const services = mergeCatalogServices(dbServices);
-  return <Navbar10 services={services} />;
+/**
+ * Шапка сайта.
+ *
+ * Раздел SHOP временно скрыт из навигации до появления мерча, поэтому услуги
+ * из базы сюда больше не подгружаются. Страницы услуг (/shop/[slug]) остаются
+ * доступны по прямым ссылкам — через них создаётся заявка на расчёт.
+ */
+export function Navbar() {
+  return <Navbar10 />;
 }

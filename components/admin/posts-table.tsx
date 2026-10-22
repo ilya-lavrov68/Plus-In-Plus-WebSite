@@ -229,7 +229,7 @@ export function PostsTable({ posts }: { posts: AdminPostRow[] }) {
         toolbar={
           <div className="flex items-center gap-2">
             <Select value={source} onValueChange={setSource}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="min-w-32">
                 <SelectValue placeholder={t("allSources")} />
               </SelectTrigger>
               <SelectContent>
@@ -241,7 +241,7 @@ export function PostsTable({ posts }: { posts: AdminPostRow[] }) {
               </SelectContent>
             </Select>
             <Select value={featured} onValueChange={setFeatured}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="min-w-32">
                 <SelectValue placeholder={t("featured")} />
               </SelectTrigger>
               <SelectContent>
@@ -251,7 +251,7 @@ export function PostsTable({ posts }: { posts: AdminPostRow[] }) {
               </SelectContent>
             </Select>
             <Select value={String(pageSize)} onValueChange={(value) => setPageSize(Number(value))}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="min-w-32">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

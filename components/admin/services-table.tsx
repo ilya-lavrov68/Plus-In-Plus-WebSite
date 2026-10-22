@@ -249,7 +249,7 @@ export function ServicesTable({ services }: { services: AdminServiceRow[] }) {
         toolbar={
           <div className="flex items-center gap-2">
             <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="min-w-40">
                 <SelectValue placeholder={t("allCategories")} />
               </SelectTrigger>
               <SelectContent>
@@ -259,7 +259,7 @@ export function ServicesTable({ services }: { services: AdminServiceRow[] }) {
               </SelectContent>
             </Select>
             <Select value={String(pageSize)} onValueChange={(value) => setPageSize(Number(value))}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="min-w-32">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
