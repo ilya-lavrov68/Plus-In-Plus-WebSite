@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { Check } from "lucide-react";
 import Link from "next/link";
 
-import { notifyCartUpdated } from "@/components/site/cart-button";
+import { notifyCartUpdated } from "@/components/site/cart-icon";
 import { Button } from "@/components/ui/button";
 import type { ServicePricingView } from "@/lib/data";
 import {

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { AddToCartButton } from "@/components/site/add-to-cart-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -101,18 +102,29 @@ export function ServiceCard({
           <div className="mb-5" />
         )}
 
-        <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-4">
-          <div className="text-lg font-bold tabular-nums">{priceLabel}</div>
-          <Button
-            type="button"
-            variant={selected ? "secondary" : "default"}
+        <div className="space-y-3 border-t border-border/60 pt-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-lg font-bold tabular-nums">{priceLabel}</div>
+            <Button
+              type="button"
+              variant={selected ? "secondary" : "outline"}
+              size="sm"
+              onClick={handleSelect}
+              className="gap-1.5"
+            >
+              {selected ? (
+                <Check aria-hidden="true" className="h-3.5 w-3.5" />
+              ) : null}
+              {selected ? t("selected") : t("select")}
+            </Button>
+          </div>
+          <AddToCartButton
+            itemType="service"
+            itemId={service.id}
+            itemName={service.name}
             size="sm"
-            onClick={handleSelect}
-            className="gap-1.5"
-          >
-            {selected ? <Check aria-hidden="true" className="h-3.5 w-3.5" /> : null}
-            {selected ? t("selected") : t("select")}
-          </Button>
+            className="w-full"
+          />
         </div>
       </CardContent>
     </Card>

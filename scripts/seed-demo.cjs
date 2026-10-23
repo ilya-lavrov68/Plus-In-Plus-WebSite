@@ -352,7 +352,7 @@ const count = async (table) =>
   await client.execute("DELETE FROM order_items");
   await client.execute("DELETE FROM payments");
   await client.execute("DELETE FROM orders");
-  await client.execute("DELETE FROM cart_items");
+  await client.execute("DELETE FROM products");
   await client.execute("DELETE FROM service_options");
   await client.execute("DELETE FROM service_option_groups");
   await client.execute("DELETE FROM services");
@@ -488,16 +488,18 @@ const count = async (table) =>
     const finalPrice = agreed > 0 ? agreed / 100 : null;
 
     await client.execute({
-      sql: "INSERT INTO orders (id,number,userId,status,estimatedAmount,subtotal,discount,total,finalPrice,currency,deadline,description,customerNote,managerNote,managerId,priceAgreedAt,createdAt,updatedAt,paidAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-      args: [orderId, number, userId, status, estimated, agreed, 0, agreed, finalPrice, "RUB", at(deadlineMs), note, note, managerNote, managerId, priceAgreedAt, at(createdMs), at(createdMs), paidMs],
+      sql: "INSERT INTO orders (id,orderNumber,number,userId,status,estimatedAmount,subtotal,discount,total,finalPrice,currency,deadline,description,customerNote,managerNote,managerId,priceAgreedAt,createdAt,updatedAt,paidAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+      args: [orderId, number, number, userId, status, estimated, agreed, 0, agreed, finalPrice, "RUB", at(deadlineMs), note, note, managerNote, managerId, priceAgreedAt, at(createdMs), at(createdMs), paidMs],
     });
 
     const unitAgreed = agreed > 0 ? Math.round(agreed / quantity) : 0;
     await client.execute({
-      sql: "INSERT INTO order_items (id,orderId,serviceId,title,quantity,estimatedUnitPrice,unitPrice,totalPrice,optionsSnapshot) VALUES (?,?,?,?,?,?,?,?,?)",
+      sql: "INSERT INTO order_items (id,orderId,itemType,itemId,serviceId,title,quantity,estimatedUnitPrice,unitPrice,totalPrice,optionsSnapshot) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
       args: [
         `oi-${number.slice(-6)}`,
         orderId,
+        "service",
+        `svc-${slug}`,
         `svc-${slug}`,
         services.find((s) => s[1] === slug)[0],
         quantity,

@@ -111,6 +111,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
     <>
       <ProductDetail1
         service={service}
+        serviceId={dbService?.id}
         configuratorSlot={configuratorNode}
         labels={detailLabels}
       />

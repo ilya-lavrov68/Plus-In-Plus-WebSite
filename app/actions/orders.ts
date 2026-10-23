@@ -125,12 +125,16 @@ export async function requestQuote(input: {
   let orderNumber = "";
   try {
     for (let attempt = 0; attempt < 5; attempt += 1) {
-      const sequence = (await prisma.order.count()) + 1 + attempt;
+      const sequence =
+        (await prisma.order.count({ where: { status: { not: "cart" } } })) +
+        1 +
+        attempt;
       orderNumber = formatOrderNumber(sequence);
       try {
         await prisma.$transaction(async (tx) => {
           const order = await tx.order.create({
             data: {
+              orderNumber,
               number: orderNumber,
               userId: customer.id,
               status: "quote_requested",
@@ -149,6 +153,8 @@ export async function requestQuote(input: {
               },
               items: {
                 create: {
+                  itemType: "service",
+                  itemId: service.id,
                   serviceId: service.id,
                   title: service.title,
                   quantity: 1,
@@ -276,7 +282,8 @@ export async function createOrder(data: CreateOrderInput) {
 
   let createdOrder: {
     id: string;
-    number: string;
+    number: string | null;
+    orderNumber?: string | null;
     status: string;
     deadline: Date | null;
     description: string | null;
@@ -292,12 +299,16 @@ export async function createOrder(data: CreateOrderInput) {
   } | null = null;
 
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    const sequence = (await prisma.order.count()) + 1 + attempt;
+    const sequence =
+      (await prisma.order.count({ where: { status: { not: "cart" } } })) +
+      1 +
+      attempt;
     const orderNumber = formatOrderNumber(sequence);
     try {
       createdOrder = await prisma.$transaction(async (tx) => {
         const order = await tx.order.create({
           data: {
+            orderNumber,
             number: orderNumber,
             userId: customer.id,
             status: "quote_requested",
@@ -318,6 +329,8 @@ export async function createOrder(data: CreateOrderInput) {
             },
             items: {
               create: orderedServices.map((svc) => ({
+                itemType: "service",
+                itemId: svc.id,
                 serviceId: svc.id,
                 title: svc.title,
                 quantity: 1,
@@ -377,10 +390,13 @@ export async function createOrder(data: CreateOrderInput) {
   revalidatePath("/manager/orders");
   revalidatePath("/admin/dashboard");
 
+  const resolvedNumber =
+    createdOrder.orderNumber ?? createdOrder.number ?? "";
+
   return {
     id: createdOrder.id,
-    number: createdOrder.number,
-    orderNumber: createdOrder.number,
+    number: resolvedNumber,
+    orderNumber: resolvedNumber,
     status: createdOrder.status,
     deadline: createdOrder.deadline,
     description: createdOrder.description,
@@ -433,7 +449,7 @@ export async function setOrderPrice(input: {
     // Почта нужна, чтобы Робокасса сама заполнила её в форме оплаты.
     include: { items: true, user: { select: { email: true } } },
   });
-  if (!order) return { ok: false, error: t("orderNotFound") };
+  if (!order || order.status === "cart") return { ok: false, error: t("orderNotFound") };
   if (order.status === "cancelled" || order.status === "refunded") {
     return { ok: false, error: t("orderClosed") };
   }
@@ -488,9 +504,11 @@ export async function setOrderPrice(input: {
 
       // Счёт. Ссылку даёт платёжный провайдер; если он не настроен, счёт
       // всё равно остаётся в базе — историю платежей терять не должны.
+      const resolvedOrderNumber =
+        order.orderNumber ?? order.number ?? order.id;
       await issueInvoice({
         orderId: order.id,
-        orderNumber: order.number,
+        orderNumber: resolvedOrderNumber,
         amount: total,
         currency: order.currency,
         customerEmail: order.user?.email ?? null,
@@ -500,7 +518,7 @@ export async function setOrderPrice(input: {
         action: "priced",
         entityType: "order",
         entityId: order.id,
-        title: `${order.number} — ${(total / 100).toLocaleString("ru-RU")} ₽`,
+        title: `${resolvedOrderNumber} — ${(total / 100).toLocaleString("ru-RU")} ₽`,
         actorId: admin.id,
       });
 
@@ -509,7 +527,7 @@ export async function setOrderPrice(input: {
           action: "locked",
           entityType: "order",
           entityId: order.id,
-          title: `${order.number} — заблокирован для редактирования`,
+          title: `${resolvedOrderNumber} — заблокирован для редактирования`,
           actorId: admin.id,
         });
       }
@@ -543,7 +561,7 @@ export async function updateOrderStatus(input: {
   }
 
   const order = await prisma.order.findUnique({ where: { id: input.orderId } });
-  if (!order) return { ok: false, error: t("orderNotFound") };
+  if (!order || order.status === "cart") return { ok: false, error: t("orderNotFound") };
 
   // Заблокированный заказ трогает только основатель — включая статус:
   // иначе замок обходили бы сменой статуса вместо цены.
@@ -564,7 +582,7 @@ export async function updateOrderStatus(input: {
         action: "updated",
         entityType: "order",
         entityId: order.id,
-        title: `${order.number} — ${input.status}`,
+        title: `${order.orderNumber ?? order.number ?? order.id} — ${input.status}`,
         actorId: admin.id,
       });
     });
@@ -597,7 +615,7 @@ export async function setOrderLocked(input: {
   if (typeof input.locked !== "boolean") return { ok: false, error: t("genericError") };
 
   const order = await prisma.order.findUnique({ where: { id: input.orderId } });
-  if (!order) return { ok: false, error: t("orderNotFound") };
+  if (!order || order.status === "cart") return { ok: false, error: t("orderNotFound") };
   if (order.isLocked === input.locked) return { ok: true };
 
   if (!input.locked && !admin.isFounder) {
@@ -620,7 +638,7 @@ export async function setOrderLocked(input: {
         action: input.locked ? "locked" : "unlocked",
         entityType: "order",
         entityId: order.id,
-        title: `${order.number} — ${input.locked ? "заблокирован для редактирования" : "разблокирован основателем"}`,
+        title: `${order.orderNumber ?? order.number ?? order.id} — ${input.locked ? "заблокирован для редактирования" : "разблокирован основателем"}`,
         actorId: admin.id,
       });
     });

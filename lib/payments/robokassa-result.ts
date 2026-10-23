@@ -100,7 +100,7 @@ export async function handleRobokassaResult(request: Request): Promise<Response>
       });
       const order = await tx.order.findUnique({
         where: { id: payment.orderId },
-        select: { id: true, number: true, status: true },
+        select: { id: true, orderNumber: true, number: true, status: true },
       });
       if (!order || order.status === "paid" || order.status === "completed") return;
 
@@ -115,7 +115,7 @@ export async function handleRobokassaResult(request: Request): Promise<Response>
         action: "paid",
         entityType: "order",
         entityId: order.id,
-        title: `${order.number} — оплачен, ${(amountKopecks / 100).toLocaleString("ru-RU")} ₽`,
+        title: `${order.orderNumber ?? order.number ?? order.id} — оплачен, ${(amountKopecks / 100).toLocaleString("ru-RU")} ₽`,
         actorId: null,
       });
     });

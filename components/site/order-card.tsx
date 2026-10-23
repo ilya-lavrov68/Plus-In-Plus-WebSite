@@ -6,7 +6,9 @@ import {
   CheckCircle2,
   Clock,
   Lock,
+  Package,
   Plus,
+  Wrench,
   XCircle,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
@@ -66,6 +68,7 @@ export function OrderCard({ order }: OrderCardProps) {
   const unpriced = isUnpriced(order.status, agreedKopecks);
   const closed = isClosed(order.status);
   const paid = isPaid(order.status);
+  const displayOrderNumber = order.orderNumber || order.number;
 
   const payable = (order.invoices ?? []).find(
     (invoice) => invoice.status === "pending" && invoice.paymentUrl
@@ -79,6 +82,7 @@ export function OrderCard({ order }: OrderCardProps) {
     order.items && order.items.length > 0
       ? order.items.map((item) => ({
           id: item.id,
+          itemType: item.itemType || "service",
           title: item.title,
           quantity: item.quantity,
           amountKopecks: item.totalPrice
@@ -87,6 +91,7 @@ export function OrderCard({ order }: OrderCardProps) {
         }))
       : (order.services ?? []).map((entry) => ({
           id: entry.id,
+          itemType: "service",
           title: entry.service.title,
           quantity: entry.quantity,
           amountKopecks: (entry.service.basePrice ?? 0) * entry.quantity,
@@ -98,7 +103,7 @@ export function OrderCard({ order }: OrderCardProps) {
     <Card className="border-border bg-card">
       <CardHeader className="flex-row flex-wrap items-center justify-between gap-3 space-y-0">
         <div className="flex flex-wrap items-center gap-2.5">
-          <CardTitle className="text-lg">{order.number}</CardTitle>
+          <CardTitle className="text-lg">{displayOrderNumber}</CardTitle>
           {order.isLocked ? (
             <Badge variant="outline" className="gap-1">
               <Lock aria-hidden="true" className="h-3 w-3" />
@@ -108,7 +113,7 @@ export function OrderCard({ order }: OrderCardProps) {
         <div className="flex items-center gap-2">
           <OrderStatusBadge status={order.status} />
           <Button asChild variant="outline" size="sm">
-            <Link href="/contact" className="gap-1.5">
+            <Link href="/services" className="gap-1.5">
               <Plus aria-hidden="true" className="size-3.5" />
               {t("createOrder")}
             </Link>
@@ -153,14 +158,30 @@ export function OrderCard({ order }: OrderCardProps) {
         {displayLines.length > 0 ? (
           <div className="border-t border-border pt-3">
             <div className="mb-2 text-xs font-medium tracking-wider text-muted-foreground uppercase">
-              {t("selectedServices")}
+              {t("selectedItems")}
             </div>
-            <ul className="space-y-1.5 text-sm">
+            <ul className="space-y-2 text-sm">
               {displayLines.map((line) => (
-                <li key={line.id} className="flex justify-between gap-3">
-                  <span className="min-w-0 truncate text-foreground">
-                    {line.title}
-                    {line.quantity > 1 ? ` × ${line.quantity}` : ""}
+                <li
+                  key={line.id}
+                  className="flex items-center justify-between gap-3"
+                >
+                  <span className="inline-flex min-w-0 items-center gap-2 truncate text-foreground">
+                    {line.itemType === "product" ? (
+                      <Package
+                        aria-hidden="true"
+                        className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                      />
+                    ) : (
+                      <Wrench
+                        aria-hidden="true"
+                        className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                      />
+                    )}
+                    <span className="truncate">{line.title}</span>
+                    <span className="shrink-0 text-muted-foreground">
+                      ×{line.quantity}
+                    </span>
                   </span>
                   <span className="shrink-0 tabular-nums text-muted-foreground">
                     {formatKopecks(line.amountKopecks, currency)}

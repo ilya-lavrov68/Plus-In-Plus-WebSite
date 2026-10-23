@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useEffect, useState, type FormEvent } from "react";
-import { ArrowRight, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { updateUserProfile } from "@/app/actions/user";
@@ -100,19 +99,11 @@ export function ProfileForm({ initialUser }: ProfileFormProps) {
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-24 md:py-32">
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
-            {t("title")}
-          </h1>
-          <p className="mt-2 text-muted-foreground">{t("subtitle")}</p>
-        </div>
-        <Button asChild variant="outline" size="sm">
-          <Link href="/orders" className="gap-1.5">
-            {t("myOrders")}
-            <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" />
-          </Link>
-        </Button>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
+          {t("title")}
+        </h1>
+        <p className="mt-2 text-muted-foreground">{t("subtitle")}</p>
       </div>
 
       <Card className="border-border bg-card">
