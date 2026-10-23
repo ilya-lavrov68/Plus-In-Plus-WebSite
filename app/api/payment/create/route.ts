@@ -44,9 +44,17 @@ async function createPaymentRedirect(request: Request): Promise<Response> {
       select: { id: true, role: true, isBlocked: true },
     }),
     prisma.order.findFirst({
-      where: { OR: [{ id: orderId }, { number: orderId }] },
+      where: {
+        status: { not: "cart" },
+        OR: [
+          { id: orderId },
+          { number: orderId },
+          { orderNumber: orderId },
+        ],
+      },
       select: {
         id: true,
+        orderNumber: true,
         number: true,
         userId: true,
         status: true,
@@ -81,7 +89,7 @@ async function createPaymentRedirect(request: Request): Promise<Response> {
 
   const invoice = await issueInvoice({
     orderId: order.id,
-    orderNumber: order.number,
+    orderNumber: order.orderNumber ?? order.number ?? order.id,
     amount: order.total,
     currency: order.currency,
     customerEmail: order.user?.email ?? null,

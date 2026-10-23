@@ -33,12 +33,9 @@ async function main() {
   });
   const testUserIds = testUsers.map((u) => u.id);
 
-  // Clean up test/demo orders, cart items, and logs tied to test users first
+  // Clean up test/demo orders (including draft carts) and logs tied to test users first
   let deletedOrdersCount = 0;
   if (testUserIds.length > 0) {
-    await prisma.cartItem.deleteMany({
-      where: { userId: { in: testUserIds } },
-    });
     // Detach managerId references from test staff before deleting orders/users
     await prisma.order.updateMany({
       where: { managerId: { in: testUserIds } },

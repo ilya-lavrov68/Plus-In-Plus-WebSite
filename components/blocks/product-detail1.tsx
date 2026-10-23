@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Check } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { AddToCartButton } from "@/components/site/add-to-cart-button";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,12 +20,14 @@ export interface ProductDetail1Labels {
 
 export interface ProductDetail1Props {
   service?: CatalogServiceItem;
+  serviceId?: string;
   configuratorSlot?: ReactNode;
   labels?: ProductDetail1Labels;
 }
 
 const ProductDetail1 = ({
   service = STUDIO_SERVICES[0],
+  serviceId,
   configuratorSlot,
   labels,
 }: ProductDetail1Props) => {
@@ -94,6 +97,15 @@ const ProductDetail1 = ({
                   {labels?.order ?? "Order"}
                 </Link>
               </Button>
+              {serviceId ? (
+                <AddToCartButton
+                  itemType="service"
+                  itemId={serviceId}
+                  itemName={service.title}
+                  variant="outline"
+                  size="lg"
+                />
+              ) : null}
             </div>
 
             {configuratorSlot && <div className="mt-8">{configuratorSlot}</div>}

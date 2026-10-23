@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 
 export interface CustomerOrderItem {
   id: string;
+  itemType: string;
+  itemId: string;
   title: string;
   quantity: number;
   /** Согласованная цена позиции, копейки. 0, пока цены нет. */
@@ -28,7 +30,6 @@ export interface CustomerInvoice {
   id: string;
   status: string;
   amount: number;
-  /** Ссылка на форму оплаты. Есть не всегда — провайдер может быть не настроен. */
   paymentUrl: string | null;
   createdAt: Date;
   paidAt: Date | null;
@@ -36,13 +37,11 @@ export interface CustomerInvoice {
 
 export interface CustomerOrder {
   id: string;
+  orderNumber: string;
   number: string;
   status: string;
-  /** Расчётная цена, копейки — ориентир, а не счёт. */
   estimatedAmount: number;
-  /** Согласованная менеджером цена, копейки. 0 — цена ещё не названа. */
   total: number;
-  /** Итоговая цена в рублях, если зафиксирована менеджером. */
   finalPrice: number | null;
   currency: string;
   deadline: Date | null;
@@ -58,12 +57,7 @@ export interface CustomerOrder {
 }
 
 /**
- * Заказы вошедшего пользователя.
- *
- * Идентификатор берётся только из сессии — ни из параметров, ни из формы.
- * Иначе, подставив чужой id, можно было бы вытащить чужие заказы и адреса
- * оплаты. Для чтения чужих данных есть отдельный слой lib/admin-orders.ts,
- * и он доступен только сотрудникам.
+ * Оформленные заказы вошедшего пользователя (все кроме черновика корзины `status='cart'`).
  */
 export async function getCustomerOrders(): Promise<CustomerOrder[]> {
   const session = await auth();
@@ -72,10 +66,11 @@ export async function getCustomerOrders(): Promise<CustomerOrder[]> {
 
   try {
     const orders = await prisma.order.findMany({
-      where: { userId },
+      where: { userId, status: { not: "cart" } },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
+        orderNumber: true,
         number: true,
         status: true,
         estimatedAmount: true,
@@ -92,10 +87,14 @@ export async function getCustomerOrders(): Promise<CustomerOrder[]> {
         items: {
           select: {
             id: true,
+            itemType: true,
+            itemId: true,
             title: true,
             quantity: true,
             totalPrice: true,
             estimatedUnitPrice: true,
+            service: { select: { title: true, basePrice: true } },
+            product: { select: { name: true, price: true } },
           },
         },
         services: {
@@ -127,17 +126,47 @@ export async function getCustomerOrders(): Promise<CustomerOrder[]> {
         },
       },
     });
-    // В схеме связь называется payments, для клиента понятнее «счета».
-    return orders.map(({ payments, items, services, ...order }) => ({
-      ...order,
-      finalPrice: order.finalPrice ?? null,
-      deadline: order.deadline ?? null,
-      description: order.description ?? null,
-      isLocked: Boolean(order.isLocked),
-      items: items ?? [],
-      services: services ?? [],
-      invoices: payments ?? [],
-    }));
+
+    return orders
+      .filter((order) => order.status !== "cart")
+      .map(({ payments, items, services, ...order }) => {
+        const displayNumber =
+          order.orderNumber ?? order.number ?? order.id;
+        return {
+          ...order,
+          orderNumber: displayNumber,
+          number: displayNumber,
+          finalPrice: order.finalPrice ?? null,
+          deadline: order.deadline ?? null,
+          description: order.description ?? null,
+          isLocked: Boolean(order.isLocked),
+          items: (items ?? []).map((item) => {
+            const resolvedTitle =
+              item.title ||
+              item.service?.title ||
+              item.product?.name ||
+              item.itemId ||
+              "—";
+            const fallbackEstKopecks =
+              item.estimatedUnitPrice > 0
+                ? item.estimatedUnitPrice
+                : item.itemType === "product" && item.product
+                  ? Math.round(item.product.price * 100)
+                  : item.service?.basePrice ?? 0;
+            return {
+              id: item.id,
+              itemType: item.itemType || "service",
+              itemId: item.itemId || "",
+              title: resolvedTitle,
+              quantity: item.quantity,
+              totalPrice: item.totalPrice ?? 0,
+              estimatedUnitPrice: fallbackEstKopecks,
+            };
+          }),
+          services: services ?? [],
+          invoices: payments ?? [],
+        };
+      });
   } catch (error) {
     console.error("Failed to load the customer orders:", error);
     return [];

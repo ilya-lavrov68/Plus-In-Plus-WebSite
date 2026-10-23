@@ -1,19 +1,14 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
-import { createPageMetadata } from "@/lib/seo";
+import {
+  ShopCatalogView,
+  type ShopProductCardData,
+} from "@/components/site/shop-catalog-view";
+import { prisma } from "@/lib/prisma";
 import { getRequestLocale } from "@/lib/request-locale";
+import { createPageMetadata } from "@/lib/seo";
 import { getRequestTranslations } from "@/lib/server-i18n";
 
-/**
- * Страница /shop.
- *
- * Раздел временно отключён до появления мерча: из навигации он убран, а по
- * прямой ссылке показывается заглушка. Страницы отдельных услуг
- * (/shop/[slug]) продолжают работать — именно через их конфигуратор клиент
- * отправляет заявку на расчёт, поэтому этот маршрут не трогаем.
- */
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -26,27 +21,32 @@ export async function generateMetadata(): Promise<Metadata> {
       path: "/shop",
       locale,
     }),
-    // Заглушке в поисковой выдаче делать нечего.
     robots: { index: false, follow: true },
   };
 }
 
-export default async function ShopComingSoonPage() {
-  const t = await getRequestTranslations("shop");
+export default async function ShopPage() {
+  let products: ShopProductCardData[] = [];
+  if (prisma) {
+    try {
+      const rows = await prisma.product.findMany({
+        where: { isActive: true },
+        orderBy: { createdAt: "desc" },
+      });
+      products = rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        slug: row.slug,
+        description: row.description,
+        price: row.price,
+        coverImage: row.coverImage,
+        category: row.category,
+        stock: row.stock,
+      }));
+    } catch (error) {
+      console.error("Failed to load shop products:", error);
+    }
+  }
 
-  return (
-    <div className="flex min-h-[60vh] items-center justify-center px-4 py-24">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-          {t("comingSoonTitle")}
-        </h1>
-        <p className="mx-auto mt-4 max-w-md text-lg text-muted-foreground">
-          {t("comingSoonBody")}
-        </p>
-        <Button asChild className="mt-8">
-          <Link href="/">{t("comingSoonBack")}</Link>
-        </Button>
-      </div>
-    </div>
-  );
+  return <ShopCatalogView products={products} />;
 }

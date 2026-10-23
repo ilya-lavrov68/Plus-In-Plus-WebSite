@@ -13,8 +13,10 @@ import { prisma } from "@/lib/prisma";
 
 /** Статусы в том порядке, в котором заказ по ним идёт. */
 export const ORDER_STATUSES = [
+  "pending",
   "quote_requested",
   "negotiating",
+  "priced",
   "awaiting_payment",
   "paid",
   "in_progress",
@@ -91,7 +93,8 @@ export interface AdminOrderView {
 
 type OrderRow = {
   id: string;
-  number: string;
+  orderNumber?: string | null;
+  number: string | null;
   status: string;
   estimatedAmount: number;
   discount: number;
@@ -120,9 +123,10 @@ type OrderRow = {
 };
 
 function toAdminOrderView(row: OrderRow): AdminOrderView {
+  const displayNumber = row.orderNumber ?? row.number ?? row.id;
   return {
     id: row.id,
-    number: row.number,
+    number: displayNumber,
     status: row.status,
     estimatedAmount: row.estimatedAmount,
     discount: row.discount,
@@ -196,6 +200,7 @@ export async function getAdminOrders(): Promise<AdminOrderView[]> {
   if (!prisma) return [];
   try {
     const rows = await prisma.order.findMany({
+      where: { status: { not: "cart" } },
       orderBy: { createdAt: "desc" },
       include: orderInclude,
     });
@@ -211,7 +216,14 @@ export async function getAdminOrder(idOrNumber: string): Promise<AdminOrderView 
   if (!prisma) return null;
   try {
     const row = await prisma.order.findFirst({
-      where: { OR: [{ id: idOrNumber }, { number: idOrNumber }] },
+      where: {
+        status: { not: "cart" },
+        OR: [
+          { id: idOrNumber },
+          { number: idOrNumber },
+          { orderNumber: idOrNumber },
+        ],
+      },
       include: orderInclude,
     });
     return row ? toAdminOrderView(row as OrderRow) : null;

@@ -30,7 +30,7 @@ import {
   useState,
 } from "react";
 
-import { CartButton } from "@/components/site/cart-button";
+import { CartIcon } from "@/components/site/cart-icon";
 import { LanguageSwitcher } from "@/components/site/language-switcher";
 import { HeaderWordmarkLogo } from "@/components/site/logo";
 import { UserAvatar } from "@/components/site/user-avatar";
@@ -98,6 +98,12 @@ interface MobileNavigationMenuProps {
   onClose: () => void;
   contactLabel: string;
   loginLabel: string;
+  profileLabel: string;
+  ordersLabel: string;
+  cartLabel: string;
+  adminLabel: string;
+  dashboardHref: string | null;
+  signedIn: boolean;
   menuLabel: string;
 }
 
@@ -364,7 +370,7 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
             <div className="justify-self-end">
               <div className="hidden items-center gap-2.5 lg:flex">
                 <LanguageSwitcher />
-                <CartButton />
+                <CartIcon />
                 <Button variant="outline" size="sm" asChild>
                   <Link href="/contact">{t("contact")}</Link>
                 </Button>
@@ -378,9 +384,12 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
                         </Link>
                       </Button>
                     )}
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link href="/orders">{t("orders")}</Link>
+                    </Button>
                     <Link
-                      href="/orders"
-                      aria-label={t("account")}
+                      href="/profile"
+                      aria-label={t("profile")}
                       className="inline-flex items-center gap-2 rounded-full border border-border p-0.5 pr-3 text-xs font-medium text-foreground transition-colors duration-200 ease-out hover:border-foreground/25 hover:bg-white/[0.06]"
                     >
                       <UserAvatar user={session.user} size={36} />
@@ -401,6 +410,7 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
 
               <div className="flex items-center gap-1 lg:hidden">
                 <LanguageSwitcher />
+                <CartIcon />
                 <Button
                   className="size-11"
                   variant="ghost"
@@ -425,6 +435,12 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
         onClose={() => setOpen(false)}
         contactLabel={t("contact")}
         loginLabel={t("login")}
+        profileLabel={t("profile")}
+        ordersLabel={t("orders")}
+        cartLabel={t("cart")}
+        adminLabel={t("admin")}
+        dashboardHref={dashboardHref}
+        signedIn={Boolean(session?.user)}
         menuLabel={tc("mobileMainNavigation")}
       />
     </Fragment>
@@ -766,6 +782,12 @@ const MobileNavigationMenu = ({
   onClose,
   contactLabel,
   loginLabel,
+  profileLabel,
+  ordersLabel,
+  cartLabel,
+  adminLabel,
+  dashboardHref,
+  signedIn,
   menuLabel,
 }: MobileNavigationMenuProps) => {
   return (
@@ -792,11 +814,38 @@ const MobileNavigationMenu = ({
                   {contactLabel}
                 </Link>
               </Button>
-              <Button asChild>
-                <Link href="/login" onClick={onClose}>
-                  {loginLabel}
-                </Link>
-              </Button>
+              {signedIn ? (
+                <>
+                  <Button variant="outline" asChild>
+                    <Link href="/profile" onClick={onClose}>
+                      {profileLabel}
+                    </Link>
+                  </Button>
+                  <Button variant="outline" asChild>
+                    <Link href="/orders" onClick={onClose}>
+                      {ordersLabel}
+                    </Link>
+                  </Button>
+                  <Button variant="outline" asChild>
+                    <Link href="/cart" onClick={onClose}>
+                      {cartLabel}
+                    </Link>
+                  </Button>
+                  {dashboardHref ? (
+                    <Button variant="secondary" asChild>
+                      <Link href={dashboardHref} onClick={onClose}>
+                        {adminLabel}
+                      </Link>
+                    </Button>
+                  ) : null}
+                </>
+              ) : (
+                <Button asChild>
+                  <Link href="/login" onClick={onClose}>
+                    {loginLabel}
+                  </Link>
+                </Button>
+              )}
             </div>
           </div>
         </div>
