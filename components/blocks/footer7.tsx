@@ -32,8 +32,10 @@ const Footer7 = ({ services = STUDIO_SERVICES, labels = {} }: Footer7Props) => {
     "website-design": t("servicesLinks.websiteDesign"),
     "badge-design": t("servicesLinks.badgeDesign"),
     "poster-design": t("servicesLinks.posterDesign"),
+    "outdoor-glass-poster": t("servicesLinks.posterDesign"),
     "banner-design": t("servicesLinks.bannerMockupDesign"),
     "large-billboard": t("servicesLinks.largeBillboard"),
+    "large-billboard-building": t("servicesLinks.largeBillboard"),
     "rooftop-advertising": t("servicesLinks.rooftopAdvertising"),
   };
   const serviceLinks = [
@@ -41,7 +43,7 @@ const Footer7 = ({ services = STUDIO_SERVICES, labels = {} }: Footer7Props) => {
       name: serviceNames[service.slug] ?? service.title,
       href: `/shop/${service.slug}`,
     })),
-    { name: t("largeDesigns"), href: "/shop" },
+    { name: t("largeDesigns"), href: "/services" },
   ];
 
   const footerSections: FooterSection[] = [
@@ -55,7 +57,7 @@ const Footer7 = ({ services = STUDIO_SERVICES, labels = {} }: Footer7Props) => {
         { name: t("aboutLinks.howWeWork"), href: "/#features" },
         { name: t("aboutLinks.ourPartners"), href: "/#community" },
         { name: t("aboutLinks.studioNews"), href: "/#news" },
-        { name: t("services"), href: "/shop" },
+        { name: t("services"), href: "/services" },
       ],
     },
     {
@@ -78,7 +80,7 @@ const Footer7 = ({ services = STUDIO_SERVICES, labels = {} }: Footer7Props) => {
       title: t("company"),
       links: [
         { name: t("companyLinks.contactUs"), href: "/contact" },
-        { name: t("orderDesign"), href: "/shop" },
+        { name: t("orderDesign"), href: "/contact" },
         { name: t("companyLinks.account"), href: "/orders" },
       ],
     },

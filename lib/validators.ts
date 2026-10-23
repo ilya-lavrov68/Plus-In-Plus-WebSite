@@ -133,10 +133,20 @@ export const createPostSchema = z.object({
   publishedAt: z.date().nullable().optional(),
 });
 
+export const createOrderSchema = z.object({
+  serviceIds: z
+    .array(z.string().trim().min(1).max(128))
+    .min(1, "selectAtLeastOneService")
+    .max(50, "invalidData"),
+  deadline: z.union([z.date(), z.string()]).nullable().optional(),
+  description: z.string().max(4000).optional(),
+});
+
 export type RegisterData = z.infer<typeof registerSchema>;
 export type LoginData = z.infer<typeof loginSchema>;
 export type CreateServiceData = z.infer<typeof createServiceSchema>;
 export type CreatePostData = z.infer<typeof createPostSchema>;
+export type CreateOrderData = z.infer<typeof createOrderSchema>;
 
 /**
  * First issue as a translation key (`validation.*`), so the forms keep showing

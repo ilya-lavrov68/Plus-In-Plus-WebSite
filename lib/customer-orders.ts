@@ -11,6 +11,19 @@ export interface CustomerOrderItem {
   estimatedUnitPrice: number;
 }
 
+export interface CustomerOrderServiceLink {
+  id: string;
+  serviceId: string;
+  quantity: number;
+  service: {
+    id: string;
+    title: string;
+    slug: string;
+    basePrice: number;
+    category: string;
+  };
+}
+
 export interface CustomerInvoice {
   id: string;
   status: string;
@@ -29,12 +42,18 @@ export interface CustomerOrder {
   estimatedAmount: number;
   /** Согласованная менеджером цена, копейки. 0 — цена ещё не названа. */
   total: number;
+  /** Итоговая цена в рублях, если зафиксирована менеджером. */
+  finalPrice: number | null;
   currency: string;
+  deadline: Date | null;
+  description: string | null;
   customerNote: string | null;
   managerNote: string | null;
+  isLocked: boolean;
   createdAt: Date;
   paidAt: Date | null;
   items: CustomerOrderItem[];
+  services: CustomerOrderServiceLink[];
   invoices: CustomerInvoice[];
 }
 
@@ -61,9 +80,13 @@ export async function getCustomerOrders(): Promise<CustomerOrder[]> {
         status: true,
         estimatedAmount: true,
         total: true,
+        finalPrice: true,
         currency: true,
+        deadline: true,
+        description: true,
         customerNote: true,
         managerNote: true,
+        isLocked: true,
         createdAt: true,
         paidAt: true,
         items: {
@@ -73,6 +96,22 @@ export async function getCustomerOrders(): Promise<CustomerOrder[]> {
             quantity: true,
             totalPrice: true,
             estimatedUnitPrice: true,
+          },
+        },
+        services: {
+          select: {
+            id: true,
+            serviceId: true,
+            quantity: true,
+            service: {
+              select: {
+                id: true,
+                title: true,
+                slug: true,
+                basePrice: true,
+                category: true,
+              },
+            },
           },
         },
         payments: {
@@ -89,7 +128,16 @@ export async function getCustomerOrders(): Promise<CustomerOrder[]> {
       },
     });
     // В схеме связь называется payments, для клиента понятнее «счета».
-    return orders.map(({ payments, ...order }) => ({ ...order, invoices: payments }));
+    return orders.map(({ payments, items, services, ...order }) => ({
+      ...order,
+      finalPrice: order.finalPrice ?? null,
+      deadline: order.deadline ?? null,
+      description: order.description ?? null,
+      isLocked: Boolean(order.isLocked),
+      items: items ?? [],
+      services: services ?? [],
+      invoices: payments ?? [],
+    }));
   } catch (error) {
     console.error("Failed to load the customer orders:", error);
     return [];

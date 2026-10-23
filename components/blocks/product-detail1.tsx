@@ -8,14 +8,25 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { STUDIO_SERVICES, type CatalogServiceItem } from "@/lib/studio-catalog";
 
+export interface ProductDetail1Labels {
+  smallDesigns?: string;
+  largeDesigns?: string;
+  order?: string;
+  includesTitle?: string;
+  shapesTitle?: string;
+  resultTitle?: string;
+}
+
 export interface ProductDetail1Props {
   service?: CatalogServiceItem;
   configuratorSlot?: ReactNode;
+  labels?: ProductDetail1Labels;
 }
 
 const ProductDetail1 = ({
   service = STUDIO_SERVICES[0],
   configuratorSlot,
+  labels,
 }: ProductDetail1Props) => {
   const gallery =
     service.gallery && service.gallery.length > 0
@@ -23,7 +34,9 @@ const ProductDetail1 = ({
       : [service.coverImage];
   const [primaryImage, ...secondaryImages] = gallery;
   const categoryLabel =
-    service.category === "large" ? "Large designs" : "Small designs";
+    service.category === "large"
+      ? labels?.largeDesigns ?? "Large designs"
+      : labels?.smallDesigns ?? "Small designs";
 
   return (
     <section className="py-24 md:py-32">
@@ -77,7 +90,9 @@ const ProductDetail1 = ({
 
             <div className="mt-8 flex flex-wrap gap-3">
               <Button size="lg" className="sm:px-10" asChild>
-                <Link href={`/contact?service=${service.slug}`}>Order</Link>
+                <Link href={`/contact?service=${service.slug}`}>
+                  {labels?.order ?? "Order"}
+                </Link>
               </Button>
             </div>
 
@@ -88,7 +103,7 @@ const ProductDetail1 = ({
             <dl className="space-y-10">
               <div>
                 <dt className="text-xl font-semibold text-foreground">
-                  Our service includes
+                  {labels?.includesTitle ?? "Our service includes"}
                 </dt>
                 <dd className="mt-4">
                   <ul className="space-y-3">
@@ -111,7 +126,7 @@ const ProductDetail1 = ({
 
               <div>
                 <dt className="text-xl font-semibold text-foreground">
-                  Any shape, any idea
+                  {labels?.shapesTitle ?? "Any shape, any idea"}
                 </dt>
                 <dd className="mt-3 space-y-4">
                   {service.shapesIntroduction && (
@@ -136,7 +151,7 @@ const ProductDetail1 = ({
 
               <div className="rounded-xl border border-border bg-card p-6">
                 <dt className="text-xl font-semibold text-foreground">
-                  The result
+                  {labels?.resultTitle ?? "The result"}
                 </dt>
                 <dd className="mt-3 text-sm leading-relaxed text-muted-foreground">
                   {service.resultText}

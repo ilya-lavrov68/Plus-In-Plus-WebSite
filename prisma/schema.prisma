@@ -74,11 +74,15 @@ model Service {
   priceType   String  @default("quote") // "fixed" | "from" | "quote"
   currency    String  @default("RUB")
   isOrderable Boolean @default(false) // разрешить класть в корзину
+  isActive    Boolean @default(true) // показывать ли услугу на сайте
 
   optionGroups ServiceOptionGroup[]
   cartItems    CartItem[]
   orderItems   OrderItem[]
+  orders       OrderService[]
 
+  @@index([slug])
+  @@index([category])
   @@map("services")
 }
 
@@ -233,6 +237,9 @@ model Order {
   // Пока менеджер её не выставил, остаётся 0 и заказ не оплатить.
   total     Int      @default(0)
   currency  String   @default("RUB")
+  deadline    DateTime? // желаемый дедлайн от клиента
+  description String? // дополнительное описание от клиента
+  finalPrice  Float? // итоговая цена в рублях (устанавливает менеджер)
   customerNote String? // пожелания клиента
   managerNote  String? // почему цена отличается от расчётной
   managerId String? // кто согласовал цену и выставил счёт
@@ -246,6 +253,7 @@ model Order {
   lockedAt   DateTime?
   lockedById String? // кто заблокировал
   lockedBy   User?     @relation("LockedOrders", fields: [lockedById], references: [id], onDelete: SetNull)
+  services  OrderService[]
   items     OrderItem[]
   payments  Payment[]
   createdAt DateTime @default(now())
@@ -257,6 +265,21 @@ model Order {
   @@index([createdAt])
   @@index([managerId])
   @@map("orders")
+}
+
+model OrderService {
+  id        String  @id @default(cuid())
+  orderId   String
+  serviceId String
+  quantity  Int     @default(1)
+
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, serviceId])
+  @@index([orderId])
+  @@index([serviceId])
+  @@map("order_services")
 }
 
 model OrderItem {

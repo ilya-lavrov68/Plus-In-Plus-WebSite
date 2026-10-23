@@ -26,7 +26,11 @@ export const ORDER_STATUSES = [
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 /** Статусы, на которых цена ещё не зафиксирована менеджером. */
-export const UNPRICED_STATUSES: readonly string[] = ["quote_requested", "negotiating"];
+export const UNPRICED_STATUSES: readonly string[] = [
+  "pending",
+  "quote_requested",
+  "negotiating",
+];
 
 /** Статусы, на которых заказ считается оплаченным для отчётов о выручке. */
 export const REVENUE_STATUSES: readonly string[] = ["paid", "in_progress", "completed"];
@@ -62,6 +66,9 @@ export interface AdminOrderView {
   discount: number;
   total: number;
   currency: string;
+  deadline: Date | null;
+  description: string | null;
+  finalPrice: number | null;
   customerNote: string | null;
   managerNote: string | null;
   /** Заблокирован от редактирования: править может только FOUNDER. */
@@ -74,6 +81,11 @@ export interface AdminOrderView {
   customer: { id: string; email: string; firstName: string | null; lastName: string | null };
   manager: { id: string; email: string } | null;
   items: AdminOrderItemView[];
+  services: Array<{
+    id: string;
+    quantity: number;
+    service: { id: string; title: string; slug: string; basePrice: number };
+  }>;
   payments: AdminPaymentView[];
 }
 
@@ -85,6 +97,9 @@ type OrderRow = {
   discount: number;
   total: number;
   currency: string;
+  deadline?: Date | null;
+  description?: string | null;
+  finalPrice?: number | null;
   customerNote: string | null;
   managerNote: string | null;
   isLocked?: boolean;
@@ -96,6 +111,11 @@ type OrderRow = {
   user: { id: string; email: string; firstName: string | null; lastName: string | null } | null;
   manager: { id: string; email: string } | null;
   items: AdminOrderItemView[];
+  services?: Array<{
+    id: string;
+    quantity: number;
+    service: { id: string; title: string; slug: string; basePrice: number };
+  }>;
   payments: AdminPaymentView[];
 };
 
@@ -108,6 +128,9 @@ function toAdminOrderView(row: OrderRow): AdminOrderView {
     discount: row.discount,
     total: row.total,
     currency: row.currency,
+    deadline: row.deadline ?? null,
+    description: row.description ?? null,
+    finalPrice: row.finalPrice ?? null,
     customerNote: row.customerNote,
     managerNote: row.managerNote,
     isLocked: Boolean(row.isLocked),
@@ -120,6 +143,7 @@ function toAdminOrderView(row: OrderRow): AdminOrderView {
     customer: row.user ?? { id: "", email: "— удалён —", firstName: null, lastName: null },
     manager: row.manager,
     items: row.items ?? [],
+    services: row.services ?? [],
     payments: row.payments ?? [],
   };
 }
@@ -136,6 +160,20 @@ const orderInclude = {
       unitPrice: true,
       totalPrice: true,
       optionsSnapshot: true,
+    },
+  },
+  services: {
+    select: {
+      id: true,
+      quantity: true,
+      service: {
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          basePrice: true,
+        },
+      },
     },
   },
   payments: {

@@ -337,7 +337,24 @@
     "thankYou": "Спасибо, что связались с Plus In Plus. Заявка сохранена и отправлена нашей команде — скоро мы ответим.",
     "sendAnother": "Отправить ещё одно сообщение",
     "validationError": "Проверьте поля и попробуйте отправить сообщение ещё раз.",
-    "networkError": "Ошибка сети при отправке сообщения. Попробуйте ещё раз."
+    "networkError": "Ошибка сети при отправке сообщения. Попробуйте ещё раз.",
+    "orderTitle": "Оформление заказа",
+    "orderSubtitle": "Выберите одну или несколько услуг студии, укажите желаемый дедлайн и опишите задачу. Менеджер рассмотрит заявку и установит итоговую цену.",
+    "selectServicesLabel": "Выберите услуги *",
+    "selectServicesError": "Пожалуйста, выберите хотя бы одну услугу",
+    "deadlineLabel": "Желаемый дедлайн",
+    "deadlineHint": "Когда работа должна быть готова? (необязательно)",
+    "descriptionLabel": "Описание проекта",
+    "descriptionPlaceholder": "Расскажите о проекте, требованиях, размерах и пожеланиях…",
+    "submitOrder": "Отправить заявку на заказ",
+    "creatingOrder": "Создание заказа…",
+    "signInNotice": "Войдите в аккаунт, чтобы отправить заявку на заказ.",
+    "signInButton": "Войти для оформления заказа",
+    "browseCatalog": "Каталог услуг",
+    "selectedCount": "Выбрано: {count}",
+    "estimatedTotal": "Ориентировочная базовая сумма",
+    "finalPriceByManager": "Итоговую стоимость подтверждает менеджер после обсуждения деталей проекта.",
+    "orderCreateError": "Не удалось создать заказ. Попробуйте ещё раз."
   },
   "footer": {
     "startJourney": "Начните свой путь с Plus In Plus",
@@ -570,6 +587,18 @@
   "admin": {
     "brand": "Plus In Plus — Админ",
     "navigation": "Навигация админ-панели",
+    "quickCreateService": "Быстрое добавление",
+    "quickEditService": "Быстрое редактирование",
+    "fullEditor": "Полный редактор",
+    "toggleActive": "Переключить активность",
+    "inactive": "Неактивна",
+    "activeOrdersBadge": "Активных: {count}",
+    "lockedByActiveOrders": "Заблокировано: услуга есть в активном заказе",
+    "serviceSaved": "Услуга сохранена",
+    "servicePriceRubField": "Базовая цена (₽)",
+    "serviceSlugOptional": "Необязательно — создаётся из названия",
+    "serviceActiveField": "Активна (показывать на /services и /contact)",
+    "selectedCount": "Выбрано: {count}",
     "content": "Содержание",
     "dashboard": "Панель управления",
     "dashboardSubtitle": "Обзор контента и пользователей Plus In Plus.",
@@ -941,7 +970,23 @@
     "lockAfterSaveHint": "После этого заказ сможет редактировать только основатель.",
     "agreeLockAndIssue": "Зафиксировать цену, заблокировать и выставить счёт",
     "unlockOrder": "Снять блокировку",
-    "payNow": "Оплатить"
+    "payNow": "Оплатить",
+    "status_pending": "Ожидает",
+    "status_priced": "Оценён",
+    "deadline": "Желаемый дедлайн",
+    "noDeadline": "Не указан",
+    "activeOrdersBadge": "Активных заказов: {count}",
+    "priceLockedByOrder": "Заблокирована (в активном заказе)",
+    "cannotDeleteActiveOrderHint": "Нельзя удалить: услуга в активном заказе",
+    "quickCreateService": "Быстро добавить услугу",
+    "fullEditor": "Полный редактор",
+    "editQuick": "Быстрая правка",
+    "serviceName": "Название услуги",
+    "servicePriceRub": "Базовая цена (₽)",
+    "serviceActive": "Показывать на сайте (Активна)",
+    "activeStatus": "Активна",
+    "hiddenStatus": "Скрыта",
+    "toggleActive": "Переключить видимость"
   },
   "errors": {
     "notFound": "Страница не найдена",
@@ -965,7 +1010,10 @@
     "siteDescription": "Plus In Plus — студия графического и цифрового дизайна.",
     "siteTitle": "Plus In Plus — дизайн-студия",
     "manager": "Менеджер — заявки",
-    "users": "Пользователи — Plus In Plus"
+    "users": "Пользователи — Plus In Plus",
+    "services": "Услуги — Plus In Plus",
+    "servicesDescription": "Каталог малых и больших дизайн-услуг студии Plus In Plus.",
+    "profile": "Профиль — Plus In Plus"
   },
   "actions": {
     "accountCreatedPleaseLogIn": "Аккаунт создан. Войдите в него.",
@@ -1057,7 +1105,12 @@
     "cartEmpty": "Корзина пуста — добавить в заявку нечего.",
     "cartItemUnavailable": "Одна из услуг в корзине больше недоступна. Уберите её и попробуйте снова.",
     "founderInvulnerable": "Действие запрещено: основатель неприкосновенен.",
-    "orderLocked": "Заказ заблокирован. Редактировать может только основатель."
+    "orderLocked": "Заказ заблокирован. Редактировать может только основатель.",
+    "selectAtLeastOneService": "Выберите хотя бы одну услугу.",
+    "serviceInactiveOrMissing": "Одна или несколько выбранных услуг недоступны.",
+    "invalidDeadline": "Укажите корректную дату дедлайна (не раньше сегодняшнего дня).",
+    "cannotDeleteServiceWithActiveOrders": "Нельзя удалить услугу, на которую есть активные заказы.",
+    "cannotChangePriceWithActiveOrders": "Нельзя изменить цену услуги, которая уже включена в активный заказ."
   },
   "payment": {
     "alreadyPaidBody": "Подтверждение пришло уже после того, как вы ушли со страницы оплаты. Заказ отмечен оплаченным.",
@@ -1091,7 +1144,12 @@
     "subtitle": "Ваши заявки и выставленные по ним счета.",
     "title": "Мои заказы",
     "toShop": "Перейти в магазин",
-    "waitingForPrice": "Менеджер уточняет цену. Оплатить пока нельзя — как только цену согласуют, здесь появится счёт."
+    "waitingForPrice": "Менеджер уточняет цену. Оплатить пока нельзя — как только цену согласуют, здесь появится счёт.",
+    "deadline": "Желаемый дедлайн",
+    "description": "Описание проекта",
+    "selectedServices": "Выбранные услуги",
+    "createFirstOrder": "Создать первый заказ",
+    "createOrder": "Новый заказ"
   },
   "cart": {
     "title": "Корзина",
@@ -1163,5 +1221,42 @@
     "youtubeDescription": "Видео о дизайне и жизни студии",
     "contactStudio": "Написать в студию",
     "contactStudioDescription": "Отправьте сообщение нашей команде"
+  },
+  "services": {
+    "title": "Наши услуги",
+    "subtitle": "Изучите малые и крупноформатные дизайн-услуги студии и выберите нужные для заказа.",
+    "smallDesigns": "Малые дизайны",
+    "smallDesignsDesc": "Вывески, фирменные пакеты, постеры на витрины и баннеры для мероприятий.",
+    "largeDesigns": "Большие дизайны",
+    "largeDesignsDesc": "Крупноформатные фасады, крышные установки, брендирование заборов и билборды.",
+    "smallBadge": "Малый",
+    "largeBadge": "Большой",
+    "select": "Выбрать",
+    "selected": "Выбрано",
+    "details": "Подробнее",
+    "from": "от",
+    "priceOnRequest": "По запросу",
+    "selectedSummary": "Выбрано услуг: {count}",
+    "estimatedBase": "Базовый ориентир: {amount}",
+    "proceedToOrder": "Перейти к оформлению",
+    "clearSelection": "Сбросить",
+    "emptyCategory": "В этой категории пока нет активных услуг.",
+    "loadingServices": "Загрузка услуг…"
+  },
+  "profile": {
+    "title": "Профиль",
+    "subtitle": "Управляйте личными данными и фотографией профиля.",
+    "firstName": "Имя",
+    "lastName": "Фамилия",
+    "email": "Email",
+    "emailImmutable": "Email нельзя изменить",
+    "avatarLabel": "Фото профиля",
+    "avatarHint": "PNG, JPEG, WebP, GIF или AVIF до 2 МБ. Оставьте пустым, чтобы сохранить текущее фото.",
+    "saveChanges": "Сохранить изменения",
+    "saving": "Сохранение…",
+    "updatedSuccess": "Профиль успешно обновлён",
+    "updateFailed": "Не удалось обновить профиль",
+    "myOrders": "Мои заказы",
+    "newOrder": "Новый заказ"
   }
 }
