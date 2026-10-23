@@ -60,8 +60,8 @@ function isPaid(status: string): boolean {
  *
  *  - цена не согласована (pending)   — янтарный блок «менеджер уточняет цену»,
  *    кнопки оплаты нет, потому что платить ещё не за что;
- *  - цена согласована (priced)       — тот же блок + кнопка «Оплатить … ₽»,
- *    которая ведёт на оплату Робокассы;
+ *  - цена согласована (priced)       — показываем согласованную сумму и кнопку оплаты,
+ *    когда платёжная ссылка готова;
  *  - оплачен (paid)                  — зелёный блок «Оплачен. Спасибо!»;
  *  - отклонён (cancelled)            — красный блок с предложением связаться
  *    с нами.
@@ -190,10 +190,6 @@ export default async function CustomerOrdersPage() {
                     {/* Цена согласована: тот же блок плюс кнопка оплаты. */}
                     {order.status === "awaiting_payment" ? (
                       <>
-                        <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-                          <Clock aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-amber-700" />
-                          <p className="text-sm text-amber-800">{t("waitingForPrice")}</p>
-                        </div>
                         {payable ? (
                           // Белая кнопка оплаты: на тёмной теме читается как
                           // «основное действие» и выделяется на фоне карточки.

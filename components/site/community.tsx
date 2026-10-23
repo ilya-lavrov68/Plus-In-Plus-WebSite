@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { Community3 } from "@/components/blocks/community3";
+import { getRequestTranslations } from "@/lib/server-i18n";
 
 function resolveTsConnectLogoSrc(): string {
   try {
@@ -29,7 +30,17 @@ function resolveTsConnectLogoSrc(): string {
   return "/assets/logos/ts-connect.svg";
 }
 
-export function Community() {
+export async function Community() {
+  const t = await getRequestTranslations("home");
   const tsConnectLogoSrc = resolveTsConnectLogoSrc();
-  return <Community3 tsConnectLogoSrc={tsConnectLogoSrc} />;
+  return (
+    <Community3
+      tsConnectLogoSrc={tsConnectLogoSrc}
+      badge={t("communityBadge")}
+      heading={t("communityHeading")}
+      description={t("communityDescription")}
+      studioDescription={t("pipDescription")}
+      partnerDescription={t("tsConnectDescription")}
+    />
+  );
 }

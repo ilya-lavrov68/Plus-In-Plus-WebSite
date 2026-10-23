@@ -1,20 +1,26 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowRight, BookOpen, ExternalLink, Image as ImageIcon, Plus, Settings, Users, Eye } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAdminStats, getFeaturedCandidates, getRecentActivity } from "@/lib/admin-data";
 import { getRequestTranslations } from "@/lib/server-i18n";
+import { getRequestLocale } from "@/lib/request-locale";
+import { requireAdmin } from "@/lib/admin-session";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage() {
-  const [stats, activity, featuredPosts, t] = await Promise.all([
+  const [admin, stats, activity, featuredPosts, t, locale] = await Promise.all([
+    requireAdmin(),
     getAdminStats(),
     getRecentActivity(),
     getFeaturedCandidates(),
     getRequestTranslations("admin"),
+    getRequestLocale(),
   ]);
+  if (!admin) redirect("/");
   const cards = [
     { title: t("services"), icon: ImageIcon, value: stats.services, detail: t("postsCount", { count: stats.publishedServices }), href: "/admin/services" },
     { title: t("blogPosts"), icon: BookOpen, value: stats.posts, detail: t("postsCount", { count: stats.publishedPosts }), href: "/admin/blog" },
@@ -67,14 +73,17 @@ export default async function AdminDashboardPage() {
             {t("viewSite")}
           </Link>
         </Button>
-        <Button asChild variant="outline">
-          <Link href="/admin/settings">
-            <Settings className="h-4 w-4" />
-            {t("settings")}
-          </Link>
-        </Button>
+        {admin.isFounder ? (
+          <Button asChild variant="outline">
+            <Link href="/admin/settings">
+              <Settings className="h-4 w-4" />
+              {t("settings")}
+            </Link>
+          </Button>
+        ) : null}
       </div>
 
+      {admin.isFounder ? (
       <div className="mt-8 grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,1fr)]">
         <Card>
           <CardHeader>
@@ -127,6 +136,8 @@ export default async function AdminDashboardPage() {
         </Card>
       </div>
 
+      ) : null}
+
       <Card className="mt-8">
         <CardHeader>
           <CardTitle className="text-lg">{t("recentActivity")}</CardTitle>
@@ -147,7 +158,7 @@ export default async function AdminDashboardPage() {
                     </p>
                   </div>
                   <time dateTime={entry.createdAt.toISOString()} className="shrink-0 text-xs text-muted-foreground">
-                    {new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(entry.createdAt)}
+                    {new Intl.DateTimeFormat(locale === "ru" ? "ru-RU" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(entry.createdAt)}
                   </time>
                 </li>
               ))}

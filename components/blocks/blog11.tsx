@@ -13,6 +13,8 @@ export interface Blog11Props {
   description?: string;
   posts?: CatalogBlogPost[];
   asPageHeading?: boolean;
+  allCategoryLabel?: string;
+  categoryLabels?: Partial<Record<CatalogBlogPost["category"], string>>;
 }
 
 const Blog11 = ({
@@ -21,6 +23,8 @@ const Blog11 = ({
   description = "Latest news, studio updates, and design stories from Plus In Plus.",
   posts = STUDIO_BLOG_POSTS,
   asPageHeading = false,
+  allCategoryLabel = "All",
+  categoryLabels = {},
 }: Blog11Props) => {
   const layoutScope = id || heading.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
@@ -65,7 +69,9 @@ const Blog11 = ({
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
-                      {category}
+                      {category === "All"
+                        ? allCategoryLabel
+                        : categoryLabels[category as CatalogBlogPost["category"]] ?? category}
                       {isActive && (
                         <motion.span
                           layoutId={`blog11-category-${layoutScope}`}
@@ -104,7 +110,7 @@ const Blog11 = ({
                       <img
                         src={post.image}
                         alt={post.title}
-                        className="size-full object-cover"
+                        className="size-full object-contain"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/30" />
                     </div>

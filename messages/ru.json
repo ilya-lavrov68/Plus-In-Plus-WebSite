@@ -56,7 +56,7 @@
     "partnersLogoAlt": "Plus In Plus и TS Connect"
   },
   "cookies": {
-    "title": "🍪 Мы используем cookie-файлы",
+    "title": "Мы используем cookie-файлы",
     "body": "Мы используем cookie-файлы, чтобы улучшить вашу работу с сайтом, анализировать трафик и персонализировать контент. Нажимая «Принять все», вы соглашаетесь на использование cookie-файлов. Подробнее — в <link>Политике конфиденциальности</link>.",
     "acceptAll": "Принять все",
     "rejectAll": "Отклонить все",
@@ -127,7 +127,9 @@
     "support": {
       "title": "Постоянная техподдержка",
       "description": "Мы всегда рядом, если дизайн оказался не совсем подходящим"
-    }
+    },
+    "heading": "Откройте нашу творческую студию.",
+    "button": "Связаться с нами"
   },
   "partners": {
     "heading": "Наши партнёры",
@@ -161,7 +163,8 @@
     "exploreBlog": "Перейти в блог",
     "featuredHeading": "Рекомендуем",
     "defaultPostTitle": "Внутри студии Plus In Plus",
-    "defaultPostExcerpt": "Идеи, процесс и люди, которые стоят за нашей работой."
+    "defaultPostExcerpt": "Идеи, процесс и люди, которые стоят за нашей работой.",
+    "description": "Новости нашей дизайн-студии, продуктовых экосистем и клиентских проектов."
   },
   "shop": {
     "comingSoonTitle": "Магазин скоро откроется",
@@ -285,7 +288,15 @@
           ]
         }
       ]
-    }
+    },
+    "allCategory": "Все",
+    "categoryDesign": "Дизайн",
+    "categoryStudio": "Студия",
+    "categoryOutdoor": "Наружная реклама",
+    "otherNewsDescription": "Читайте другие статьи и истории команды Plus In Plus.",
+    "articleNavigation": "Навигация по статье",
+    "listDescription": "Новости нашей дизайн-студии, продуктовых экосистем и клиентских проектов.",
+    "otherNews": "Другие новости"
   },
   "gallery": {
     "title": "Галерея",
@@ -309,7 +320,24 @@
     "send": "Отправить",
     "notConnected": "Отправка сообщений пока не подключена.",
     "successMessage": "Сообщение успешно отправлено!",
-    "errorMessage": "Не удалось отправить сообщение. Попробуйте ещё раз."
+    "errorMessage": "Не удалось отправить сообщение. Попробуйте ещё раз.",
+    "chooseService": "Выберите услугу, чтобы обсудить свой проект с Plus In Plus.",
+    "continue": "Продолжить",
+    "changeSelection": "Изменить выбор",
+    "projectDescription": "Есть идея для вывески, упаковки, оформления мероприятия или цифрового продукта? Расскажите о задаче — мы подготовим подходящее предложение.",
+    "selectedService": "Выбранная услуга",
+    "studioSupport": "Связаться со студией:",
+    "firstNamePlaceholder": "Александр",
+    "lastNamePlaceholder": "Иванов",
+    "emailPlaceholder": "you@example.com",
+    "messagePlaceholder": "Опишите идею, формат, сроки или местоположение…",
+    "sending": "Отправка…",
+    "messageSent": "Сообщение отправлено",
+    "requestNumber": "Номер заявки: {number}",
+    "thankYou": "Спасибо, что связались с Plus In Plus. Заявка сохранена и отправлена нашей команде — скоро мы ответим.",
+    "sendAnother": "Отправить ещё одно сообщение",
+    "validationError": "Проверьте поля и попробуйте отправить сообщение ещё раз.",
+    "networkError": "Ошибка сети при отправке сообщения. Попробуйте ещё раз."
   },
   "footer": {
     "startJourney": "Начните свой путь с Plus In Plus",
@@ -374,7 +402,9 @@
     "collaboration": "Сотрудничество",
     "partners": "Партнёры",
     "news": "Новости Plus In Plus",
-    "insights": "Дизайн-инсайты"
+    "insights": "Дизайн-инсайты",
+    "largeDesigns": "Крупноформатный дизайн",
+    "description": "Дизайн-студия нового поколения: превращаем идеи в понятный и запоминающийся дизайн — от макетов сайтов до вывесок и наружной рекламы."
   },
   "auth": {
     "login": "Войти",
@@ -721,7 +751,7 @@
     "upload": {
       "limit": "До {size} МБ и {megapixels} мегапикселей.",
       "recommended": "Для наилучшего результата используйте {recommended} ({aspectRatio}).",
-      "minimum": "Рекомендуемый минимум: {minimum}; максимум после обработки: {maximum}.",
+      "minimum": "Минимум для хорошей чёткости: {minimum}; максимум после обработки: {maximum}.",
       "fullHd": "Full HD (1,920 × 1,080 px) принимается и показывается полностью; при другом соотношении сторон могут остаться пустые поля, но обложки никогда не обрезаются.",
       "savedAsWebp": "Сохраняется в WebP.",
       "keepCurrent": "Оставьте пустым, чтобы сохранить текущую обложку.",
@@ -928,13 +958,14 @@
     "shopService": "Магазин — Plus In Plus",
     "shopServiceDescription": "Подробности услуги и то, что входит в дизайн-проект Plus In Plus.",
     "blog": "Блог — Plus In Plus",
-    "blogDescription": "Новости, идеи и материалы о дизайне от команды Plus In Plus.",
+    "blogDescription": "Новости, события студии и истории о дизайне от Plus In Plus.",
     "contact": "Связаться с нами — Plus In Plus",
-    "contactDescription": "Свяжитесь с дизайн-студией Plus In Plus.",
+    "contactDescription": "Есть идея для вывески, веб-макета или наружной рекламы? Напишите команде Plus In Plus.",
     "admin": "Админ-панель — Plus In Plus",
     "siteDescription": "Plus In Plus — студия графического и цифрового дизайна.",
     "siteTitle": "Plus In Plus — дизайн-студия",
-    "manager": "Менеджер — заявки"
+    "manager": "Менеджер — заявки",
+    "users": "Пользователи — Plus In Plus"
   },
   "actions": {
     "accountCreatedPleaseLogIn": "Аккаунт создан. Войдите в него.",
@@ -1084,5 +1115,53 @@
     "submitted": "Заявка {number} принята",
     "submittedHint": "Менеджер посчитает точную цену и свяжется с вами. Следить за статусом можно в «Моих заказах».",
     "priceOnRequest": "Цена по запросу"
+  },
+  "home": {
+    "newsDescription": "Новости нашей дизайн-студии, продуктовых экосистем и клиентских проектов.",
+    "heroMuted": "Дизайн-студия",
+    "heroPrimary": "нового поколения",
+    "heroDescriptionLead": "Есть идея, но не знаете, как её представить? ",
+    "heroDescriptionStrong": "Мы упакуем её в стильный и понятный дизайн — от макетов сайтов до постеров и оформления мероприятий.",
+    "heroFootnote": "Дизайн-студия Plus In Plus",
+    "heroAlt": "Работы студии Plus In Plus",
+    "ctaTitle": "Заказать дизайн",
+    "ctaDescription": "Расскажите об идее — мы превратим её в понятную и запоминающуюся визуальную систему: от вывески до крупноформатной наружной рекламы.",
+    "communityBadge": "Партнёры и соседи",
+    "communityHeading": "Наши партнёры и соседи",
+    "communityDescription": "Мы тесно сотрудничаем с TS Connect, IT-компанией из Тамбова, создавая надёжный дизайн и цифровую инфраструктуру для брендов и организаций.",
+    "pipDescription": "Студия нового поколения: айдентика, макеты, вывески и оформление мероприятий.",
+    "tsConnectDescription": "Региональный партнёр по IT-разработке и цифровой инфраструктуре в Тамбове."
+  },
+  "navigation": {
+    "orderDesign": "Заказать дизайн",
+    "orderDesignDescription": "Индивидуальный дизайн для вашей идеи и бренда",
+    "designServices": "Дизайн-услуги",
+    "designServicesDescription": "Малые и крупные визуальные решения",
+    "plusForPlay": "Plus For Play",
+    "plusForPlayDescription": "Интерактивная экосистема и эксперименты студии",
+    "ozoneProject": "Проект Ozone",
+    "ozoneProjectDescription": "Продуктовый подход, проверенный на цифровых системах",
+    "studio": "Студия",
+    "journal": "Журнал",
+    "howWeWork": "Как мы работаем",
+    "howWeWorkDescription": "Конфиденциальный и индивидуальный процесс",
+    "ourPartners": "Наши партнёры",
+    "ourPartnersDescription": "Сотрудничество с TS Connect в Тамбове",
+    "studioNews": "Новости студии",
+    "studioNewsDescription": "Последние новости Plus In Plus",
+    "blog": "Блог",
+    "blogDescription": "Статьи и объявления студии",
+    "launchStory": "Мы запустились",
+    "launchStoryDescription": "История запуска нового сайта",
+    "contactUs": "Связаться с нами",
+    "contactUsDescription": "Обсудите свой проект с командой Plus In Plus",
+    "telegramChannel": "Канал в Telegram",
+    "telegramDescription": "Новости студии, макеты и закулисье",
+    "vkCommunity": "Сообщество ВКонтакте",
+    "vkDescription": "Кейсы, истории клиентов и обсуждения",
+    "youtube": "YouTube",
+    "youtubeDescription": "Видео о дизайне и жизни студии",
+    "contactStudio": "Написать в студию",
+    "contactStudioDescription": "Отправьте сообщение нашей команде"
   }
 }

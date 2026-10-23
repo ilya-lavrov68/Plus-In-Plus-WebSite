@@ -10,12 +10,18 @@ export interface Blogpost11Props {
   post?: CatalogBlogPost;
   previousPost?: CatalogBlogPost | null;
   nextPost?: CatalogBlogPost | null;
+  previousLabel?: string;
+  nextLabel?: string;
+  navigationLabel?: string;
 }
 
 const Blogpost11 = ({
   post = STUDIO_BLOG_POSTS[0],
   previousPost,
   nextPost,
+  previousLabel = "Previous",
+  nextLabel = "Next",
+  navigationLabel = "Article navigation",
 }: Blogpost11Props) => {
   return (
     <article className="py-24 md:py-32">
@@ -26,7 +32,7 @@ const Blogpost11 = ({
               <img
                 src={post.image}
                 alt={post.title}
-                className="aspect-[3/4] w-full object-cover"
+                className="aspect-[4/3] w-full object-contain"
               />
             </div>
           </div>
@@ -108,7 +114,7 @@ const Blogpost11 = ({
               <>
                 <Separator className="my-12" />
                 <nav
-                  aria-label="Article navigation"
+                  aria-label={navigationLabel}
                   className="flex flex-wrap items-center justify-between gap-4"
                 >
                   {previousPost ? (
@@ -118,7 +124,7 @@ const Blogpost11 = ({
                         className="group"
                       >
                         <ArrowLeft className="size-4 transition-transform duration-200 ease-out group-hover:-translate-x-1" />
-                        Previous
+                        {previousLabel}
                       </Link>
                     </Button>
                   ) : (
@@ -128,7 +134,7 @@ const Blogpost11 = ({
                   {nextPost ? (
                     <Button variant="outline" asChild>
                       <Link href={`/blog/${nextPost.slug}`} className="group">
-                        Next
+                        {nextLabel}
                         <ArrowRight className="size-4 transition-transform duration-200 ease-out group-hover:translate-x-1" />
                       </Link>
                     </Button>

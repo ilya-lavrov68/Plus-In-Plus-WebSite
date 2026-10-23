@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Copy, ExternalLink, Trash2 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { bulkUpdatePosts, duplicatePost } from "@/app/actions/posts";
 import { AdminDataTable } from "@/components/admin/admin-data-table";
@@ -35,6 +35,7 @@ export interface AdminPostRow {
 export function PostsTable({ posts }: { posts: AdminPostRow[] }) {
   const t = useTranslations("admin");
   const tc = useTranslations("common");
+  const locale = useLocale() === "ru" ? "ru-RU" : "en-GB";
   const [source, setSource] = useState("all");
   const [featured, setFeatured] = useState("all");
   const [pageSize, setPageSize] = useState(10);
@@ -124,7 +125,7 @@ export function PostsTable({ posts }: { posts: AdminPostRow[] }) {
       value: (post) => post.publishedAt ?? post.createdAt,
       cell: (post) => (
         <span className="text-xs text-muted-foreground">
-          {post.publishedAt ? new Date(post.publishedAt).toLocaleString("en-GB") : t("notScheduled")}
+          {post.publishedAt ? new Date(post.publishedAt).toLocaleString(locale) : t("notScheduled")}
         </span>
       ),
     },

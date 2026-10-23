@@ -56,7 +56,7 @@
     "partnersLogoAlt": "Plus In Plus and TS Connect"
   },
   "cookies": {
-    "title": "🍪 We use cookies",
+    "title": "We use cookies",
     "body": "We use cookies to improve your experience, analyze site traffic, and personalize content. By clicking \"Accept all\", you consent to our use of cookies. Read our <link>Privacy Policy</link>.",
     "acceptAll": "Accept all",
     "rejectAll": "Reject all",
@@ -127,7 +127,9 @@
     "support": {
       "title": "Ongoing tech support",
       "description": "We're always here to help if the design isn't quite right"
-    }
+    },
+    "heading": "Explore our creative studio.",
+    "button": "Contact us"
   },
   "partners": {
     "heading": "Our partners",
@@ -161,7 +163,8 @@
     "exploreBlog": "Explore the blog",
     "featuredHeading": "Featured",
     "defaultPostTitle": "Inside the Plus In Plus studio",
-    "defaultPostExcerpt": "A closer look at the ideas, process, and people behind the work."
+    "defaultPostExcerpt": "A closer look at the ideas, process, and people behind the work.",
+    "description": "Updates from our design studio, product ecosystems, and client projects."
   },
   "shop": {
     "comingSoonTitle": "Shop is coming soon",
@@ -285,7 +288,15 @@
           ]
         }
       ]
-    }
+    },
+    "allCategory": "All",
+    "categoryDesign": "Design",
+    "categoryStudio": "Studio",
+    "categoryOutdoor": "Outdoor",
+    "otherNewsDescription": "Explore more articles and stories from the Plus In Plus team.",
+    "articleNavigation": "Article navigation",
+    "listDescription": "Updates from our design studio, product ecosystems, and client projects.",
+    "otherNews": "Other News"
   },
   "gallery": {
     "title": "Gallery",
@@ -309,7 +320,24 @@
     "send": "Send",
     "notConnected": "Message sending is not connected yet.",
     "successMessage": "Message sent successfully!",
-    "errorMessage": "Failed to send message. Please try again."
+    "errorMessage": "Failed to send message. Please try again.",
+    "chooseService": "Select a design service to discuss your project with Plus In Plus.",
+    "continue": "Continue",
+    "changeSelection": "Change selection",
+    "projectDescription": "Have an idea for signage, packaging, event collateral, or a digital product mockup? Tell us about your task and we will get back to you with a tailored proposal.",
+    "selectedService": "Selected service",
+    "studioSupport": "Studio support",
+    "firstNamePlaceholder": "Alex",
+    "lastNamePlaceholder": "Morozov",
+    "emailPlaceholder": "you@example.com",
+    "messagePlaceholder": "Describe your idea, format, timeline, or location...",
+    "sending": "Sending…",
+    "messageSent": "Message sent",
+    "requestNumber": "Request number: {number}",
+    "thankYou": "Thank you for reaching out to Plus In Plus. Your request has been saved and sent to our team—we will reply shortly.",
+    "sendAnother": "Send another message",
+    "validationError": "Please check the fields and try sending your message again.",
+    "networkError": "Network error while sending message. Please try again."
   },
   "footer": {
     "startJourney": "Start your journey with Plus In Plus",
@@ -374,7 +402,9 @@
     "collaboration": "Collaboration",
     "partners": "Partners",
     "news": "Plus In Plus news",
-    "insights": "Design insights"
+    "insights": "Design insights",
+    "largeDesigns": "Large designs",
+    "description": "A next-generation design studio packaging ideas into clear, memorable design—from website mockups to signage and outdoor collateral."
   },
   "auth": {
     "login": "Log in",
@@ -721,7 +751,7 @@
     "upload": {
       "limit": "Up to {size} MB and {megapixels} megapixels.",
       "recommended": "For a sharp fit, use {recommended} ({aspectRatio}).",
-      "minimum": "Suggested minimum: {minimum}; maximum after optimization: {maximum}.",
+      "minimum": "Minimum for a sharp image: {minimum}; maximum after optimization: {maximum}.",
       "fullHd": "Full HD (1,920 × 1,080 px) is accepted and displayed in full; a different aspect ratio may leave empty margins, but covers are never cropped.",
       "savedAsWebp": "Saved as WebP.",
       "keepCurrent": "Leave empty to keep the current cover.",
@@ -928,13 +958,14 @@
     "shopService": "Shop — Plus In Plus",
     "shopServiceDescription": "Learn the details of this service and what a Plus In Plus design project includes.",
     "blog": "Blog — Plus In Plus",
-    "blogDescription": "News, ideas and design materials from the Plus In Plus team.",
+    "blogDescription": "News, studio updates, and design stories from Plus In Plus.",
     "contact": "Contact us — Plus In Plus",
-    "contactDescription": "Get in touch with the Plus In Plus design studio.",
+    "contactDescription": "Have an idea for signage, web mockups, or outdoor media? Send a message to Plus In Plus.",
     "admin": "Admin — Plus In Plus",
     "siteDescription": "Plus In Plus — a graphic and digital design studio.",
     "siteTitle": "Plus In Plus — design studio",
-    "manager": "Manager — orders"
+    "manager": "Manager — orders",
+    "users": "Users — Plus In Plus"
   },
   "actions": {
     "accountCreatedPleaseLogIn": "Your account was created. Please log in.",
@@ -1084,5 +1115,53 @@
     "submitted": "Request {number} is accepted",
     "submittedHint": "A manager will calculate the exact price and contact you. Track the status in “My orders”.",
     "priceOnRequest": "Price on request"
+  },
+  "home": {
+    "newsDescription": "Updates from our design studio, product ecosystems, and client projects.",
+    "heroMuted": "A next-generation",
+    "heroPrimary": "design studio",
+    "heroDescriptionLead": "Have an idea but don't know how to showcase it? ",
+    "heroDescriptionStrong": "We'll package it in a stylish, clear design—from website mockups to posters and event collateral.",
+    "heroFootnote": "Plus In Plus Design Studio",
+    "heroAlt": "Plus In Plus studio showcase",
+    "ctaTitle": "Order a design",
+    "ctaDescription": "Tell us about your idea and we will package it in a clear, memorable visual system—from storefront signage to large-format outdoor media.",
+    "communityBadge": "Partners & Neighbors",
+    "communityHeading": "Our partners and neighbors",
+    "communityDescription": "We closely collaborate with TS Connect, an IT firm in Tambov, delivering reliable design and digital infrastructure for brands and organizations.",
+    "pipDescription": "Next-generation studio for brand systems, mockups, signage, and event collateral.",
+    "tsConnectDescription": "Regional IT engineering and digital infrastructure partner in Tambov."
+  },
+  "navigation": {
+    "orderDesign": "Order a design",
+    "orderDesignDescription": "Get a tailored design crafted around your brand idea",
+    "designServices": "Design services",
+    "designServicesDescription": "Explore small and large format visual solutions",
+    "plusForPlay": "Plus For Play",
+    "plusForPlayDescription": "Interactive ecosystem and creative studio experiments",
+    "ozoneProject": "Ozone project",
+    "ozoneProjectDescription": "Product thinking tested across live digital systems",
+    "studio": "Studio",
+    "journal": "Journal",
+    "howWeWork": "How we work",
+    "howWeWorkDescription": "Confidential, individualized studio process",
+    "ourPartners": "Our partners",
+    "ourPartnersDescription": "Collaboration with TS Connect in Tambov",
+    "studioNews": "Studio news",
+    "studioNewsDescription": "Latest updates from Plus In Plus",
+    "blog": "Blog",
+    "blogDescription": "Long-form studio essays and announcements",
+    "launchStory": "We're Up and Running",
+    "launchStoryDescription": "Read the launch story behind the new website",
+    "contactUs": "Contact us",
+    "contactUsDescription": "Discuss your project with the Plus In Plus team",
+    "telegramChannel": "Telegram Channel",
+    "telegramDescription": "Studio releases, mockups, and behind-the-scenes updates",
+    "vkCommunity": "VK Community",
+    "vkDescription": "Case studies, client stories, and community discussions",
+    "youtube": "YouTube",
+    "youtubeDescription": "Watch design breakdowns and studio reels",
+    "contactStudio": "Contact Studio",
+    "contactStudioDescription": "Send a message directly to our team"
   }
 }

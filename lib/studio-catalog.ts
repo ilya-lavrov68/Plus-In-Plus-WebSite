@@ -560,7 +560,7 @@ export function resolveServiceBySlug(
 export function mergeCatalogPosts(dbPosts: PostView[]): CatalogBlogPost[] {
   if (!dbPosts.length) return STUDIO_BLOG_POSTS;
 
-  return dbPosts.map((post, idx) => {
+  const merged: CatalogBlogPost[] = dbPosts.map((post, idx) => {
     const preset = STUDIO_BLOG_POSTS.find(
       (p) =>
         p.slug === post.slug ||
@@ -586,7 +586,7 @@ export function mergeCatalogPosts(dbPosts: PostView[]): CatalogBlogPost[] {
       return {
         ...preset,
         id: post.id,
-        slug: post.slug,
+        slug: preset?.slug ?? post.slug,
         title: post.title,
         excerpt: post.excerpt,
         image: validCover,
@@ -599,7 +599,7 @@ export function mergeCatalogPosts(dbPosts: PostView[]): CatalogBlogPost[] {
 
     return {
       id: post.id,
-      slug: post.slug,
+      slug: preset?.slug ?? post.slug,
       title: post.title,
       dateLabel: formattedDate,
       metaLabel: `${formattedDate} · ${readMins}-minute read`,
@@ -620,4 +620,10 @@ export function mergeCatalogPosts(dbPosts: PostView[]): CatalogBlogPost[] {
       htmlContent: post.content,
     };
   });
+
+  const launchPost = STUDIO_BLOG_POSTS.find((post) => post.slug === "we-re-up-and-running");
+  if (launchPost && !merged.some((post) => post.slug === launchPost.slug)) {
+    merged.push(launchPost);
+  }
+  return merged;
 }

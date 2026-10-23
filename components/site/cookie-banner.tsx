@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Settings, X } from "lucide-react";
+import { Check, Cookie, Settings, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
@@ -114,7 +114,10 @@ export function CookieBanner() {
         <div className="p-6">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
-              <h3 className="text-lg font-semibold">{t("title")}</h3>
+              <h3 className="mb-2 flex items-center gap-2 text-lg font-semibold">
+                <Cookie aria-hidden="true" className="h-6 w-6" />
+                {t("title")}
+              </h3>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                 {t.rich("body", {
                   link: (chunks) => (

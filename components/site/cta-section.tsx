@@ -1,5 +1,17 @@
 import { Cta13 } from "@/components/blocks/cta13";
+import { getRequestTranslations } from "@/lib/server-i18n";
 
-export function CtaSection() {
-  return <Cta13 />;
+export async function CtaSection() {
+  const [t, hero] = await Promise.all([
+    getRequestTranslations("home"),
+    getRequestTranslations("hero"),
+  ]);
+  return (
+    <Cta13
+      heading={t("ctaTitle")}
+      description={t("ctaDescription")}
+      primaryButton={{ text: hero("order"), url: "/shop" }}
+      secondaryButton={{ text: hero("contactUs"), url: "/contact" }}
+    />
+  );
 }

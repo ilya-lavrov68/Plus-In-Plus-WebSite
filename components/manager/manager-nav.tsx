@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { logout } from "@/app/actions/auth";
 import { usePathname } from "next/navigation";
-import { ExternalLink, LayoutDashboard, LogOut, ShoppingCart } from "lucide-react";
+import { ExternalLink, LayoutDashboard, LogOut, ShoppingCart, Users } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useTranslations } from "next-intl";
 
@@ -15,7 +15,10 @@ import { cn } from "@/lib/utils";
 /**
  * Навигация менеджера: только заявки.
  */
-const links = [{ key: "orders", href: "/manager/orders", icon: ShoppingCart }];
+const links = [
+  { key: "orders", href: "/manager/orders", icon: ShoppingCart },
+  { key: "users", href: "/manager/users", icon: Users },
+];
 
 export function ManagerNav({ canEditSite }: { canEditSite: boolean }) {
   const t = useTranslations("admin");

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { useTranslations } from "next-intl";
 import {
   BookOpen,
   ChevronRight,
@@ -83,6 +84,7 @@ export interface MenuItem {
 // нужны: пропс оставлен исторически и игнорируется.
 export interface Navbar10Props {
   services?: unknown[];
+  featuredPost?: { title: string; slug: string; coverImage: string } | null;
 }
 
 type DesktopMenuItemProps = {
@@ -94,6 +96,9 @@ interface MobileNavigationMenuProps {
   open: boolean;
   navigation: MenuItem[];
   onClose: () => void;
+  contactLabel: string;
+  loginLabel: string;
+  menuLabel: string;
 }
 
 type NavLinkProps = {
@@ -103,7 +108,7 @@ type NavLinkProps = {
   onMouseLeave?: MouseEventHandler<HTMLAnchorElement>;
 };
 
-function buildNavigation(): MenuItem[] {
+export function buildNavigation(featuredPost?: Navbar10Props["featuredPost"]): MenuItem[] {
   // Раздел SHOP временно скрыт из навигации до появления мерча. Прямые ссылки
   // на страницы услуг (/shop/[slug]) продолжают работать — заявки создаются
   // через них, а /shop показывает заглушку «Shop is coming soon».
@@ -146,9 +151,9 @@ function buildNavigation(): MenuItem[] {
       title: "ABOUT PIP",
       id: 3,
       imageLink: {
-        url: "/blog/we-re-up-and-running",
-        image: "/assets/shop/large-billboard-building.jpg",
-        label: "We're Up and Running",
+        url: featuredPost?.slug ? `/blog/${encodeURIComponent(featuredPost.slug)}` : "/blog/we-re-up-and-running",
+        image: featuredPost?.coverImage || "/assets/shop/large-billboard-building.jpg",
+        label: featuredPost?.title || "We're Up and Running",
       },
       groupLinks: [
         {
@@ -249,10 +254,53 @@ function buildNavigation(): MenuItem[] {
 
 const MOBILE_BREAKPOINT = 1024;
 
-const Navbar10 = ({}: Navbar10Props = {}) => {
+const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
   const [open, setOpen] = useState<boolean>(false);
   const { data: session } = useSession();
-  const navigation = useMemo(() => buildNavigation(), []);
+  const t = useTranslations("header");
+  const tc = useTranslations("common");
+  const tn = useTranslations("navigation");
+  const navigation = useMemo(() => {
+    const labels: Record<string, string> = {
+      "Order a design": "orderDesign", "Design services": "designServices", "Plus For Play": "plusForPlay", "Ozone project": "ozoneProject",
+      "Studio": "studio", "Journal": "journal", "How we work": "howWeWork", "Our partners": "ourPartners", "Studio news": "studioNews",
+      "Blog": "blog", "We're Up and Running": "launchStory", "Contact us": "contactUs", "Telegram Channel": "telegramChannel",
+      "VK Community": "vkCommunity", "YouTube": "youtube", "Contact Studio": "contactStudio",
+    };
+    const descriptions: Record<string, string> = {
+      "Get a tailored design crafted around your brand idea": "orderDesignDescription",
+      "Explore small and large format visual solutions": "designServicesDescription",
+      "Interactive ecosystem and creative studio experiments": "plusForPlayDescription",
+      "Product thinking tested across live digital systems": "ozoneProjectDescription",
+      "Confidential, individualized studio process": "howWeWorkDescription",
+      "Collaboration with TS Connect in Tambov": "ourPartnersDescription",
+      "Latest updates from Plus In Plus": "studioNewsDescription",
+      "Read the launch story behind the new website": "launchStoryDescription",
+      "Discuss your project with the Plus In Plus team": "contactUsDescription",
+      "Studio releases, mockups, and behind-the-scenes updates": "telegramDescription",
+      "Case studies, client stories, and community discussions": "vkDescription",
+      "Watch design breakdowns and studio reels": "youtubeDescription",
+      "Long-form studio essays and announcements": "blogDescription",
+      "Send a message directly to our team": "contactStudioDescription",
+    };
+    const localizeLink = (link: MenuLink): MenuLink => ({
+      ...link,
+      label: link.label && labels[link.label] ? tn(labels[link.label]) : link.label,
+      description: link.description && descriptions[link.description] ? tn(descriptions[link.description]) : link.description,
+    });
+    return buildNavigation(featuredPost).map((item) => ({
+      ...item,
+      title: item.id === 1 ? t("forPlay") : item.id === 3 ? t("about") : t("socnet"),
+      links: item.links?.map(localizeLink),
+      featuredLinks: item.featuredLinks?.map(localizeLink),
+      imageLink: item.imageLink ? localizeLink(item.imageLink) : undefined,
+      groupLinks: item.groupLinks?.map((group) => ({
+        ...group,
+        title: labels[group.title] ? tn(labels[group.title]) : group.title,
+        links: group.links.map(localizeLink),
+      })),
+    }));
+  }, [t, tn, featuredPost]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -318,7 +366,7 @@ const Navbar10 = ({}: Navbar10Props = {}) => {
                 <LanguageSwitcher />
                 <CartButton />
                 <Button variant="outline" size="sm" asChild>
-                  <Link href="/contact">Contact</Link>
+                  <Link href="/contact">{t("contact")}</Link>
                 </Button>
                 {session?.user ? (
                   <div className="flex items-center gap-2">
@@ -326,13 +374,13 @@ const Navbar10 = ({}: Navbar10Props = {}) => {
                       <Button variant="secondary" size="sm" asChild>
                         <Link href={dashboardHref}>
                           <LayoutDashboard className="size-3.5" />
-                          Panel
+                          {t("admin")}
                         </Link>
                       </Button>
                     )}
                     <Link
                       href="/orders"
-                      aria-label="Account"
+                      aria-label={t("account")}
                       className="inline-flex items-center gap-2 rounded-full border border-border p-0.5 pr-3 text-xs font-medium text-foreground transition-colors duration-200 ease-out hover:border-foreground/25 hover:bg-white/[0.06]"
                     >
                       <UserAvatar user={session.user} size={36} />
@@ -344,7 +392,7 @@ const Navbar10 = ({}: Navbar10Props = {}) => {
                 ) : (
                   <Button size="sm" asChild>
                     <Link href="/login" className="group">
-                      Log in
+                      {t("login")}
                       <ChevronRight className="transition-transform duration-200 ease-out group-hover:translate-x-0.5" />
                     </Link>
                   </Button>
@@ -357,7 +405,7 @@ const Navbar10 = ({}: Navbar10Props = {}) => {
                   className="size-11"
                   variant="ghost"
                   size="icon"
-                  aria-label={open ? "Close menu" : "Open menu"}
+                  aria-label={open ? tc("closeMenu") : tc("openMenu")}
                   onClick={handleMobileMenu}
                 >
                   {open ? (
@@ -375,6 +423,9 @@ const Navbar10 = ({}: Navbar10Props = {}) => {
         open={open}
         navigation={navigation}
         onClose={() => setOpen(false)}
+        contactLabel={t("contact")}
+        loginLabel={t("login")}
+        menuLabel={tc("mobileMainNavigation")}
       />
     </Fragment>
   );
@@ -615,7 +666,7 @@ const FeaturedImageLink = ({ link }: { link?: MenuLink }) => {
                   <img
                     src={link.image}
                     alt={link.label || ""}
-                    className="size-full object-cover object-left-top"
+                    className="size-full object-contain"
                   />
                 </AspectRatio>
               </div>
@@ -712,6 +763,9 @@ const MobileNavigationMenu = ({
   open,
   navigation,
   onClose,
+  contactLabel,
+  loginLabel,
+  menuLabel,
 }: MobileNavigationMenuProps) => {
   return (
     <Sheet open={open} onOpenChange={(next) => !next && onClose()}>
@@ -722,7 +776,7 @@ const MobileNavigationMenu = ({
       >
         <div className="container py-8">
           <div className="sr-only">
-            <SheetTitle>Mobile Navigation</SheetTitle>
+            <SheetTitle>{menuLabel}</SheetTitle>
           </div>
           <div className="flex min-h-full flex-col gap-6">
             <Accordion type="multiple" className="w-full">
@@ -734,12 +788,12 @@ const MobileNavigationMenu = ({
             <div className="flex flex-col gap-3">
               <Button variant="outline" asChild>
                 <Link href="/contact" onClick={onClose}>
-                  Contact
+                  {contactLabel}
                 </Link>
               </Button>
               <Button asChild>
                 <Link href="/login" onClick={onClose}>
-                  Log in
+                  {loginLabel}
                 </Link>
               </Button>
             </div>
