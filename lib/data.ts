@@ -113,12 +113,77 @@ export function toNewsItem(post: PostView): NewsItemView {
   };
 }
 
+export interface PublicServiceItem {
+  id: string;
+  name: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  shortDesc: string;
+  /** Base price in rubles for UI display (e.g. 15000). */
+  basePrice: number;
+  /** Exact base price in kopecks (e.g. 1500000). */
+  basePriceKopecks: number;
+  priceType: string;
+  currency: string;
+  category: string;
+  coverImage: string;
+  isActive: boolean;
+}
+
+export function toPublicServiceItem(
+  service: Pick<
+    ServiceModel,
+    | "id"
+    | "title"
+    | "slug"
+    | "shortDesc"
+    | "basePrice"
+    | "priceType"
+    | "currency"
+    | "category"
+    | "coverImage"
+    | "isActive"
+  >
+): PublicServiceItem {
+  return {
+    id: service.id,
+    name: service.title,
+    title: service.title,
+    slug: service.slug,
+    description: service.shortDesc || null,
+    shortDesc: service.shortDesc,
+    basePrice: Math.round((service.basePrice ?? 0) / 100),
+    basePriceKopecks: service.basePrice ?? 0,
+    priceType: service.priceType ?? "quote",
+    currency: service.currency ?? "RUB",
+    category: service.category === "large" ? "large" : "small",
+    coverImage: service.coverImage,
+    isActive: Boolean(service.isActive),
+  };
+}
+
+export async function getActiveServices(): Promise<PublicServiceItem[]> {
+  if (!prisma) return [];
+
+  try {
+    const services = await prisma.service.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+    });
+    return services.map(toPublicServiceItem);
+  } catch (error) {
+    console.error("Failed to load active services from the database:", error);
+    return [];
+  }
+}
+
 export async function getPublishedServices(): Promise<ServiceView[]> {
   if (!prisma) return [];
 
   try {
     const services = await prisma.service.findMany({
-      where: { isPublished: true },
+      where: { isPublished: true, isActive: true },
       orderBy: { createdAt: "asc" },
     });
     return services.map(toServiceView);
@@ -126,6 +191,17 @@ export async function getPublishedServices(): Promise<ServiceView[]> {
     console.error("Failed to load services from the database:", error);
     return [];
   }
+}
+
+const SERVICE_SLUG_ALIASES: Record<string, string[]> = {
+  "large-billboard": ["large-billboard", "large-billboard-building"],
+  "large-billboard-building": ["large-billboard-building", "large-billboard"],
+  "advertisement-on-the-fence": ["advertisement-on-the-fence", "advertisement-fence"],
+  "advertisement-fence": ["advertisement-fence", "advertisement-on-the-fence"],
+};
+
+function candidateSlugs(slugOrId: string): string[] {
+  return SERVICE_SLUG_ALIASES[slugOrId] ?? [slugOrId];
 }
 
 /**
@@ -136,10 +212,11 @@ export async function getPublishedService(slugOrId: string): Promise<ServiceView
   if (!prisma) return null;
 
   try {
+    const slugs = candidateSlugs(slugOrId);
     const service = await prisma.service.findFirst({
       where: {
         isPublished: true,
-        OR: [{ slug: slugOrId }, { id: slugOrId }],
+        OR: [{ slug: { in: slugs } }, { id: slugOrId }],
       },
     });
     return service ? toServiceView(service) : null;
@@ -199,10 +276,11 @@ export async function getServicePricing(slugOrId: string): Promise<ServicePricin
   if (!prisma) return null;
 
   try {
+    const slugs = candidateSlugs(slugOrId);
     const service = await prisma.service.findFirst({
       where: {
         isPublished: true,
-        OR: [{ slug: slugOrId }, { id: slugOrId }],
+        OR: [{ slug: { in: slugs } }, { id: slugOrId }],
       },
       include: {
         optionGroups: {

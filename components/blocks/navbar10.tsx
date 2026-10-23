@@ -121,14 +121,14 @@ export function buildNavigation(featuredPost?: Navbar10Props["featuredPost"]): M
           label: "Order a design",
           icon: Paintbrush,
           description: "Get a tailored design crafted around your brand idea",
-          url: "/shop",
+          url: "/contact",
           image: "/assets/shop/sign-design.jpg",
         },
         {
           label: "Design services",
           icon: Layers,
           description: "Explore small and large format visual solutions",
-          url: "/shop",
+          url: "/services",
           image: "/assets/shop/bag-design.jpg",
         },
         {
@@ -645,6 +645,7 @@ const GroupLinks = ({ groupLinks }: { groupLinks?: MenuGroup[] }) => {
 };
 
 const FeaturedImageLink = ({ link }: { link?: MenuLink }) => {
+  const tAdmin = useTranslations("admin");
   if (!link) return null;
 
   return (
@@ -655,7 +656,7 @@ const FeaturedImageLink = ({ link }: { link?: MenuLink }) => {
           className="overflow-hidden rounded-[0.25rem] bg-muted transition-colors duration-200 group-hover:bg-accent"
         >
           <div className="size-full">
-            <Badge className="absolute top-2 left-2">New</Badge>
+            <Badge className="absolute top-2 left-2">{tAdmin("new")}</Badge>
             <div className="flex w-full flex-col items-center justify-center gap-6 pt-8">
               <div className="text-2xl font-semibold">{link.label}</div>
               <div className="w-[80%]">

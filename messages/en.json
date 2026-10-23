@@ -337,7 +337,24 @@
     "thankYou": "Thank you for reaching out to Plus In Plus. Your request has been saved and sent to our team—we will reply shortly.",
     "sendAnother": "Send another message",
     "validationError": "Please check the fields and try sending your message again.",
-    "networkError": "Network error while sending message. Please try again."
+    "networkError": "Network error while sending message. Please try again.",
+    "orderTitle": "Create New Order",
+    "orderSubtitle": "Select one or more studio services, specify your desired deadline, and describe your project. A manager will review your request and confirm the final price.",
+    "selectServicesLabel": "Select Services *",
+    "selectServicesError": "Please select at least one service",
+    "deadlineLabel": "Desired Deadline",
+    "deadlineHint": "When do you need the work completed? (optional)",
+    "descriptionLabel": "Project Description",
+    "descriptionPlaceholder": "Tell us about your project, requirements, preferences...",
+    "submitOrder": "Submit Order Request",
+    "creatingOrder": "Creating Order...",
+    "signInNotice": "Please log in to submit an order request.",
+    "signInButton": "Log in to Create Order",
+    "browseCatalog": "Browse Services Catalog",
+    "selectedCount": "Selected: {count}",
+    "estimatedTotal": "Estimated base total",
+    "finalPriceByManager": "Final price is confirmed by a manager after reviewing project details.",
+    "orderCreateError": "Failed to create order. Please try again."
   },
   "footer": {
     "startJourney": "Start your journey with Plus In Plus",
@@ -570,6 +587,18 @@
   "admin": {
     "brand": "Plus In Plus — Admin",
     "navigation": "Admin navigation",
+    "quickCreateService": "Quick add service",
+    "quickEditService": "Quick edit",
+    "fullEditor": "Full editor",
+    "toggleActive": "Toggle active status",
+    "inactive": "Inactive",
+    "activeOrdersBadge": "{count} active",
+    "lockedByActiveOrders": "Locked: service is in an active order",
+    "serviceSaved": "Service saved",
+    "servicePriceRubField": "Base price (₽)",
+    "serviceSlugOptional": "Optional — auto-generated from title",
+    "serviceActiveField": "Active (visible on /services and /contact)",
+    "selectedCount": "{count} selected",
     "content": "Content",
     "dashboard": "Dashboard",
     "dashboardSubtitle": "Overview of the Plus In Plus content and users.",
@@ -941,7 +970,23 @@
     "lockAfterSaveHint": "After that, only the founder will be able to edit this order.",
     "agreeLockAndIssue": "Fix price, lock and issue invoice",
     "unlockOrder": "Remove lock",
-    "payNow": "Pay now"
+    "payNow": "Pay now",
+    "status_pending": "Pending",
+    "status_priced": "Priced",
+    "deadline": "Desired deadline",
+    "noDeadline": "Not specified",
+    "activeOrdersBadge": "{count} active order(s)",
+    "priceLockedByOrder": "Locked (in active order)",
+    "cannotDeleteActiveOrderHint": "Cannot delete: service has active orders",
+    "quickCreateService": "Quick Add Service",
+    "fullEditor": "Full Editor",
+    "editQuick": "Quick Edit",
+    "serviceName": "Service Name",
+    "servicePriceRub": "Base Price (₽)",
+    "serviceActive": "Show on website (Active)",
+    "activeStatus": "Active",
+    "hiddenStatus": "Hidden",
+    "toggleActive": "Toggle visibility"
   },
   "errors": {
     "notFound": "Page not found",
@@ -965,7 +1010,10 @@
     "siteDescription": "Plus In Plus — a graphic and digital design studio.",
     "siteTitle": "Plus In Plus — design studio",
     "manager": "Manager — orders",
-    "users": "Users — Plus In Plus"
+    "users": "Users — Plus In Plus",
+    "services": "Services — Plus In Plus",
+    "servicesDescription": "Browse small and large format design services from Plus In Plus studio.",
+    "profile": "Profile — Plus In Plus"
   },
   "actions": {
     "accountCreatedPleaseLogIn": "Your account was created. Please log in.",
@@ -1057,7 +1105,12 @@
     "cartEmpty": "The cart is empty — there is nothing to send.",
     "cartItemUnavailable": "One of the services in the cart is no longer available. Remove it and try again.",
     "founderInvulnerable": "Action denied. Founder is invulnerable.",
-    "orderLocked": "Order is locked. Only Founder can edit."
+    "orderLocked": "Order is locked. Only Founder can edit.",
+    "selectAtLeastOneService": "Please select at least one service.",
+    "serviceInactiveOrMissing": "One or more selected services are unavailable.",
+    "invalidDeadline": "Please choose a valid deadline date (today or in the future).",
+    "cannotDeleteServiceWithActiveOrders": "Cannot delete a service that has active orders.",
+    "cannotChangePriceWithActiveOrders": "Cannot change the price of a service included in an active order."
   },
   "payment": {
     "alreadyPaidBody": "The confirmation arrived after you left the payment page. The order is marked as paid.",
@@ -1091,7 +1144,12 @@
     "subtitle": "Requests you have sent and invoices issued for them.",
     "title": "My orders",
     "toShop": "Go to the shop",
-    "waitingForPrice": "The manager is confirming the price. You cannot pay yet — we will show the invoice here as soon as it is agreed."
+    "waitingForPrice": "The manager is confirming the price. You cannot pay yet — we will show the invoice here as soon as it is agreed.",
+    "deadline": "Desired deadline",
+    "description": "Project description",
+    "selectedServices": "Selected services",
+    "createFirstOrder": "Create your first order",
+    "createOrder": "New order"
   },
   "cart": {
     "title": "Cart",
@@ -1163,5 +1221,42 @@
     "youtubeDescription": "Watch design breakdowns and studio reels",
     "contactStudio": "Contact Studio",
     "contactStudioDescription": "Send a message directly to our team"
+  },
+  "services": {
+    "title": "Our Services",
+    "subtitle": "Explore our small and large format design solutions and select services for your order.",
+    "smallDesigns": "Small designs",
+    "smallDesignsDesc": "Storefront signage, branded bags, glass posters, and event banners.",
+    "largeDesigns": "Large designs",
+    "largeDesignsDesc": "Monumental building wraps, rooftop crowns, perimeter fencing, and highway billboards.",
+    "smallBadge": "Small",
+    "largeBadge": "Large",
+    "select": "Select",
+    "selected": "Selected",
+    "details": "Details",
+    "from": "from",
+    "priceOnRequest": "On request",
+    "selectedSummary": "Selected services: {count}",
+    "estimatedBase": "Base estimate: {amount}",
+    "proceedToOrder": "Proceed to Order",
+    "clearSelection": "Clear",
+    "emptyCategory": "No active services in this category yet.",
+    "loadingServices": "Loading services…"
+  },
+  "profile": {
+    "title": "Profile",
+    "subtitle": "Manage your personal details and profile photo.",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "email": "Email",
+    "emailImmutable": "Email cannot be changed",
+    "avatarLabel": "Profile Photo",
+    "avatarHint": "PNG, JPEG, WebP, GIF or AVIF up to 2 MB. Leave empty to keep current photo.",
+    "saveChanges": "Save Changes",
+    "saving": "Saving...",
+    "updatedSuccess": "Profile updated successfully",
+    "updateFailed": "Failed to update profile",
+    "myOrders": "My Orders",
+    "newOrder": "New Order"
   }
 }

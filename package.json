@@ -5,11 +5,13 @@
   "scripts": {
     "build": "next build",
     "db:check": "node scripts/db-check.cjs",
+    "db:cleanup": "node scripts/run-ts.cjs scripts/cleanup-database.ts",
     "db:load-dump": "node scripts/load-dump.cjs",
     "db:migrate-from-postgres": "node scripts/migrate-from-postgres.cjs",
     "db:promote-admin": "node scripts/promote-admin.cjs",
     "db:push": "node scripts/db-push.cjs",
     "db:seed-demo": "node scripts/seed-demo.cjs",
+    "db:seed:services": "node scripts/run-ts.cjs scripts/seed-services.ts",
     "deploy:verify": "node scripts/verify-deployment.cjs",
     "dev": "node scripts/dev.cjs",
     "doctor": "node scripts/doctor.cjs",

@@ -21,6 +21,26 @@ const requestPathname = (request: { nextUrl?: { pathname?: string }; url?: strin
   return "/";
 };
 
+function isProtectedPath(pathname: string): {
+  isAdminArea: boolean;
+  isManagerArea: boolean;
+  isOrdersArea: boolean;
+  isFounderSettings: boolean;
+} {
+  const isAdminArea = pathname === "/admin" || pathname.startsWith("/admin/");
+  const isManagerArea = pathname === "/manager" || pathname.startsWith("/manager/");
+  const isOrdersArea =
+    pathname === "/orders" ||
+    pathname.startsWith("/orders/") ||
+    pathname === "/cart" ||
+    pathname.startsWith("/cart/") ||
+    pathname === "/profile" ||
+    pathname.startsWith("/profile/");
+  const isFounderSettings =
+    pathname === "/admin/settings" || pathname.startsWith("/admin/settings/");
+  return { isAdminArea, isManagerArea, isOrdersArea, isFounderSettings };
+}
+
 /**
  * Per-request security context: a fresh CSP nonce and the header it travels in.
  * Next.js copies the nonce of the incoming request's `content-security-policy` header onto
@@ -39,20 +59,30 @@ function securityContext() {
   return { headerName, policy };
 }
 
-function requestHeaders(request: Request, policy: string | null): Headers {
-  const headers = new Headers(request.headers);
+function requestHeaders(
+  request: { headers?: HeadersInit },
+  policy: string | null,
+  locale?: string
+): Headers {
+  const headers = new Headers(request.headers ?? undefined);
   if (policy) headers.set("content-security-policy", policy);
+  if (locale) {
+    headers.set("x-pip-locale", locale);
+    headers.set("X-NEXT-INTL-LOCALE", locale);
+  }
   return headers;
 }
 
 function secure<T extends NextResponse>(
   response: T,
-  context: { headerName: string | null; policy: string | null },
+  context: { headerName: string | null; policy: string | null }
 ): T {
   for (const [header, value] of Object.entries(staticSecurityHeaders(production))) {
     response.headers.set(header, value);
   }
-  if (context.policy && context.headerName) response.headers.set(context.headerName, context.policy);
+  if (context.policy && context.headerName) {
+    response.headers.set(context.headerName, context.policy);
+  }
   return response;
 }
 
@@ -60,7 +90,8 @@ function secure<T extends NextResponse>(
 function carryOver(from: unknown, to: NextResponse): void {
   const headers = (from as { headers?: Headers } | null | undefined)?.headers;
   if (!headers) return;
-  const cookies = typeof headers.getSetCookie === "function" ? headers.getSetCookie() : [];
+  const cookies =
+    typeof headers.getSetCookie === "function" ? headers.getSetCookie() : [];
   for (const cookie of cookies) to.headers.append("set-cookie", cookie);
   for (const [header, value] of headers.entries()) {
     const name = header.toLowerCase();
@@ -71,20 +102,19 @@ function carryOver(from: unknown, to: NextResponse): void {
 
 const authMiddleware = NextAuth(authConfig).auth((request) => {
   const pathname = requestPathname(request);
-  const isAdminArea = pathname === "/admin" || pathname.startsWith("/admin/");
-  const isManagerArea = pathname === "/manager" || pathname.startsWith("/manager/");
-  const isOrdersArea =
-    pathname === "/orders" ||
-    pathname.startsWith("/orders/") ||
-    pathname === "/cart" ||
-    pathname.startsWith("/cart/");
-  if (!isAdminArea && !isManagerArea && !isOrdersArea) return NextResponse.next();
+  const { isAdminArea, isManagerArea, isOrdersArea, isFounderSettings } =
+    isProtectedPath(pathname);
+  if (!isAdminArea && !isManagerArea && !isOrdersArea) {
+    return NextResponse.next();
+  }
 
   const role = request.auth?.user?.role;
   const signedIn = Boolean(isAuthConfigured() && request.auth?.user?.id);
 
   if (!signedIn) {
-    return NextResponse.redirect(new URL(isOrdersArea ? "/login" : "/", request.url));
+    return NextResponse.redirect(
+      new URL(isOrdersArea ? "/login" : "/", request.url)
+    );
   }
   if (isOrdersArea) return NextResponse.next();
   if (role !== "FOUNDER" && role !== "ADMIN" && role !== "MANAGER") {
@@ -94,82 +124,119 @@ const authMiddleware = NextAuth(authConfig).auth((request) => {
   if (isAdminArea && role !== "FOUNDER" && role !== "ADMIN") {
     return NextResponse.redirect(new URL("/manager/orders", request.url));
   }
+  // ЖЁСТКОЕ ОГРАНИЧЕНИЕ: /admin/settings доступен ТОЛЬКО для FOUNDER.
+  if (isFounderSettings && role !== "FOUNDER") {
+    return NextResponse.redirect(new URL("/admin/dashboard", request.url));
+  }
   return NextResponse.next();
 });
 
 export async function middleware(
   request: Parameters<typeof authMiddleware>[0],
-  event: Parameters<typeof authMiddleware>[1],
+  event: Parameters<typeof authMiddleware>[1]
 ) {
   const context = securityContext();
   const pathname = requestPathname(request);
-  const isAdmin = pathname === "/admin" || pathname.startsWith("/admin/");
-  const isManager = pathname === "/manager" || pathname.startsWith("/manager/");
-  const isOrders =
-    pathname === "/orders" ||
-    pathname.startsWith("/orders/") ||
-    pathname === "/cart" ||
-    pathname.startsWith("/cart/");
 
-  if (isAdmin || isManager || isOrders) {
+  // Prevent locale-prefixed bypasses of protected routes (/ru/admin/*, /en/orders, /ru/profile, etc.)
+  // while persisting the requested language preference in the `pip-locale` cookie.
+  const segment = pathname.split("/")[1];
+  if (isLocale(segment)) {
+    const stripped = pathname.slice(segment.length + 1) || "/";
+    const strippedGuards = isProtectedPath(stripped);
+    if (
+      strippedGuards.isAdminArea ||
+      strippedGuards.isManagerArea ||
+      strippedGuards.isOrdersArea
+    ) {
+      const targetUrl = request.nextUrl
+        ? request.nextUrl.clone()
+        : new URL(request.url);
+      targetUrl.pathname = stripped;
+      const redirectResponse = secure(
+        NextResponse.redirect(targetUrl),
+        context
+      );
+      redirectResponse.cookies.set("pip-locale", segment, {
+        path: "/",
+        maxAge: 60 * 60 * 24 * 365,
+        sameSite: "lax",
+        secure: production,
+      });
+      return redirectResponse;
+    }
+  }
+
+  const { isAdminArea, isManagerArea, isOrdersArea } =
+    isProtectedPath(pathname);
+
+  if (isAdminArea || isManagerArea || isOrdersArea) {
     const decision = await authMiddleware(request, event);
-    // A redirect renders no document, so the nonce is irrelevant — pass the decision through.
-    const location = (decision as NextResponse | undefined)?.headers?.get("location");
+    const location = (decision as NextResponse | undefined)?.headers?.get(
+      "location"
+    );
     if (location) return secure(decision as NextResponse, context);
 
-    // Re-issue "continue" ourselves: only a response built here can forward the request
-    // headers that carry the CSP nonce to the renderer.
-    const response = NextResponse.next({ request: { headers: requestHeaders(request, context.policy) } });
+    const locale = preferredLocale(request);
+    const response = NextResponse.next({
+      request: { headers: requestHeaders(request, context.policy, locale) },
+    });
     carryOver(decision, response);
     return secure(response, context);
   }
 
   if (pathname === "/api" || pathname.startsWith("/api/")) {
-    return secure(NextResponse.next({ request: { headers: requestHeaders(request, context.policy) } }), context);
+    return secure(
+      NextResponse.next({
+        request: { headers: requestHeaders(request, context.policy) },
+      }),
+      context
+    );
   }
   if (pathname === "/_next" || pathname.startsWith("/_next/")) {
-    return secure(NextResponse.next({ request: { headers: requestHeaders(request, context.policy) } }), context);
-  }
-
-  const segment = pathname.split("/")[1];
-  if (isLocale(segment)) {
-    const localizedPath = pathname.slice(segment.length + 1) || "/";
-    if (localizedPath.startsWith("/admin") || localizedPath.startsWith("/manager")) {
-      const adminUrl = request.nextUrl.clone();
-      adminUrl.pathname = localizedPath;
-      return secure(NextResponse.redirect(adminUrl), context);
-    }
+    return secure(
+      NextResponse.next({
+        request: { headers: requestHeaders(request, context.policy) },
+      }),
+      context
+    );
   }
 
   if (!isLocale(segment)) {
     const locale = preferredLocale(request);
-    const rewriteUrl = request.nextUrl.clone();
+    const rewriteUrl = request.nextUrl
+      ? request.nextUrl.clone()
+      : new URL(request.url);
     rewriteUrl.pathname = pathname || "/";
-    const headers = requestHeaders(request, context.policy);
-    headers.set("x-pip-locale", locale);
-    headers.set("X-NEXT-INTL-LOCALE", locale);
+    const headers = requestHeaders(request, context.policy, locale);
     return secure(NextResponse.rewrite(rewriteUrl, { request: { headers } }), context);
   }
 
   const internalPath = pathname.slice(segment.length + 1) || "/";
-  const rewriteUrl = request.nextUrl.clone();
+  const rewriteUrl = request.nextUrl
+    ? request.nextUrl.clone()
+    : new URL(request.url);
   rewriteUrl.pathname = internalPath;
-  const headers = requestHeaders(request, context.policy);
-  headers.set("x-pip-locale", segment);
-  headers.set("X-NEXT-INTL-LOCALE", segment);
-  const response = secure(NextResponse.rewrite(rewriteUrl, { request: { headers } }), context);
+  const headers = requestHeaders(request, context.policy, segment);
+  const response = secure(
+    NextResponse.rewrite(rewriteUrl, { request: { headers } }),
+    context
+  );
   response.cookies.set("pip-locale", segment, {
     path: "/",
     maxAge: 60 * 60 * 24 * 365,
     sameSite: "lax",
-    // A locale preference is not a secret, but a secure cookie cannot be read on a downgrade.
     secure: production,
   });
   return response;
 }
 
-function preferredLocale(request: Request): (typeof locales)[number] {
-  const cookieLocale = request.headers.get("cookie")?.match(/(?:^|;\s*)pip-locale=(en|ru)(?:;|$)/)?.[1];
+function preferredLocale(request: { headers?: { get?: (name: string) => string | null } }): (typeof locales)[number] {
+  const cookieHeader =
+    typeof request?.headers?.get === "function"
+      ? request.headers.get("cookie")
+      : null;
+  const cookieLocale = cookieHeader?.match(/(?:^|;\s*)pip-locale=(en|ru)(?:;|$)/)?.[1];
   if (isLocale(cookieLocale)) return cookieLocale;
   return defaultLocale;
 }

@@ -49,6 +49,14 @@ function formatDate(value: Date | null): string {
   }).format(value);
 }
 
+function formatDateOnly(value: Date | null): string {
+  if (!value) return "—";
+  return new Intl.DateTimeFormat("ru-RU", {
+    dateStyle: "medium",
+    timeZone: "UTC",
+  }).format(value);
+}
+
 /**
  * Карточка заявки: расчёт, согласованная цена, выбранные опции и счета.
  * Одна реализация для администратора и менеджера.
@@ -175,11 +183,19 @@ export async function OrderDetailView({
                 })}
               </ul>
 
-              <div className="border-t border-border pt-4">
-                <h3 className="text-sm font-semibold">{t("customerWishes")}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {order.customerNote || t("noCustomerNote")}
-                </p>
+              <div className="grid gap-4 border-t border-border pt-4 sm:grid-cols-2">
+                <div>
+                  <h3 className="text-sm font-semibold">{t("deadline")}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {order.deadline ? formatDateOnly(order.deadline) : t("noDeadline")}
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold">{t("customerWishes")}</h3>
+                  <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">
+                    {order.description || order.customerNote || t("noCustomerNote")}
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>

@@ -5,6 +5,8 @@ interface BlogSectionProps {
   heading?: string;
   description?: string;
   posts?: CatalogBlogPost[];
+  allCategoryLabel?: string;
+  categoryLabels?: Partial<Record<CatalogBlogPost["category"], string>>;
   asPageHeading?: boolean;
   id?: string;
 }
@@ -13,6 +15,8 @@ export function BlogSection({
   heading = "News from Plus In Plus",
   description,
   posts,
+  allCategoryLabel,
+  categoryLabels,
   asPageHeading = false,
   id,
 }: BlogSectionProps) {
@@ -22,6 +26,8 @@ export function BlogSection({
       heading={heading}
       description={description}
       posts={posts}
+      allCategoryLabel={allCategoryLabel}
+      categoryLabels={categoryLabels}
       asPageHeading={asPageHeading}
     />
   );

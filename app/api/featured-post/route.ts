@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -9,9 +10,18 @@ export async function GET() {
   }
 
   try {
+    const now = new Date();
+    const publishedWindow = {
+      isPublished: true,
+      OR: [{ publishedAt: null }, { publishedAt: { lte: now } }],
+    };
+
     let post = await prisma.post.findFirst({
-      where: { isPublished: true, isFeatured: true },
-      orderBy: [{ publishedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
+      where: { ...publishedWindow, isFeatured: true },
+      orderBy: [
+        { publishedAt: { sort: "desc", nulls: "last" } },
+        { createdAt: "desc" },
+      ],
       select: {
         id: true,
         title: true,
@@ -24,8 +34,11 @@ export async function GET() {
 
     if (!post) {
       post = await prisma.post.findFirst({
-        where: { isPublished: true },
-        orderBy: [{ publishedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
+        where: publishedWindow,
+        orderBy: [
+          { publishedAt: { sort: "desc", nulls: "last" } },
+          { createdAt: "desc" },
+        ],
         select: {
           id: true,
           title: true,

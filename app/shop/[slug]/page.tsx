@@ -6,13 +6,16 @@ import { requestQuote } from "@/app/actions/orders";
 import { Blog11 } from "@/components/blocks/blog11";
 import { ProductDetail1 } from "@/components/blocks/product-detail1";
 import { ServiceConfigurator } from "@/components/site/service-configurator";
+import { localizeBlogPosts } from "@/lib/blog-localization";
 import {
   getPublishedPosts,
   getPublishedService,
   getServicePricing,
 } from "@/lib/data";
-import { createPageMetadata } from "@/lib/seo";
 import { getRequestLocale } from "@/lib/request-locale";
+import { createPageMetadata } from "@/lib/seo";
+import { getRequestTranslations } from "@/lib/server-i18n";
+import { localizeCatalogService } from "@/lib/service-localization";
 import {
   mergeCatalogPosts,
   resolveServiceBySlug,
@@ -28,19 +31,19 @@ export async function generateMetadata({
   params,
 }: ServicePageProps): Promise<Metadata> {
   const { slug } = await params;
-  const [dbService, locale] = await Promise.all([
+  const [dbService, locale, tMeta] = await Promise.all([
     getPublishedService(slug),
     getRequestLocale(),
+    getRequestTranslations("metadata"),
   ]);
-  const service = resolveServiceBySlug(slug, dbService);
+  const resolved = resolveServiceBySlug(slug, dbService);
+  const service = resolved ? localizeCatalogService(resolved, locale) : null;
 
   return createPageMetadata({
     title: service
       ? `${service.title} — Plus In Plus`
-      : "Our Services — Plus In Plus",
-    description:
-      service?.shortDesc ||
-      "Custom design services with 3D mockups and print-ready production files.",
+      : tMeta("services"),
+    description: service?.shortDesc || tMeta("servicesDescription"),
     path: `/shop/${encodeURIComponent(slug)}`,
     image: service?.coverImage,
     locale,
@@ -49,44 +52,79 @@ export async function generateMetadata({
 
 export default async function ServicePage({ params }: ServicePageProps) {
   const { slug } = await params;
-  const [dbService, pricing, dbPosts] = await Promise.all([
-    getPublishedService(slug),
-    getServicePricing(slug),
-    getPublishedPosts(),
-  ]);
+  const [dbService, pricing, dbPosts, locale, tBlog, tServices, tHero] =
+    await Promise.all([
+      getPublishedService(slug),
+      getServicePricing(slug),
+      getPublishedPosts(),
+      getRequestLocale(),
+      getRequestTranslations("blog"),
+      getRequestTranslations("services"),
+      getRequestTranslations("hero"),
+    ]);
 
-  const service = resolveServiceBySlug(slug, dbService);
-  if (!service) {
-    redirect("/shop");
+  const rawService = resolveServiceBySlug(slug, dbService);
+  if (!rawService) {
+    redirect("/services");
   }
 
-  const posts = mergeCatalogPosts(dbPosts);
+  const service = localizeCatalogService(rawService, locale);
+  const localizedPricing = pricing
+    ? { ...pricing, title: service.title }
+    : null;
+  const posts = localizeBlogPosts(mergeCatalogPosts(dbPosts), tBlog, locale);
 
-  const configuratorNode = pricing ? (
+  const configuratorNode = localizedPricing ? (
     <ServiceConfigurator
-      pricing={pricing}
+      pricing={localizedPricing}
       onSubmit={async (optionIds) => {
         "use server";
-        return requestQuote({ serviceId: pricing.serviceId, optionIds });
+        return requestQuote({ serviceId: localizedPricing.serviceId, optionIds });
       }}
       onAddToCart={async (optionIds) => {
         "use server";
-        return addToCart({ serviceId: pricing.serviceId, optionIds });
+        return addToCart({ serviceId: localizedPricing.serviceId, optionIds });
       }}
     />
   ) : null;
+
+  const detailLabels =
+    locale === "ru"
+      ? {
+          smallDesigns: tServices("smallDesigns"),
+          largeDesigns: tServices("largeDesigns"),
+          order: tHero("order"),
+          includesTitle: "В услугу входит",
+          shapesTitle: "Любая форма, любая идея",
+          resultTitle: "Результат",
+        }
+      : {
+          smallDesigns: tServices("smallDesigns"),
+          largeDesigns: tServices("largeDesigns"),
+          order: tHero("order"),
+          includesTitle: "Our service includes",
+          shapesTitle: "Any shape, any idea",
+          resultTitle: "The result",
+        };
 
   return (
     <>
       <ProductDetail1
         service={service}
         configuratorSlot={configuratorNode}
+        labels={detailLabels}
       />
       <Blog11
         id="service-other-news"
-        heading="Other News"
-        description="Latest announcements, case notes, and studio releases from Plus In Plus."
+        heading={tBlog("otherNews")}
+        description={tBlog("otherNewsDescription")}
         posts={posts.slice(0, 3)}
+        allCategoryLabel={tBlog("allCategory")}
+        categoryLabels={{
+          Design: tBlog("categoryDesign"),
+          Studio: tBlog("categoryStudio"),
+          Outdoor: tBlog("categoryOutdoor"),
+        }}
       />
     </>
   );

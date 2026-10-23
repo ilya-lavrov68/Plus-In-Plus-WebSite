@@ -348,6 +348,7 @@ const count = async (table) =>
 (async () => {
   console.log(`[seed-demo] Database: ${describeDatabaseUrl(config.url)}`);
 
+  await client.execute("DELETE FROM order_services");
   await client.execute("DELETE FROM order_items");
   await client.execute("DELETE FROM payments");
   await client.execute("DELETE FROM orders");
@@ -377,7 +378,7 @@ const count = async (table) =>
       isOrderable,
     ] = s;
     await client.execute({
-      sql: "INSERT INTO services (id,title,slug,category,shortDesc,fullDesc,includes,shapes,resultText,coverImage,isPublished,sortOrder,basePrice,priceType,currency,isOrderable,createdAt,updatedAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+      sql: "INSERT INTO services (id,title,slug,category,shortDesc,fullDesc,includes,shapes,resultText,coverImage,isPublished,isActive,sortOrder,basePrice,priceType,currency,isOrderable,createdAt,updatedAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
       args: [
         `svc-${slug}`,
         title,
@@ -390,6 +391,7 @@ const count = async (table) =>
         resultText,
         coverImage,
         isPublished,
+        1,
         sortOrder,
         basePrice,
         priceType,
@@ -469,23 +471,25 @@ const count = async (table) =>
   }
 
   const orderRows = [
-    ["PIP-000001", "user1@plusinplus.test", "completed", 2_300_000, 2_300_000, "Sign Design with halo LED", 21, true, "admin@plusinplus.test", null, "sign-design", 1],
-    ["PIP-000002", "user1@plusinplus.test", "awaiting_payment", 950_000, 950_000, "6x3m Highway Billboard", 5, false, "admin@plusinplus.test", "Approved for production", "billboard", 1],
-    ["PIP-000003", "user1@plusinplus.test", "quote_requested", 1_900_000, 0, "Storefront acrylic sign", 0, false, null, null, "sign-design", 1],
+    ["ПИП-000001", "user1@plusinplus.test", "completed", 2_300_000, 2_300_000, "Sign Design with halo LED", 21, true, "admin@plusinplus.test", null, "sign-design", 1],
+    ["ПИП-000002", "user1@plusinplus.test", "awaiting_payment", 950_000, 950_000, "6x3m Highway Billboard", 5, false, "admin@plusinplus.test", "Approved for production", "billboard", 1],
+    ["ПИП-000003", "user1@plusinplus.test", "quote_requested", 1_900_000, 0, "Storefront acrylic sign", 0, false, null, null, "sign-design", 1],
   ];
 
   for (const [number, email, status, estimated, agreed, note, daysAgo, paid, managerEmail, managerNote, slug, quantity] of orderRows) {
     const createdMs = now - daysAgo * 86_400_000;
+    const deadlineMs = now + (14 - daysAgo) * 86_400_000;
     const paidMs = paid ? at(createdMs + 3_600_000) : null;
     const orderId = `ord-${number.slice(-6)}`;
     const userId = `usr-${email.split("@")[0]}`;
     const managerId = managerEmail ? `usr-${managerEmail.split("@")[0]}` : null;
     const priced = ["awaiting_payment", "paid", "in_progress", "completed"].includes(status);
     const priceAgreedAt = priced ? at(createdMs + 1_800_000) : null;
+    const finalPrice = agreed > 0 ? agreed / 100 : null;
 
     await client.execute({
-      sql: "INSERT INTO orders (id,number,userId,status,estimatedAmount,subtotal,discount,total,currency,customerNote,managerNote,managerId,priceAgreedAt,createdAt,updatedAt,paidAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-      args: [orderId, number, userId, status, estimated, agreed, 0, agreed, "RUB", note, managerNote, managerId, priceAgreedAt, at(createdMs), at(createdMs), paidMs],
+      sql: "INSERT INTO orders (id,number,userId,status,estimatedAmount,subtotal,discount,total,finalPrice,currency,deadline,description,customerNote,managerNote,managerId,priceAgreedAt,createdAt,updatedAt,paidAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+      args: [orderId, number, userId, status, estimated, agreed, 0, agreed, finalPrice, "RUB", at(deadlineMs), note, note, managerNote, managerId, priceAgreedAt, at(createdMs), at(createdMs), paidMs],
     });
 
     const unitAgreed = agreed > 0 ? Math.round(agreed / quantity) : 0;
@@ -502,6 +506,11 @@ const count = async (table) =>
         agreed,
         '[{"group":"Material","option":"Acrylic 5 mm"}]',
       ],
+    });
+
+    await client.execute({
+      sql: "INSERT INTO order_services (id,orderId,serviceId,quantity) VALUES (?,?,?,?)",
+      args: [`os-${number.slice(-6)}`, orderId, `svc-${slug}`, quantity],
     });
 
     if (priced) {

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { requireAdmin, requireStaff } from "@/lib/admin-session";
+import { requireAdmin, requireFounder, requireStaff } from "@/lib/admin-session";
 import { prisma } from "@/lib/prisma";
 
 /** Protect data access itself: App Router layouts and pages can render in parallel. */
@@ -13,6 +13,66 @@ async function adminDatabase() {
 export async function getAllServices() {
   const db = await adminDatabase();
   return db.service.findMany({ orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }] });
+}
+
+const ACTIVE_ORDER_STATUSES_ADMIN = [
+  "pending",
+  "quote_requested",
+  "negotiating",
+  "priced",
+  "awaiting_payment",
+  "paid",
+  "in_progress",
+];
+
+export async function getAllServicesWithActiveOrders() {
+  const db = await adminDatabase();
+  const services = await db.service.findMany({
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+  });
+
+  const counts = new Map<string, number>();
+  const dbWithOrder = db as typeof db & {
+    order?: {
+      findMany?: (args: unknown) => Promise<
+        Array<{
+          services?: Array<{ serviceId: string }>;
+          items?: Array<{ serviceId: string | null }>;
+        }>
+      >;
+    };
+  };
+
+  if (typeof dbWithOrder.order?.findMany === "function") {
+    try {
+      const activeOrders = await dbWithOrder.order.findMany({
+        where: { status: { in: ACTIVE_ORDER_STATUSES_ADMIN } },
+        select: {
+          services: { select: { serviceId: true } },
+          items: { select: { serviceId: true } },
+        },
+      });
+      for (const order of activeOrders) {
+        const linked = new Set<string>();
+        for (const s of order.services ?? []) {
+          if (s.serviceId) linked.add(s.serviceId);
+        }
+        for (const item of order.items ?? []) {
+          if (item.serviceId) linked.add(item.serviceId);
+        }
+        for (const serviceId of linked) {
+          counts.set(serviceId, (counts.get(serviceId) ?? 0) + 1);
+        }
+      }
+    } catch {
+      // Fall back to 0 active order badges if order tables aren't initialized yet.
+    }
+  }
+
+  return services.map((service) => ({
+    ...service,
+    activeOrderCount: counts.get(service.id) ?? 0,
+  }));
 }
 
 export async function getAdminService(id: string) {
@@ -118,9 +178,17 @@ export async function getUserActivity(userId: string) {
 }
 
 export async function getSiteSettings() {
-  const db = await adminDatabase();
+  const founderGuard =
+    typeof requireFounder === "function"
+      ? requireFounder
+      : async () => {
+          const account = await requireAdmin();
+          return account && account.role === "FOUNDER" ? account : null;
+        };
+  if (!(await founderGuard())) redirect("/");
+  if (!prisma) throw new Error("Database is not configured.");
   try {
-    const rows = await db.siteSetting.findMany();
+    const rows = await prisma.siteSetting.findMany();
     return Object.fromEntries(rows.map((row) => [row.key, row.value]));
   } catch {
     return {};

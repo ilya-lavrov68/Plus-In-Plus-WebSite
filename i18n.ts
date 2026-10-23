@@ -1,12 +1,19 @@
+import { localizedPath as computeLocalizedPath } from "@/i18n/routing";
 import en from "@/messages/en.json";
 import ru from "@/messages/ru.json";
 
 export const locales = ["en", "ru"] as const;
 export type Locale = (typeof locales)[number];
 export const defaultLocale: Locale = "en";
+export const LOCALE_COOKIE = "pip-locale";
 
 export function isLocale(value: string | undefined | null): value is Locale {
   return value === "en" || value === "ru";
+}
+
+export function explicitLocaleFromPath(pathname: string): Locale | null {
+  const candidate = pathname.split("/")[1];
+  return isLocale(candidate) ? candidate : null;
 }
 
 export function localeFromPath(pathname: string): Locale {
@@ -22,8 +29,7 @@ export function stripLocale(pathname: string): string {
 }
 
 export function localizedPath(pathname: string, locale: Locale): string {
-  const path = stripLocale(pathname);
-  return `/${locale}${path === "/" ? "" : path}`;
+  return computeLocalizedPath(pathname, locale);
 }
 
 export function formatPostDate(value: Date | string, locale: Locale, withTime = false): string {

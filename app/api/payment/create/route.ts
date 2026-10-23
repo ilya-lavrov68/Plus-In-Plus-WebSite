@@ -22,6 +22,11 @@ async function createPaymentRedirect(request: Request): Promise<Response> {
     return NextResponse.json({ ok: false, error: "payments_unavailable" }, { status: 503 });
   }
 
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
+
   const url = new URL(request.url);
   let orderId = url.searchParams.get("orderId")?.trim() ?? "";
   if (!orderId && request.method === "POST") {
@@ -31,11 +36,6 @@ async function createPaymentRedirect(request: Request): Promise<Response> {
   }
   if (!orderId || orderId.length > 128) {
     return NextResponse.json({ ok: false, error: "order_id_required" }, { status: 400 });
-  }
-
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
   const [account, order] = await Promise.all([

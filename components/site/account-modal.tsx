@@ -11,6 +11,7 @@ import {
   Pencil,
   ShieldCheck,
   Upload,
+  User,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -63,6 +64,7 @@ function ProfilePanel({
 }) {
   const t = useTranslations("auth");
   const tc = useTranslations("common");
+  const tProfile = useTranslations("profile");
   const router = useRouter();
   const pathname = usePathname();
   const { update } = useSession();
@@ -243,6 +245,14 @@ function ProfilePanel({
             <Pencil aria-hidden="true" className="h-4 w-4" />
             {t("editProfile")}
           </Button>
+          <Link
+            href="/profile"
+            onClick={onClose}
+            className="flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium text-foreground underline-offset-4 hover:underline"
+          >
+            <User aria-hidden="true" className="h-4 w-4" />
+            {tProfile("title")}
+          </Link>
           <Link
             href="/orders"
             onClick={onClose}

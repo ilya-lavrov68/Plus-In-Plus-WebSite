@@ -13,6 +13,7 @@ import { issueInvoice } from "@/lib/payments/invoice";
 import { isAuthConfigured } from "@/lib/auth-secret";
 import { ORDER_STATUSES, type OrderStatus } from "@/lib/admin-orders";
 import { prisma } from "@/lib/prisma";
+import { createOrderSchema } from "@/lib/validators";
 import { calculateEstimate } from "@/lib/pricing";
 
 export interface QuoteActionResult {
@@ -140,6 +141,12 @@ export async function requestQuote(input: {
               total: 0,
               currency: service.currency,
               customerNote: note || null,
+              services: {
+                create: {
+                  serviceId: service.id,
+                  quantity: 1,
+                },
+              },
               items: {
                 create: {
                   serviceId: service.id,
@@ -178,6 +185,210 @@ export async function requestQuote(input: {
   }
 
   return { ok: true, orderNumber };
+}
+
+export interface CreateOrderInput {
+  serviceIds: string[];
+  deadline?: Date | string | null;
+  description?: string;
+}
+
+/**
+ * Создаёт заказ с выбором одной или нескольких услуг, дедлайном и описанием
+ * со страницы /contact.
+ *
+ * ЖЁСТКОЕ ОГРАНИЧЕНИЕ: запрещено создавать заказ без выбранных услуг.
+ * Номер заказа генерируется в формате ПИП-XXXXXX.
+ */
+export async function createOrder(data: CreateOrderInput) {
+  const t = await getActionTranslator();
+
+  const customer = await requireCustomer();
+  if (!customer) {
+    throw new Error(t("unauthorized"));
+  }
+  if (!prisma) {
+    throw new Error(t("genericError"));
+  }
+
+  const rawIds = Array.isArray(data?.serviceIds)
+    ? data.serviceIds.filter((id): id is string => typeof id === "string")
+    : [];
+  const parsed = createOrderSchema.safeParse({
+    serviceIds: rawIds,
+    deadline: data?.deadline,
+    description:
+      typeof data?.description === "string"
+        ? data.description.slice(0, 4000)
+        : undefined,
+  });
+  if (!parsed.success) {
+    throw new Error(t("selectAtLeastOneService"));
+  }
+
+  const uniqueServiceIds = Array.from(new Set(parsed.data.serviceIds));
+  if (uniqueServiceIds.length === 0) {
+    throw new Error(t("selectAtLeastOneService"));
+  }
+
+  let parsedDeadline: Date | null = null;
+  if (
+    data?.deadline !== null &&
+    data?.deadline !== undefined &&
+    data.deadline !== ""
+  ) {
+    const rawDate =
+      data.deadline instanceof Date
+        ? data.deadline
+        : new Date(String(data.deadline));
+    if (Number.isNaN(rawDate.getTime())) {
+      throw new Error(t("invalidDeadline"));
+    }
+    const todayStart = new Date();
+    todayStart.setUTCHours(0, 0, 0, 0);
+    const candidateDay = new Date(rawDate);
+    candidateDay.setUTCHours(0, 0, 0, 0);
+    if (candidateDay.getTime() < todayStart.getTime()) {
+      throw new Error(t("invalidDeadline"));
+    }
+    parsedDeadline = candidateDay;
+  }
+
+  const services = await prisma.service.findMany({
+    where: { id: { in: uniqueServiceIds }, isActive: true },
+  });
+
+  if (services.length !== uniqueServiceIds.length) {
+    throw new Error(t("serviceInactiveOrMissing"));
+  }
+
+  const serviceById = new Map(services.map((s) => [s.id, s]));
+  const orderedServices = uniqueServiceIds.map((id) => serviceById.get(id)!);
+  const estimatedAmount = orderedServices.reduce(
+    (sum, svc) => sum + (svc.basePrice ?? 0),
+    0
+  );
+  const description =
+    typeof data?.description === "string"
+      ? data.description.trim().slice(0, 4000)
+      : "";
+  const currency = orderedServices[0]?.currency ?? "RUB";
+
+  let createdOrder: {
+    id: string;
+    number: string;
+    status: string;
+    deadline: Date | null;
+    description: string | null;
+    estimatedAmount: number;
+    total: number;
+    finalPrice: number | null;
+    services: Array<{
+      id: string;
+      serviceId: string;
+      quantity: number;
+      service: { id: string; title: string; slug: string; basePrice: number; category: string };
+    }>;
+  } | null = null;
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const sequence = (await prisma.order.count()) + 1 + attempt;
+    const orderNumber = formatOrderNumber(sequence);
+    try {
+      createdOrder = await prisma.$transaction(async (tx) => {
+        const order = await tx.order.create({
+          data: {
+            number: orderNumber,
+            userId: customer.id,
+            status: "quote_requested",
+            deadline: parsedDeadline,
+            description: description || null,
+            customerNote: description || null,
+            estimatedAmount,
+            subtotal: 0,
+            discount: 0,
+            total: 0,
+            finalPrice: null,
+            currency,
+            services: {
+              create: orderedServices.map((svc) => ({
+                serviceId: svc.id,
+                quantity: 1,
+              })),
+            },
+            items: {
+              create: orderedServices.map((svc) => ({
+                serviceId: svc.id,
+                title: svc.title,
+                quantity: 1,
+                estimatedUnitPrice: svc.basePrice,
+                unitPrice: 0,
+                totalPrice: 0,
+                optionsSnapshot: "[]",
+              })),
+            },
+          },
+          include: {
+            services: {
+              include: {
+                service: {
+                  select: {
+                    id: true,
+                    title: true,
+                    slug: true,
+                    basePrice: true,
+                    category: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        await recordActivity(tx, {
+          action: "create",
+          entityType: "order",
+          entityId: order.id,
+          title: `${order.number} — ${orderedServices
+            .map((svc) => svc.title)
+            .join(", ")
+            .slice(0, 180)}`,
+          actorId: customer.id,
+        });
+
+        return order;
+      });
+      break;
+    } catch (error) {
+      const code = (error as { code?: string })?.code;
+      if (code !== "P2002" || attempt === 4) {
+        console.error("Failed to create order:", error);
+        throw new Error(t("genericError"));
+      }
+    }
+  }
+
+  if (!createdOrder) {
+    throw new Error(t("genericError"));
+  }
+
+  revalidatePath("/orders");
+  revalidatePath("/admin/orders");
+  revalidatePath("/manager/orders");
+  revalidatePath("/admin/dashboard");
+
+  return {
+    id: createdOrder.id,
+    number: createdOrder.number,
+    orderNumber: createdOrder.number,
+    status: createdOrder.status,
+    deadline: createdOrder.deadline,
+    description: createdOrder.description,
+    estimatedAmount: createdOrder.estimatedAmount,
+    total: createdOrder.total,
+    finalPrice: createdOrder.finalPrice,
+    services: createdOrder.services,
+  };
 }
 
 export interface OrderActionResult {
@@ -242,6 +453,7 @@ export async function setOrderPrice(input: {
         where: { id: order.id },
         data: {
           total,
+          finalPrice: total / 100,
           subtotal: total,
           status: "awaiting_payment",
           managerId: admin.id,
@@ -309,6 +521,9 @@ export async function setOrderPrice(input: {
 
   revalidatePath(`/admin/orders/${order.id}`);
   revalidatePath("/admin/orders");
+  revalidatePath(`/manager/orders/${order.id}`);
+  revalidatePath("/manager/orders");
+  revalidatePath("/orders");
   return { ok: true };
 }
 

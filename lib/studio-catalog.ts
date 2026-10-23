@@ -493,7 +493,9 @@ export function mergeCatalogServices(
       (item) =>
         item.slug === svc.slug ||
         (svc.slug === "large-billboard-building" &&
-          item.slug === "large-billboard")
+          item.slug === "large-billboard") ||
+        (svc.slug === "advertisement-fence" &&
+          item.slug === "advertisement-on-the-fence")
     );
     const validCover =
       svc.coverImage && !svc.coverImage.endsWith(".svg")
@@ -528,7 +530,8 @@ export function resolveServiceBySlug(
     (s) =>
       s.slug === normalized ||
       s.id === slug ||
-      (normalized === "large-billboard-building" && s.slug === "large-billboard")
+      (normalized === "large-billboard-building" && s.slug === "large-billboard") ||
+      (normalized === "advertisement-fence" && s.slug === "advertisement-on-the-fence")
   );
 
   if (dbService) {

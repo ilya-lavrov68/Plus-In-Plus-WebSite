@@ -303,6 +303,13 @@ export async function checkoutCart(input?: { note?: string }): Promise<CartCheck
     (sum, line) => sum + line.estimatedUnitPrice * line.quantity,
     0,
   );
+  const serviceQuantities = new Map<string, number>();
+  for (const line of lines) {
+    serviceQuantities.set(
+      line.serviceId,
+      (serviceQuantities.get(line.serviceId) ?? 0) + line.quantity,
+    );
+  }
   const note = typeof input?.note === "string" ? input.note.trim().slice(0, 2000) : "";
 
   let orderNumber = "";
@@ -323,6 +330,11 @@ export async function checkoutCart(input?: { note?: string }): Promise<CartCheck
               total: 0, // цену ещё не согласовал менеджер
               currency: lines[0]?.currency ?? "RUB",
               customerNote: note || null,
+              services: {
+                create: [...serviceQuantities.entries()].map(
+                  ([serviceId, quantity]) => ({ serviceId, quantity }),
+                ),
+              },
               items: {
                 create: lines.map((line) => ({
                   serviceId: line.serviceId,
