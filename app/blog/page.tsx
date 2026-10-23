@@ -5,30 +5,37 @@ import { getPublishedPosts } from "@/lib/data";
 import { createPageMetadata } from "@/lib/seo";
 import { getRequestLocale } from "@/lib/request-locale";
 import { mergeCatalogPosts } from "@/lib/studio-catalog";
+import { getRequestTranslations } from "@/lib/server-i18n";
+import { localizeBlogPosts } from "@/lib/blog-localization";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const locale = await getRequestLocale();
+  const [locale, t] = await Promise.all([getRequestLocale(), getRequestTranslations("metadata")]);
   return createPageMetadata({
-    title: "Blog — Plus In Plus",
-    description:
-      "News, studio updates, and design stories from Plus In Plus.",
+    title: t("blog"),
+    description: t("blogDescription"),
     path: "/blog",
     locale,
   });
 }
 
 export default async function BlogPage() {
-  const dbPosts = await getPublishedPosts();
-  const posts = mergeCatalogPosts(dbPosts);
+  const [dbPosts, locale, t] = await Promise.all([
+    getPublishedPosts(),
+    getRequestLocale(),
+    getRequestTranslations("blog"),
+  ]);
+  const posts = localizeBlogPosts(mergeCatalogPosts(dbPosts), t, locale);
 
   return (
     <Blog11
       id="blog-page"
-      heading="Blog"
-      description="Updates from our design studio, product ecosystems, and client projects."
+      heading={t("title")}
+      description={t("listDescription")}
       posts={posts}
+      allCategoryLabel={t("allCategory")}
+      categoryLabels={{ Design: t("categoryDesign"), Studio: t("categoryStudio"), Outdoor: t("categoryOutdoor") }}
       asPageHeading
     />
   );

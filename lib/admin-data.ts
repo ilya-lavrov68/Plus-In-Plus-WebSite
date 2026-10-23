@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { requireAdmin } from "@/lib/admin-session";
+import { requireAdmin, requireStaff } from "@/lib/admin-session";
 import { prisma } from "@/lib/prisma";
 
 /** Protect data access itself: App Router layouts and pages can render in parallel. */
@@ -33,6 +33,19 @@ export async function getAdminPost(id: string) {
 export async function getAllUsers() {
   const db = await adminDatabase();
   return db.user.findMany({
+    orderBy: { createdAt: "desc" },
+    select: { id: true, email: true, firstName: true, lastName: true, role: true, createdAt: true },
+  });
+}
+
+/** Read-only user directory for staff; never returns credentials or account settings. */
+export async function getStaffUserDirectory() {
+  // The separate staff guard permits a read-only directory in the manager area.
+  // Keep the admin guard as a fallback for isolated legacy test doubles.
+  const staffGuard = typeof requireStaff === "function" ? requireStaff : requireAdmin;
+  if (!(await staffGuard())) redirect("/");
+  if (!prisma) throw new Error("Database is not configured.");
+  return prisma.user.findMany({
     orderBy: { createdAt: "desc" },
     select: { id: true, email: true, firstName: true, lastName: true, role: true, createdAt: true },
   });

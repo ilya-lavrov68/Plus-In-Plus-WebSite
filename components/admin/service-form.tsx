@@ -178,7 +178,7 @@ export function ServiceForm({ mode, serviceId, initial }: ServiceFormProps) {
               alt={t("currentCover")}
               fill
               sizes="160px"
-              className="object-cover"
+              className="object-contain"
             />
           </div>
         ) : null}

@@ -5,11 +5,15 @@ import { Features } from "@/components/site/features";
 import { Hero } from "@/components/site/hero";
 import { getPublishedPosts } from "@/lib/data";
 import { mergeCatalogPosts } from "@/lib/studio-catalog";
+import { getRequestTranslations } from "@/lib/server-i18n";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const dbPosts = await getPublishedPosts();
+  const [dbPosts, t] = await Promise.all([
+    getPublishedPosts(),
+    getRequestTranslations("news"),
+  ]);
   const posts = mergeCatalogPosts(dbPosts).slice(0, 3);
 
   return (
@@ -17,7 +21,7 @@ export default async function HomePage() {
       <Hero />
       <Features />
       <Community />
-      <BlogSection id="news" heading="News from Plus In Plus" posts={posts} />
+      <BlogSection id="news" heading={t("title")} description={t("description")} posts={posts} />
       <CtaSection />
     </>
   );

@@ -87,7 +87,7 @@ Module._load = function (name, parent, isMain) {
 };
 
 const { Hero138 } = require("../components/blocks/hero138.tsx");
-const { Navbar10 } = require("../components/blocks/navbar10.tsx");
+const { Navbar10, buildNavigation } = require("../components/blocks/navbar10.tsx");
 const { Footer7 } = require("../components/blocks/footer7.tsx");
 const { Feature314 } = require("../components/blocks/feature314.tsx");
 const { Community3 } = require("../components/blocks/community3.tsx");
@@ -102,6 +102,7 @@ const { CandlestickChart } = require("../components/spectrumui/candlestick-chart
 const { ServiceConfigurator } = require("../components/site/service-configurator.tsx");
 const { CookieBanner } = require("../components/site/cookie-banner.tsx");
 const { STUDIO_SERVICES, STUDIO_BLOG_POSTS } = require("../lib/studio-catalog.ts");
+const { COVER_IMAGE_GUIDES } = require("../lib/upload-policy.ts");
 
 beforeEach(() => {
   sessionStatus = "unauthenticated";
@@ -167,6 +168,23 @@ test("Navbar10 and Footer7 render all required navigation items and footer colum
     navImgs.includes("/assets/logos/npip.svg"),
     "Navbar10 must use full drawn wordmark /assets/logos/npip.svg"
   );
+
+  const featuredNavigation = buildNavigation({
+    title: "Newest featured story",
+    slug: "newest-featured-story",
+    coverImage: "/uploads/blog/newest-cover.webp",
+  });
+  const featuredCard = featuredNavigation.find((item) => item.id === 3)?.imageLink;
+  assert.deepEqual(featuredCard, {
+    url: "/blog/newest-featured-story",
+    image: "/uploads/blog/newest-cover.webp",
+    label: "Newest featured story",
+  });
+  const navbarSource = fs.readFileSync(
+    path.resolve(__dirname, "../components/blocks/navbar10.tsx"),
+    "utf8"
+  );
+  assert.match(navbarSource, /className="size-full object-contain"/);
 
   const footerImgs = footerView.root.findAllByType("img").map((img) => img.props.src);
   assert.ok(
@@ -256,6 +274,12 @@ test("Blog11 and Blogpost11 render We're Up and Running with all 4 verbatim sect
     );
   });
   assert.ok(textOf(listView.root).includes("News from Plus In Plus"));
+  assert.equal(COVER_IMAGE_GUIDES.blog.aspectRatio, "4:3");
+  assert.equal(COVER_IMAGE_GUIDES.blog.recommended, "1,600 × 1,200 px");
+  assert.equal(COVER_IMAGE_GUIDES.services.aspectRatio, "4:3");
+  assert.equal(COVER_IMAGE_GUIDES.services.recommended, "1,600 × 1,200 px");
+  assert.ok(listView.root.findAllByType("img").every((image) => /object-contain/.test(image.props.className)));
+  assert.ok(postView.root.findAllByType("img").every((image) => /object-contain/.test(image.props.className)));
   const postText = textOf(postView.root);
   for (const snippet of [
     "We're Up and Running",
@@ -311,6 +335,9 @@ test("Services11Catalog, ProductDetail1, and Contact29 render all required field
   assert.ok(textOf(shopLarge.root).includes("Rooftop advertising"));
   assert.ok(textOf(shopLarge.root).includes("Advertisement on the fence"));
   assert.ok(textOf(shopLarge.root).includes("Billboard"));
+  assert.ok(shopSmall.root.findAllByType("img").every((image) => /object-contain/.test(image.props.className)));
+  assert.ok(shopLarge.root.findAllByType("img").every((image) => /object-contain/.test(image.props.className)));
+  assert.ok(detailView.root.findAllByType("img").every((image) => /object-contain/.test(image.props.className)));
 
   const detailText = textOf(detailView.root);
   assert.ok(detailText.includes("Sign Design"));

@@ -6,21 +6,21 @@ export const MAX_COVER_INPUT_PIXELS = 25_000_000;
 export const MAX_COVER_OUTPUT_EDGE_PX = 2400;
 
 /**
- * Displayed cover frames in the public UI. Recommended sizes follow their
- * aspect ratios; uploaded images with another ratio are letterboxed, not cropped.
+ * Recommended cover exports match the 4:3 post/service detail frame. Public
+ * thumbnails and galleries scale other image ratios to fit instead of cropping.
  */
 export const COVER_IMAGE_GUIDES = {
   blog: {
-    aspectRatio: "350:273",
-    minimum: "700 × 546 px",
-    recommended: "1,400 × 1,092 px",
-    maximumAfterProcessing: "2,400 × 1,872 px",
+    aspectRatio: "4:3",
+    minimum: "800 × 600 px",
+    recommended: "1,600 × 1,200 px",
+    maximumAfterProcessing: "2,400 × 1,800 px",
   },
   services: {
-    aspectRatio: "3:2",
-    minimum: "800 × 533 px",
-    recommended: "1,600 × 1,067 px",
-    maximumAfterProcessing: "2,400 × 1,600 px",
+    aspectRatio: "4:3",
+    minimum: "800 × 600 px",
+    recommended: "1,600 × 1,200 px",
+    maximumAfterProcessing: "2,400 × 1,800 px",
   },
 } as const;
 

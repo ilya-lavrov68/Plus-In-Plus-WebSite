@@ -36,7 +36,7 @@ const ProductDetail1 = ({
                   <img
                     src={primaryImage}
                     alt={service.title}
-                    className="size-full object-cover"
+                    className="size-full object-contain"
                   />
                 </AspectRatio>
               </div>
@@ -53,7 +53,7 @@ const ProductDetail1 = ({
                       <img
                         src={imageSrc}
                         alt={`${service.title} showcase ${idx + 2}`}
-                        className="size-full object-cover"
+                        className="size-full object-contain"
                       />
                     </AspectRatio>
                   </div>

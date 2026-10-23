@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { KeyRound, Lock, Unlock } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { resetUserPassword, toggleUserBlocked, updateUserRole } from "@/app/actions/admin";
 import { AdminDataTable } from "@/components/admin/admin-data-table";
@@ -31,6 +31,7 @@ export interface AdminUserRow {
 export function UsersTable({ users }: { users: AdminUserRow[] }) {
   const t = useTranslations("admin");
   const tc = useTranslations("common");
+  const locale = useLocale() === "ru" ? "ru-RU" : "en-GB";
   const [pending, setPending] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -135,7 +136,7 @@ export function UsersTable({ users }: { users: AdminUserRow[] }) {
       value: (user) => user.createdAt,
       cell: (user) => (
         <span className="text-muted-foreground">
-          {new Date(user.createdAt).toLocaleDateString("en-GB")}
+          {new Date(user.createdAt).toLocaleDateString(locale)}
         </span>
       ),
     },
@@ -201,7 +202,7 @@ export function UsersTable({ users }: { users: AdminUserRow[] }) {
                 {user.activities.map((activity) => (
                   <li key={activity.id}>
                     {activity.action} · {activity.title} ·{" "}
-                    {new Date(activity.createdAt).toLocaleString("en-GB")}
+                    {new Date(activity.createdAt).toLocaleString(locale)}
                   </li>
                 ))}
               </ul>

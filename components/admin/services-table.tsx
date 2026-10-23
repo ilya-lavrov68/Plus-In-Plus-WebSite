@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Copy, ExternalLink, Trash2 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { bulkUpdateServices, duplicateService } from "@/app/actions/services";
 import { AdminDataTable } from "@/components/admin/admin-data-table";
@@ -38,6 +38,7 @@ export interface AdminServiceRow {
 export function ServicesTable({ services }: { services: AdminServiceRow[] }) {
   const t = useTranslations("admin");
   const tc = useTranslations("common");
+  const locale = useLocale() === "ru" ? "ru-RU" : "en-GB";
   const [category, setCategory] = useState("all");
   const [pageSize, setPageSize] = useState(10);
   const [selected, setSelected] = useState<string[]>([]);
@@ -144,7 +145,7 @@ export function ServicesTable({ services }: { services: AdminServiceRow[] }) {
       value: (service) => service.updatedAt,
       cell: (service) => (
         <span className="text-muted-foreground">
-          {new Date(service.updatedAt).toLocaleDateString("en-GB")}
+          {new Date(service.updatedAt).toLocaleDateString(locale)}
         </span>
       ),
     },

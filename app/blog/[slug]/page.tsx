@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import { Blog11 } from "@/components/blocks/blog11";
 import { Blogpost11 } from "@/components/blocks/blogpost11";
@@ -7,6 +7,8 @@ import { getPublishedPosts } from "@/lib/data";
 import { createPageMetadata } from "@/lib/seo";
 import { getRequestLocale } from "@/lib/request-locale";
 import { mergeCatalogPosts } from "@/lib/studio-catalog";
+import { getRequestTranslations } from "@/lib/server-i18n";
+import { localizeBlogPosts } from "@/lib/blog-localization";
 
 export const dynamic = "force-dynamic";
 
@@ -18,11 +20,12 @@ export async function generateMetadata({
   params,
 }: BlogPostPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const [dbPosts, locale] = await Promise.all([
+  const [dbPosts, locale, t] = await Promise.all([
     getPublishedPosts(),
     getRequestLocale(),
+    getRequestTranslations("blog"),
   ]);
-  const allPosts = mergeCatalogPosts(dbPosts);
+  const allPosts = localizeBlogPosts(mergeCatalogPosts(dbPosts), t, locale);
   const post = allPosts.find((item) => item.slug === slug);
 
   return createPageMetadata({
@@ -39,12 +42,16 @@ export async function generateMetadata({
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const { slug } = await params;
-  const dbPosts = await getPublishedPosts();
-  const allPosts = mergeCatalogPosts(dbPosts);
+  const [dbPosts, locale, t] = await Promise.all([
+    getPublishedPosts(),
+    getRequestLocale(),
+    getRequestTranslations("blog"),
+  ]);
+  const allPosts = localizeBlogPosts(mergeCatalogPosts(dbPosts), t, locale);
 
   const index = allPosts.findIndex((item) => item.slug === slug);
   if (index === -1) {
-    redirect("/blog");
+    notFound();
   }
 
   const post = allPosts[index];
@@ -53,18 +60,24 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const nextPost = index > 0 ? allPosts[index - 1] : null;
   const otherPosts = allPosts.filter((item) => item.slug !== post.slug);
 
+  const tBlog = t;
   return (
     <>
       <Blogpost11
         post={post}
         previousPost={previousPost}
         nextPost={nextPost}
+        previousLabel={tBlog("previous")}
+        nextLabel={tBlog("next")}
+        navigationLabel={tBlog("articleNavigation")}
       />
       <Blog11
         id="post-other-news"
-        heading="Other News"
-        description="Explore more articles and stories from the Plus In Plus team."
+        heading={tBlog("otherNews")}
+        description={tBlog("otherNewsDescription")}
         posts={otherPosts.length > 0 ? otherPosts : allPosts}
+        allCategoryLabel={tBlog("allCategory")}
+        categoryLabels={{ Design: tBlog("categoryDesign"), Studio: tBlog("categoryStudio"), Outdoor: tBlog("categoryOutdoor") }}
       />
     </>
   );

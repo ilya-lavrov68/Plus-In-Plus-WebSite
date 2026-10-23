@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
+import { useTranslations } from "next-intl";
 import {
   ArrowLeft,
   ArrowRight,
@@ -76,6 +77,7 @@ const Contact29 = ({
   services = STUDIO_SERVICES,
 }: Contact29Props) => {
   const { data: session } = useSession();
+  const t = useTranslations("contact");
 
   const allOptions = useMemo<TopicOption[]>(() => {
     const mappedServices: TopicOption[] = services.map((service) => ({
@@ -144,8 +146,7 @@ const Contact29 = ({
       const payload = await response.json().catch(() => null);
       if (!response.ok) {
         setError(
-          payload?.error ||
-            "Please check the fields and try sending your message again."
+          t("validationError")
         );
         setSubmitting(false);
         return;
@@ -154,7 +155,7 @@ const Contact29 = ({
       setOrderNumber(payload?.orderNumber ?? null);
       setStep("success");
     } catch {
-      setError("Network error while sending message. Please try again.");
+      setError(t("networkError"));
     } finally {
       setSubmitting(false);
     }
@@ -178,8 +179,7 @@ const Contact29 = ({
                   {title}
                 </h1>
                 <p className="mt-4 text-lg text-muted-foreground">
-                  Select a design service to discuss your project with Plus In
-                  Plus.
+                  {t("chooseService")}
                 </p>
               </div>
 
@@ -254,7 +254,7 @@ const Contact29 = ({
                   onClick={() => setStep("form")}
                   className="group"
                 >
-                  Continue
+                  {t("continue")}
                   <ArrowRight className="size-4 transition-transform duration-200 ease-out group-hover:translate-x-1" />
                 </Button>
               </div>
@@ -278,21 +278,19 @@ const Contact29 = ({
                     className="group inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground"
                   >
                     <ArrowLeft className="size-4 transition-transform duration-200 ease-out group-hover:-translate-x-1" />
-                    Change selection
+                    {t("changeSelection")}
                   </button>
 
                   <h1 className="mt-6 text-4xl font-semibold tracking-tight md:text-5xl">
                     {title}
                   </h1>
                   <p className="mt-4 text-base leading-relaxed text-muted-foreground md:text-lg">
-                    Have an idea for signage, packaging, event collateral, or a
-                    digital product mockup? Tell us about your task and we will
-                    get back to you with a tailored proposal.
+                    {t("projectDescription")}
                   </p>
 
                   <div className="mt-8 rounded-xl border border-border bg-card p-5">
                     <div className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
-                      Selected service
+                      {t("selectedService")}
                     </div>
                     <div className="mt-1.5 text-base font-semibold text-foreground">
                       {activeOption.title}
@@ -304,7 +302,7 @@ const Contact29 = ({
                 </div>
 
                 <div className="mt-8 text-sm text-muted-foreground">
-                  Studio support:{" "}
+                  {t("studioSupport")}{" "}
                   <a
                     href="mailto:hello@plusinplus.studio"
                     className="text-foreground underline underline-offset-4"
@@ -321,52 +319,52 @@ const Contact29 = ({
                 >
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="contact-first-name">First name</Label>
+                      <Label htmlFor="contact-first-name">{t("firstName")}</Label>
                       <Input
                         id="contact-first-name"
                         name="firstName"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
-                        placeholder="Alex"
+                        placeholder={t("firstNamePlaceholder")}
                         required
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="contact-last-name">Last name</Label>
+                      <Label htmlFor="contact-last-name">{t("lastName")}</Label>
                       <Input
                         id="contact-last-name"
                         name="lastName"
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
-                        placeholder="Morozov"
+                        placeholder={t("lastNamePlaceholder")}
                         required
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="contact-email">Email</Label>
+                    <Label htmlFor="contact-email">{t("email")}</Label>
                     <Input
                       id="contact-email"
                       name="email"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="you@example.com"
+                      placeholder={t("emailPlaceholder")}
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="contact-message">Message</Label>
+                    <Label htmlFor="contact-message">{t("message")}</Label>
                     <Textarea
                       id="contact-message"
                       name="message"
                       rows={5}
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
-                      placeholder="Describe your idea, format, timeline, or location..."
+                      placeholder={t("messagePlaceholder")}
                       required
                     />
                   </div>
@@ -383,7 +381,7 @@ const Contact29 = ({
                     disabled={submitting}
                     className="w-full sm:w-auto sm:px-10"
                   >
-                    {submitting ? "Sending..." : "Send"}
+                    {submitting ? t("sending") : t("send")}
                   </Button>
                 </form>
               </div>
@@ -401,16 +399,15 @@ const Contact29 = ({
             >
               <CheckCircle2 className="mx-auto size-12 text-foreground" />
               <h2 className="mt-5 text-3xl font-semibold tracking-tight">
-                Message sent
+                {t("messageSent")}
               </h2>
               {orderNumber && (
                 <p className="mt-2 text-sm font-medium text-foreground">
-                  Request number: {orderNumber}
+                  {t("requestNumber", { number: orderNumber })}
                 </p>
               )}
               <p className="mt-3 text-base text-muted-foreground">
-                Thank you for reaching out to Plus In Plus. Your request has
-                been saved and sent to our team—we will reply shortly.
+                {t("thankYou")}
               </p>
               <Button
                 className="mt-8"
@@ -421,7 +418,7 @@ const Contact29 = ({
                   setStep("form");
                 }}
               >
-                Send another message
+                {t("sendAnother")}
               </Button>
             </motion.div>
           )}

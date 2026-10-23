@@ -174,7 +174,7 @@ export function ImageAlbumUploader({
                   alt={t("upload.albumImage", { index: index + 1 })}
                   fill
                   sizes="160px"
-                  className="object-cover"
+                  className="object-contain"
                 />
                 <button
                   type="button"

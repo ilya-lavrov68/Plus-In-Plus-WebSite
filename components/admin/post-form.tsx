@@ -225,7 +225,7 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
               alt={t("currentCover")}
               fill
               sizes="160px"
-              className="object-cover"
+              className="object-contain"
             />
           </div>
         ) : null}

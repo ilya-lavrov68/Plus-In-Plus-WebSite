@@ -83,7 +83,7 @@ const Services11Catalog = ({
               <img
                 src={service.coverImage}
                 alt={service.title}
-                className="pointer-events-none absolute inset-0 size-full object-cover"
+                className="pointer-events-none absolute inset-0 size-full object-contain"
               />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/25 transition-opacity duration-200 group-hover:opacity-80" />
 
