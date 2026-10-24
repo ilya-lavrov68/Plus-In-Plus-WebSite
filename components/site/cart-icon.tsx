@@ -17,9 +17,10 @@ export function notifyCartUpdated(count?: number) {
   );
 }
 
-export function CartIcon({ className }: { className?: string }) {
+/** Shared cart state for the desktop and mobile navigation presentations. */
+export function useCartCount() {
   const { data: session } = useSession();
-  const t = useTranslations("cart");
+  const userId = session?.user?.id;
   const [count, setCount] = useState(0);
 
   const refresh = useCallback(() => {
@@ -43,7 +44,7 @@ export function CartIcon({ className }: { className?: string }) {
   }, []);
 
   useEffect(() => {
-    if (!session?.user) {
+    if (!userId) {
       setCount(0);
       return;
     }
@@ -61,9 +62,19 @@ export function CartIcon({ className }: { className?: string }) {
 
     window.addEventListener(CART_UPDATED_EVENT, onUpdated);
     return () => window.removeEventListener(CART_UPDATED_EVENT, onUpdated);
-  }, [session?.user, refresh]);
+  }, [userId, refresh]);
 
-  if (!session?.user) return null;
+  return count;
+}
+
+export function CartIcon({
+  className,
+  count = 0,
+}: {
+  className?: string;
+  count?: number;
+}) {
+  const t = useTranslations("cart");
 
   return (
     <Link

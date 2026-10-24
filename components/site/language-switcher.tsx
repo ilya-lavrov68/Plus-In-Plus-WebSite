@@ -100,7 +100,7 @@ export function LanguageSwitcher() {
         <div
           role="listbox"
           aria-label={t("language")}
-          className="absolute top-full right-0 z-50 mt-2 min-w-36 rounded-xl border border-border bg-popover p-1.5 shadow-lg"
+          className="absolute top-full right-0 z-50 mt-2 min-w-36 rounded-xl border border-border bg-popover p-1.5"
         >
           {(Object.keys(labels) as Locale[]).map((option) => (
             <button

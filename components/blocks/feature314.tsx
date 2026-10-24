@@ -105,9 +105,10 @@ const Feature314 = ({
                         markClassName="h-9"
                       />
                     )}
-                    <span className="absolute top-3 right-3 flex size-7 items-center justify-center rounded-full bg-slate-950/30 text-white backdrop-blur-xl">
-                      <Plus className="size-3.5" />
-                    </span>
+                    <Plus
+                      size={20}
+                      className="absolute top-3 right-3 rounded-full bg-secondary p-0.5 transition-[transform,background-color,color] duration-200 ease-out group-hover:rotate-90 group-hover:bg-primary group-hover:text-primary-foreground"
+                    />
                   </div>
                   <div className="flex flex-col gap-4 px-1 pb-1">
                     <span className="text-xs text-muted-foreground">
@@ -134,13 +135,12 @@ const Feature314 = ({
                   ) : (
                     <MediaPlaceholder className="h-full min-h-[24rem]" />
                   )}
-                  <div className="pointer-events-none absolute top-4 right-4 left-4 flex items-center justify-between">
-                    <span className="rounded-xl bg-slate-950/30 px-3 py-2 backdrop-blur-xl">
-                      <BrandMark className="h-6" />
-                    </span>
-                    <span className="flex size-8 items-center justify-center rounded-full bg-slate-950/30 text-white backdrop-blur-xl">
-                      <Plus className="size-4" />
-                    </span>
+                  <div className="pointer-events-none absolute top-0 flex w-full items-center justify-between p-8">
+                    <BrandMark className="h-7" />
+                    <Plus
+                      size={20}
+                      className="rounded-full bg-secondary p-0.5 transition-[transform,background-color,color] duration-200 ease-out group-hover:rotate-90 group-hover:bg-primary group-hover:text-primary-foreground"
+                    />
                   </div>
                 </div>
                 <div className="flex flex-col justify-between gap-3 p-5 sm:flex-row sm:items-end sm:p-6">
