@@ -121,7 +121,7 @@ export async function checkoutCart(input?: {
       deadline: input?.deadline,
     });
     revalidatePath("/cart");
-    revalidatePath("/orders");
+    revalidatePath("/cart");
     revalidatePath("/admin/orders");
     revalidatePath("/manager/orders");
     revalidatePath("/admin/dashboard");

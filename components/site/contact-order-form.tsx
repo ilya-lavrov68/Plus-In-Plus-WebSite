@@ -77,7 +77,7 @@ export function ContactOrderForm({
         title: created.orderNumber,
         description: t("thankYou"),
       });
-      router.push("/orders");
+      router.push("/cart");
       router.refresh();
     } catch (err) {
       const message =

@@ -85,11 +85,11 @@ test("payment success renders two independent Radix Slot actions without crashin
 
   const actions = view.root
     .findAllByType("a")
-    .filter((link) => ["/orders", "/"].includes(link.props.href));
+    .filter((link) => ["/cart", "/"].includes(link.props.href));
   assert.deepEqual(
     actions.map((link) => ({ href: link.props.href, text: textOf(link) })),
     [
-      { href: "/orders", text: "My orders" },
+      { href: "/cart", text: "My orders" },
       { href: "/", text: "Back to the homepage" },
     ]
   );

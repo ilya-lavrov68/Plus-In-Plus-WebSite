@@ -14,9 +14,16 @@ require.extensions[".ts"] = (module, filename) =>
   );
 
 // Только в памяти. Никаких записей в реальную БД.
-let admin, customer, orders, orderItems, payments, logs, invalidated, sequence, invoiceClients, invoiceFailure;
+let admin, customer, orders, orderItems, payments, logs, invalidated, sequence, invoiceClients, invoiceFailure, writeRaceLost;
 
 const prisma = {
+  user: {
+    // requireCustomer проверяет, что аккаунт жив и не заблокирован.
+    findUnique: async ({ where }) =>
+      customer && where.id === customer.id
+        ? { id: customer.id, email: customer.email, isBlocked: false }
+        : null,
+  },
   order: {
     findUnique: async ({ where }) => structuredClone(orders.get(where.id) ?? null),
     // Личный кабинет: фильтр по владельцу обязателен, иначе подстановка
@@ -36,6 +43,8 @@ const prisma = {
     },
     updateMany: async ({ where, data }) => {
       const row = orders.get(where.id);
+      // Имитация гонки: между чтением и записью заказ успел измениться.
+      if (writeRaceLost) return { count: 0 };
       if (!row || (where.status && row.status !== where.status)) return { count: 0 };
       const successful = (row.payments ?? []).some((payment) => payment.status === "succeeded");
       if (where.payments?.none && successful) return { count: 0 };
@@ -102,7 +111,7 @@ Module._load = function (name, parent, isMain) {
   return originalLoad.call(this, name, parent, isMain);
 };
 
-const { setOrderLocked, setOrderPrice, updateOrderStatus } = require("../app/actions/orders.ts");
+const { cancelMyOrder, setOrderLocked, setOrderPrice, updateOrderStatus } = require("../app/actions/orders.ts");
 const { getCustomerOrders } = require("../lib/customer-orders.ts");
 
 /** Заявка с расчётом 30 000 ₽ и одной позицией. */
@@ -110,6 +119,7 @@ function seedOrder(overrides = {}) {
   const id = "ord-test";
   orders.set(id, {
     id,
+    userId: "usr-1",
     number: "ПИП-000099",
     status: "quote_requested",
     estimatedAmount: 3_000_000,
@@ -148,6 +158,7 @@ beforeEach(() => {
   sequence = 0;
   invoiceClients = [];
   invoiceFailure = false;
+  writeRaceLost = false;
 });
 
 test("setOrderPrice: фиксирует цену, статус и менеджера", async () => {
@@ -491,4 +502,116 @@ test("заблокировать уже оценённый заказ может
   const result = await setOrderLocked({ orderId: id, locked: true });
   assert.equal(result.ok, true);
   assert.equal(orders.get(id).isLocked, true);
+});
+
+// ── Отмена заказа клиентом ───────────────────────────────────────────────────
+
+test("cancelMyOrder: клиент отменяет свою неоплаченную заявку", async () => {
+  const id = seedOrder({ status: "quote_requested" });
+
+  const result = await cancelMyOrder({ orderId: id });
+
+  assert.equal(result.ok, true);
+  assert.equal(orders.get(id).status, "cancelled");
+  // Отмена видна в журнале действий вместе с автором.
+  assert.equal(logs.length, 1);
+  assert.equal(logs[0].action, "cancelled");
+  assert.equal(logs[0].entityType, "order");
+  assert.equal(logs[0].actorId, "usr-1");
+  assert.match(logs[0].title, /ПИП-000099/);
+  // Объединённая страница корзины и заказы в админке должны обновиться.
+  assert.ok(invalidated.includes("/cart"));
+  assert.ok(invalidated.includes("/admin/orders"));
+  assert.ok(invalidated.includes("/manager/orders"));
+});
+
+test("cancelMyOrder: отменяются все доспешные статусы", async () => {
+  for (const status of ["pending", "quote_requested", "negotiating", "priced", "awaiting_payment"]) {
+    orders = new Map(); orderItems = new Map(); payments = new Map(); logs = [];
+    const id = seedOrder({ status });
+    const result = await cancelMyOrder({ orderId: id });
+    assert.equal(result.ok, true, `${status} должен отменяться`);
+    assert.equal(orders.get(id).status, "cancelled");
+  }
+});
+
+test("cancelMyOrder: недоступен без входа и для заблокированного аккаунта", async () => {
+  const id = seedOrder({ status: "quote_requested" });
+
+  customer = null;
+  const anonymous = await cancelMyOrder({ orderId: id });
+  assert.equal(anonymous.ok, false);
+  assert.equal(orders.get(id).status, "quote_requested", "без сессии заказ не трогается");
+
+  customer = { id: "usr-other", email: "other@test" };
+  const stranger = await cancelMyOrder({ orderId: id });
+  assert.equal(stranger.ok, false);
+  assert.match(stranger.error, /not found/i, "чужой заказ неотличим от несуществующего");
+  assert.equal(orders.get(id).status, "quote_requested");
+});
+
+test("cancelMyOrder: оплаченный заказ клиент отменить не может", async () => {
+  const id = seedOrder({
+    status: "awaiting_payment",
+    total: 3_000_000,
+    payments: [{ id: "pay-1", status: "succeeded", amount: 3_000_000 }],
+  });
+
+  const result = await cancelMyOrder({ orderId: id });
+
+  assert.equal(result.ok, false);
+  assert.match(result.error, /paid order cannot be cancelled/i);
+  assert.equal(orders.get(id).status, "awaiting_payment");
+  assert.equal(logs.length, 0);
+});
+
+test("cancelMyOrder: заказ в работе, завершённый и закрытый не отменяются", async () => {
+  for (const status of ["in_progress", "completed"]) {
+    orders = new Map(); orderItems = new Map(); logs = [];
+    const id = seedOrder({ status });
+    const result = await cancelMyOrder({ orderId: id });
+    assert.equal(result.ok, false, `${status} отменять нельзя`);
+    assert.match(result.error, /already started/i);
+    assert.equal(orders.get(id).status, status);
+  }
+
+  for (const status of ["cancelled", "refunded"]) {
+    orders = new Map(); orderItems = new Map(); logs = [];
+    const id = seedOrder({ status });
+    const result = await cancelMyOrder({ orderId: id });
+    assert.equal(result.ok, false, `${status} уже закрыт`);
+    assert.match(result.error, /closed/i);
+    assert.equal(orders.get(id).status, status);
+  }
+});
+
+test("cancelMyOrder: черновик корзины отменить нельзя", async () => {
+  const id = seedOrder({ status: "cart" });
+
+  const result = await cancelMyOrder({ orderId: id });
+
+  assert.equal(result.ok, false);
+  assert.match(result.error, /not found/i);
+  assert.equal(orders.get(id).status, "cart");
+});
+
+test("cancelMyOrder: проигранная гонка записи не выдаёт успешный ответ", async () => {
+  const id = seedOrder({ status: "quote_requested" });
+  writeRaceLost = true;
+
+  const result = await cancelMyOrder({ orderId: id });
+
+  assert.equal(result.ok, false);
+  assert.match(result.error, /could not cancel/i);
+  assert.equal(orders.get(id).status, "quote_requested", "статус не изменился");
+  assert.equal(logs.length, 0, "журнал не пишется без успешной записи");
+});
+
+test("cancelMyOrder: пустой идентификатор заказа отклоняется", async () => {
+  seedOrder({ status: "quote_requested" });
+
+  for (const orderId of ["", "   ", undefined, null]) {
+    const result = await cancelMyOrder({ orderId });
+    assert.equal(result.ok, false, `«${orderId}» не должно проходить`);
+  }
 });

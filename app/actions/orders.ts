@@ -358,7 +358,7 @@ export async function createOrder(data: CreateOrderInput) {
     throw new Error(t("genericError"));
   }
 
-  revalidatePath("/orders");
+  revalidatePath("/cart");
   revalidatePath("/admin/orders");
   revalidatePath("/manager/orders");
   revalidatePath("/admin/dashboard");
@@ -534,7 +534,7 @@ export async function setOrderPrice(input: {
   revalidatePath("/admin/orders");
   revalidatePath(`/manager/orders/${order.id}`);
   revalidatePath("/manager/orders");
-  revalidatePath("/orders");
+  revalidatePath("/cart");
   return { ok: true };
 }
 
@@ -684,6 +684,100 @@ export async function setOrderLocked(input: {
     return { ok: false, error: t("genericError") };
   }
 
+  revalidatePath(`/admin/orders/${order.id}`);
+  revalidatePath("/admin/orders");
+  revalidatePath(`/manager/orders/${order.id}`);
+  revalidatePath("/manager/orders");
+  return { ok: true };
+}
+
+/**
+ * Статусы, на которых клиент ещё может отменить заказ самостоятельно:
+ * цена либо не согласована, либо счёт выставлен, но не оплачен.
+ */
+const CUSTOMER_CANCELLABLE_STATUSES: readonly string[] = [
+  "pending",
+  "quote_requested",
+  "negotiating",
+  "priced",
+  "awaiting_payment",
+];
+
+/**
+ * Отмена собственного заказа клиентом.
+ *
+ * Заказ и корзина — одна и та же сущность, поэтому отменяется именно строка
+ * заказа, а не «заявка» где-то рядом: статус становится `cancelled`, и заказ
+ * сразу виден как отменённый и клиенту, и менеджеру.
+ *
+ * Отменить можно только свой заказ и только пока он не оплачен и не взят в
+ * работу. Проверка владельца и отсутствие успешного платежа повторяются в
+ * самом `updateMany` — между чтением и записью мог пройти webhook оплаты.
+ */
+export async function cancelMyOrder(input: {
+  orderId: string;
+}): Promise<OrderActionResult> {
+  const t = await getActionTranslator();
+
+  const customer = await requireCustomer();
+  if (!customer) return { ok: false, error: t("unauthorized") };
+  if (!prisma) return { ok: false, error: t("genericError") };
+
+  const orderId = typeof input?.orderId === "string" ? input.orderId.trim() : "";
+  if (!orderId) return { ok: false, error: t("orderNotFound") };
+
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: {
+      payments: { where: { status: "succeeded" }, select: { id: true }, take: 1 },
+    },
+  });
+  // Чужой заказ неотличим от несуществующего: одинаковый ответ, без утечки id.
+  if (!order || order.userId !== customer.id || order.status === "cart") {
+    return { ok: false, error: t("orderNotFound") };
+  }
+
+  if (order.status === "cancelled" || order.status === "refunded") {
+    return { ok: false, error: t("orderClosed") };
+  }
+  // Оплату отменяет и возвращает только менеджер — не клиент одной кнопкой.
+  if (order.status === "paid" || (order.payments?.length ?? 0) > 0) {
+    return { ok: false, error: t("cancelPaidOrder") };
+  }
+  if (!CUSTOMER_CANCELLABLE_STATUSES.includes(order.status)) {
+    return { ok: false, error: t("cancelStartedOrder") };
+  }
+
+  const orderNumber = order.orderNumber ?? order.number ?? order.id;
+  try {
+    const updated = await prisma.$transaction(async (tx) => {
+      const result = await tx.order.updateMany({
+        where: {
+          id: order.id,
+          userId: customer.id,
+          status: order.status,
+          payments: { none: { status: "succeeded" } },
+        },
+        data: { status: "cancelled" },
+      });
+      if (result.count !== 1) return false;
+
+      await recordActivity(tx, {
+        action: "cancelled",
+        entityType: "order",
+        entityId: order.id,
+        title: `${orderNumber} — отменён клиентом`,
+        actorId: customer.id,
+      });
+      return true;
+    });
+    if (!updated) return { ok: false, error: t("cancelFailed") };
+  } catch (error) {
+    console.error("Failed to cancel the order:", error);
+    return { ok: false, error: t("genericError") };
+  }
+
+  revalidatePath("/cart");
   revalidatePath(`/admin/orders/${order.id}`);
   revalidatePath("/admin/orders");
   revalidatePath(`/manager/orders/${order.id}`);

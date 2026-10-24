@@ -97,7 +97,7 @@ const Signup10 = ({
       const destination =
         result.redirectTo ||
         callbackUrl ||
-        (isLogin && adminMode ? "/admin/dashboard" : "/orders");
+        (isLogin && adminMode ? "/admin/dashboard" : "/cart");
       router.push(destination);
       router.refresh();
     } catch {

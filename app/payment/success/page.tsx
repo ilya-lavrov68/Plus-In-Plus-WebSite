@@ -58,7 +58,7 @@ export default async function PaymentSuccessPage({ searchParams }: PaymentPagePr
   // A browser return is only a display hint. Without a valid Success URL
   // signature, even a coincidentally matching InvId must not turn this page
   // into a "paid" confirmation. The signed Result URL remains the only writer
-  // of payment state, and /orders continues to show the stored truth.
+  // of payment state, and /cart continues to show the stored truth.
   const paid = signed && status === "succeeded";
   const waiting = signed && status === "pending";
 
@@ -79,7 +79,7 @@ export default async function PaymentSuccessPage({ searchParams }: PaymentPagePr
           ) : null}
           <div className="mt-2 flex flex-col justify-center gap-3 sm:flex-row">
             <Button asChild>
-              <Link href="/orders">{t("backToOrders")}</Link>
+              <Link href="/cart">{t("backToOrders")}</Link>
             </Button>
             <Button asChild variant="outline">
               <Link href="/">{t("backHome")}</Link>

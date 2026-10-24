@@ -59,7 +59,6 @@
     "label": "Mobile navigation",
     "home": "Home",
     "services": "Services",
-    "orders": "Orders",
     "cart": "Cart",
     "menu": "Menu"
   },
@@ -91,7 +90,6 @@
     "login": "Log in",
     "logout": "Log out",
     "profile": "Profile",
-    "orders": "Orders",
     "cart": "Cart",
     "account": "Account",
     "admin": "Admin Panel",
@@ -1216,7 +1214,10 @@
     "itemUnavailable": "This service or product is not available for cart orders.",
     "insufficientStock": "The requested quantity exceeds available stock. Stock is reserved only after the price is agreed.",
     "invalidQuantity": "Enter a quantity between 1 and 99.",
-    "staleCart": "The cart changed in another tab. Refresh it and try again."
+    "staleCart": "The cart changed in another tab. Refresh it and try again.",
+    "cancelPaidOrder": "A paid order cannot be cancelled online. Please contact us.",
+    "cancelStartedOrder": "Work on this order has already started, so it cannot be cancelled.",
+    "cancelFailed": "Could not cancel the order. Please try again."
   },
   "payment": {
     "alreadyPaidBody": "The confirmation arrived after you left the payment page. The order is marked as paid.",
@@ -1258,12 +1259,21 @@
     "itemService": "Service",
     "itemProduct": "Product",
     "createFirstOrder": "Create your first order",
-    "createOrder": "New order"
+    "createOrder": "New order",
+    "cancel": "Cancel order",
+    "cancelling": "Cancelling…",
+    "cancelConfirm": "Cancel order {number}?",
+    "cancelConfirmHint": "The request will be closed. You can send a new one at any time.",
+    "cancelKeep": "Keep the order",
+    "cancelHint": "You can cancel while the order is unpaid and work has not started.",
+    "cancelledNotice": "Order {number} is cancelled",
+    "cancelFailed": "Could not cancel the order. Please try again.",
+    "cancelUnavailable": "This order can no longer be cancelled online — please contact us."
   },
   "cart": {
-    "title": "Cart",
+    "title": "Cart and orders",
     "shoppingCart": "Shopping Cart",
-    "subtitle": "Add studio services or shop products and submit them as one order.",
+    "subtitle": "Add studio services or shop products, send them as one request and follow its status right here.",
     "open": "Open the cart",
     "openWithCount": "Open the cart — {count} items",
     "emptyTitle": "Your Cart is Empty",

@@ -10,8 +10,8 @@ export {
 } from "@/app/actions/services";
 export type { ServiceActionResult, QuickServiceInput } from "@/app/actions/services";
 
-export { createOrder } from "@/app/actions/orders";
-export type { CreateOrderInput } from "@/app/actions/orders";
+export { createOrder, cancelMyOrder } from "@/app/actions/orders";
+export type { CreateOrderInput, OrderActionResult } from "@/app/actions/orders";
 
 export { createPost, updatePost, deletePost } from "@/app/actions/posts";
 export type { PostActionResult } from "@/app/actions/posts";

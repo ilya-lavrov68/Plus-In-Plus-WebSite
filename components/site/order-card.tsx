@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import {
   Calendar,
   CheckCircle2,
@@ -13,10 +15,12 @@ import {
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
+import { cancelMyOrder } from "@/app/actions/orders";
 import { OrderStatusBadge } from "@/components/orders/order-status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "@/components/ui/use-toast";
 import type { CustomerOrder } from "@/lib/customer-orders";
 import { formatKopecks } from "@/lib/pricing";
 
@@ -49,9 +53,29 @@ function isClosed(status: string): boolean {
   return status === "cancelled" || status === "refunded";
 }
 
+/**
+ * Статусы, на которых клиент может отменить заказ сам. Совпадает со списком
+ * в серверном действии `cancelMyOrder` — здесь он нужен только чтобы показать
+ * или спрятать кнопку: последнее слово всегда за сервером.
+ */
+const CUSTOMER_CANCELLABLE_STATUSES = [
+  "pending",
+  "quote_requested",
+  "negotiating",
+  "priced",
+  "awaiting_payment",
+];
+
+export function isCustomerCancellable(status: string, paid: boolean): boolean {
+  return !paid && CUSTOMER_CANCELLABLE_STATUSES.includes(status);
+}
+
 export function OrderCard({ order }: OrderCardProps) {
   const t = useTranslations("orders");
   const locale = useLocale();
+  const router = useRouter();
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const currency = order.currency || "RUB";
   const agreedKopecks =
@@ -68,6 +92,36 @@ export function OrderCard({ order }: OrderCardProps) {
   // оплаты. Только второй включает клиентское подтверждение и блокирует счета.
   const paid = invoices.some((invoice) => invoice.status === "succeeded");
   const displayOrderNumber = order.orderNumber || order.number;
+
+  const cancellable = isCustomerCancellable(order.status, paid);
+  // Открытый, но уже оплаченный или взятый в работу заказ: отмена только через менеджера.
+  const cancelBlocked = !closed && !cancellable;
+
+  /**
+   * Отмена заказа. Заказ и корзина — одна сущность, поэтому после отмены
+   * обновляем страницу целиком: список заказов рендерит сервер.
+   */
+  const handleCancel = async () => {
+    if (isCancelling) return;
+    setIsCancelling(true);
+    try {
+      const result = await cancelMyOrder({ orderId: order.id });
+      if (!result.ok) {
+        toast({
+          title: result.error || t("cancelFailed"),
+          variant: "destructive",
+        });
+        return;
+      }
+      setConfirmingCancel(false);
+      toast({ title: t("cancelledNotice", { number: displayOrderNumber }) });
+      router.refresh();
+    } catch {
+      toast({ title: t("cancelFailed"), variant: "destructive" });
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   const latestInvoice = invoices[0];
   const payable = !paid &&
@@ -266,6 +320,65 @@ export function OrderCard({ order }: OrderCardProps) {
             />
             <p className="text-sm text-red-200">{t("declined")}</p>
           </div>
+        ) : null}
+
+        {cancellable ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
+            {confirmingCancel ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-sm font-medium text-foreground">
+                  {t("cancelConfirm", { number: displayOrderNumber })}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {t("cancelConfirmHint")}
+                </span>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">{t("cancelHint")}</p>
+            )}
+
+            <div className="flex shrink-0 items-center gap-2">
+              {confirmingCancel ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    disabled={isCancelling}
+                    onClick={() => void handleCancel()}
+                  >
+                    {isCancelling ? t("cancelling") : t("cancel")}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={isCancelling}
+                    onClick={() => setConfirmingCancel(false)}
+                  >
+                    {t("cancelKeep")}
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => setConfirmingCancel(true)}
+                >
+                  <XCircle aria-hidden="true" className="size-3.5" />
+                  {t("cancel")}
+                </Button>
+              )}
+            </div>
+          </div>
+        ) : null}
+
+        {cancelBlocked ? (
+          <p className="border-t border-border pt-3 text-xs text-muted-foreground">
+            {t("cancelUnavailable")}
+          </p>
         ) : null}
       </CardContent>
     </Card>

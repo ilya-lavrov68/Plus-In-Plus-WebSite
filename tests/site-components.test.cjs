@@ -24,6 +24,19 @@ for (const extension of [".ts", ".tsx"]) {
 
 let sessionStatus = "unauthenticated";
 let currentPathname = "/";
+let cancelCalls = [];
+let cancelResult = { ok: true };
+let refreshed = 0;
+let customerOrders = [];
+
+const routerStub = {
+  push() {},
+  replace() {},
+  refresh() {
+    refreshed += 1;
+  },
+};
+
 const tag =
   (name) =>
   ({ children, ...props }) =>
@@ -37,8 +50,29 @@ Module._load = function (name, parent, isMain) {
   if (name === "next/image") return (props) => React.createElement("img", props);
   if (name === "next/navigation") {
     return {
-      useRouter: () => ({ push() {}, replace() {}, refresh() {} }),
+      // One stable router, as in Next.js: components list it in effect
+      // dependencies, and a fresh object per render would loop those effects.
+      useRouter: () => routerStub,
       usePathname: () => currentPathname,
+      // Server-component redirects throw in Next; the marker keeps them assertable.
+      redirect: (destination) => {
+        throw new Error(`REDIRECT:${destination}`);
+      },
+    };
+  }
+  if (name === "@/auth") {
+    return {
+      auth: async () =>
+        sessionStatus === "authenticated" ? { user: { id: "u1" } } : null,
+    };
+  }
+  if (name === "@/lib/customer-orders") {
+    return { getCustomerOrders: async () => structuredClone(customerOrders) };
+  }
+  if (name === "@/lib/server-i18n") {
+    const intl = require("./next-intl-stub.cjs");
+    return {
+      getRequestTranslations: async (namespace) => intl.useTranslations(namespace),
     };
   }
   if (name === "next-auth/react") {
@@ -70,6 +104,15 @@ Module._load = function (name, parent, isMain) {
     return {
       loginUser: async () => ({ ok: true }),
       registerUser: async () => ({ ok: true }),
+    };
+  }
+  if (name === "@/app/actions/orders") {
+    return {
+      createOrder: async () => ({ orderNumber: "ПИП-000001" }),
+      cancelMyOrder: async (input) => {
+        cancelCalls.push(input);
+        return cancelResult;
+      },
     };
   }
   if (name === "@/components/site/account-modal") {
@@ -129,6 +172,8 @@ const { Signup10 } = require("../components/blocks/signup10.tsx");
 const { CandlestickChart } = require("../components/spectrumui/candlestick-chart.tsx");
 const { ServiceConfigurator } = require("../components/site/service-configurator.tsx");
 const { OrderCard } = require("../components/site/order-card.tsx");
+const CartPage = require("../app/cart/page.tsx").default;
+const OrdersPage = require("../app/orders/page.tsx").default;
 const { CookieBanner } = require("../components/site/cookie-banner.tsx");
 const {
   MobileBottomNav,
@@ -140,6 +185,10 @@ const { COVER_IMAGE_GUIDES } = require("../lib/upload-policy.ts");
 beforeEach(() => {
   sessionStatus = "unauthenticated";
   currentPathname = "/";
+  cancelCalls = [];
+  cancelResult = { ok: true };
+  refreshed = 0;
+  customerOrders = [];
   global.HTMLFormElement = class HTMLFormElement {};
   global.window = {
     scrollY: 0,
@@ -353,10 +402,10 @@ test("mobile bottom navigation resolves localized and nested active routes", () 
     ["/en/services/sign-design", "/services", true],
     ["/shop/sign-design", "/services", true],
     ["/ru/shop/sign-design", "/services", true],
-    ["/en/orders/order-1", "/orders", true],
     ["/ru/cart", "/cart", true],
+    ["/cart/checkout", "/cart", true],
     ["/blog", "/services", false],
-    ["/en/orderful", "/orders", false],
+    ["/en/cartful", "/cart", false],
   ];
 
   for (const [pathname, href, expected] of cases) {
@@ -368,7 +417,7 @@ test("mobile bottom navigation resolves localized and nested active routes", () 
   }
 });
 
-test("MobileBottomNav renders five touch targets and animates individual SVG icon parts", () => {
+test("MobileBottomNav renders four touch targets and animates individual SVG icon parts", () => {
   currentPathname = "/ru/shop/sign-design";
   let menuToggles = 0;
   let navigations = 0;
@@ -400,15 +449,17 @@ test("MobileBottomNav renders five touch targets and animates individual SVG ico
   const links = nav.findAllByType("a");
   assert.deepEqual(
     links.map((link) => link.props.href),
-    ["/", "/services", "/orders", "/cart"],
+    ["/", "/services", "/cart"],
   );
   for (const link of links) {
     assert.match(link.props.className, /min-h-14/);
     assert.match(link.props.className, /focus-visible:ring-2/);
   }
-  for (const label of ["Home", "Services", "Orders", "Cart", "Menu"]) {
+  for (const label of ["Home", "Services", "Cart", "Menu"]) {
     assert.ok(textOf(nav).includes(label), "Missing mobile tab: " + label);
   }
+  // Заказы объединены с корзиной: отдельной вкладки «Orders» больше нет.
+  assert.ok(!textOf(nav).includes("Orders"), "Orders tab must be merged into Cart");
 
   const home = links.find((link) => link.props.href === "/");
   const homeIcon = home.findByProps({ "data-icon": "home" });
@@ -503,7 +554,6 @@ test("mobile navigation animates SVG parts with reduced-motion safeguards", () =
 
   for (const className of [
     "mobile-nav-animate-stroke",
-    "mobile-nav-animate-top",
     "mobile-nav-animate-bottom",
     "mobile-nav-menu-line",
     "is-active",
@@ -518,7 +568,7 @@ test("mobile navigation animates SVG parts with reduced-motion safeguards", () =
     "Icon motion must not use JavaScript loops or the retired panel animations",
   );
 
-  for (const name of ["mobile-nav-stroke-in", "mobile-nav-part-from-top", "mobile-nav-part-from-bottom"]) {
+  for (const name of ["mobile-nav-stroke-in", "mobile-nav-part-from-bottom"]) {
     assert.match(globals, new RegExp(`@keyframes ${name} \\{`));
   }
   const keyframes = globals.match(
@@ -866,6 +916,192 @@ test("a pending invoice without a stored URL still offers the authenticated rege
   assert.equal(paymentLinks.length, 1);
   assert.equal(paymentLinks[0].props.href, "/api/payment/create?orderId=ord-7");
   assert.match(textOf(paymentLinks[0]), /Pay/);
+  act(() => view.unmount());
+});
+
+/** Заказ таким, каким его видит клиент в объединённом списке. */
+const customerOrder = (overrides = {}) => ({
+  id: "ord-7",
+  orderNumber: "ПИП-000007",
+  number: "ПИП-000007",
+  status: "awaiting_payment",
+  estimatedAmount: 100_000,
+  total: 100_000,
+  finalPrice: null,
+  currency: "RUB",
+  deadline: null,
+  description: null,
+  customerNote: null,
+  managerNote: null,
+  isLocked: false,
+  createdAt: new Date("2026-01-01T00:00:00Z"),
+  paidAt: null,
+  items: [],
+  services: [],
+  invoices: [],
+  ...overrides,
+});
+
+const succeededInvoice = {
+  id: "pay-9",
+  status: "succeeded",
+  amount: 100_000,
+  currency: "RUB",
+  paymentUrl: null,
+  createdAt: new Date("2026-01-02T00:00:00Z"),
+  paidAt: new Date("2026-01-02T00:00:00Z"),
+};
+
+const buttonByText = (root, text) =>
+  root.findAllByType("button").find((node) => textOf(node).includes(text));
+
+test("the merged /cart page shows the cart and the submitted orders together", async () => {
+  sessionStatus = "authenticated";
+  customerOrders = [customerOrder()];
+  global.fetch = async () => ({ ok: true, json: async () => ({ items: [], count: 0 }) });
+
+  const page = await CartPage();
+  let view;
+  await act(async () => {
+    view = create(page);
+  });
+
+  const text = textOf(view.root);
+  assert.match(text, /Cart and orders/, "the page owns both flows");
+  assert.match(text, /Shopping Cart/, "the cart section is rendered");
+  assert.match(text, /Your Cart is Empty/, "an empty cart no longer hides the orders");
+  assert.match(text, /My orders/, "the orders section is rendered");
+  assert.match(text, /ПИП-000007/, "the submitted order is listed under the cart");
+  assert.ok(buttonByText(view.root, "Cancel order"), "the order can be cancelled in place");
+  act(() => view.unmount());
+});
+
+test("the merged /cart page sends an anonymous visitor to the login page", async () => {
+  sessionStatus = "unauthenticated";
+  await assert.rejects(async () => CartPage(), /REDIRECT:\/login/);
+});
+
+test("/orders is a redirect to the merged cart page", () => {
+  assert.throws(() => OrdersPage(), /REDIRECT:\/cart/);
+});
+
+test("an unpaid request can be cancelled by its owner after a confirmation", async () => {
+  let view;
+  act(() => {
+    view = create(React.createElement(OrderCard, { order: customerOrder() }));
+  });
+  assert.match(
+    textOf(view.root),
+    /You can cancel while the order is unpaid and work has not started/,
+  );
+
+  await act(async () => {
+    buttonByText(view.root, "Cancel order").props.onClick();
+  });
+  const confirming = textOf(view.root);
+  assert.match(confirming, /Cancel order ПИП-000007\?/);
+  assert.match(confirming, /Keep the order/);
+  assert.equal(cancelCalls.length, 0, "the action must not run before the confirmation");
+
+  await act(async () => {
+    buttonByText(view.root, "Cancel order").props.onClick();
+  });
+  assert.deepEqual(cancelCalls, [{ orderId: "ord-7" }]);
+  assert.equal(refreshed, 1, "the server-rendered order list must be reloaded");
+  act(() => view.unmount());
+});
+
+test("paid, in-work and closed orders cannot be cancelled by the customer", () => {
+  const cases = [
+    ["paid", [succeededInvoice]],
+    ["in_progress", [succeededInvoice]],
+    ["completed", [succeededInvoice]],
+    ["cancelled", []],
+    ["refunded", []],
+  ];
+
+  for (const [status, invoices] of cases) {
+    let view;
+    act(() => {
+      view = create(
+        React.createElement(OrderCard, { order: customerOrder({ status, invoices }) }),
+      );
+    });
+    assert.equal(
+      buttonByText(view.root, "Cancel order"),
+      undefined,
+      `${status} must not offer self-service cancellation`,
+    );
+    const text = textOf(view.root);
+    if (status === "paid" || status === "in_progress" || status === "completed") {
+      assert.match(
+        text,
+        /can no longer be cancelled online/,
+        `${status} must explain why cancellation is unavailable`,
+      );
+    }
+    act(() => view.unmount());
+  }
+});
+
+test("a rejected cancellation keeps the order open and reports the server message", async () => {
+  cancelResult = {
+    ok: false,
+    error: "A paid order cannot be cancelled online. Please contact us.",
+  };
+
+  let view;
+  act(() => {
+    view = create(React.createElement(OrderCard, { order: customerOrder() }));
+  });
+  await act(async () => {
+    buttonByText(view.root, "Cancel order").props.onClick();
+  });
+  await act(async () => {
+    buttonByText(view.root, "Cancel order").props.onClick();
+  });
+
+  assert.deepEqual(cancelCalls, [{ orderId: "ord-7" }]);
+  assert.equal(refreshed, 0, "a failed cancellation must not reload the list");
+  assert.match(textOf(view.root), /Cancel order ПИП-000007\?/, "the confirmation stays open");
+  act(() => view.unmount());
+});
+
+test("the header no longer offers a separate Orders control", async () => {
+  sessionStatus = "authenticated";
+  global.fetch = async () => ({ ok: true, json: async () => ({ count: 2 }) });
+
+  let view;
+  await act(async () => {
+    view = create(React.createElement(Navbar10));
+  });
+
+  const assertNoOrdersControl = () => {
+    assert.equal(
+      view.root.findAllByType("a").filter((link) => link.props.href === "/orders").length,
+      0,
+      "no header link may point at /orders",
+    );
+    assert.equal(
+      view.root
+        .findAllByType("button")
+        .filter((button) => textOf(button).trim() === "Orders").length,
+      0,
+      "no header button may be labelled Orders",
+    );
+  };
+
+  assertNoOrdersControl();
+
+  // То же самое с раскрытым мобильным меню — кнопка «Заказы» убрана и оттуда.
+  await act(async () => {
+    view.root.findByProps({ id: "mobile-menu-trigger" }).props.onClick();
+  });
+  assertNoOrdersControl();
+  assert.ok(
+    view.root.findAllByType("a").some((link) => link.props.href === "/cart"),
+    "the cart stays reachable from the header",
+  );
   act(() => view.unmount());
 });
 
