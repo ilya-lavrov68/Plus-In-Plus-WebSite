@@ -253,7 +253,7 @@ it). Details: [README → Database](README.md#database).
 | `/api/health` → `503 unavailable`, logs mention the token | `TURSO_AUTH_TOKEN` is missing/invalid or the database was deleted. Recreate the token (`turso db tokens create <db>`) and redeploy. |
 | Pages render, but sign-in says "unavailable" | `TURSO_DATABASE_URL` or a ≥32-character `AUTH_SECRET` is missing in the hosting panel; both are required at runtime. |
 | `table does not exist` in the logs | The deployed code expects a schema the database does not have: run step 3 (and step 4) — the exact missing names are printed. |
-| Admin mode returns `Admin account not found.` | The account is not an `ADMIN` row yet — run step 5, then log in again. |
+| Admin mode returns the generic credential error | Verify the credentials and that the account has an `ADMIN`/`FOUNDER` role (step 5). The response intentionally does not reveal which check failed. |
 | A stale `DATABASE_URL` is logged as ignored | Remove it from the hosting panel; only `TURSO_DATABASE_URL` is read. |
 | New uploads disappear after a deploy | The host filesystem is ephemeral; mount a persistent disk for `public/uploads/` (see the README). |
 | First page load after a deploy is slow | The instance is cold-starting; the free Turso tier plus a small instance is enough for this site. |
@@ -278,9 +278,10 @@ it). Details: [README → Database](README.md#database).
   (emergency switch) are available; they are read by the middleware at runtime.
 - `npm run doctor` checks the install, the Prisma client, the database target, `AUTH_SECRET`
   and `engines.node`; it never prints secret values.
-- Public write endpoints (`/api/support`, `/api/page-view`) are rate-limited per IP, and the
-  contact form per email address. Single-process limits only — put a CDN/WAF in front for
-  multiple instances. The admin import preview only fetches public http(s) pages
+- Public write endpoints (`/api/support`, `/api/page-view`), authentication, password/profile
+  changes, and staff uploads/imports use fixed-window rate limits. Configure both
+  `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` for atomic shared limits across
+  serverless instances. Without them a bounded process-local fallback remains; a CDN/WAF is
+  still recommended as the first line of defence. Shared-backend outages fall back locally
+  without logging credentials. The admin import preview only fetches public http(s) pages
   (`lib/ssrf-guard.ts`): loopback, private, link-local and cloud-metadata addresses are refused.
-- Login, registration and profile updates are rate-limited in-process — for more
-  than one instance, enforce shared limits at the proxy/CDN as well.

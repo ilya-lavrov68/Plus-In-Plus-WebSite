@@ -1,3 +1,4 @@
+import { paginationOffset, ADMIN_PAGE_SIZE, clampPage, totalPages } from "@/lib/pagination";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -196,19 +197,40 @@ const orderInclude = {
   },
 };
 
-export async function getAdminOrders(): Promise<AdminOrderView[]> {
-  if (!prisma) return [];
+export interface AdminOrdersPage {
+  orders: AdminOrderView[];
+  page: number;
+  pageCount: number;
+  total: number;
+}
+
+export async function getAdminOrdersPage(requestedPage: unknown = 1): Promise<AdminOrdersPage> {
+  if (!prisma) return { orders: [], page: 1, pageCount: 1, total: 0 };
   try {
+    const total = await prisma.order.count({ where: { status: { not: "cart" } } });
+    const page = clampPage(requestedPage, total);
     const rows = await prisma.order.findMany({
       where: { status: { not: "cart" } },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      skip: paginationOffset(page),
+      take: ADMIN_PAGE_SIZE,
       include: orderInclude,
     });
-    return rows.map((row) => toAdminOrderView(row as OrderRow));
+    return {
+      orders: rows.map((row) => toAdminOrderView(row as OrderRow)),
+      page,
+      pageCount: totalPages(total),
+      total,
+    };
   } catch (error) {
     console.error("Failed to load orders:", error);
-    return [];
+    return { orders: [], page: 1, pageCount: 1, total: 0 };
   }
+}
+
+/** Backwards-compatible first-page view for non-paginated callers. */
+export async function getAdminOrders(): Promise<AdminOrderView[]> {
+  return (await getAdminOrdersPage(1)).orders;
 }
 
 /** Заказ по id или номеру (ПИП-000123) — менеджеры ищут по номеру. */
@@ -233,6 +255,16 @@ export async function getAdminOrder(idOrNumber: string): Promise<AdminOrderView 
   }
 }
 
+export async function getOrderQueueCount(): Promise<number> {
+  if (!prisma) return 0;
+  try {
+    return await prisma.order.count({ where: { status: { in: [...UNPRICED_STATUSES] } } });
+  } catch (error) {
+    console.error("Failed to count the order queue:", error);
+    return 0;
+  }
+}
+
 export interface OrderStats {
   /** Сколько заявок ждёт решения менеджера. */
   queue: number;
@@ -248,20 +280,22 @@ export async function getOrderStats(): Promise<OrderStats> {
   if (!prisma) return empty;
 
   try {
-    const [queue, paid] = await Promise.all([
+    const [queue, paymentTotals, paidCount] = await Promise.all([
       prisma.order.count({ where: { status: { in: [...UNPRICED_STATUSES] } } }),
-      prisma.order.findMany({
-        where: { status: { in: [...REVENUE_STATUSES] } },
-        select: { total: true },
+      prisma.payment.aggregate({
+        where: { status: "succeeded" },
+        _sum: { amount: true },
       }),
+      prisma.order.count({ where: { payments: { some: { status: "succeeded" } } } }),
     ]);
 
-    const revenue = paid.reduce((sum, order) => sum + order.total, 0);
+    // Aggregate in the database instead of loading every historical payment.
+    const revenue = paymentTotals._sum.amount ?? 0;
     return {
       queue,
       revenue,
-      paidCount: paid.length,
-      averageOrder: paid.length ? Math.round(revenue / paid.length) : 0,
+      paidCount,
+      averageOrder: paidCount ? Math.round(revenue / paidCount) : 0,
     };
   } catch (error) {
     console.error("Failed to load order stats:", error);

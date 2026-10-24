@@ -40,7 +40,7 @@ const { authorizeCredentials } = require("../lib/credentials.ts");
 const { saveImageUpload, deleteImageUpload } = require("../lib/uploads.ts");
 const { localAvatarPath } = require("../lib/upload-policy.ts");
 const { sanitizePostContent } = require("../lib/sanitize-post-content.ts");
-const { checkRateLimit, getClientAddress, hashRateLimitIdentifier } = require("../lib/rate-limit.ts");
+const { checkRateLimit, checkRateLimitAsync, getClientAddress, hashRateLimitIdentifier } = require("../lib/rate-limit.ts");
 const { GET: readUpload } = require("../app/uploads/[kind]/[filename]/route.ts");
 require("../auth.ts");
 
@@ -49,6 +49,8 @@ const credentials = (adminMode = "false") => ({ email: " ADMIN@example.com ", pa
 
 beforeEach(() => {
   process.env.AUTH_SECRET = "test-secret-with-at-least-32-characters";
+  delete process.env.UPSTASH_REDIS_REST_URL;
+  delete process.env.UPSTASH_REDIS_REST_TOKEN;
   account = { id: "mock-admin-id", email: "admin@example.com", role: "ADMIN", firstName: "Test", lastName: "Double", avatar: null, passwordHash: "mock-password-hash" };
   session = { user: { ...account } };
   compareCalls = 0;
@@ -71,11 +73,11 @@ test("regular login never grants ADMIN, even to an existing administrator", asyn
   assert.equal((await authorizeCredentials({ ...credentials(), role: "ADMIN", adminMode: false }, request())).role, "USER");
 });
 
-test("Admin mode rejects both a USER account and an unknown email", async () => {
+test("Admin mode returns the same credential failure for USER and unknown accounts", async () => {
   account.role = "USER";
-  await assert.rejects(authorizeCredentials(credentials("true"), request()), { code: "admin_account_not_found" });
+  assert.equal(await authorizeCredentials(credentials("true"), request()), null);
   account = null;
-  await assert.rejects(authorizeCredentials(credentials("true"), request()), { code: "admin_account_not_found" });
+  assert.equal(await authorizeCredentials(credentials("true"), request()), null);
   assert.equal(compareCalls, 2, "unknown accounts must still run the password comparison");
 });
 
@@ -105,6 +107,16 @@ test("JWT refresh reads the DB, ignores forged client updates, and never auto-el
   assert.equal(refreshed.firstName, "Changed");
   assert.equal(refreshed.role, "USER", "a DB promotion is not an admin login");
   assert.equal(refreshed.passwordHash, undefined);
+});
+
+test("password changes revoke existing JWTs without exposing the bcrypt hash", async () => {
+  const token = await options.callbacks.jwt({ token: {}, user: account });
+  assert.equal(token.passwordHash, undefined);
+  assert.ok(token.passwordStamp);
+  assert.notEqual(token.passwordStamp, account.passwordHash);
+  account.passwordHash = "replacement-password-hash";
+  assert.equal(await options.callbacks.jwt({ token }), null);
+  assert.equal(await options.callbacks.jwt({ token: { id: account.id } }), null, "legacy unmarked sessions must reauthenticate");
 });
 
 test("sessions reflect demotion and disappear after account deletion", async () => {
@@ -153,6 +165,35 @@ test("rate limits expire without exposing raw identifiers", () => {
   assert.deepEqual(checkRateLimit(key, 2, 10_000, 3_000), { allowed: false, retryAfterSeconds: 8 });
   assert.equal(checkRateLimit(key, 2, 10_000, 11_000).allowed, true);
   assert.equal(getClientAddress("203.0.113.4, 10.0.0.1"), "203.0.113.4");
+});
+
+test("shared rate limits use an atomic backend command and hashed keys", async () => {
+  const originalFetch = global.fetch;
+  let requestBody;
+  global.fetch = async (url, init) => {
+    assert.equal(String(url), "https://upstash.example.test/");
+    assert.equal(init.headers.Authorization, "Bearer test-token");
+    requestBody = JSON.parse(init.body);
+    return new Response(JSON.stringify({ result: [3, 5_000] }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+  process.env.UPSTASH_REDIS_REST_URL = "https://upstash.example.test";
+  process.env.UPSTASH_REDIS_REST_TOKEN = "test-token";
+  try {
+    const raw = "login:test@example.com";
+    const result = await checkRateLimitAsync(hashRateLimitIdentifier(raw), 2, 10_000);
+    assert.deepEqual(result, { allowed: false, retryAfterSeconds: 5 });
+    assert.equal(requestBody[0], "EVAL");
+    assert.equal(requestBody[2], "1");
+    assert.ok(requestBody[3].startsWith("pip:rate-limit:"));
+    assert.equal(requestBody.includes(raw), false);
+  } finally {
+    global.fetch = originalFetch;
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+  }
 });
 
 test("uploads reject forged, truncated, oversized, SVG and non-local destinations", async () => {

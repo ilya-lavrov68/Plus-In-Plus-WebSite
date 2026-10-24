@@ -14,6 +14,9 @@ export interface Services11CatalogProps {
   services: CatalogServiceItem[];
   ctaLabel?: string;
   ctaHref?: string;
+  moreLabel?: string;
+  largeCategoryLabel?: string;
+  smallCategoryLabel?: string;
   className?: string;
 }
 
@@ -26,6 +29,9 @@ const Services11Catalog = ({
   services,
   ctaLabel = "Order a design",
   ctaHref = "/contact",
+  moreLabel = "More",
+  largeCategoryLabel = "Large designs",
+  smallCategoryLabel = "Small designs",
   className,
 }: Services11CatalogProps) => {
   return (
@@ -90,8 +96,8 @@ const Services11Catalog = ({
               <div className="pointer-events-none relative z-20 flex items-start justify-between gap-2">
                 <span className="rounded-md bg-black/55 px-2.5 py-1 text-xs font-medium text-white/85 backdrop-blur-sm">
                   {service.category === "large"
-                    ? "Large designs"
-                    : "Small designs"}
+                    ? largeCategoryLabel
+                    : smallCategoryLabel}
                 </span>
                 <span className="flex size-9 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white backdrop-blur-sm transition-colors duration-200 group-hover:border-white/50">
                   <ArrowUpRight className="size-4 transition-transform duration-200 ease-out group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
@@ -108,7 +114,7 @@ const Services11Catalog = ({
                   className="pointer-events-auto"
                   asChild
                 >
-                  <Link href={`/shop/${service.slug}`}>More</Link>
+                  <Link href={`/shop/${service.slug}`}>{moreLabel}</Link>
                 </Button>
               </div>
             </div>

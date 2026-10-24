@@ -30,7 +30,9 @@ import {
   useState,
 } from "react";
 
+import { AccountModal } from "@/components/site/account-modal";
 import { CartIcon } from "@/components/site/cart-icon";
+import { MediaPlaceholder } from "@/components/site/media-placeholder";
 import { LanguageSwitcher } from "@/components/site/language-switcher";
 import { HeaderWordmarkLogo } from "@/components/site/logo";
 import { UserAvatar } from "@/components/site/user-avatar";
@@ -99,6 +101,8 @@ interface MobileNavigationMenuProps {
   contactLabel: string;
   loginLabel: string;
   profileLabel: string;
+  accountLabel: string;
+  onOpenAccount: () => void;
   ordersLabel: string;
   cartLabel: string;
   adminLabel: string;
@@ -118,6 +122,10 @@ export function buildNavigation(featuredPost?: Navbar10Props["featuredPost"]): M
   // Раздел SHOP временно скрыт из навигации до появления мерча. Прямые ссылки
   // на страницы услуг (/shop/[slug]) продолжают работать — заявки создаются
   // через них, а /shop показывает заглушку «Shop is coming soon».
+  const featuredPostUrl = featuredPost?.slug
+    ? `/blog/${encodeURIComponent(featuredPost.slug)}`
+    : "/blog";
+
   return [
     {
       title: "FOR PLAY",
@@ -128,28 +136,24 @@ export function buildNavigation(featuredPost?: Navbar10Props["featuredPost"]): M
           icon: Paintbrush,
           description: "Get a tailored design crafted around your brand idea",
           url: "/contact",
-          image: "/assets/shop/sign-design.jpg",
         },
         {
           label: "Design services",
           icon: Layers,
           description: "Explore small and large format visual solutions",
           url: "/services",
-          image: "/assets/shop/bag-design.jpg",
         },
         {
           label: "Plus For Play",
           icon: Sparkles,
           description: "Interactive ecosystem and creative studio experiments",
           url: "/#community",
-          image: "/assets/shop/outdoor-glass-poster.jpg",
         },
         {
           label: "Ozone project",
           icon: Compass,
           description: "Product thinking tested across live digital systems",
           url: "/#features",
-          image: "/assets/shop/banner-design.jpg",
         },
       ],
     },
@@ -157,9 +161,11 @@ export function buildNavigation(featuredPost?: Navbar10Props["featuredPost"]): M
       title: "ABOUT PIP",
       id: 3,
       imageLink: {
-        url: featuredPost?.slug ? `/blog/${encodeURIComponent(featuredPost.slug)}` : "/blog/we-re-up-and-running",
-        image: featuredPost?.coverImage || "/assets/shop/large-billboard-building.jpg",
-        label: featuredPost?.title || "We're Up and Running",
+        url: featuredPostUrl,
+        ...(featuredPost?.coverImage
+          ? { image: featuredPost.coverImage }
+          : {}),
+        label: featuredPost?.title || "Blog",
       },
       groupLinks: [
         {
@@ -194,12 +200,16 @@ export function buildNavigation(featuredPost?: Navbar10Props["featuredPost"]): M
               description: "Articles, studio notes, and visual design stories",
               url: "/blog",
             },
-            {
-              label: "We're Up and Running",
-              icon: Compass,
-              description: "Read the launch story behind the new website",
-              url: "/blog/we-re-up-and-running",
-            },
+            ...(featuredPost
+              ? [
+                  {
+                    label: featuredPost.title,
+                    icon: Compass,
+                    description: "Latest updates from Plus In Plus",
+                    url: featuredPostUrl,
+                  },
+                ]
+              : []),
             {
               label: "Contact us",
               icon: MessageSquare,
@@ -219,7 +229,6 @@ export function buildNavigation(featuredPost?: Navbar10Props["featuredPost"]): M
           icon: Send,
           description:
             "Studio releases, mockups, and behind-the-scenes updates",
-          background: "/assets/shop/rooftop-advertising.jpg",
           url: "https://t.me/plusinplus",
           external: true,
         },
@@ -228,7 +237,6 @@ export function buildNavigation(featuredPost?: Navbar10Props["featuredPost"]): M
           icon: Globe,
           description:
             "Case studies, client stories, and community discussions",
-          background: "/assets/shop/banner-design.jpg",
           url: "https://vk.com/plusinplus",
           external: true,
         },
@@ -262,6 +270,8 @@ const MOBILE_BREAKPOINT = 1024;
 
 const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
   const [open, setOpen] = useState<boolean>(false);
+  const [accountOpen, setAccountOpen] = useState<boolean>(false);
+  const [accountReturnFocusId, setAccountReturnFocusId] = useState("account-trigger");
   const { data: session } = useSession();
   const t = useTranslations("header");
   const tc = useTranslations("common");
@@ -344,8 +354,8 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
 
   return (
     <Fragment>
-      <section className="pointer-events-auto fixed top-0 z-50 flex w-full items-center justify-center border-b border-border/60 bg-background/95 backdrop-blur-md">
-        <NavigationMenu className="h-20 max-w-full after:absolute after:inset-0 after:z-40 after:block after:size-full after:bg-background/95 after:content-[''] [&>div:last-child>div]:mt-0 [&>div:last-child>div]:rounded-none [&>div:last-child>div]:border-0 [&>div:last-child>div]:border-b">
+      <section className="pointer-events-auto fixed top-0 z-50 flex w-full items-center justify-center border-b-0 bg-background/65 shadow-[0_12px_40px_rgba(0,0,0,0.14)] backdrop-blur-2xl">
+        <NavigationMenu className="h-20 max-w-full after:absolute after:inset-0 after:z-40 after:block after:size-full after:bg-transparent after:content-[''] [&>div:last-child>div]:mt-0 [&>div:last-child>div]:rounded-none [&>div:last-child>div]:border-0 [&>div:last-child>div]:border-b-0">
           <div className="container relative z-50 grid w-full grid-cols-2 items-center justify-between gap-4 lg:grid-cols-3 lg:gap-8">
             <Link
               href="/"
@@ -387,16 +397,23 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
                     <Button variant="ghost" size="sm" asChild>
                       <Link href="/orders">{t("orders")}</Link>
                     </Button>
-                    <Link
-                      href="/profile"
-                      aria-label={t("profile")}
-                      className="inline-flex items-center gap-2 rounded-full border border-border p-0.5 pr-3 text-xs font-medium text-foreground transition-colors duration-200 ease-out hover:border-foreground/25 hover:bg-white/[0.06]"
+                    <button
+                      id="account-trigger"
+                      type="button"
+                      aria-label={t("openAccount")}
+                      aria-haspopup="dialog"
+                      aria-expanded={accountOpen}
+                      onClick={() => {
+                        setAccountReturnFocusId("account-trigger");
+                        setAccountOpen(true);
+                      }}
+                      className="inline-flex items-center gap-2 rounded-full border border-border p-0.5 pr-3 text-xs font-medium text-foreground transition-colors duration-200 ease-out hover:border-foreground/25 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <UserAvatar user={session.user} size={36} />
                       <span className="max-w-24 truncate">
                         {session.user.firstName || session.user.email}
                       </span>
-                    </Link>
+                    </button>
                   </div>
                 ) : (
                   <Button size="sm" asChild>
@@ -412,6 +429,7 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
                 <LanguageSwitcher />
                 <CartIcon />
                 <Button
+                  id="mobile-menu-trigger"
                   className="size-11"
                   variant="ghost"
                   size="icon"
@@ -436,12 +454,23 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
         contactLabel={t("contact")}
         loginLabel={t("login")}
         profileLabel={t("profile")}
+        accountLabel={t("account")}
+        onOpenAccount={() => {
+          setOpen(false);
+          setAccountReturnFocusId("mobile-menu-trigger");
+          setAccountOpen(true);
+        }}
         ordersLabel={t("orders")}
         cartLabel={t("cart")}
         adminLabel={t("admin")}
         dashboardHref={dashboardHref}
         signedIn={Boolean(session?.user)}
         menuLabel={tc("mobileMainNavigation")}
+      />
+      <AccountModal
+        open={accountOpen}
+        onOpenChange={setAccountOpen}
+        returnFocusId={accountReturnFocusId}
       />
     </Fragment>
   );
@@ -543,24 +572,28 @@ const DropdownMenu1 = ({ links }: { links?: MenuLink[] }) => {
           </li>
         ))}
       </ul>
-      <div className="relative !h-[16rem] w-full overflow-hidden rounded-lg bg-muted">
+      <div className="glass-surface relative !h-[16rem] w-full overflow-hidden rounded-2xl bg-white/[0.05]">
         {links.map((link, index) => (
           <div
             key={`default-nav-link-img-${index}`}
             ref={(el) => {
               if (el) imageRefs.current[index] = el;
             }}
-            className={`absolute top-12 left-12 aspect-video w-[40rem] overflow-hidden rounded-tl-md border-t border-l transition-[transform,opacity] duration-300 ease-out will-change-[transform,opacity] ${
+            className={`absolute top-12 left-12 aspect-video w-[40rem] overflow-hidden rounded-[1.25rem] transition-[transform,opacity] duration-300 ease-out will-change-[transform,opacity] ${
               index === 0
                 ? "z-10 translate-y-0 opacity-100"
                 : "pointer-events-none z-0 translate-y-12 opacity-0"
             }`}
           >
-            <img
-              src={link.image}
-              alt={link.label || ""}
-              className="size-full object-cover object-left-top"
-            />
+            {link.image ? (
+              <img
+                src={link.image}
+                alt={link.label || ""}
+                className="size-full object-cover object-left-top"
+              />
+            ) : (
+              <MediaPlaceholder className="size-full" />
+            )}
           </div>
         ))}
       </div>
@@ -669,7 +702,7 @@ const FeaturedImageLink = ({ link }: { link?: MenuLink }) => {
       <Link href={link.url} className="group block w-full max-w-[36.875rem]">
         <AspectRatio
           ratio={1.77245509}
-          className="overflow-hidden rounded-[0.25rem] bg-muted transition-colors duration-200 group-hover:bg-accent"
+          className="glass-surface overflow-hidden rounded-2xl bg-white/[0.05]"
         >
           <div className="size-full">
             <Badge className="absolute top-2 left-2">{tAdmin("new")}</Badge>
@@ -678,13 +711,17 @@ const FeaturedImageLink = ({ link }: { link?: MenuLink }) => {
               <div className="w-[80%]">
                 <AspectRatio
                   ratio={1.5}
-                  className="overflow-hidden rounded-[0.25rem] bg-muted"
+                  className="overflow-hidden rounded-xl bg-slate-950/25"
                 >
-                  <img
-                    src={link.image}
-                    alt={link.label || ""}
-                    className="size-full object-contain"
-                  />
+                  {link.image ? (
+                    <img
+                      src={link.image}
+                      alt={link.label || ""}
+                      className="size-full object-contain"
+                    />
+                  ) : (
+                    <MediaPlaceholder className="size-full" />
+                  )}
                 </AspectRatio>
               </div>
             </div>
@@ -701,7 +738,7 @@ const FeaturedLink = ({ link }: { link: MenuLink }) => {
       href={link.url}
       target={link.external ? "_blank" : undefined}
       rel={link.external ? "noopener noreferrer" : undefined}
-      className="group relative flex w-full overflow-hidden rounded-xl bg-muted px-8 py-7"
+      className="glass-surface group relative flex w-full overflow-hidden rounded-2xl bg-white/[0.055] px-8 py-7"
     >
       <div className="relative z-10 flex w-full items-center gap-6">
         <div className="flex size-12 shrink-0 rounded-lg bg-background shadow-lg">
@@ -714,11 +751,13 @@ const FeaturedLink = ({ link }: { link: MenuLink }) => {
           <div className="font-medium text-white/80">{link.description}</div>
         </div>
       </div>
-      <img
-        src={link.background}
-        alt={link.label || ""}
-        className="absolute top-0 left-0 size-full object-cover object-left-top opacity-75 brightness-50 transition-opacity duration-300 ease-out group-hover:opacity-95"
-      />
+      {link.background && (
+        <img
+          src={link.background}
+          alt={link.label || ""}
+          className="absolute top-0 left-0 size-full object-cover object-left-top opacity-75 brightness-50 transition-opacity duration-300 ease-out group-hover:opacity-95"
+        />
+      )}
     </a>
   );
 };
@@ -783,6 +822,8 @@ const MobileNavigationMenu = ({
   contactLabel,
   loginLabel,
   profileLabel,
+  accountLabel,
+  onOpenAccount,
   ordersLabel,
   cartLabel,
   adminLabel,
@@ -816,6 +857,13 @@ const MobileNavigationMenu = ({
               </Button>
               {signedIn ? (
                 <>
+                  <Button
+                    variant="outline"
+                    aria-haspopup="dialog"
+                    onClick={onOpenAccount}
+                  >
+                    {accountLabel}
+                  </Button>
                   <Button variant="outline" asChild>
                     <Link href="/profile" onClick={onClose}>
                       {profileLabel}

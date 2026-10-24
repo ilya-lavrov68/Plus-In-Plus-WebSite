@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useSession } from "next-auth/react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Check } from "lucide-react";
 import Link from "next/link";
 
@@ -12,7 +12,6 @@ import type { ServicePricingView } from "@/lib/data";
 import {
   calculateEstimate,
   formatKopecks,
-  pricePrefix,
   showPublicPrice,
 } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
@@ -39,6 +38,7 @@ export function ServiceConfigurator({
   className,
 }: ServiceConfiguratorProps) {
   const t = useTranslations("shop.configurator");
+  const locale = useLocale();
   const { status: authStatus } = useSession();
 
   const [selected, setSelected] = React.useState<Record<string, string>>(() => {
@@ -221,7 +221,8 @@ export function ServiceConfigurator({
                           {option.priceDelta > 0 ? "+" : "−"}
                           {formatKopecks(
                             Math.abs(option.priceDelta),
-                            pricing.currency
+                            pricing.currency,
+                            locale
                           )}
                         </span>
                       )}
@@ -253,8 +254,8 @@ export function ServiceConfigurator({
               {t("estimated")}:
             </span>
             <span className="text-3xl font-semibold tracking-tight text-foreground">
-              {pricePrefix(pricing.priceType)}
-              {formatKopecks(estimate.estimatedAmount, pricing.currency)}
+              {pricing.priceType === "from" ? `${t("from")} ` : ""}
+              {formatKopecks(estimate.estimatedAmount, pricing.currency, locale)}
             </span>
           </div>
         ) : (
@@ -277,7 +278,7 @@ export function ServiceConfigurator({
                 <span>{line.kind === "base" ? t("base") : line.label}</span>
                 <span className="shrink-0 tabular-nums">
                   {line.kind === "delta" && line.amount > 0 ? "+" : ""}
-                  {formatKopecks(line.amount, pricing.currency)}
+                  {formatKopecks(line.amount, pricing.currency, locale)}
                 </span>
               </li>
             ))}

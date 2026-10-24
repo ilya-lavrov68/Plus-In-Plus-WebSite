@@ -19,6 +19,7 @@ export interface InlinePriceTypeProps {
   serviceId: string;
   priceType: string;
   isOrderable: boolean;
+  disabled?: boolean;
 }
 
 /**
@@ -27,7 +28,7 @@ export interface InlinePriceTypeProps {
  * Выбор сразу влияет на витрину: «от» добавляет приставку, «по запросу»
  * убирает кнопку заказа — такую услугу можно только обсудить с менеджером.
  */
-export function InlinePriceType({ serviceId, priceType, isOrderable }: InlinePriceTypeProps) {
+export function InlinePriceType({ serviceId, priceType, isOrderable, disabled = false }: InlinePriceTypeProps) {
   const t = useTranslations("admin");
   const ta = useTranslations("actions");
   const [value, setValue] = React.useState<string>(
@@ -62,7 +63,7 @@ export function InlinePriceType({ serviceId, priceType, isOrderable }: InlinePri
 
   return (
     <div className="flex items-center gap-2">
-      <Select value={value} onValueChange={change} disabled={pending}>
+      <Select value={value} onValueChange={change} disabled={pending || disabled}>
         <SelectTrigger className="h-8 w-[8.5rem]" aria-label={t("priceType")}>
           <SelectValue />
         </SelectTrigger>

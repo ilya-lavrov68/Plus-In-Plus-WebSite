@@ -175,20 +175,34 @@ export function showPublicPrice(priceType: string): boolean {
 }
 
 /** «от 15 600 ₽» для цен с вилкой, «15 600 ₽» для твёрдых. */
-export function pricePrefix(priceType: string): string {
-  return priceType === "from" ? "от " : "";
+export function pricePrefix(priceType: string, locale = "ru"): string {
+  if (priceType !== "from") return "";
+  return locale.toLowerCase().startsWith("ru") ? "от " : "From ";
 }
 
 /**
  * Форматирует копейки в строку для показа.
  * Например: 1560000 → «15 600 ₽».
  */
-export function formatKopecks(kopecks: number, currency = "RUB"): string {
-  return new Intl.NumberFormat("ru-RU", {
+export function formatKopecks(
+  kopecks: number,
+  currency = "RUB",
+  locale = "ru",
+): string {
+  const language = locale.toLowerCase().startsWith("ru") ? "ru-RU" : "en-US";
+  const amount = kopecks / 100;
+  // Keep the familiar ruble sign in both languages, but use the visitor's
+  // grouping and decimal conventions instead of Russian formatting everywhere.
+  if (currency.toUpperCase() === "RUB") {
+    return `${new Intl.NumberFormat(language, {
+      maximumFractionDigits: 0,
+    }).format(amount)} ₽`;
+  }
+  return new Intl.NumberFormat(language, {
     style: "currency",
     currency,
     maximumFractionDigits: 0,
-  }).format(kopecks / 100);
+  }).format(amount);
 }
 
 /** Разница между согласованной и расчётной ценой, в процентах. */

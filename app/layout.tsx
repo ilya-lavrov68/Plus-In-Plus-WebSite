@@ -6,6 +6,7 @@ import { Footer } from "@/components/site/footer";
 import { CookieBanner } from "@/components/site/cookie-banner";
 import { Providers } from "@/app/providers";
 import { SITE_NAME, SITE_URL, absoluteUrl } from "@/lib/seo";
+import { getPublicSiteSettings } from "@/lib/public-site-settings";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getRequestTranslations } from "@/lib/server-i18n";
 import { messages } from "@/i18n";
@@ -13,15 +14,20 @@ import { messages } from "@/i18n";
 import "@/styles/globals.css";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getRequestTranslations("metadata");
-  const locale = await getRequestLocale();
-  const title = t("siteTitle");
-  const description = t("siteDescription");
+  const [t, locale, settings] = await Promise.all([
+    getRequestTranslations("metadata"),
+    getRequestLocale(),
+    getPublicSiteSettings(),
+  ]);
+  const title = settings.metaTitle ?? t("siteTitle");
+  const description = settings.metaDescription ?? t("siteDescription");
+  const siteName = settings.studioName ?? SITE_NAME;
 
   return {
     metadataBase: SITE_URL,
     title,
     description,
+    keywords: settings.metaKeywords,
     icons: {
       icon: "/assets/logos/lnpip.svg",
       shortcut: "/assets/logos/lnpip.svg",
@@ -31,7 +37,7 @@ export async function generateMetadata(): Promise<Metadata> {
       type: "website",
       title,
       description,
-      siteName: SITE_NAME,
+      siteName,
       locale: locale === "ru" ? "ru_RU" : "en_US",
       url: absoluteUrl("/"),
     },

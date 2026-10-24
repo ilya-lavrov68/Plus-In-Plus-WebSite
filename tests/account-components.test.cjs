@@ -80,6 +80,7 @@ Module._load = function (name, parent, isMain) {
     return {
       useSession: () => React.useContext(SessionContext),
       signOut: async () => {
+        calls.push(["signOut"]);
         setSession(null);
       },
     };
@@ -103,6 +104,21 @@ Module._load = function (name, parent, isMain) {
         return { ok: true, success: true };
       },
     };
+  }
+  if (name === "@/app/actions/user") {
+    return {
+      updateUserProfile: async (input) => {
+        calls.push(["profile-page", input]);
+        return profileResult;
+      },
+      changePassword: async (input) => {
+        calls.push(["change-password", input]);
+        return { ok: true };
+      },
+    };
+  }
+  if (name === "@/components/ui/use-toast") {
+    return { toast() {} };
   }
   if (name === "@/components/ui/dialog") {
     return {
@@ -166,7 +182,9 @@ Module._load = function (name, parent, isMain) {
 
 const { AccountModal } = require("../components/site/account-modal.tsx");
 const { Signup10 } = require("../components/blocks/signup10.tsx");
+const { ProfileForm } = require("../components/site/profile-form.tsx");
 const { UserAvatar } = require("../components/site/user-avatar.tsx");
+const LoginPage = require("../app/login/page.tsx").default;
 
 beforeEach(() => {
   initialSession = null;
@@ -265,6 +283,44 @@ test("Signup10 supports Log in / Register tabs with Admin mode only on Log in", 
   act(() => view.unmount());
 });
 
+test("Signup10 applies the same 12-character password policy as the server", async () => {
+  const view = mount(React.createElement(Signup10, { defaultMode: "register" }));
+  const values = {
+    firstName: "First",
+    lastName: "Last",
+    email: "person@example.com",
+    password: "ten-chars!",
+    confirmPassword: "ten-chars!",
+  };
+  for (const [name, value] of Object.entries(values)) {
+    act(() => view.root.findByProps({ name }).props.onChange({ target: { value } }));
+  }
+  await act(async () => {
+    await view.root
+      .findByProps({ "aria-label": "Register" })
+      .props.onSubmit({ preventDefault() {} });
+  });
+  assert.match(alert(view), /at least 12 characters/);
+  assert.equal(calls.some(([name]) => name === "register"), false);
+  act(() => view.unmount());
+});
+
+test("Staff sign-in can be preselected without changing the two-mode login flow", async () => {
+  const page = await LoginPage({ searchParams: Promise.resolve({ mode: "admin" }) });
+  assert.equal(page.props.defaultAdminMode, true);
+  assert.equal(page.props.defaultMode, "login");
+
+  const view = mount(page);
+  assert.equal(view.root.findByProps({ role: "switch" }).props["aria-checked"], true);
+  await submit(view, "Log in", {
+    email: profile.email,
+    password: "valid-passphrase",
+  });
+  assert.equal(calls[0][0], "login");
+  assert.equal(calls[0][1].adminMode, true);
+  act(() => view.unmount());
+});
+
 test("AccountModal Admin mode defaults off, highlights with semantic tokens, and resets on Register", () => {
   const view = mount(modal());
   const toggle = view.root.findByProps({ role: "switch" });
@@ -329,6 +385,84 @@ test("admin login redirects to /admin/dashboard while ordinary login stays on pa
   });
   assert.equal(calls.at(-1)[1].adminMode, true);
   assert.deepEqual(pushes, ["/admin/dashboard"]);
+  act(() => view.unmount());
+});
+
+test("authenticated account dialog exposes the customer session and logs out", async () => {
+  initialSession = { user: { ...profile } };
+  const view = mount(modal());
+  assert.match(content(view.root), /Customer session/);
+
+  await act(async () => {
+    await button(view, "Log out").props.onClick();
+  });
+  assert.ok(calls.some(([name]) => name === "logout"));
+  assert.deepEqual(openChanges, [false]);
+  act(() => view.unmount());
+});
+
+test("profile distinguishes account role from session mode and offers staff reauthentication only when needed", () => {
+  initialSession = { user: { ...profile } };
+  let view = mount(
+    React.createElement(ProfileForm, {
+      sessionRole: "USER",
+      initialUser: { ...profile, role: "FOUNDER" },
+    })
+  );
+  assert.match(content(view.root), /Account role: FOUNDER/);
+  assert.match(content(view.root), /Customer session/);
+  assert.match(content(view.root), /Staff tools require a separate sign-in/);
+  assert.ok(view.root.findAllByType("a").some((link) => link.props.href === "/login?mode=admin"));
+  act(() => view.unmount());
+
+  view = mount(
+    React.createElement(ProfileForm, {
+      sessionRole: "USER",
+      initialUser: { ...profile, role: "USER" },
+    })
+  );
+  assert.doesNotMatch(content(view.root), /Staff tools require a separate sign-in/);
+  act(() => view.unmount());
+
+  initialSession = { user: { ...profile, role: "FOUNDER" } };
+  view = mount(
+    React.createElement(ProfileForm, {
+      sessionRole: "FOUNDER",
+      initialUser: { ...profile, role: "FOUNDER" },
+    })
+  );
+  assert.match(content(view.root), /Staff session/);
+  assert.doesNotMatch(content(view.root), /Staff tools require a separate sign-in/);
+  act(() => view.unmount());
+});
+
+test("profile password form submits only password fields and signs out after success", async () => {
+  initialSession = { user: { ...profile } };
+  const view = mount(React.createElement(ProfileForm, {
+    sessionRole: "USER",
+    initialUser: profile,
+  }));
+  const values = {
+    "current-password": "current-password",
+    "new-password": "a-new-long-passphrase",
+    "confirm-new-password": "a-new-long-passphrase",
+  };
+  for (const [id, value] of Object.entries(values)) {
+    act(() => view.root.findByProps({ id }).props.onChange({ target: { value } }));
+  }
+  await act(async () => {
+    await view.root.findAllByType("form")[1].props.onSubmit({ preventDefault() {} });
+  });
+  assert.deepEqual(calls.find(([name]) => name === "change-password"), [
+    "change-password",
+    {
+      currentPassword: "current-password",
+      newPassword: "a-new-long-passphrase",
+      confirmPassword: "a-new-long-passphrase",
+    },
+  ]);
+  assert.ok(calls.some(([name]) => name === "signOut"));
+  assert.ok(pushes.includes("/login"));
   act(() => view.unmount());
 });
 

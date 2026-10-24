@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { setFeaturedPost, updateSiteSettings } from "@/app/actions/admin";
+import { updateSiteSettings } from "@/app/actions/admin";
+import { SECRET_SITE_SETTING_KEYS } from "@/lib/site-settings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,10 +11,12 @@ import { useTranslations } from "next-intl";
 
 export function SettingsForm({
   initial,
+  secretStatus,
   posts,
   robokassaSource,
 }: {
   initial: Record<string, string>;
+  secretStatus: Record<string, boolean>;
   posts: { id: string; title: string; isFeatured: boolean }[];
   /** Откуда сейчас берутся ключи Робокассы: settings | env | demo | none. */
   robokassaSource: string;
@@ -56,18 +59,41 @@ export function SettingsForm({
           ? t("settingsForm.robokassaSourceDemo")
           : t("settingsForm.robokassaSourceNone");
   const [featured, setFeatured] = useState(posts.find((post) => post.isFeatured)?.id ?? "none");
+  const [configuredSecrets, setConfiguredSecrets] = useState(secretStatus);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const update = (key: keyof typeof values, value: string) => setValues((current) => ({ ...current, [key]: value }));
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
-    setPending(true); setMessage(null);
-    const settingsResult = await updateSiteSettings(values);
-    const featuredResult = await setFeaturedPost(featured === "none" ? null : featured);
-    setPending(false);
-    setMessage(settingsResult.ok && featuredResult.ok ? t("settingsForm.saved") : settingsResult.error ?? featuredResult.error ?? t("settingsForm.saveFailed"));
+    setPending(true);
+    setMessage(null);
+    try {
+      const result = await updateSiteSettings(values, featured === "none" ? null : featured);
+      setMessage(result.ok ? t("settingsForm.saved") : result.error ?? t("settingsForm.saveFailed"));
+      if (result.ok) {
+        setConfiguredSecrets((current) => {
+          const next = { ...current };
+          for (const key of SECRET_SITE_SETTING_KEYS) {
+            if (values[key]) next[key] = true;
+          }
+          return next;
+        });
+        setValues((current) => {
+          const next = { ...current };
+          for (const key of SECRET_SITE_SETTING_KEYS) next[key] = "";
+          return next;
+        });
+      }
+    } catch {
+      setMessage(t("settingsForm.saveFailed"));
+    } finally {
+      setPending(false);
+    }
   };
+
+  const secretPlaceholder = (key: (typeof SECRET_SITE_SETTING_KEYS)[number]) =>
+    configuredSecrets[key] ? t("settingsForm.secretConfigured") : t("settingsForm.secretEmpty");
 
   return (
     <form onSubmit={save} className="space-y-6">
@@ -82,8 +108,8 @@ export function SettingsForm({
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div className="space-y-2"><Label htmlFor="robokassaLogin">{t("settingsForm.robokassaLogin")}</Label><Input id="robokassaLogin" autoComplete="off" value={values.robokassaLogin} onChange={(e) => update("robokassaLogin", e.target.value)} /></div>
           <div className="space-y-2"><Label htmlFor="robokassaHashAlgo">{t("settingsForm.robokassaHashAlgo")}</Label><select id="robokassaHashAlgo" value={values.robokassaHashAlgo} onChange={(e) => update("robokassaHashAlgo", e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground [&_option]:bg-card [&_option]:text-foreground"><option value="md5">MD5</option><option value="sha256">SHA256</option><option value="sha512">SHA512</option><option value="ripemd160">RIPEMD160</option></select></div>
-          <div className="space-y-2"><Label htmlFor="robokassaPassword1">{t("settingsForm.robokassaPassword1")}</Label><Input id="robokassaPassword1" type="password" autoComplete="new-password" value={values.robokassaPassword1} onChange={(e) => update("robokassaPassword1", e.target.value)} /></div>
-          <div className="space-y-2"><Label htmlFor="robokassaPassword2">{t("settingsForm.robokassaPassword2")}</Label><Input id="robokassaPassword2" type="password" autoComplete="new-password" value={values.robokassaPassword2} onChange={(e) => update("robokassaPassword2", e.target.value)} /></div>
+          <div className="space-y-2"><Label htmlFor="robokassaPassword1">{t("settingsForm.robokassaPassword1")}</Label><Input id="robokassaPassword1" type="password" autoComplete="new-password" placeholder={secretPlaceholder("robokassaPassword1")} value={values.robokassaPassword1} onChange={(e) => update("robokassaPassword1", e.target.value)} /></div>
+          <div className="space-y-2"><Label htmlFor="robokassaPassword2">{t("settingsForm.robokassaPassword2")}</Label><Input id="robokassaPassword2" type="password" autoComplete="new-password" placeholder={secretPlaceholder("robokassaPassword2")} value={values.robokassaPassword2} onChange={(e) => update("robokassaPassword2", e.target.value)} /></div>
           <div className="space-y-2"><Label htmlFor="robokassaTestMode">{t("settingsForm.robokassaTestMode")}</Label><select id="robokassaTestMode" value={values.robokassaTestMode} onChange={(e) => update("robokassaTestMode", e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground [&_option]:bg-card [&_option]:text-foreground"><option value="1">{t("settingsForm.robokassaTestOn")}</option><option value="0">{t("settingsForm.robokassaTestOff")}</option></select></div>
         </div>
         <p className="mt-3 text-xs text-muted-foreground">{t("settingsForm.robokassaDemoHint")}</p>
@@ -94,10 +120,10 @@ export function SettingsForm({
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div className="space-y-2"><Label htmlFor="notificationEmail">{t("settingsForm.notificationEmail")}</Label><Input id="notificationEmail" type="email" value={values.notificationEmail} onChange={(e) => update("notificationEmail", e.target.value)} /></div>
           <div className="space-y-2"><Label htmlFor="telegramChatId">{t("settingsForm.telegramChatId")}</Label><Input id="telegramChatId" value={values.telegramChatId} onChange={(e) => update("telegramChatId", e.target.value)} /></div>
-          <div className="space-y-2 sm:col-span-2"><Label htmlFor="telegramBotToken">{t("settingsForm.telegramBotToken")}</Label><Input id="telegramBotToken" type="password" autoComplete="new-password" value={values.telegramBotToken} onChange={(e) => update("telegramBotToken", e.target.value)} /></div>
+          <div className="space-y-2 sm:col-span-2"><Label htmlFor="telegramBotToken">{t("settingsForm.telegramBotToken")}</Label><Input id="telegramBotToken" type="password" autoComplete="new-password" placeholder={secretPlaceholder("telegramBotToken")} value={values.telegramBotToken} onChange={(e) => update("telegramBotToken", e.target.value)} /></div>
         </div>
       </section>
-      <section className="rounded-2xl border border-border bg-card p-6"><h2 className="text-lg font-semibold">{t("settingsForm.parserSettings")}</h2><div className="mt-4 grid gap-4 sm:grid-cols-2"><div className="space-y-2"><Label htmlFor="vkApiKey">{t("settingsForm.vkApiKey")}</Label><Input id="vkApiKey" type="password" value={values.vkApiKey} onChange={(e) => update("vkApiKey", e.target.value)} /></div><div className="space-y-2"><Label htmlFor="telegramApiKey">{t("settingsForm.telegramApiKey")}</Label><Input id="telegramApiKey" type="password" value={values.telegramApiKey} onChange={(e) => update("telegramApiKey", e.target.value)} /></div><div className="space-y-2"><Label htmlFor="youtubeApiKey">{t("settingsForm.youtubeApiKey")}</Label><Input id="youtubeApiKey" type="password" value={values.youtubeApiKey} onChange={(e) => update("youtubeApiKey", e.target.value)} /></div><div className="space-y-2"><Label htmlFor="parserInterval">{t("settingsForm.parserInterval")}</Label><Input id="parserInterval" type="number" min={5} value={values.parserInterval} onChange={(e) => update("parserInterval", e.target.value)} /></div></div></section>
+      <section className="rounded-2xl border border-border bg-card p-6"><h2 className="text-lg font-semibold">{t("settingsForm.parserSettings")}</h2><div className="mt-4 grid gap-4 sm:grid-cols-2"><div className="space-y-2"><Label htmlFor="vkApiKey">{t("settingsForm.vkApiKey")}</Label><Input id="vkApiKey" type="password" autoComplete="new-password" placeholder={secretPlaceholder("vkApiKey")} value={values.vkApiKey} onChange={(e) => update("vkApiKey", e.target.value)} /></div><div className="space-y-2"><Label htmlFor="telegramApiKey">{t("settingsForm.telegramApiKey")}</Label><Input id="telegramApiKey" type="password" autoComplete="new-password" placeholder={secretPlaceholder("telegramApiKey")} value={values.telegramApiKey} onChange={(e) => update("telegramApiKey", e.target.value)} /></div><div className="space-y-2"><Label htmlFor="youtubeApiKey">{t("settingsForm.youtubeApiKey")}</Label><Input id="youtubeApiKey" type="password" autoComplete="new-password" placeholder={secretPlaceholder("youtubeApiKey")} value={values.youtubeApiKey} onChange={(e) => update("youtubeApiKey", e.target.value)} /></div><div className="space-y-2"><Label htmlFor="parserInterval">{t("settingsForm.parserInterval")}</Label><Input id="parserInterval" type="number" min={5} value={values.parserInterval} onChange={(e) => update("parserInterval", e.target.value)} /></div></div></section>
       {message ? <p role="status" className="text-sm text-muted-foreground">{message}</p> : null}<Button type="submit" disabled={pending}>{pending ? tc("saving") : t("settingsForm.saveSettings")}</Button>
     </form>
   );

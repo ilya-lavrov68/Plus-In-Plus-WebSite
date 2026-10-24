@@ -1,10 +1,16 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
-const SESSION_KEY = "pip-sid";
-const VISITOR_KEY = "pip-vid";
+import {
+  ANALYTICS_SESSION_KEY,
+  ANALYTICS_VISITOR_KEY,
+  CONSENT_CHANGED_EVENT,
+  CONSENT_STORAGE_KEY,
+  hasAnalyticsConsent,
+} from "@/lib/analytics-consent";
+
 const SESSION_TTL_MS = 30 * 60 * 1000;
 
 /** Служебные части сайта в статистику не попадают — это не посетители. */
@@ -14,13 +20,7 @@ function isInternal(path: string): boolean {
     || path === "/api" || path.startsWith("/api/");
 }
 
-/**
- * Идентификаторы — случайные, без привязки к аккаунту.
- *
- * visitorId живёт год и позволяет считать уникальных посетителей, sessionId
- * живёт полчаса и склеивает переходы одного визита. Ни то, ни другое не
- * позволяет опознать человека: это случайные строки, а не почта или id.
- */
+/** Random pseudonymous IDs are created only after analytics consent. */
 function readOrCreate(key: string, storage: Storage, maxAgeMs?: number): string {
   const raw = storage.getItem(key);
   const now = Date.now();
@@ -31,7 +31,7 @@ function readOrCreate(key: string, storage: Storage, maxAgeMs?: number): string 
         return parsed.value;
       }
     } catch {
-      // Испорченная запись — просто перегенерируем.
+      // A damaged record is simply regenerated.
     }
   }
   const value = crypto.randomUUID();
@@ -39,7 +39,6 @@ function readOrCreate(key: string, storage: Storage, maxAgeMs?: number): string 
   return value;
 }
 
-/** Крупное зерно: надо понимать долю мобильных, а не модель телефона. */
 function detectDevice(): string {
   const width = window.innerWidth;
   const coarse = window.matchMedia?.("(pointer: coarse)")?.matches ?? false;
@@ -48,7 +47,6 @@ function detectDevice(): string {
   return "desktop";
 }
 
-/** Домен источника. Полный адрес хранить незачем — и так понятно, откуда. */
 function referrerDomain(): string | null {
   const referrer = document.referrer;
   if (!referrer) return null;
@@ -64,59 +62,83 @@ function referrerDomain(): string | null {
 export function PageViewTracker() {
   const pathname = usePathname();
   const startedAt = useRef<number>(Date.now());
+  const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
+
+  useEffect(() => {
+    const update = () => setAnalyticsEnabled(hasAnalyticsConsent());
+    const onStorage = (event: StorageEvent) => {
+      if (!event.key || event.key === CONSENT_STORAGE_KEY) update();
+    };
+    update();
+    window.addEventListener(CONSENT_CHANGED_EVENT, update);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener(CONSENT_CHANGED_EVENT, update);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
 
   useEffect(() => {
     startedAt.current = Date.now();
-    if (!pathname) return;
+    if (!analyticsEnabled || !pathname) return;
     const path = pathname.replace(/^\/(?:en|ru)(?=\/|$)/, "") || "/";
     if (isInternal(path)) return;
 
-    const json = (value: unknown) =>
+    let cancelled = false;
+    let viewId: string | null = null;
+    const createView = (value: unknown) =>
       fetch("/api/page-view", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(value),
+        body: JSON.stringify({ ...(value as object), analyticsConsent: true }),
         keepalive: true,
       })
         .then((response) => (response.ok ? response.json() : null))
         .then((data: { id?: string } | null) => data?.id ?? null)
         .catch(() => null);
 
-    // Сначала записываем сам визит, потом по его id — сколько пробыли.
-    // Раздельно потому, что длительность известна только на уходе.
-    let viewId: string | null = null;
     void (async () => {
-      viewId = await json({
+      const id = await createView({
         path,
         referrer: referrerDomain(),
         utmSource: new URLSearchParams(window.location.search).get("utm_source"),
         device: detectDevice(),
-        sessionId: readOrCreate(SESSION_KEY, window.sessionStorage, SESSION_TTL_MS),
-        visitorId: readOrCreate(VISITOR_KEY, window.localStorage),
+        sessionId: readOrCreate(ANALYTICS_SESSION_KEY, window.sessionStorage, SESSION_TTL_MS),
+        visitorId: readOrCreate(ANALYTICS_VISITOR_KEY, window.localStorage),
       });
-      startedAt.current = Date.now();
+      if (!cancelled) {
+        viewId = id;
+        startedAt.current = Date.now();
+      }
     })();
 
     const onLeave = () => {
-      if (!viewId) return;
+      if (!viewId || !hasAnalyticsConsent()) return;
       void fetch("/api/page-view", {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id: viewId, durationMs: Date.now() - startedAt.current }),
+        body: JSON.stringify({
+          id: viewId,
+          durationMs: Date.now() - startedAt.current,
+          analyticsConsent: true,
+        }),
         keepalive: true,
       }).catch(() => {});
-      // Повторный уход со страницы не должен слать ещё один запрос.
       viewId = null;
     };
-    window.addEventListener("pagehide", onLeave);
-    document.addEventListener("visibilitychange", () => {
+    const onVisibilityChange = () => {
       if (document.visibilityState === "hidden") onLeave();
-    });
-    return () => {
-      window.removeEventListener("pagehide", onLeave);
-      document.removeEventListener("visibilitychange", onLeave);
     };
-  }, [pathname]);
+    window.addEventListener("pagehide", onLeave);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      cancelled = true;
+      onLeave();
+      viewId = null;
+      window.removeEventListener("pagehide", onLeave);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [pathname, analyticsEnabled]);
 
   return null;
 }

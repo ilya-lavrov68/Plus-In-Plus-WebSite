@@ -22,5 +22,7 @@ declare module "@auth/core/jwt" {
     lastName: string | null;
     avatar: string | null;
     role: UserRole;
+    /** SHA-256 marker of the bcrypt hash; never the hash or password itself. */
+    passwordStamp?: string;
   }
 }

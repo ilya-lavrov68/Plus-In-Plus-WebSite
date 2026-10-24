@@ -9,7 +9,7 @@ require.extensions[".ts"] = (module, filename) => module._compile(ts.transpileMo
 }).outputText, filename);
 
 // In-memory repositories only. No user, content or seed is inserted in PostgreSQL.
-let admin, store, logs, failAudit, uploads, cleaned, invalidated, queries, sequence;
+let admin, store, logs, failAudit, uploads, cleaned, invalidated, queries, sequence, activeOrderCount;
 class UploadValidationError extends Error {}
 const prisma = { activityLog: { create: async ({ data }) => {
   if (failAudit) throw new Error("simulated audit failure"); logs.push(structuredClone(data)); return data;
@@ -28,9 +28,31 @@ for (const entity of ["service", "post"]) {
       if (entity === "post" && [...store.post.values()].some((p) => p.id !== where.id && p.slug === data.slug)) throw Object.assign(new Error("unique"), { code: "P2002" });
       Object.assign(old, structuredClone(data)); return structuredClone(old);
     },
+    updateMany: async ({ where = {}, data }) => {
+      queries += 1;
+      let count = 0;
+      for (const row of store[entity].values()) {
+        if (where.id?.not && row.id === where.id.not) continue;
+        if (where.id && typeof where.id === "string" && row.id !== where.id) continue;
+        if (where.isPublished !== undefined && row.isPublished !== where.isPublished) continue;
+        Object.assign(row, structuredClone(data));
+        count += 1;
+      }
+      return { count };
+    },
     delete: async ({ where }) => { queries += 1; const old = store[entity].get(where.id); if (!old) throw new Error("missing"); store[entity].delete(where.id); return structuredClone(old); },
+    count: async ({ where = {} } = {}) => [...store[entity].values()].filter((row) => {
+      if (where.coverImage !== undefined && row.coverImage !== where.coverImage) return false;
+      if (where.OR) return where.OR.some((condition) => {
+        if (condition.coverImage !== undefined && row.coverImage === condition.coverImage) return true;
+        if (condition.images?.contains && typeof row.images === "string" && row.images.includes(condition.images.contains)) return true;
+        return false;
+      });
+      return true;
+    }).length,
   };
 }
+prisma.order = { count: async () => activeOrderCount };
 prisma.$transaction = async (callback) => {
   const snapshot = structuredClone({ store, logs });
   try { return await callback(prisma); } catch (e) { store = snapshot.store; logs = snapshot.logs; throw e; }
@@ -54,7 +76,7 @@ const posts = require("../app/actions/posts.ts");
 beforeEach(() => {
   admin = { id: "unit-test-admin", role: "ADMIN" };
   store = { service: new Map(), post: new Map() }; logs = []; failAudit = false;
-  uploads = []; cleaned = []; invalidated = []; queries = 0; sequence = 0;
+  uploads = []; cleaned = []; invalidated = []; queries = 0; sequence = 0; activeOrderCount = 0;
 });
 
 function serviceForm(cover = true) {
@@ -128,6 +150,47 @@ test("blog CRUD sanitizes HTML, preserves publication date and revalidates old/n
   assert.equal(store.post.size, 0);
   assert.deepEqual(logs.map((e) => e.action), ["created", "updated", "updated", "deleted"]);
   assert.ok(cleaned.some((c) => c.url === record.coverImage && c.kind === "blog"));
+});
+
+test("create, edit and bulk publish preserve exactly one Featured post", async () => {
+  const firstForm = postForm();
+  firstForm.set("slug", "first-featured");
+  firstForm.set("isFeatured", "true");
+  const first = await posts.createPost(firstForm);
+  assert.equal(first.ok, true);
+
+  const secondForm = postForm();
+  secondForm.set("slug", "second-featured");
+  secondForm.set("isFeatured", "true");
+  const second = await posts.createPost(secondForm);
+  assert.equal(second.ok, true);
+  assert.equal(store.post.get(first.id).isFeatured, false);
+  assert.equal(store.post.get(second.id).isFeatured, true);
+
+  const editFirst = postForm(false);
+  editFirst.set("slug", "first-featured");
+  editFirst.set("isFeatured", "true");
+  assert.equal((await posts.updatePost(first.id, editFirst)).ok, true);
+  assert.equal(store.post.get(first.id).isFeatured, true);
+  assert.equal(store.post.get(second.id).isFeatured, false);
+
+  // Repair a legacy duplicate as well: publishing the selected Featured row
+  // must clear every competing flag inside the same transaction.
+  store.post.get(second.id).isFeatured = true;
+  assert.equal((await posts.bulkUpdatePosts([second.id], "publish")).ok, true);
+  assert.equal(store.post.get(first.id).isFeatured, false);
+  assert.equal(store.post.get(second.id).isFeatured, true);
+  assert.equal([...store.post.values()].filter((post) => post.isFeatured).length, 1);
+});
+
+test("bulk actions reject unknown operations before any database write", async () => {
+  const { id } = await posts.createPost(postForm());
+  const before = structuredClone(store.post.get(id));
+  const queryCount = queries;
+  assert.equal((await posts.bulkUpdatePosts([id], "feature")).ok, false);
+  assert.equal((await services.bulkUpdateServices(["missing"], "feature")).ok, false);
+  assert.equal(queries, queryCount);
+  assert.deepEqual(store.post.get(id), before);
 });
 
 test("duplicate post slugs clean up the new cover and never leave an audit entry", async () => {
@@ -243,4 +306,110 @@ test("менеджер не может менять цену услуги", asyn
   assert.equal((await services.updateServicePriceType({ serviceId: "svc-1", priceType: "quote" })).ok, false);
   assert.equal(store.service.get("svc-1").basePrice, 89000);
   assert.equal(store.service.get("svc-1").priceType, "fixed");
+});
+
+test("full service creation persists pricing and normalized option groups", async () => {
+  const form = serviceForm();
+  form.set("basePriceRub", "1250,50");
+  form.set("priceType", "fixed");
+  form.set("isOrderable", "true");
+  form.set("optionGroups", JSON.stringify([{
+    name: "Finish",
+    required: true,
+    options: [{ label: "Gloss", priceDeltaRub: "12.50", priceFactor: "1.25", isDefault: true }],
+  }]));
+  const result = await services.createService(form);
+  assert.equal(result.ok, true);
+  const created = store.service.get(result.id);
+  assert.equal(created.basePrice, 125050);
+  assert.equal(created.priceType, "fixed");
+  assert.equal(created.isOrderable, true);
+  assert.equal(created.optionGroups.create[0].name, "Finish");
+  assert.equal(created.optionGroups.create[0].options.create[0].priceDelta, 1250);
+  assert.equal(created.optionGroups.create[0].options.create[0].priceFactor, 1.25);
+});
+
+test("invalid option configurations are rejected before an upload or database write", async () => {
+  const form = serviceForm();
+  form.set("basePriceRub", "100");
+  form.set("priceType", "fixed");
+  form.set("optionGroups", JSON.stringify([{
+    name: "Finish",
+    required: true,
+    options: [
+      { label: "One", priceDeltaRub: "0", priceFactor: "1", isDefault: true },
+      { label: "Two", priceDeltaRub: "0", priceFactor: "1", isDefault: true },
+    ],
+  }]));
+  assert.equal((await services.createService(form)).ok, false);
+  assert.equal(store.service.size, 0);
+  assert.equal(uploads.length, 0);
+  assert.equal(queries, 0);
+});
+
+test("full edits cannot change pricing or options while the service has active orders", async () => {
+  store.service.set("svc-locked", {
+    id: "svc-locked", title: "Title", slug: "title", basePrice: 1000,
+    priceType: "fixed", isOrderable: true, optionGroups: [], coverImage: null,
+  });
+  activeOrderCount = 1;
+  const form = serviceForm(false);
+  form.set("basePriceRub", "20");
+  form.set("priceType", "fixed");
+  form.set("isOrderable", "true");
+  form.set("optionGroups", "[]");
+  assert.equal((await services.updateService("svc-locked", form)).ok, false);
+  assert.equal(store.service.get("svc-locked").basePrice, 1000);
+  assert.equal(uploads.length, 0);
+});
+
+test("duplicating a service copies pricing/options as an inactive draft without reusable option IDs", async () => {
+  store.service.set("svc-source", {
+    id: "svc-source", title: "Source", slug: "source", category: "small",
+    shortDesc: "Short", fullDesc: "Full", includes: "[]", shapes: "[]",
+    resultText: "Result", coverImage: "/uploads/services/shared.webp", basePrice: 2000,
+    priceType: "from", currency: "RUB", isOrderable: true, isActive: true,
+    isPublished: true, sortOrder: 4,
+    optionGroups: [{
+      id: "group-source", serviceId: "svc-source", name: "Finish", required: true, sortOrder: 0,
+      options: [{ id: "option-source", groupId: "group-source", label: "Gloss", priceDelta: 500, priceFactor: 1, isDefault: true, sortOrder: 0 }],
+    }],
+  });
+  const result = await services.duplicateService("svc-source");
+  assert.equal(result.ok, true);
+  const copy = store.service.get(result.id);
+  assert.equal(copy.isActive, false);
+  assert.equal(copy.isPublished, false);
+  assert.equal(copy.basePrice, 2000);
+  assert.equal(copy.optionGroups.create[0].id, undefined);
+  assert.equal(copy.optionGroups.create[0].serviceId, undefined);
+  assert.equal(copy.optionGroups.create[0].options.create[0].id, undefined);
+  assert.equal(copy.optionGroups.create[0].options.create[0].priceDelta, 500);
+});
+
+test("deleting duplicated services never unlinks a cover still used by the other row", async () => {
+  const cover = "/uploads/services/shared-cover.webp";
+  for (const id of ["service-a", "service-b"]) {
+    store.service.set(id, { id, title: id, slug: id, coverImage: cover });
+  }
+  assert.equal((await services.deleteService("service-a")).ok, true);
+  assert.equal(cleaned.some((entry) => entry.url === cover), false);
+  assert.equal((await services.deleteService("service-b")).ok, true);
+  assert.equal(cleaned.filter((entry) => entry.url === cover).length, 1);
+});
+
+test("post cleanup respects both duplicated covers and album references", async () => {
+  const cover = "/uploads/blog/shared-cover.webp";
+  store.post.set("post-a", { id: "post-a", title: "A", slug: "a", coverImage: cover, images: null });
+  store.post.set("post-b", { id: "post-b", title: "B", slug: "b", coverImage: cover, images: null });
+  assert.equal((await posts.deletePost("post-a")).ok, true);
+  assert.equal(cleaned.some((entry) => entry.url === cover), false);
+  assert.equal((await posts.deletePost("post-b")).ok, true);
+  assert.equal(cleaned.filter((entry) => entry.url === cover).length, 1);
+
+  cleaned = [];
+  store.post.set("post-c", { id: "post-c", title: "C", slug: "c", coverImage: cover, images: null });
+  store.post.set("post-d", { id: "post-d", title: "D", slug: "d", coverImage: "/uploads/blog/other.webp", images: JSON.stringify([cover]) });
+  assert.equal((await posts.deletePost("post-c")).ok, true);
+  assert.equal(cleaned.some((entry) => entry.url === cover), false, "album still references the image");
 });

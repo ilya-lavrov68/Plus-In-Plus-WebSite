@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 
 import { requireAdmin, requireFounder, requireStaff } from "@/lib/admin-session";
+import { paginationOffset, ADMIN_PAGE_SIZE } from "@/lib/pagination";
 import { prisma } from "@/lib/prisma";
+import { SECRET_SITE_SETTING_KEYS, isSecretSiteSettingKey, isSiteSettingKey } from "@/lib/site-settings";
 
 /** Protect data access itself: App Router layouts and pages can render in parallel. */
 async function adminDatabase() {
@@ -10,9 +12,18 @@ async function adminDatabase() {
   return prisma;
 }
 
-export async function getAllServices() {
+export async function getAllServices(page = 1) {
   const db = await adminDatabase();
-  return db.service.findMany({ orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }] });
+  return db.service.findMany({
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }, { id: "desc" }],
+    skip: paginationOffset(page),
+    take: ADMIN_PAGE_SIZE,
+  });
+}
+
+export async function getAdminServiceCount() {
+  const db = await adminDatabase();
+  return db.service.count();
 }
 
 const ACTIVE_ORDER_STATUSES_ADMIN = [
@@ -25,43 +36,84 @@ const ACTIVE_ORDER_STATUSES_ADMIN = [
   "in_progress",
 ];
 
-export async function getAllServicesWithActiveOrders() {
+export async function getAllServicesWithActiveOrders(page = 1) {
   const db = await adminDatabase();
   const services = await db.service.findMany({
-    orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }, { id: "desc" }],
+    skip: paginationOffset(page),
+    take: ADMIN_PAGE_SIZE,
   });
 
   const counts = new Map<string, number>();
-  const dbWithOrder = db as typeof db & {
+  const serviceIds = services.map((service) => service.id);
+  const dbWithRelations = db as typeof db & {
+    orderService?: {
+      groupBy?: (args: unknown) => Promise<Array<{ serviceId: string; orderId: string }>>;
+    };
+    orderItem?: {
+      groupBy?: (args: unknown) => Promise<Array<{ serviceId: string | null; orderId: string }>>;
+    };
     order?: {
-      findMany?: (args: unknown) => Promise<
-        Array<{
-          services?: Array<{ serviceId: string }>;
-          items?: Array<{ serviceId: string | null }>;
-        }>
-      >;
+      findMany?: (args: unknown) => Promise<Array<{
+        services?: Array<{ serviceId: string }>;
+        items?: Array<{ serviceId: string | null }>;
+      }>>;
     };
   };
 
-  if (typeof dbWithOrder.order?.findMany === "function") {
+  if (serviceIds.length > 0) {
     try {
-      const activeOrders = await dbWithOrder.order.findMany({
-        where: { status: { in: ACTIVE_ORDER_STATUSES_ADMIN } },
-        select: {
-          services: { select: { serviceId: true } },
-          items: { select: { serviceId: true } },
-        },
-      });
-      for (const order of activeOrders) {
-        const linked = new Set<string>();
-        for (const s of order.services ?? []) {
-          if (s.serviceId) linked.add(s.serviceId);
+      if (
+        typeof dbWithRelations.orderService?.groupBy === "function" &&
+        typeof dbWithRelations.orderItem?.groupBy === "function"
+      ) {
+        // Group by both keys so multiple configured lines in one order still
+        // count as one active order. No unbounded order/relation rows are read.
+        const [legacyLinks, itemLinks] = await Promise.all([
+          dbWithRelations.orderService.groupBy({
+            by: ["serviceId", "orderId"],
+            where: {
+              serviceId: { in: serviceIds },
+              order: { status: { in: ACTIVE_ORDER_STATUSES_ADMIN } },
+            },
+          }),
+          dbWithRelations.orderItem.groupBy({
+            by: ["serviceId", "orderId"],
+            where: {
+              serviceId: { in: serviceIds },
+              order: { status: { in: ACTIVE_ORDER_STATUSES_ADMIN } },
+            },
+          }),
+        ]);
+        // A legacy and a unified link can refer to the same order. Usually the
+        // order id differs per row here, so deduplicate each service/order pair.
+        const linkedOrders = new Set<string>();
+        for (const row of [...legacyLinks, ...itemLinks]) {
+          if (row.serviceId) linkedOrders.add(`${row.serviceId}:${row.orderId}`);
         }
-        for (const item of order.items ?? []) {
-          if (item.serviceId) linked.add(item.serviceId);
-        }
-        for (const serviceId of linked) {
+        for (const key of linkedOrders) {
+          const serviceId = key.slice(0, key.indexOf(":"));
           counts.set(serviceId, (counts.get(serviceId) ?? 0) + 1);
+        }
+      } else if (typeof dbWithRelations.order?.findMany === "function") {
+        // Compatibility for legacy isolated test doubles; real Prisma uses
+        // the grouped path above.
+        const activeOrders = await dbWithRelations.order.findMany({
+          where: { status: { in: ACTIVE_ORDER_STATUSES_ADMIN } },
+          select: {
+            services: { select: { serviceId: true } },
+            items: { select: { serviceId: true } },
+          },
+        });
+        for (const order of activeOrders) {
+          const linked = new Set<string>();
+          for (const link of order.services ?? []) linked.add(link.serviceId);
+          for (const item of order.items ?? []) {
+            if (item.serviceId) linked.add(item.serviceId);
+          }
+          for (const serviceId of linked) {
+            counts.set(serviceId, (counts.get(serviceId) ?? 0) + 1);
+          }
         }
       }
     } catch {
@@ -77,12 +129,29 @@ export async function getAllServicesWithActiveOrders() {
 
 export async function getAdminService(id: string) {
   const db = await adminDatabase();
-  return db.service.findUnique({ where: { id } });
+  return db.service.findUnique({
+    where: { id },
+    include: {
+      optionGroups: {
+        orderBy: { sortOrder: "asc" },
+        include: { options: { orderBy: { sortOrder: "asc" } } },
+      },
+    },
+  });
 }
 
-export async function getAllPosts() {
+export async function getAllPosts(page = 1) {
   const db = await adminDatabase();
-  return db.post.findMany({ orderBy: { createdAt: "desc" } });
+  return db.post.findMany({
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    skip: paginationOffset(page),
+    take: ADMIN_PAGE_SIZE,
+  });
+}
+
+export async function getAdminPostCount() {
+  const db = await adminDatabase();
+  return db.post.count();
 }
 
 export async function getAdminPost(id: string) {
@@ -90,28 +159,59 @@ export async function getAdminPost(id: string) {
   return db.post.findUnique({ where: { id } });
 }
 
-export async function getAllUsers() {
+export async function getAllUsers(page = 1) {
   const db = await adminDatabase();
   return db.user.findMany({
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    skip: paginationOffset(page),
+    take: ADMIN_PAGE_SIZE,
     select: { id: true, email: true, firstName: true, lastName: true, role: true, createdAt: true },
   });
 }
 
-/** Read-only user directory for staff; never returns credentials or account settings. */
-export async function getStaffUserDirectory() {
-  // The separate staff guard permits a read-only directory in the manager area.
-  // Keep the admin guard as a fallback for isolated legacy test doubles.
+export async function getAdminUserCount() {
+  const db = await adminDatabase();
+  return db.user.count();
+}
+
+async function staffDatabase() {
   const staffGuard = typeof requireStaff === "function" ? requireStaff : requireAdmin;
   if (!(await staffGuard())) redirect("/");
   if (!prisma) throw new Error("Database is not configured.");
-  return prisma.user.findMany({
-    orderBy: { createdAt: "desc" },
-    select: { id: true, email: true, firstName: true, lastName: true, role: true, createdAt: true },
+  return prisma;
+}
+
+/** Read-only customers attached to non-cart orders; never a general staff/user directory. */
+export async function getStaffUserDirectory(page = 1) {
+  const db = await staffDatabase();
+  const customers = await db.user.findMany({
+    where: { role: "USER", orders: { some: { status: { not: "cart" } } } },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    skip: paginationOffset(page),
+    take: ADMIN_PAGE_SIZE,
+    select: {
+      id: true,
+      email: true,
+      firstName: true,
+      lastName: true,
+      createdAt: true,
+      _count: { select: { orders: { where: { status: { not: "cart" } } } } },
+    },
+  });
+  return customers.map(({ _count, ...customer }) => ({
+    ...customer,
+    orderCount: _count.orders,
+  }));
+}
+
+export async function getStaffUserCount() {
+  const db = await staffDatabase();
+  return db.user.count({
+    where: { role: "USER", orders: { some: { status: { not: "cart" } } } },
   });
 }
 
-export async function getAdminStats() {
+export async function getAdminStats(locale = "en") {
   const db = await adminDatabase();
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -122,30 +222,38 @@ export async function getAdminStats() {
     db.user.count(), db.user.count({ where: { role: { in: ["ADMIN", "FOUNDER"] } } }),
   ]);
 
-  let views7d = 0;
-  let views30d = 0;
-  let recentViews: { createdAt: Date }[] = [];
-  try {
-    [views7d, views30d, recentViews] = await Promise.all([
-      db.pageView.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
-      db.pageView.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
-      db.pageView.findMany({ where: { createdAt: { gte: thirtyDaysAgo } }, select: { createdAt: true }, orderBy: { createdAt: "asc" } }),
-    ]);
-  } catch {
-    // The app can be deployed before the optional metrics table is pushed.
-  }
-
-  const activityByDay = Array.from({ length: 7 }, (_, index) => {
+  const days = Array.from({ length: 7 }, (_, index) => {
     const day = new Date(now);
     day.setUTCHours(0, 0, 0, 0);
     day.setUTCDate(day.getUTCDate() - (6 - index));
     const next = new Date(day);
     next.setUTCDate(next.getUTCDate() + 1);
     return {
-      label: new Intl.DateTimeFormat("en-GB", { weekday: "short", timeZone: "UTC" }).format(day),
-      value: recentViews.filter((view) => view.createdAt >= day && view.createdAt < next).length,
+      day,
+      next,
+      label: new Intl.DateTimeFormat(locale === "ru" ? "ru-RU" : "en-GB", { weekday: "short", timeZone: "UTC" }).format(day),
     };
   });
+  let views7d = 0;
+  let views30d = 0;
+  let dailyViews: number[] = Array.from({ length: 7 }, () => 0);
+  try {
+    [views7d, views30d, ...dailyViews] = await Promise.all([
+      db.pageView.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
+      db.pageView.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+      ...days.map(({ day, next }) => db.pageView.count({
+        where: { createdAt: { gte: day, lt: next } },
+      })),
+    ]);
+  } catch {
+    // The app can be deployed before the optional metrics table is pushed.
+  }
+
+  // Seven aggregate results replace an unbounded read of raw page-view rows.
+  const activityByDay = days.map((day, index) => ({
+    label: day.label,
+    value: dailyViews[index] ?? 0,
+  }));
   return { services, publishedServices, posts, publishedPosts, users, admins, views7d, views30d, activityByDay };
 }
 
@@ -165,6 +273,26 @@ export async function getUserBlockStatuses(ids: string[]) {
   const db = await adminDatabase();
   const rows = await db.user.findMany({ where: { id: { in: ids } }, select: { id: true, isBlocked: true } });
   return Object.fromEntries(rows.map((row) => [row.id, row.isBlocked]));
+}
+
+/** Relation pagination returns 50 entries per user, not 50 across the whole page. */
+export async function getUserActivities(userIds: string[]) {
+  const db = await adminDatabase();
+  const ids = [...new Set(userIds)].slice(0, ADMIN_PAGE_SIZE);
+  if (ids.length === 0) return {} as Record<string, never[]>;
+  const rows = await db.user.findMany({
+    where: { id: { in: ids } },
+    select: {
+      id: true,
+      activities: {
+        take: 50,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        select: { id: true, action: true, entityType: true, title: true, createdAt: true },
+      },
+    },
+  });
+  const grouped = new Map(rows.map((row) => [row.id, row.activities]));
+  return Object.fromEntries(ids.map((id) => [id, grouped.get(id) ?? []]));
 }
 
 export async function getUserActivity(userId: string) {
@@ -187,11 +315,19 @@ export async function getSiteSettings() {
         };
   if (!(await founderGuard())) redirect("/");
   if (!prisma) throw new Error("Database is not configured.");
+  const emptySecrets = () => Object.fromEntries(SECRET_SITE_SETTING_KEYS.map((key) => [key, false]));
   try {
-    const rows = await prisma.siteSetting.findMany();
-    return Object.fromEntries(rows.map((row) => [row.key, row.value]));
+    const rows = await prisma.siteSetting.findMany({ select: { key: true, value: true } });
+    const values: Record<string, string> = {};
+    const secrets: Record<string, boolean> = emptySecrets();
+    for (const row of rows) {
+      if (!isSiteSettingKey(row.key)) continue;
+      if (isSecretSiteSettingKey(row.key)) secrets[row.key] = Boolean(row.value);
+      else values[row.key] = row.value;
+    }
+    return { values, secrets };
   } catch {
-    return {};
+    return { values: {}, secrets: emptySecrets() };
   }
 }
 

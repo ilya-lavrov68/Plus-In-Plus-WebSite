@@ -1,12 +1,10 @@
-import bcrypt from "bcryptjs";
-import crypto from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
-import { auth } from "@/auth";
 import { recordActivity } from "@/lib/activity-log";
+import { requireActiveCustomer } from "@/lib/cart";
 import { prisma } from "@/lib/prisma";
-import { checkRateLimit, getClientAddress, hashRateLimitIdentifier } from "@/lib/rate-limit";
+import { checkRateLimitAsync, getClientAddress, hashRateLimitIdentifier } from "@/lib/rate-limit";
 
 const WINDOW_MS = 10 * 60 * 1000;
 /** A contact form needs a handful of attempts, not a hundred: the endpoint writes to the DB. */
@@ -26,12 +24,19 @@ export async function POST(request: Request) {
     );
   }
 
-  // Публичная точка без входа: без ограничения её использовали бы и для спама заявками,
-  // и для создания сотен аккаунтов на чужие адреса.
+  const customer = await requireActiveCustomer();
+  if (!customer) {
+    return NextResponse.json(
+      { ok: false, error: "Please log in to send an account-linked inquiry." },
+      { status: 401 },
+    );
+  }
+
+  // The endpoint writes to the DB, so keep the existing abuse limits in addition to auth.
   const address = getClientAddress(
     request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for"),
   );
-  if (!checkRateLimit(hashRateLimitIdentifier(`support-address:${address}`), ADDRESS_LIMIT, WINDOW_MS).allowed) {
+  if (!(await checkRateLimitAsync(hashRateLimitIdentifier(`support-address:${address}`), ADDRESS_LIMIT, WINDOW_MS)).allowed) {
     return NextResponse.json(
       { ok: false, error: "Too many requests. Please wait a few minutes and try again." },
       { status: 429 }
@@ -88,7 +93,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!checkRateLimit(hashRateLimitIdentifier(`support-email:${email}`), EMAIL_LIMIT, WINDOW_MS).allowed) {
+  if (!(await checkRateLimitAsync(hashRateLimitIdentifier(`support-email:${email}`), EMAIL_LIMIT, WINDOW_MS)).allowed) {
     return NextResponse.json(
       { ok: false, error: "Too many requests for this email. Please wait a few minutes." },
       { status: 429 }
@@ -103,70 +108,26 @@ export async function POST(request: Request) {
   }
 
   try {
-    const session = await auth().catch(() => null);
-    let customerId: string | null = session?.user?.id ?? null;
-
-    if (customerId) {
-      const existingById = await prisma.user.findUnique({
-        where: { id: customerId },
-        select: { id: true, firstName: true, lastName: true },
-      });
-      if (!existingById) {
-        customerId = null;
-      } else if (!existingById.firstName || !existingById.lastName) {
-        await prisma.user.update({
-          where: { id: existingById.id },
-          data: {
-            firstName: existingById.firstName || firstName,
-            lastName: existingById.lastName || lastName,
-          },
-        });
-      }
-    }
-
-    if (!customerId) {
-      const existingByEmail = await prisma.user.findUnique({
-        where: { email },
-        select: { id: true },
-      });
-
-      if (existingByEmail) {
-        // Заявку с аккаунтом связываем, но сам аккаунт не меняем: имя и фамилия пришли из
-        // неподтверждённого письма, а писать ими в чужой профиль нельзя. Контакты в любом
-        // случае остаются в тексте заявки (customerNote).
-        customerId = existingByEmail.id;
-      } else {
-        const randomPasswordHash = await bcrypt.hash(
-          crypto.randomBytes(24).toString("hex"),
-          10
-        );
-        const createdCustomer = await prisma.user.create({
-          data: {
-            email,
-            passwordHash: randomPasswordHash,
-            firstName,
-            lastName,
-            role: "USER",
-          },
-          select: { id: true },
-        });
-        customerId = createdCustomer.id;
-      }
-    }
-
     const matchedService = await prisma.service.findFirst({
-      where: serviceId
-        ? { OR: [{ id: serviceId }, { slug: serviceSlug || serviceId }] }
-        : serviceSlug
-          ? { slug: serviceSlug }
-          : { title: subject },
+      where: {
+        ...(serviceId
+          ? { OR: [{ id: serviceId }, { slug: serviceSlug || serviceId }] }
+          : serviceSlug
+            ? { slug: serviceSlug }
+            : { title: subject }),
+        isActive: true,
+        isPublished: true,
+      },
       select: {
         id: true,
         title: true,
         basePrice: true,
         currency: true,
+        isActive: true,
+        isPublished: true,
       },
     });
+    const customerId = customer.id;
 
     const itemTitle = matchedService?.title || subject || "Design inquiry";
     const estimatedAmount = matchedService?.basePrice ?? 0;
@@ -195,6 +156,8 @@ export async function POST(request: Request) {
               items: {
                 create: {
                   serviceId: matchedService?.id ?? null,
+                  itemType: "service",
+                  itemId: matchedService?.id ?? "",
                   title: itemTitle,
                   quantity: 1,
                   estimatedUnitPrice: estimatedAmount,

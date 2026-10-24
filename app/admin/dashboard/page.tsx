@@ -12,13 +12,13 @@ import { requireAdmin } from "@/lib/admin-session";
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage() {
-  const [admin, stats, activity, featuredPosts, t, locale] = await Promise.all([
+  const locale = await getRequestLocale();
+  const [admin, stats, activity, featuredPosts, t] = await Promise.all([
     requireAdmin(),
-    getAdminStats(),
+    getAdminStats(locale),
     getRecentActivity(),
     getFeaturedCandidates(),
     getRequestTranslations("admin"),
-    getRequestLocale(),
   ]);
   if (!admin) redirect("/");
   const cards = [

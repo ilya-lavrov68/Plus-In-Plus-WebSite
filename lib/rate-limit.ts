@@ -51,6 +51,76 @@ export function checkRateLimit(
   return { allowed: true, retryAfterSeconds: 0 };
 }
 
+const SHARED_LIMIT_SCRIPT = `
+local current = redis.call('INCR', KEYS[1])
+local ttl = redis.call('PTTL', KEYS[1])
+if current == 1 or ttl < 0 then
+  redis.call('PEXPIRE', KEYS[1], ARGV[1])
+  ttl = tonumber(ARGV[1])
+end
+return { current, ttl }
+`;
+
+/**
+ * Shared fixed-window limiting when Upstash REST credentials are configured.
+ * The script increments and sets expiry atomically. A backend outage falls back
+ * to the bounded local limiter so visitors are not locked out of the site.
+ */
+export async function checkRateLimitAsync(
+  key: string,
+  limit: number,
+  windowMs: number,
+): Promise<RateLimitResult> {
+  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+  if (!url && !token) return checkRateLimit(key, limit, windowMs);
+
+  try {
+    if (!url || !token) throw new Error("Incomplete shared rate-limit configuration");
+    const endpoint = new URL(url);
+    if (endpoint.protocol !== "https:" || endpoint.username || endpoint.password) {
+      throw new Error("Unsafe shared rate-limit endpoint");
+    }
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify([
+        "EVAL",
+        SHARED_LIMIT_SCRIPT,
+        "1",
+        `pip:rate-limit:${key}`,
+        String(Math.max(1, Math.round(windowMs))),
+      ]),
+      cache: "no-store",
+      signal: AbortSignal.timeout(2_000),
+    });
+    if (!response.ok) throw new Error("Shared rate limiter rejected the request");
+    const payload = (await response.json()) as { result?: unknown };
+    const result = payload.result;
+    const count = Array.isArray(result) ? Number(result[0]) : NaN;
+    const ttl = Array.isArray(result) ? Number(result[1]) : NaN;
+    if (!Number.isFinite(count) || !Number.isFinite(ttl)) {
+      throw new Error("Invalid shared rate-limit response");
+    }
+    return count <= limit
+      ? { allowed: true, retryAfterSeconds: 0 }
+      : {
+          allowed: false,
+          retryAfterSeconds: Math.max(1, Math.ceil(Math.max(0, ttl) / 1000)),
+        };
+  } catch (error) {
+    // Never log the REST URL or token. Keep the local safety net operational.
+    console.warn(
+      "Shared rate limiter unavailable; using the local fallback:",
+      error instanceof Error ? error.message : "unknown error",
+    );
+    return checkRateLimit(key, limit, windowMs);
+  }
+}
+
 /** Hash identifiers before retaining them in the in-process limiter map. */
 export function hashRateLimitIdentifier(value: string): string {
   return createHash("sha256").update(value).digest("hex");

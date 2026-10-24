@@ -14,7 +14,10 @@ import { isAuthConfigured } from "@/lib/auth-secret";
 import { ORDER_STATUSES, type OrderStatus } from "@/lib/admin-orders";
 import { prisma } from "@/lib/prisma";
 import { createOrderSchema } from "@/lib/validators";
-import { calculateEstimate } from "@/lib/pricing";
+import {
+  calculateServiceSelection,
+  canRequestServiceQuote,
+} from "@/lib/commerce";
 
 export interface QuoteActionResult {
   ok: boolean;
@@ -74,7 +77,7 @@ export async function requestQuote(input: {
   if (!prisma) return { ok: false, error: t("genericError") };
 
   const service = await prisma.service.findFirst({
-    where: { id: input.serviceId, isPublished: true, isOrderable: true },
+    where: { id: input.serviceId },
     include: {
       optionGroups: {
         orderBy: { sortOrder: "asc" },
@@ -82,42 +85,12 @@ export async function requestQuote(input: {
       },
     },
   });
-  if (!service) return { ok: false, error: t("serviceNotFound") };
-
-  // ── Проверка присланных опций ────────────────────────────────────────────
-  // Клиент может прислать что угодно: чужие optionId, две опции из одной
-  // группы, опции от другой услуги. Всё это отбрасывается здесь — до того,
-  // как числа попадут в расчёт.
-  const validOptionIds = new Set(
-    service.optionGroups.flatMap((group) => group.options.map((option) => option.id)),
-  );
-  const requestedIds = (input.optionIds ?? []).filter((id) => typeof id === "string");
-
-  const chosenByGroup = new Map<string, string>();
-  for (const optionId of requestedIds) {
-    if (!validOptionIds.has(optionId)) continue; // чужая опция — игнорируем
-    const group = service.optionGroups.find((candidate) =>
-      candidate.options.some((option) => option.id === optionId),
-    );
-    if (!group) continue;
-    // Первая опция в группе побеждает: дубликаты отбрасываются.
-    if (!chosenByGroup.has(group.id)) chosenByGroup.set(group.id, optionId);
+  if (!service || !canRequestServiceQuote(service)) {
+    return { ok: false, error: t("serviceNotFound") };
   }
 
-  // Обязательные группы должны быть заполнены — иначе расчёт неполный.
-  for (const group of service.optionGroups) {
-    if (!group.required) continue;
-    if (chosenByGroup.has(group.id)) continue;
-    const fallback = group.options.find((option) => option.isDefault) ?? group.options[0];
-    if (!fallback) return { ok: false, error: t("incompleteOptions") };
-    chosenByGroup.set(group.id, fallback.id);
-  }
-
-  const estimate = calculateEstimate(
-    { basePrice: service.basePrice, priceType: service.priceType, groups: service.optionGroups },
-    [...chosenByGroup.values()],
-  );
-  if (!estimate.complete) return { ok: false, error: t("incompleteOptions") };
+  const estimate = calculateServiceSelection(service, input.optionIds ?? []);
+  if (!estimate) return { ok: false, error: t("incompleteOptions") };
 
   const note = typeof input.note === "string" ? input.note.trim().slice(0, 2000) : "";
 
@@ -261,7 +234,7 @@ export async function createOrder(data: CreateOrderInput) {
   }
 
   const services = await prisma.service.findMany({
-    where: { id: { in: uniqueServiceIds }, isActive: true },
+    where: { id: { in: uniqueServiceIds }, isActive: true, isPublished: true },
   });
 
   if (services.length !== uniqueServiceIds.length) {
@@ -447,11 +420,20 @@ export async function setOrderPrice(input: {
   const order = await prisma.order.findUnique({
     where: { id: input.orderId },
     // Почта нужна, чтобы Робокасса сама заполнила её в форме оплаты.
-    include: { items: true, user: { select: { email: true } } },
+    include: {
+      items: true,
+      user: { select: { email: true } },
+      payments: { where: { status: "succeeded" }, select: { id: true }, take: 1 },
+    },
   });
   if (!order || order.status === "cart") return { ok: false, error: t("orderNotFound") };
-  if (order.status === "cancelled" || order.status === "refunded") {
+  if (["paid", "in_progress", "completed", "cancelled", "refunded"].includes(order.status)) {
     return { ok: false, error: t("orderClosed") };
+  }
+  // Статус мог устареть или быть изменён вне webhook: фактический успешный
+  // платёж в любом случае делает согласованную сумму неизменной.
+  if ((order.payments?.length ?? 0) > 0) {
+    return { ok: false, error: t("orderPriceLocked") };
   }
   // ЖЁСТКОЕ ПРАВИЛО: заблокированный заказ редактирует только основатель.
   // Проверка на сервере, а не только дизейбл полей в UI: форму можно обойти.
@@ -464,9 +446,13 @@ export async function setOrderPrice(input: {
   const lockNow = input.lock === true && !order.isLocked;
 
   try {
-    await prisma.$transaction(async (tx) => {
-      await tx.order.update({
-        where: { id: order.id },
+    const updated = await prisma.$transaction(async (tx) => {
+      const result = await tx.order.updateMany({
+        where: {
+          id: order.id,
+          status: order.status,
+          payments: { none: { status: "succeeded" } },
+        },
         data: {
           total,
           finalPrice: total / 100,
@@ -480,6 +466,7 @@ export async function setOrderPrice(input: {
           ...(lockNow ? { isLocked: true, lockedAt: now, lockedById: admin.id } : {}),
         },
       });
+      if (result.count !== 1) return false;
 
       // Согласованная цена раскладывается по позициям пропорционально их
       // расчётной стоимости: скидка или наценка менеджера распределяется,
@@ -506,13 +493,16 @@ export async function setOrderPrice(input: {
       // всё равно остаётся в базе — историю платежей терять не должны.
       const resolvedOrderNumber =
         order.orderNumber ?? order.number ?? order.id;
-      await issueInvoice({
+      const invoice = await issueInvoice({
         orderId: order.id,
         orderNumber: resolvedOrderNumber,
         amount: total,
         currency: order.currency,
         customerEmail: order.user?.email ?? null,
-      });
+      }, tx);
+      // A payment may have succeeded while the manager edited the price.
+      // Never commit a new agreed amount without its corresponding invoice.
+      if (!invoice) throw new Error("Invoice could not be issued");
 
       await recordActivity(tx, {
         action: "priced",
@@ -531,7 +521,10 @@ export async function setOrderPrice(input: {
           actorId: admin.id,
         });
       }
+
+      return true;
     });
+    if (!updated) return { ok: false, error: t("orderPriceLocked") };
   } catch (error) {
     console.error("Failed to set the order price:", error);
     return { ok: false, error: t("genericError") };
@@ -560,7 +553,12 @@ export async function updateOrderStatus(input: {
     return { ok: false, error: t("invalidStatus") };
   }
 
-  const order = await prisma.order.findUnique({ where: { id: input.orderId } });
+  const order = await prisma.order.findUnique({
+    where: { id: input.orderId },
+    include: {
+      payments: { where: { status: "succeeded" }, select: { id: true }, take: 1 },
+    },
+  });
   if (!order || order.status === "cart") return { ok: false, error: t("orderNotFound") };
 
   // Заблокированный заказ трогает только основатель — включая статус:
@@ -574,18 +572,57 @@ export async function updateOrderStatus(input: {
   if (input.status === "paid" && order.status !== "paid") {
     return { ok: false, error: t("paidOnlyByPayment") };
   }
+  if (input.status === order.status) return { ok: true };
+
+  const transitions: Partial<Record<OrderStatus, readonly OrderStatus[]>> = {
+    pending: ["quote_requested", "negotiating", "cancelled"],
+    quote_requested: ["negotiating", "cancelled"],
+    negotiating: ["quote_requested", "cancelled"],
+    priced: ["awaiting_payment", "negotiating", "cancelled"],
+    awaiting_payment: ["negotiating", "cancelled"],
+    paid: ["in_progress"],
+    in_progress: ["completed"],
+    completed: [],
+    cancelled: [],
+    refunded: [],
+  };
+  const currentStatus = order.status as OrderStatus;
+  const nextStatus = input.status as OrderStatus;
+  if (!transitions[currentStatus]?.includes(nextStatus)) {
+    return { ok: false, error: t("invalidOrderTransition") };
+  }
+
+  const paymentRequired = nextStatus === "in_progress" || nextStatus === "completed";
+  if (paymentRequired && order.payments.length === 0) {
+    return { ok: false, error: t("paymentRequiredForProgress") };
+  }
 
   try {
-    await prisma.$transaction(async (tx) => {
-      await tx.order.update({ where: { id: order.id }, data: { status: input.status } });
+    const updated = await prisma.$transaction(async (tx) => {
+      const result = await tx.order.updateMany({
+        where: {
+          id: order.id,
+          status: order.status,
+          ...(paymentRequired ? { payments: { some: { status: "succeeded" } } } : {}),
+        },
+        data: { status: nextStatus },
+      });
+      if (result.count !== 1) return false;
       await recordActivity(tx, {
         action: "updated",
         entityType: "order",
         entityId: order.id,
-        title: `${order.orderNumber ?? order.number ?? order.id} — ${input.status}`,
+        title: `${order.orderNumber ?? order.number ?? order.id} — ${nextStatus}`,
         actorId: admin.id,
       });
+      return true;
     });
+    if (!updated) {
+      return {
+        ok: false,
+        error: t(paymentRequired ? "paymentRequiredForProgress" : "invalidOrderTransition"),
+      };
+    }
   } catch (error) {
     console.error("Failed to update the order status:", error);
     return { ok: false, error: t("genericError") };

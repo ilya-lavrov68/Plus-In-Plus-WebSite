@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { requireAdmin } from "@/lib/admin-session";
-import { checkRateLimit, hashRateLimitIdentifier } from "@/lib/rate-limit";
+import { checkRateLimitAsync, hashRateLimitIdentifier } from "@/lib/rate-limit";
 import { fetchPublicText, UnsafeTargetError } from "@/lib/ssrf-guard";
 
 const allowedSources = new Set(["vk", "telegram", "youtube"]);
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
-  if (!checkRateLimit(hashRateLimitIdentifier(`import-source:${admin.id}`), 20, WINDOW_MS).allowed) {
+  if (!(await checkRateLimitAsync(hashRateLimitIdentifier(`import-source:${admin.id}`), 20, WINDOW_MS)).allowed) {
     return NextResponse.json({ error: "Too many import attempts. Try again later." }, { status: 429 });
   }
 

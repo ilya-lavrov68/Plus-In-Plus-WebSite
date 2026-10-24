@@ -71,6 +71,33 @@ Module._load = function (name, parent, isMain) {
       registerUser: async () => ({ ok: true }),
     };
   }
+  if (name === "@/components/site/account-modal") {
+    return {
+      AccountModal: ({ open, returnFocusId }) =>
+        open
+          ? React.createElement(
+              "div",
+              { "data-testid": "account-modal", "data-return-focus-id": returnFocusId },
+              "Account dialog"
+            )
+          : null,
+    };
+  }
+  if (name === "@/components/ui/sheet") {
+    return {
+      Sheet: ({ open, children }) => (open ? React.createElement(React.Fragment, null, children) : null),
+      SheetContent: tag("div"),
+      SheetTitle: tag("h2"),
+    };
+  }
+  if (name === "@/components/ui/accordion") {
+    return {
+      Accordion: tag("div"),
+      AccordionItem: tag("div"),
+      AccordionTrigger: tag("button"),
+      AccordionContent: tag("div"),
+    };
+  }
   if (name === "@/components/ui/carousel") {
     return {
       Carousel: tag("div"),
@@ -100,6 +127,7 @@ const { ProductDetail1 } = require("../components/blocks/product-detail1.tsx");
 const { Signup10 } = require("../components/blocks/signup10.tsx");
 const { CandlestickChart } = require("../components/spectrumui/candlestick-chart.tsx");
 const { ServiceConfigurator } = require("../components/site/service-configurator.tsx");
+const { OrderCard } = require("../components/site/order-card.tsx");
 const { CookieBanner } = require("../components/site/cookie-banner.tsx");
 const { STUDIO_SERVICES, STUDIO_BLOG_POSTS } = require("../lib/studio-catalog.ts");
 const { COVER_IMAGE_GUIDES } = require("../lib/upload-policy.ts");
@@ -122,6 +150,7 @@ beforeEach(() => {
     addEventListener() {},
     removeEventListener() {},
   };
+  global.fetch = async () => ({ ok: true, json: async () => ({ count: 0 }) });
 });
 
 const textOf = (node) =>
@@ -144,7 +173,7 @@ test("Hero138 renders exact title, subtitle, Order & Contact us actions, and sho
     href: a.props.href,
     text: textOf(a),
   }));
-  assert.ok(links.some((l) => l.href === "/shop" && l.text.includes("Order")));
+  assert.ok(links.some((l) => l.href === "/services" && l.text.includes("Order")));
   assert.ok(links.some((l) => l.href === "/contact" && l.text.includes("Contact us")));
   act(() => view.unmount());
 });
@@ -180,6 +209,16 @@ test("Navbar10 and Footer7 render all required navigation items and footer colum
     image: "/uploads/blog/newest-cover.webp",
     label: "Newest featured story",
   });
+  const navigationWithoutPosts = buildNavigation();
+  const aboutWithoutPosts = navigationWithoutPosts.find((item) => item.id === 3);
+  assert.equal(aboutWithoutPosts?.imageLink?.url, "/blog");
+  assert.equal(aboutWithoutPosts?.imageLink?.label, "Blog");
+  assert.ok(
+    aboutWithoutPosts?.groupLinks?.every((group) =>
+      group.links.every((link) => link.url !== "/blog/we-re-up-and-running")
+    ),
+    "navigation must not restore an unpublished static article"
+  );
   const navbarSource = fs.readFileSync(
     path.resolve(__dirname, "../components/blocks/navbar10.tsx"),
     "utf8"
@@ -196,6 +235,11 @@ test("Navbar10 and Footer7 render all required navigation items and footer colum
     "Footer7 must not use standalone mark /assets/logos/lnpip.svg with text caption"
   );
 
+  const termsLink = footerView.root.findAllByType("a").find((link) => textOf(link) === "Terms of use");
+  assert.equal(termsLink?.props.href, "/terms");
+  const studioNewsLinks = footerView.root.findAllByType("a").filter((link) => textOf(link) === "Studio news");
+  assert.ok(studioNewsLinks.some((link) => link.props.href === "/blog"));
+  assert.ok(studioNewsLinks.every((link) => link.props.href !== "/blog/we-re-up-and-running"));
   const footerText = textOf(footerView.root);
   for (const col of ["Services", "About", "Resources", "Legal", "Company", "© 2026 Plus In Plus"]) {
     assert.ok(footerText.includes(col), `Missing footer item: ${col}`);
@@ -204,6 +248,66 @@ test("Navbar10 and Footer7 render all required navigation items and footer colum
     navView.unmount();
     footerView.unmount();
   });
+});
+
+test("Footer7 renders public contact and social settings with icon controls", () => {
+  let view;
+  act(() => {
+    view = create(React.createElement(Footer7, {
+      services: [],
+      labels: { description: "Description stored in the database" },
+      contactEmail: "hello@example.test",
+      contactPhone: "+7 (900) 123-45-67",
+      socialLinks: {
+        vk: "https://vk.com/custom-studio",
+        telegram: "https://t.me/custom_studio",
+        youtube: "https://www.youtube.com/@custom-studio",
+      },
+    }));
+  });
+  assert.match(textOf(view.root), /Description stored in the database/);
+  assert.match(textOf(view.root), /hello@example\.test/);
+  const links = view.root.findAllByType("a");
+  assert.ok(links.some((link) => link.props.href === "mailto:hello@example.test"));
+  assert.ok(links.some((link) => link.props.href === "tel:+79001234567"));
+  assert.ok(links.some((link) => link.props.href === "https://vk.com/custom-studio" && link.props["aria-label"] === "VK"));
+  assert.ok(links.some((link) => link.props.href === "https://t.me/custom_studio" && link.props["aria-label"] === "Telegram"));
+  act(() => view.unmount());
+});
+
+test("Navbar10 opens the account dialog from desktop and mobile navigation", async () => {
+  sessionStatus = "authenticated";
+  let view;
+  await act(async () => {
+    view = create(React.createElement(Navbar10));
+  });
+
+  const desktopTrigger = view.root.findByProps({ id: "account-trigger" });
+  assert.equal(desktopTrigger.props["aria-haspopup"], "dialog");
+  act(() => desktopTrigger.props.onClick());
+  let dialog = view.root.findByProps({ "data-testid": "account-modal" });
+  assert.equal(dialog.props["data-return-focus-id"], "account-trigger");
+  act(() => view.unmount());
+
+  await act(async () => {
+    view = create(React.createElement(Navbar10));
+  });
+  act(() => view.root.findByProps({ id: "mobile-menu-trigger" }).props.onClick());
+  const mobileAccount = view.root
+    .findAllByType("button")
+    .find((node) => textOf(node) === "Account");
+  assert.ok(mobileAccount, "Signed-in mobile navigation must expose Account");
+  assert.equal(mobileAccount.props["aria-haspopup"], "dialog");
+  act(() => mobileAccount.props.onClick());
+
+  dialog = view.root.findByProps({ "data-testid": "account-modal" });
+  assert.equal(dialog.props["data-return-focus-id"], "mobile-menu-trigger");
+  assert.equal(
+    view.root.findAllByType("a").filter((link) => link.props.href === "/profile").length,
+    0,
+    "Opening Account must close the mobile navigation sheet"
+  );
+  act(() => view.unmount());
 });
 
 test("Feature314, Community3, and Cta13 render exact studio advantages, SVG logos without visible plain text, and partner copy", () => {
@@ -261,6 +365,95 @@ test("Feature314, Community3, and Cta13 render exact studio advantages, SVG logo
   });
 });
 
+test("public UI uses neutral media slots and keeps ambient glow only in the hero", () => {
+  const artworkFreeFiles = [
+    "components/site/hero.tsx",
+    "components/site/features.tsx",
+    "components/site/media-placeholder.tsx",
+    "components/blocks/hero138.tsx",
+    "components/blocks/feature314.tsx",
+    "components/blocks/navbar10.tsx",
+    "components/blocks/signup10.tsx",
+    "lib/studio-catalog.ts",
+    "lib/data.ts",
+    "lib/cart.ts",
+    "app/actions/services.ts",
+    "scripts/seed-demo.cjs",
+    "scripts/seed-services.ts",
+  ];
+  for (const file of artworkFreeFiles) {
+    const source = fs.readFileSync(path.resolve(__dirname, "..", file), "utf8");
+    assert.doesNotMatch(source, /\/assets\/shop\//, `${file} must not use retired stock mockups`);
+  }
+
+  for (const file of [
+    "components/site/features.tsx",
+    "components/blocks/hero138.tsx",
+    "components/blocks/feature314.tsx",
+    "components/blocks/navbar10.tsx",
+    "components/blocks/signup10.tsx",
+  ]) {
+    const source = fs.readFileSync(path.resolve(__dirname, "..", file), "utf8");
+    assert.doesNotMatch(
+      source,
+      /InterfaceMockup|interface-mockups|mockup:\s*"(?:dashboard|mobile|player)"/,
+      `${file} must wait for uploaded studio artwork instead of generating interface mockups`,
+    );
+  }
+  assert.equal(
+    fs.existsSync(path.resolve(__dirname, "../components/site/interface-mockups.tsx")),
+    false,
+  );
+
+  for (const file of [
+    "components/blocks/feature314.tsx",
+    "components/blocks/community3.tsx",
+    "components/blocks/cta13.tsx",
+  ]) {
+    const source = fs.readFileSync(path.resolve(__dirname, "..", file), "utf8");
+    assert.match(source, /glass-surface/);
+    assert.doesNotMatch(source, /clip-path|border-t border-l|rounded-tl-md/);
+    assert.doesNotMatch(
+      source,
+      /blur-3xl|radial-gradient|feGaussianBlur/,
+      `${file} must not add ambient glow below the hero`,
+    );
+  }
+
+  const heroSource = fs.readFileSync(
+    path.resolve(__dirname, "../components/blocks/hero138.tsx"),
+    "utf8",
+  );
+  assert.match(heroSource, /glass-surface/);
+  assert.match(heroSource, /hero-pillar-1/);
+  assert.match(heroSource, /blur-3xl/);
+
+  for (const file of [
+    "public/assets/placeholders/service-cover.svg",
+    "public/assets/placeholders/post-cover.svg",
+  ]) {
+    const source = fs.readFileSync(path.resolve(__dirname, "..", file), "utf8");
+    assert.doesNotMatch(source, /filter|feGaussianBlur|<circle/);
+  }
+
+  const styles = fs.readFileSync(path.resolve(__dirname, "../styles/globals.css"), "utf8");
+  assert.match(styles, /\.glass-surface\s*\{[^}]*border:\s*0;[^}]*backdrop-filter:/s);
+
+  const placeholders = require("../lib/content-placeholders.ts");
+  assert.equal(
+    placeholders.serviceCover("/assets/shop/retired-stock.jpg"),
+    placeholders.SERVICE_COVER_PLACEHOLDER,
+  );
+  assert.equal(
+    placeholders.postCover(null),
+    placeholders.POST_COVER_PLACEHOLDER,
+  );
+  assert.equal(
+    placeholders.serviceCover("/uploads/services/customer-cover.webp"),
+    "/uploads/services/customer-cover.webp",
+  );
+});
+
 test("Blog11 and Blogpost11 render We're Up and Running with all 4 verbatim sections and post navigation", () => {
   let listView, postView;
   act(() => {
@@ -297,6 +490,86 @@ test("Blog11 and Blogpost11 render We're Up and Running with all 4 verbatim sect
     listView.unmount();
     postView.unmount();
   });
+});
+
+test("Blogpost11 gives explicit CMS HTML precedence over preset sections", () => {
+  const post = {
+    ...STUDIO_BLOG_POSTS[0],
+    title: "Database title",
+    htmlContent: "<h2>Database body</h2><p>Managed in Admin</p>",
+  };
+  let view;
+  act(() => {
+    view = create(React.createElement(Blogpost11, { post }));
+  });
+  const html = view.root.findAllByType("div").find((node) => node.props.dangerouslySetInnerHTML);
+  assert.equal(html.props.dangerouslySetInnerHTML.__html, post.htmlContent);
+  assert.doesNotMatch(textOf(view.root), /It's Not Just About Design/);
+  act(() => view.unmount());
+});
+
+test("Blog11 renders its localized empty state and translated category labels", () => {
+  let emptyView, categoryView;
+  act(() => {
+    emptyView = create(React.createElement(Blog11, {
+      posts: [],
+      emptyTitle: "Пока нет статей",
+      emptyDescription: "Скоро опубликуем первую статью.",
+    }));
+    categoryView = create(React.createElement(Blog11, {
+      posts: [{ ...STUDIO_BLOG_POSTS[0], title: "Database article", category: "Design" }],
+      categoryLabels: { Design: "Дизайн" },
+    }));
+  });
+  const emptyText = textOf(emptyView.root);
+  assert.match(emptyText, /Пока нет статей/);
+  assert.match(emptyText, /Скоро опубликуем первую статью/);
+  const categoryText = textOf(categoryView.root);
+  assert.equal(categoryText.split("Дизайн").length - 1, 2);
+  act(() => {
+    emptyView.unmount();
+    categoryView.unmount();
+  });
+});
+
+test("a pending invoice without a stored URL still offers the authenticated regeneration route", () => {
+  const order = {
+    id: "ord-7",
+    orderNumber: "ПИП-000007",
+    number: "ПИП-000007",
+    status: "awaiting_payment",
+    estimatedAmount: 100_000,
+    total: 100_000,
+    finalPrice: null,
+    currency: "RUB",
+    deadline: null,
+    description: null,
+    customerNote: null,
+    managerNote: null,
+    isLocked: false,
+    createdAt: new Date("2026-01-01T00:00:00Z"),
+    items: [],
+    services: [],
+    invoices: [{
+      id: "pay-7",
+      status: "pending",
+      amount: 100_000,
+      currency: "RUB",
+      paymentUrl: null,
+      createdAt: new Date("2026-01-01T00:00:00Z"),
+      paidAt: null,
+    }],
+  };
+  let view;
+  act(() => {
+    view = create(React.createElement(OrderCard, { order }));
+  });
+  const paymentLinks = view.root.findAllByType("a").filter((link) =>
+    String(link.props.href).startsWith("/api/payment/create"));
+  assert.equal(paymentLinks.length, 1);
+  assert.equal(paymentLinks[0].props.href, "/api/payment/create?orderId=ord-7");
+  assert.match(textOf(paymentLinks[0]), /Pay/);
+  act(() => view.unmount());
 });
 
 test("Services11Catalog, ProductDetail1, and Contact29 render all required fields and Sign Design details", () => {
@@ -573,4 +846,23 @@ test("Signup10 centers brand mark and headings, and CandlestickChart uses dark H
     authView.unmount();
     chartView.unmount();
   });
+});
+
+test("interface copy contains no emoji glyphs; controls use icon components", () => {
+  const emoji = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u;
+  const files = [];
+  const walk = (directory) => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const target = path.join(directory, entry.name);
+      if (entry.isDirectory()) walk(target);
+      else if (entry.isFile() && entry.name.endsWith(".tsx")) files.push(target);
+    }
+  };
+  walk(path.resolve(__dirname, "../app"));
+  walk(path.resolve(__dirname, "../components"));
+  files.push(path.resolve(__dirname, "../messages/en.json"));
+  files.push(path.resolve(__dirname, "../messages/ru.json"));
+  for (const file of files) {
+    assert.equal(emoji.test(fs.readFileSync(file, "utf8")), false, `emoji in ${path.relative(process.cwd(), file)}`);
+  }
 });

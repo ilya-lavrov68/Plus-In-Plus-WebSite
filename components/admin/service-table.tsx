@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
 import {
+  Copy,
   ExternalLink,
+  Eye,
   Lock,
   Pencil,
   Plus,
@@ -13,15 +15,17 @@ import {
   SlidersHorizontal,
   Trash2,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import {
   bulkUpdateServices,
   deleteService,
+  duplicateService,
   saveQuickService,
   toggleServiceActive,
 } from "@/app/actions/services";
 import { InlinePriceEditor } from "@/components/admin/inline-price-editor";
+import { InlinePriceType } from "@/components/admin/inline-price-type";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -57,6 +61,7 @@ export interface AdminServiceRow {
   basePrice: number;
   currency: string;
   priceType: string;
+  isOrderable?: boolean;
   isActive?: boolean;
   isPublished: boolean;
   updatedAt: string | Date;
@@ -95,6 +100,7 @@ export function AdminServiceTable({
   const router = useRouter();
   const t = useTranslations("admin");
   const tc = useTranslations("common");
+  const locale = useLocale();
 
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("all");
@@ -192,6 +198,20 @@ export function AdminServiceTable({
       });
       return;
     }
+    router.refresh();
+  }
+
+  async function handleDuplicate(service: AdminServiceRow) {
+    setPending(true);
+    setError(null);
+    const result = await duplicateService(service.id);
+    setPending(false);
+    if (!result.ok) {
+      setError(result.error ?? null);
+      toast({ title: result.error ?? t("duplicateFailed"), variant: "destructive" });
+      return;
+    }
+    toast({ title: t("serviceDuplicated") });
     router.refresh();
   }
 
@@ -334,6 +354,7 @@ export function AdminServiceTable({
               <TableHead>{t("service")}</TableHead>
               <TableHead>{t("category")}</TableHead>
               <TableHead>{t("price")}</TableHead>
+              <TableHead>{t("priceType")}</TableHead>
               <TableHead>{t("status")}</TableHead>
               <TableHead>{t("updated")}</TableHead>
               <TableHead className="text-right">{t("actions")}</TableHead>
@@ -410,7 +431,8 @@ export function AdminServiceTable({
                           />
                           {formatKopecks(
                             service.basePrice,
-                            service.currency || "RUB"
+                            service.currency || "RUB",
+                            locale
                           )}
                         </span>
                         <p className="text-[11px] text-muted-foreground">
@@ -427,6 +449,14 @@ export function AdminServiceTable({
                     )}
                   </TableCell>
                   <TableCell>
+                    <InlinePriceType
+                      serviceId={service.id}
+                      priceType={service.priceType}
+                      isOrderable={service.isOrderable ?? service.basePrice > 0}
+                      disabled={lockedByOrders || pending}
+                    />
+                  </TableCell>
+                  <TableCell>
                     <button
                       type="button"
                       disabled={pending}
@@ -440,7 +470,7 @@ export function AdminServiceTable({
                     </button>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {new Date(service.updatedAt).toLocaleDateString()}
+                    {new Date(service.updatedAt).toLocaleDateString(locale)}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="inline-flex items-center gap-1">
@@ -472,6 +502,30 @@ export function AdminServiceTable({
                         type="button"
                         size="icon"
                         variant="ghost"
+                        disabled={pending}
+                        aria-label={`${tc("duplicate")} ${service.title}`}
+                        title={tc("duplicate")}
+                        onClick={() => handleDuplicate(service)}
+                      >
+                        <Copy aria-hidden="true" className="h-4 w-4" />
+                      </Button>
+                      {isActive ? (
+                        <Button
+                          asChild
+                          size="icon"
+                          variant="ghost"
+                          aria-label={`${tc("preview")} ${service.title}`}
+                          title={tc("preview")}
+                        >
+                          <Link href={`/shop/${service.slug}`} target="_blank">
+                            <Eye aria-hidden="true" className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                      ) : null}
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
                         aria-label={t("deleteItem", { label: service.title })}
                         title={
                           lockedByOrders
@@ -491,7 +545,7 @@ export function AdminServiceTable({
             {!filtered.length ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={8}
                   className="py-10 text-center text-muted-foreground"
                 >
                   {t("noServicesMatch")}

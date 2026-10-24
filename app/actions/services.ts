@@ -5,9 +5,16 @@ import { revalidatePath } from "next/cache";
 import { getActionTranslator } from "@/lib/action-i18n";
 import { recordActivity } from "@/lib/activity-log";
 import { requireAdmin } from "@/lib/admin-session";
+import { SERVICE_COVER_PLACEHOLDER } from "@/lib/content-placeholders";
 import { parseLineList, toJsonArray } from "@/lib/db-helpers";
 import { prisma } from "@/lib/prisma";
+import { cleanupServiceCoverIfUnused } from "@/lib/media-cleanup";
 import { revalidateService } from "@/lib/revalidate-content";
+import {
+  canonicalServiceOptionConfig,
+  parseServiceOptionConfig,
+  type NormalizedServiceOptionGroup,
+} from "@/lib/service-option-config";
 import { slugify, withNumericSuffix } from "@/lib/slug";
 import { cleanupUpload, saveImageUpload, UploadValidationError } from "@/lib/uploads";
 import { createServiceSchema, firstIssueMessage } from "@/lib/validators";
@@ -109,6 +116,69 @@ function isUniqueViolation(error: unknown): boolean {
   return typeof error === "object" && error !== null && (error as { code?: string }).code === "P2002";
 }
 
+interface PricingFallback {
+  basePrice: number;
+  priceType: string;
+  isOrderable: boolean;
+  optionGroups: NormalizedServiceOptionGroup[];
+}
+
+function parsePricingFields(form: FormData, t: MessageTranslator, fallback?: PricingFallback) {
+  let basePrice = fallback?.basePrice ?? 0;
+  if (form.has("basePriceRub")) {
+    const raw = text(form, "basePriceRub").replace(",", ".");
+    const rubles = Number(raw);
+    if (!raw || !Number.isFinite(rubles) || rubles < 0 || rubles > 100_000_000) {
+      return { error: t("invalidPrice") };
+    }
+    basePrice = Math.round(rubles * 100);
+    if (!Number.isSafeInteger(basePrice)) return { error: t("invalidPrice") };
+  }
+
+  let priceType = fallback?.priceType ?? "quote";
+  if (form.has("priceType")) {
+    priceType = text(form, "priceType");
+    if (!(PRICE_TYPES as readonly string[]).includes(priceType)) {
+      return { error: t("invalidPrice") };
+    }
+  }
+
+  let isOrderable = fallback?.isOrderable ?? false;
+  if (form.has("isOrderable")) {
+    isOrderable = form.get("isOrderable") === "true" || form.get("isOrderable") === "on";
+  }
+  if (priceType === "quote") isOrderable = false;
+
+  let optionGroups = fallback?.optionGroups ?? [];
+  if (form.has("optionGroups")) {
+    const parsedOptions = parseServiceOptionConfig(text(form, "optionGroups"));
+    if (!parsedOptions) return { error: t("invalidOptionConfiguration") };
+    optionGroups = parsedOptions;
+  }
+  return { data: { basePrice, priceType, isOrderable, optionGroups } };
+}
+
+function optionGroupsCreateData(groups: NormalizedServiceOptionGroup[]) {
+  return groups.length ? {
+    optionGroups: {
+      create: groups.map((group) => ({
+        name: group.name,
+        required: group.required,
+        sortOrder: group.sortOrder,
+        options: {
+          create: group.options.map((option) => ({
+            label: option.label,
+            priceDelta: option.priceDelta,
+            priceFactor: option.priceFactor,
+            isDefault: option.isDefault,
+            sortOrder: option.sortOrder,
+          })),
+        },
+      })),
+    },
+  } : {};
+}
+
 export async function createService(formData: FormData): Promise<ServiceActionResult> {
   const t = await getActionTranslator();
   const admin = await requireAdmin();
@@ -116,6 +186,8 @@ export async function createService(formData: FormData): Promise<ServiceActionRe
   if (!(formData instanceof FormData)) return { ok: false, error: t("invalidForm") };
   const parsed = parseCommonFields(formData, t);
   if ("error" in parsed) return { ok: false, error: parsed.error };
+  const pricing = parsePricingFields(formData, t);
+  if ("error" in pricing) return { ok: false, error: pricing.error };
   let coverImage: string | null = null;
   let id: string;
   let slug = parsed.data.slug ?? slugify(parsed.data.title, "service");
@@ -134,6 +206,10 @@ export async function createService(formData: FormData): Promise<ServiceActionRe
           includes: toJsonArray(parsed.data.includes),
           shapes: toJsonArray(parsed.data.shapes),
           coverImage: coverImage!,
+          basePrice: pricing.data.basePrice,
+          priceType: pricing.data.priceType,
+          isOrderable: pricing.data.isOrderable,
+          ...optionGroupsCreateData(pricing.data.optionGroups),
         },
       });
       await recordActivity(tx, { action: "created", entityType: "service", entityId: created.id, title: created.title, actorId: admin.id });
@@ -162,8 +238,31 @@ export async function updateService(id: string, formData: FormData): Promise<Ser
   let oldCover: string | null = null;
   let slug = parsed.data.slug ?? "";
   try {
-    const existing = await prisma.service.findUnique({ where: { id } });
+    const existing = await prisma.service.findUnique({
+      where: { id },
+      include: {
+        optionGroups: {
+          orderBy: { sortOrder: "asc" },
+          include: { options: { orderBy: { sortOrder: "asc" } } },
+        },
+      },
+    });
     if (!existing) return { ok: false, error: t("serviceNotFound") };
+    const existingOptionGroups = existing.optionGroups ?? [];
+    const pricing = parsePricingFields(formData, t, {
+      basePrice: existing.basePrice,
+      priceType: existing.priceType,
+      isOrderable: existing.isOrderable,
+      optionGroups: existingOptionGroups,
+    });
+    if ("error" in pricing) return { ok: false, error: pricing.error };
+    const optionsChanged = canonicalServiceOptionConfig(existingOptionGroups) !==
+      canonicalServiceOptionConfig(pricing.data.optionGroups);
+    const pricingChanged = existing.basePrice !== pricing.data.basePrice ||
+      existing.priceType !== pricing.data.priceType || optionsChanged;
+    if (pricingChanged && await hasActiveOrdersForService(prisma, id)) {
+      return { ok: false, error: t("cannotChangePriceWithActiveOrders") };
+    }
     oldCover = existing.coverImage;
     // An existing service keeps its URL unless the form explicitly sends a new slug.
     slug = parsed.data.slug ? await resolveServiceSlug(parsed.data.slug, id) : existing.slug;
@@ -178,9 +277,20 @@ export async function updateService(id: string, formData: FormData): Promise<Ser
           slug,
           includes: toJsonArray(parsed.data.includes),
           shapes: toJsonArray(parsed.data.shapes),
+          basePrice: pricing.data.basePrice,
+          priceType: pricing.data.priceType,
+          isOrderable: pricing.data.isOrderable,
           ...(newCover ? { coverImage: newCover } : {}),
         },
       });
+      if (optionsChanged) {
+        await tx.serviceOptionGroup.deleteMany({ where: { serviceId: id } });
+        for (const { options, ...group } of pricing.data.optionGroups) {
+          await tx.serviceOptionGroup.create({
+            data: { ...group, serviceId: id, options: { create: options } },
+          });
+        }
+      }
       await recordActivity(tx, { action: "updated", entityType: "service", entityId: id, title: parsed.data.title, actorId: admin.id });
     });
   } catch (error) {
@@ -190,7 +300,7 @@ export async function updateService(id: string, formData: FormData): Promise<Ser
     console.error("Failed to update service:", error);
     return { ok: false, error: t("updateServiceFailed") };
   }
-  if (newCover) await cleanupUpload(oldCover, "services");
+  if (newCover) await cleanupServiceCoverIfUnused(oldCover);
   revalidateService(id, slug);
   return { ok: true, id };
 }
@@ -201,6 +311,9 @@ export async function bulkUpdateServices(ids: string[], action: "publish" | "unp
   if (!admin || !prisma) return { ok: false, error: t("unauthorized") };
   if (!Array.isArray(ids) || ids.length === 0 || ids.length > 100 || ids.some((id) => typeof id !== "string" || !id || id.length > 128)) {
     return { ok: false, error: t("selectValidService") };
+  }
+  if (action !== "publish" && action !== "unpublish" && action !== "delete") {
+    return { ok: false, error: t("invalidRequest") };
   }
   if (action === "delete") {
     for (const id of ids) {
@@ -230,7 +343,7 @@ export async function bulkUpdateServices(ids: string[], action: "publish" | "unp
     console.error("Failed to update services in bulk:", error);
     return { ok: false, error: t("bulkUpdateServicesFailed") };
   }
-  await Promise.all(removedCovers.map((cover) => cleanupUpload(cover, "services")));
+  await Promise.all(removedCovers.map((cover) => cleanupServiceCoverIfUnused(cover)));
   ids.forEach((id) => revalidateService(id));
   revalidatePath("/admin/services");
   return { ok: true };
@@ -242,7 +355,15 @@ export async function duplicateService(id: string): Promise<ServiceActionResult>
   if (!admin || !prisma) return { ok: false, error: t("unauthorized") };
   if (typeof id !== "string" || !id || id.length > 128) return { ok: false, error: t("invalidServiceId") };
   try {
-    const source = await prisma.service.findUnique({ where: { id } });
+    const source = await prisma.service.findUnique({
+      where: { id },
+      include: {
+        optionGroups: {
+          orderBy: { sortOrder: "asc" },
+          include: { options: { orderBy: { sortOrder: "asc" } } },
+        },
+      },
+    });
     if (!source) return { ok: false, error: t("serviceNotFound") };
     const slug = await resolveServiceSlug(`${source.slug}-copy`);
     const copy = await prisma.$transaction(async (tx) => {
@@ -257,8 +378,14 @@ export async function duplicateService(id: string): Promise<ServiceActionResult>
           shapes: source.shapes,
           resultText: source.resultText,
           coverImage: source.coverImage,
+          basePrice: source.basePrice,
+          priceType: source.priceType,
+          currency: source.currency,
+          isOrderable: source.isOrderable,
+          isActive: false,
           isPublished: false,
           sortOrder: source.sortOrder + 1,
+          ...optionGroupsCreateData(source.optionGroups ?? []),
         },
       });
       await recordActivity(tx, { action: "duplicated", entityType: "service", entityId: created.id, title: created.title, actorId: admin.id });
@@ -294,7 +421,7 @@ export async function deleteService(id: string): Promise<ServiceActionResult> {
     console.error("Failed to delete service:", error);
     return { ok: false, error: t("deleteServiceFailed") };
   }
-  await cleanupUpload(cover, "services");
+  await cleanupServiceCoverIfUnused(cover);
   revalidateService(id, slug);
   return { ok: true, id };
 }
@@ -547,10 +674,7 @@ export async function saveQuickService(input: QuickServiceInput): Promise<Servic
     const baseSlug = requestedSlug || slugify(title, "service");
     const slug = await resolveServiceSlug(baseSlug);
     const shortDesc = description || title;
-    const coverImage =
-      category === "large"
-        ? "/assets/shop/billboard.jpg"
-        : "/assets/shop/sign-design.jpg";
+    const coverImage = SERVICE_COVER_PLACEHOLDER;
 
     const created = await prisma.$transaction(async (tx) => {
       const row = await tx.service.create({

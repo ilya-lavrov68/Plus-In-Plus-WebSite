@@ -14,22 +14,19 @@ import { getFinanceSummary, getRevenueCandles, getSalesCandles } from "@/lib/adm
 import { requireAdmin } from "@/lib/admin-session";
 import { formatKopecks } from "@/lib/pricing";
 import { getRequestTranslations } from "@/lib/server-i18n";
+import { getRequestLocale } from "@/lib/request-locale";
 
 export const dynamic = "force-dynamic";
 
 /** Сколько дней смотрим по умолчанию. */
 const DAYS = 30;
 
-function duration(seconds: number): string {
-  if (!seconds) return "—";
-  if (seconds < 60) return `${seconds} с`;
-  const minutes = Math.floor(seconds / 60);
-  const rest = seconds % 60;
-  return rest ? `${minutes} мин ${rest} с` : `${minutes} мин`;
-}
-
 export default async function AdminAnalyticsPage() {
-  const [admin, t] = await Promise.all([requireAdmin(), getRequestTranslations("admin")]);
+  const [admin, t, locale] = await Promise.all([
+    requireAdmin(),
+    getRequestTranslations("admin"),
+    getRequestLocale(),
+  ]);
   if (!admin) redirect("/");
 
   // Финансы видит только основатель: выручка и средний чек — коммерческая
@@ -49,6 +46,16 @@ export default async function AdminAnalyticsPage() {
       isFounder ? getSalesCandles(DAYS) : Promise.resolve([]),
     ]);
 
+  const formatDuration = (seconds: number): string => {
+    if (!seconds) return "—";
+    if (seconds < 60) return t("durationSeconds", { count: seconds });
+    const minutes = Math.floor(seconds / 60);
+    const rest = seconds % 60;
+    return rest
+      ? t("durationMinutesSeconds", { minutes, seconds: rest })
+      : t("durationMinutes", { count: minutes });
+  };
+
   const maxDayViews = Math.max(1, ...series.map((day) => day.views));
   const maxPageViews = Math.max(1, ...pages.map((page) => page.views));
   const totalDevices = Math.max(1, devices.reduce((sum, item) => sum + item.views, 0));
@@ -57,15 +64,15 @@ export default async function AdminAnalyticsPage() {
     { title: t("analyticsViews"), icon: Eye, value: String(summary.views) },
     { title: t("analyticsVisitors"), icon: Users, value: String(summary.visitors) },
     { title: t("analyticsSessions"), icon: BarChart3, value: String(summary.sessions) },
-    { title: t("analyticsAvgTime"), icon: Clock, value: duration(summary.avgSeconds) },
+    { title: t("analyticsAvgTime"), icon: Clock, value: formatDuration(summary.avgSeconds) },
   ];
 
   const financeCards = finance
     ? [
-        { title: t("financeRevenue"), icon: Wallet, value: formatKopecks(finance.revenue) },
+        { title: t("financeRevenue"), icon: Wallet, value: formatKopecks(finance.revenue, "RUB", locale) },
         { title: t("financePayments"), icon: CreditCard, value: String(finance.paymentsCount) },
         { title: t("financeOrders"), icon: ShoppingCart, value: String(finance.ordersCount) },
-        { title: t("financeAvgCheck"), icon: Receipt, value: formatKopecks(finance.averageCheck) },
+        { title: t("financeAvgCheck"), icon: Receipt, value: formatKopecks(finance.averageCheck, "RUB", locale) },
       ]
     : [];
 
@@ -166,7 +173,7 @@ export default async function AdminAnalyticsPage() {
                     <div className="flex items-baseline justify-between gap-3 text-sm">
                       <span className="min-w-0 truncate font-medium">{page.path}</span>
                       <span className="shrink-0 tabular-nums text-muted-foreground">
-                        {page.views} · {t("analyticsUnique")} {page.visitors} · {duration(page.avgSeconds)}
+                        {page.views} · {t("analyticsUnique")} {page.visitors} · {formatDuration(page.avgSeconds)}
                       </span>
                     </div>
                     {/* Полоса — чтобы сравнение страниц читалось глазами,

@@ -17,15 +17,22 @@ export function localizeBlogPosts(
   } | undefined;
 
   return posts.map((post) => {
-    if (post.slug !== "we-re-up-and-running" && post.slug !== "were-up-and-running") {
+    const date = formatPostDate(post.publishedAt ?? post.dateLabel, locale);
+    const isLegacyLaunch =
+      post.useLegacyLaunchCopy === true &&
+      (post.slug === "we-re-up-and-running" ||
+        post.slug === "were-up-and-running");
+
+    if (!isLegacyLaunch) {
       return {
         ...post,
-        dateLabel: formatPostDate(post.dateLabel, locale),
-        metaLabel: `${formatPostDate(post.dateLabel, locale)} · ${t("readTime", { count: post.readTime })}`,
+        dateLabel: date,
+        metaLabel: `${date} · ${t("readTime", { count: post.readTime })}`,
       };
     }
 
-    const date = formatPostDate("2026-10-07", locale);
+    // Translate the untouched legacy seed, but keep its real database date.
+    // Edited launch posts never enter this branch and render their CMS HTML.
     return {
       ...post,
       title: sample?.title ?? post.title,

@@ -142,22 +142,24 @@ export async function getFinanceSummary(days = 30): Promise<FinanceSummary> {
   if (!prisma) return empty;
   try {
     const since = windowStart(days);
-    const [payments, ordersCount] = await Promise.all([
-      prisma.payment.findMany({
+    const [paymentTotals, ordersCount] = await Promise.all([
+      prisma.payment.aggregate({
         where: {
           status: "succeeded",
           OR: [{ paidAt: { gte: since } }, { paidAt: null, createdAt: { gte: since } }],
         },
-        select: { amount: true },
+        _sum: { amount: true },
+        _count: { _all: true },
       }),
       prisma.order.count({ where: { createdAt: { gte: since } } }),
     ]);
-    const revenue = payments.reduce((sum, payment) => sum + payment.amount, 0);
+    const revenue = paymentTotals._sum.amount ?? 0;
+    const paymentsCount = paymentTotals._count._all;
     return {
       revenue,
-      paymentsCount: payments.length,
+      paymentsCount,
       ordersCount,
-      averageCheck: payments.length ? Math.round(revenue / payments.length) : 0,
+      averageCheck: paymentsCount ? Math.round(revenue / paymentsCount) : 0,
     };
   } catch (error) {
     console.error("Failed to load the finance summary:", error);

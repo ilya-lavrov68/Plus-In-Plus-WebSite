@@ -1,16 +1,29 @@
 import Link from "next/link";
 import { Newspaper, Plus } from "lucide-react";
 
-import { PostsTable } from "@/components/admin/posts-table";
+import { AdminPagination } from "@/components/admin/admin-pagination";
 import { ImportSource } from "@/components/admin/import-source";
+import { PostsTable } from "@/components/admin/posts-table";
 import { EmptyState } from "@/components/site/empty-state";
-import { getAllPosts } from "@/lib/admin-data";
+import { getAdminPostCount, getAllPosts } from "@/lib/admin-data";
+import { clampPage, totalPages } from "@/lib/pagination";
 import { getRequestTranslations } from "@/lib/server-i18n";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminBlogPage() {
-  const [posts, t] = await Promise.all([getAllPosts(), getRequestTranslations("admin")]);
+interface AdminBlogPageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+export default async function AdminBlogPage({ searchParams }: AdminBlogPageProps) {
+  const [query, total, t] = await Promise.all([
+    searchParams,
+    getAdminPostCount(),
+    getRequestTranslations("admin"),
+  ]);
+  const page = clampPage(query.page, total);
+  const posts = await getAllPosts(page);
+  const pageCount = totalPages(total);
 
   return (
     <div>
@@ -42,6 +55,15 @@ export default async function AdminBlogPage() {
           />
         </div>
       )}
+      <AdminPagination
+        basePath="/admin/blog"
+        page={page}
+        pageCount={pageCount}
+        navigationLabel={t("pagination")}
+        previousLabel={t("previousPage")}
+        nextLabel={t("nextPage")}
+        statusLabel={t("pageStatus", { page, pageCount })}
+      />
     </div>
   );
 }

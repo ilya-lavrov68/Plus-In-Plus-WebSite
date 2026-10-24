@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { Blog11 } from "@/components/blocks/blog11";
-import { Blogpost11 } from "@/components/blocks/blogpost11";
-import { getPublishedPosts } from "@/lib/data";
-import { createPageMetadata } from "@/lib/seo";
-import { getRequestLocale } from "@/lib/request-locale";
-import { mergeCatalogPosts } from "@/lib/studio-catalog";
-import { getRequestTranslations } from "@/lib/server-i18n";
 import { localizeBlogPosts } from "@/lib/blog-localization";
+import { getPublishedPosts } from "@/lib/data";
+import { getRequestLocale } from "@/lib/request-locale";
+import { createPageMetadata } from "@/lib/seo";
+import { getRequestTranslations } from "@/lib/server-i18n";
+import { mergeCatalogPosts } from "@/lib/studio-catalog";
+import BlogPostContent from "./content";
 
 export const dynamic = "force-dynamic";
 
@@ -27,14 +26,13 @@ export async function generateMetadata({
   ]);
   const allPosts = localizeBlogPosts(mergeCatalogPosts(dbPosts), t, locale);
   const post = allPosts.find((item) => item.slug === slug);
+  if (!post) notFound();
 
   return createPageMetadata({
-    title: post ? `${post.title} — Plus In Plus` : "Blog — Plus In Plus",
-    description:
-      post?.excerpt ||
-      "Studio updates, product stories, and insights from Plus In Plus.",
+    title: `${post.title} — Plus In Plus`,
+    description: post.excerpt,
     path: `/blog/${encodeURIComponent(slug)}`,
-    image: post?.image,
+    image: post.image,
     type: "article",
     locale,
   });
@@ -42,43 +40,8 @@ export async function generateMetadata({
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const { slug } = await params;
-  const [dbPosts, locale, t] = await Promise.all([
-    getPublishedPosts(),
-    getRequestLocale(),
-    getRequestTranslations("blog"),
-  ]);
-  const allPosts = localizeBlogPosts(mergeCatalogPosts(dbPosts), t, locale);
 
-  const index = allPosts.findIndex((item) => item.slug === slug);
-  if (index === -1) {
-    notFound();
-  }
-
-  const post = allPosts[index];
-  const previousPost =
-    index < allPosts.length - 1 ? allPosts[index + 1] : null;
-  const nextPost = index > 0 ? allPosts[index - 1] : null;
-  const otherPosts = allPosts.filter((item) => item.slug !== post.slug);
-
-  const tBlog = t;
-  return (
-    <>
-      <Blogpost11
-        post={post}
-        previousPost={previousPost}
-        nextPost={nextPost}
-        previousLabel={tBlog("previous")}
-        nextLabel={tBlog("next")}
-        navigationLabel={tBlog("articleNavigation")}
-      />
-      <Blog11
-        id="post-other-news"
-        heading={tBlog("otherNews")}
-        description={tBlog("otherNewsDescription")}
-        posts={otherPosts.length > 0 ? otherPosts : allPosts}
-        allCategoryLabel={tBlog("allCategory")}
-        categoryLabels={{ Design: tBlog("categoryDesign"), Studio: tBlog("categoryStudio"), Outdoor: tBlog("categoryOutdoor") }}
-      />
-    </>
-  );
+  // Keep existence checks ahead of any loading/Suspense boundary. Otherwise
+  // Next.js streams a 200 shell before the missing article can return a 404.
+  return BlogPostContent({ slug });
 }

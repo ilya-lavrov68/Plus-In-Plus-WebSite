@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Lock } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { AdminDataTable } from "@/components/admin/admin-data-table";
 import type { DataTableColumn } from "@/components/admin/admin-data-table";
 import { OrderStatusBadge } from "@/components/orders/order-status-badge";
 import type { OrdersBasePath } from "@/components/orders/orders-view";
 import { Button } from "@/components/ui/button";
+import { formatKopecks } from "@/lib/pricing";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export interface AdminOrderRow {
@@ -26,17 +27,13 @@ export interface AdminOrderRow {
 }
 
 /** Копейки → «15 600 ₽». Нуль означает «цена ещё не согласована», не «бесплатно». */
-function money(kopecks: number, currency: string): string {
+function money(kopecks: number, currency: string, locale: string): string {
   if (!kopecks) return "—";
-  return new Intl.NumberFormat("ru-RU", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(kopecks / 100);
+  return formatKopecks(kopecks, currency, locale);
 }
 
-function dateTime(value: Date): string {
-  return new Intl.DateTimeFormat("ru-RU", {
+function dateTime(value: Date, locale: string): string {
+  return new Intl.DateTimeFormat(locale === "ru" ? "ru-RU" : "en-US", {
     dateStyle: "medium",
     timeStyle: "short",
     timeZone: "UTC",
@@ -55,6 +52,7 @@ export function OrdersTable({
 }) {
   const t = useTranslations("admin");
   const tc = useTranslations("common");
+  const locale = useLocale();
   const [pageSize, setPageSize] = useState(10);
 
   const columns = useMemo<DataTableColumn<AdminOrderRow>[]>(
@@ -90,7 +88,7 @@ export function OrdersTable({
         numeric: true,
         cell: (row) => (
           <span className="text-muted-foreground">
-            {money(row.estimatedAmount, row.currency)}
+            {money(row.estimatedAmount, row.currency, locale)}
           </span>
         ),
       },
@@ -102,7 +100,7 @@ export function OrdersTable({
         // Согласованная цена — главное число в строке: именно её ждёт клиент.
         cell: (row) => (
           <span className={row.total ? "font-semibold" : "text-muted-foreground"}>
-            {money(row.total, row.currency)}
+            {money(row.total, row.currency, locale)}
           </span>
         ),
       },
@@ -118,10 +116,10 @@ export function OrdersTable({
         // Даты сортируются как числа — по строке «12 окт.» порядок был бы неверным.
         value: (row) => row.createdAt.getTime(),
         sortable: true,
-        cell: (row) => <span className="text-muted-foreground">{dateTime(row.createdAt)}</span>,
+        cell: (row) => <span className="text-muted-foreground">{dateTime(row.createdAt, locale)}</span>,
       },
     ],
-    [t, basePath],
+    [t, basePath, locale],
   );
 
   return (

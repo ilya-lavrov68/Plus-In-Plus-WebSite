@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { notifyCartUpdated } from "@/components/site/cart-icon";
 import { Button } from "@/components/ui/button";
@@ -22,18 +22,22 @@ export interface CartItem {
   name: string;
   price: number;
   category?: string;
+  unavailable: boolean;
+  maxQuantity: number;
 }
 
 export default function CartPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const t = useTranslations("cart");
+  const numberLocale = useLocale() === "ru" ? "ru-RU" : "en-GB";
 
   const [items, setItems] = useState<CartItem[]>([]);
   const [deadline, setDeadline] = useState("");
   const [description, setDescription] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingItemId, setPendingItemId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const todayIso = useMemo(() => new Date().toISOString().split("T")[0], []);
@@ -53,6 +57,7 @@ export default function CartPage() {
           router.push("/login");
           return null;
         }
+        if (!res.ok) throw new Error("Cart request failed");
         return res.json();
       })
       .then((data) => {
@@ -67,66 +72,89 @@ export default function CartPage() {
         setIsLoading(false);
       })
       .catch(() => {
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled) {
+          setErrorMessage(t("loadFailed"));
+          setIsLoading(false);
+        }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [session, status, router]);
+  }, [session, status, router, t]);
 
-  const updateQuantity = async (
-    itemId: string,
-    itemType: "service" | "product",
-    nextQuantity: number
-  ) => {
-    if (nextQuantity < 1 || nextQuantity > 99) return;
+  const updateQuantity = async (id: string, nextQuantity: number) => {
+    const line = items.find((item) => item.id === id);
+    if (
+      !line ||
+      pendingItemId ||
+      nextQuantity < 1 ||
+      nextQuantity > Math.min(99, line.maxQuantity)
+    ) return;
     setErrorMessage(null);
+    setPendingItemId(id);
     const previous = items;
-    const updated = items.map((i) =>
-      i.itemId === itemId && i.itemType === itemType
-        ? { ...i, quantity: nextQuantity }
-        : i
+    const updated = items.map((item) =>
+      item.id === id ? { ...item, quantity: nextQuantity } : item
     );
     setItems(updated);
-    notifyCartUpdated(updated.reduce((sum, i) => sum + i.quantity, 0));
+    notifyCartUpdated(updated.reduce((sum, item) => sum + item.quantity, 0));
 
     try {
       const res = await fetch("/api/cart/item", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itemId, itemType, quantity: nextQuantity }),
+        body: JSON.stringify({ id, quantity: nextQuantity }),
       });
-      if (!res.ok) {
-        setItems(previous);
-        notifyCartUpdated(previous.reduce((sum, i) => sum + i.quantity, 0));
-      }
-    } catch {
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || t("updateFailed"));
+      if (typeof data?.count === "number") notifyCartUpdated(data.count);
+    } catch (error) {
       setItems(previous);
-      notifyCartUpdated(previous.reduce((sum, i) => sum + i.quantity, 0));
+      notifyCartUpdated(previous.reduce((sum, item) => sum + item.quantity, 0));
+      const message = error instanceof Error ? error.message : t("updateFailed");
+      setErrorMessage(message);
+      toast({ title: message, variant: "destructive" });
+    } finally {
+      setPendingItemId(null);
     }
   };
 
-  const removeItem = async (
-    itemId: string,
-    itemType: "service" | "product"
-  ) => {
+  const removeItem = async (id: string) => {
+    if (pendingItemId) return;
     setErrorMessage(null);
-    const nextItems = items.filter(
-      (i) => !(i.itemId === itemId && i.itemType === itemType)
-    );
+    setPendingItemId(id);
+    const previous = items;
+    const nextItems = items.filter((item) => item.id !== id);
     setItems(nextItems);
-    notifyCartUpdated(nextItems.reduce((sum, i) => sum + i.quantity, 0));
+    notifyCartUpdated(nextItems.reduce((sum, item) => sum + item.quantity, 0));
 
-    await fetch("/api/cart/item", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ itemId, itemType }),
-    });
+    try {
+      const res = await fetch("/api/cart/item", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || t("removeFailed"));
+      if (typeof data?.count === "number") notifyCartUpdated(data.count);
+    } catch (error) {
+      setItems(previous);
+      notifyCartUpdated(previous.reduce((sum, item) => sum + item.quantity, 0));
+      const message = error instanceof Error ? error.message : t("removeFailed");
+      setErrorMessage(message);
+      toast({ title: message, variant: "destructive" });
+    } finally {
+      setPendingItemId(null);
+    }
   };
 
   const handleCheckout = async () => {
-    if (items.length === 0 || isSubmitting) return;
+    if (items.length === 0 || isSubmitting || pendingItemId) return;
+    if (hasCartIssues) {
+      setErrorMessage(t("resolveItems"));
+      return;
+    }
     setIsSubmitting(true);
     setErrorMessage(null);
 
@@ -142,7 +170,7 @@ export default function CartPage() {
 
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        const msg = data?.error || "Checkout failed";
+        const msg = data?.error || t("checkoutFailed");
         setErrorMessage(msg);
         toast({
           title: msg,
@@ -160,15 +188,21 @@ export default function CartPage() {
       router.push("/orders");
       router.refresh();
     } catch {
-      setErrorMessage("Failed to submit order");
+      setErrorMessage(t("checkoutFailed"));
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const hasCartIssues = items.some(
+    (item) => item.unavailable || item.quantity > item.maxQuantity,
+  );
   const total = items.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
+    (sum, item) =>
+      item.unavailable || item.quantity > item.maxQuantity
+        ? sum
+        : sum + item.price * item.quantity,
+    0,
   );
 
   if (status === "loading" || isLoading) {
@@ -189,7 +223,12 @@ export default function CartPage() {
         <h1 className="mb-4 text-3xl font-bold tracking-tight">
           {t("emptyTitle")}
         </h1>
-        <p className="mb-8 text-muted-foreground">{t("emptyBody")}</p>
+        <p
+          role={errorMessage ? "alert" : undefined}
+          className={errorMessage ? "mb-8 text-destructive" : "mb-8 text-muted-foreground"}
+        >
+          {errorMessage ?? t("emptyBody")}
+        </p>
         <div className="flex flex-wrap justify-center gap-4">
           <Button onClick={() => router.push("/services")}>
             {t("browseServices")}
@@ -213,7 +252,7 @@ export default function CartPage() {
           <div className="space-y-4">
             {items.map((item) => (
               <div
-                key={`${item.itemType}-${item.itemId}`}
+                key={item.id}
                 className="flex flex-wrap items-center justify-between gap-4 border-b border-border py-3 last:border-0"
               >
                 <div className="min-w-0 flex-1">
@@ -224,6 +263,13 @@ export default function CartPage() {
                       : t("productLabel")}
                     {item.category ? ` · ${item.category}` : ""}
                   </div>
+                  {item.unavailable ? (
+                    <p className="mt-1 text-sm text-destructive">{t("itemUnavailable")}</p>
+                  ) : item.quantity > item.maxQuantity ? (
+                    <p className="mt-1 text-sm text-destructive">
+                      {t("itemStockLimited", { count: item.maxQuantity })}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="flex items-center gap-4">
@@ -233,13 +279,9 @@ export default function CartPage() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 rounded-r-none"
-                      disabled={item.quantity <= 1}
+                      disabled={pendingItemId !== null || item.quantity <= 1}
                       onClick={() =>
-                        void updateQuantity(
-                          item.itemId,
-                          item.itemType,
-                          item.quantity - 1
-                        )
+                        void updateQuantity(item.id, item.quantity - 1)
                       }
                     >
                       <Minus aria-hidden="true" className="h-3.5 w-3.5" />
@@ -252,13 +294,13 @@ export default function CartPage() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 rounded-l-none"
-                      disabled={item.quantity >= 99}
+                      disabled={
+                        pendingItemId !== null ||
+                        item.unavailable ||
+                        item.quantity >= Math.min(99, item.maxQuantity)
+                      }
                       onClick={() =>
-                        void updateQuantity(
-                          item.itemId,
-                          item.itemType,
-                          item.quantity + 1
-                        )
+                        void updateQuantity(item.id, item.quantity + 1)
                       }
                     >
                       <Plus aria-hidden="true" className="h-3.5 w-3.5" />
@@ -266,7 +308,7 @@ export default function CartPage() {
                   </div>
 
                   <div className="min-w-24 text-right text-lg font-bold tabular-nums">
-                    {(item.price * item.quantity).toLocaleString("ru-RU")} ₽
+                    {(item.price * item.quantity).toLocaleString(numberLocale)} ₽
                   </div>
 
                   <Button
@@ -274,7 +316,8 @@ export default function CartPage() {
                     variant="ghost"
                     size="icon"
                     aria-label={t("remove")}
-                    onClick={() => void removeItem(item.itemId, item.itemType)}
+                    disabled={pendingItemId !== null}
+                    onClick={() => void removeItem(item.id)}
                   >
                     <Trash2 aria-hidden="true" className="h-4 w-4" />
                   </Button>
@@ -286,9 +329,10 @@ export default function CartPage() {
           <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
             <div className="text-lg font-semibold">{t("estimatedTotal")}:</div>
             <div className="text-2xl font-bold tabular-nums">
-              {total.toLocaleString("ru-RU")} ₽
+              {total.toLocaleString(numberLocale)} ₽
             </div>
           </div>
+          <p className="mt-3 text-sm text-muted-foreground">{t("managerNote")}</p>
         </Card>
 
         <Card className="border-border bg-card p-6">
@@ -322,6 +366,12 @@ export default function CartPage() {
           </div>
         </Card>
 
+        {hasCartIssues ? (
+          <p role="alert" className="text-sm text-destructive">
+            {t("resolveItems")}
+          </p>
+        ) : null}
+
         {errorMessage ? (
           <p
             role="alert"
@@ -335,7 +385,7 @@ export default function CartPage() {
           <Button
             type="button"
             onClick={() => void handleCheckout()}
-            disabled={isSubmitting || items.length === 0}
+            disabled={isSubmitting || pendingItemId !== null || hasCartIssues || items.length === 0}
             className="flex-1"
             size="lg"
           >

@@ -1,4 +1,10 @@
 import type { PostView, ServiceView } from "@/lib/data";
+import {
+  POST_COVER_PLACEHOLDER,
+  SERVICE_COVER_PLACEHOLDER,
+  postCover,
+  serviceCover,
+} from "@/lib/content-placeholders";
 
 export interface CatalogServiceItem extends ServiceView {
   shapesIntroduction: string;
@@ -16,6 +22,8 @@ export interface CatalogBlogPost {
   slug: string;
   title: string;
   dateLabel: string;
+  /** Source timestamp for locale-aware formatting; presets may omit it. */
+  publishedAt?: Date;
   metaLabel: string;
   category: "Design" | "Studio" | "Outdoor";
   readTime: number;
@@ -32,6 +40,8 @@ export interface CatalogBlogPost {
   sections: StudioBlogSection[];
   closing: string;
   htmlContent?: string;
+  /** Only the untouched legacy launch seed may use its authored translation. */
+  useLegacyLaunchCopy?: boolean;
 }
 
 export const STUDIO_SERVICES: CatalogServiceItem[] = [
@@ -63,12 +73,12 @@ export const STUDIO_SERVICES: CatalogServiceItem[] = [
     ],
     resultText:
       "A production-ready layout and realistic visualization to help you secure approval from your landlord or local authorities.",
-    coverImage: "/assets/shop/sign-design.jpg",
+    coverImage: SERVICE_COVER_PLACEHOLDER,
     gallery: [
-      "/assets/shop/sign-design.jpg",
-      "/assets/shop/sign-design-2.jpg",
-      "/assets/shop/sign-design-3.jpg",
-      "/assets/shop/sign-design-4.jpg",
+      SERVICE_COVER_PLACEHOLDER,
+      SERVICE_COVER_PLACEHOLDER,
+      SERVICE_COVER_PLACEHOLDER,
+      SERVICE_COVER_PLACEHOLDER,
     ],
   },
   {
@@ -98,12 +108,12 @@ export const STUDIO_SERVICES: CatalogServiceItem[] = [
     ],
     resultText:
       "Complete manufacturer-ready dielines, color separations, and realistic mockups ready for immediate print production.",
-    coverImage: "/assets/shop/bag-design.jpg",
+    coverImage: SERVICE_COVER_PLACEHOLDER,
     gallery: [
-      "/assets/shop/bag-design.jpg",
-      "/assets/shop/sign-design-2.jpg",
-      "/assets/shop/banner-design.jpg",
-      "/assets/shop/outdoor-glass-poster.jpg",
+      SERVICE_COVER_PLACEHOLDER,
+      SERVICE_COVER_PLACEHOLDER,
+      SERVICE_COVER_PLACEHOLDER,
+      SERVICE_COVER_PLACEHOLDER,
     ],
   },
   {
@@ -133,12 +143,12 @@ export const STUDIO_SERVICES: CatalogServiceItem[] = [
     ],
     resultText:
       "Print-ready high-resolution files and facade preview mockups engineered for crisp, reflection-resistant installation.",
-    coverImage: "/assets/shop/outdoor-glass-poster.jpg",
+    coverImage: SERVICE_COVER_PLACEHOLDER,
     gallery: [
-      "/assets/shop/outdoor-glass-poster.jpg",
-      "/assets/shop/sign-design-3.jpg",
-      "/assets/shop/sign-design.jpg",
-      "/assets/shop/bag-design.jpg",
+      SERVICE_COVER_PLACEHOLDER,
+      SERVICE_COVER_PLACEHOLDER,
+      SERVICE_COVER_PLACEHOLDER,
+      SERVICE_COVER_PLACEHOLDER,
     ],
   },
   {
@@ -168,12 +178,12 @@ export const STUDIO_SERVICES: CatalogServiceItem[] = [
     ],
     resultText:
       "Press-ready banner layouts with safe-zone guides and realistic venue visualizations.",
-    coverImage: "/assets/shop/banner-design.jpg",
+    coverImage: SERVICE_COVER_PLACEHOLDER,
     gallery: [
-      "/assets/shop/banner-design.jpg",
-      "/assets/shop/outdoor-glass-poster.jpg",
-      "/assets/shop/sign-design-4.jpg",
-      "/assets/shop/bag-design.jpg",
+      SERVICE_COVER_PLACEHOLDER,
+      SERVICE_COVER_PLACEHOLDER,
+      SERVICE_COVER_PLACEHOLDER,
+      SERVICE_COVER_PLACEHOLDER,
     ],
   },
 
@@ -205,12 +215,12 @@ export const STUDIO_SERVICES: CatalogServiceItem[] = [
     ],
     resultText:
       "Full-scale production master files with structural margin specs and realistic cityscape visualizations.",
-    coverImage: "/assets/shop/large-billboard-building.jpg",
+    coverImage: SERVICE_COVER_PLACEHOLDER,
     gallery: [
-      "/assets/shop/large-billboard-building.jpg",
-      "/assets/shop/rooftop-advertising.jpg",
-      "/assets/shop/billboard.jpg",
-      "/assets/shop/advertisement-on-the-fence.jpg",
+      SERVICE_COVER_PLACEHOLDER,
+      SERVICE_COVER_PLACEHOLDER,
+      SERVICE_COVER_PLACEHOLDER,
+      SERVICE_COVER_PLACEHOLDER,
     ],
   },
   {
@@ -240,12 +250,12 @@ export const STUDIO_SERVICES: CatalogServiceItem[] = [
     ],
     resultText:
       "Complete architectural design package with day/night renders ready for engineering fabrication and city approval.",
-    coverImage: "/assets/shop/rooftop-advertising.jpg",
+    coverImage: SERVICE_COVER_PLACEHOLDER,
     gallery: [
-      "/assets/shop/rooftop-advertising.jpg",
-      "/assets/shop/large-billboard-building.jpg",
-      "/assets/shop/sign-design.jpg",
-      "/assets/shop/billboard.jpg",
+      SERVICE_COVER_PLACEHOLDER,
+      SERVICE_COVER_PLACEHOLDER,
+      SERVICE_COVER_PLACEHOLDER,
+      SERVICE_COVER_PLACEHOLDER,
     ],
   },
   {
@@ -275,12 +285,12 @@ export const STUDIO_SERVICES: CatalogServiceItem[] = [
     ],
     resultText:
       "Panel-by-panel production files with numbering map and full street-view visualization.",
-    coverImage: "/assets/shop/advertisement-on-the-fence.jpg",
+    coverImage: SERVICE_COVER_PLACEHOLDER,
     gallery: [
-      "/assets/shop/advertisement-on-the-fence.jpg",
-      "/assets/shop/billboard.jpg",
-      "/assets/shop/large-billboard-building.jpg",
-      "/assets/shop/banner-design.jpg",
+      SERVICE_COVER_PLACEHOLDER,
+      SERVICE_COVER_PLACEHOLDER,
+      SERVICE_COVER_PLACEHOLDER,
+      SERVICE_COVER_PLACEHOLDER,
     ],
   },
   {
@@ -310,12 +320,12 @@ export const STUDIO_SERVICES: CatalogServiceItem[] = [
     ],
     resultText:
       "Press- and DOOH-ready master files calibrated to outdoor operator technical requirements.",
-    coverImage: "/assets/shop/billboard.jpg",
+    coverImage: SERVICE_COVER_PLACEHOLDER,
     gallery: [
-      "/assets/shop/billboard.jpg",
-      "/assets/shop/large-billboard-building.jpg",
-      "/assets/shop/rooftop-advertising.jpg",
-      "/assets/shop/advertisement-on-the-fence.jpg",
+      SERVICE_COVER_PLACEHOLDER,
+      SERVICE_COVER_PLACEHOLDER,
+      SERVICE_COVER_PLACEHOLDER,
+      SERVICE_COVER_PLACEHOLDER,
     ],
   },
 ];
@@ -329,7 +339,7 @@ export const STUDIO_BLOG_POSTS: CatalogBlogPost[] = [
     metaLabel: "October 7, 2026 · 4-minute read",
     category: "Studio",
     readTime: 4,
-    image: "/assets/shop/sign-design.jpg",
+    image: POST_COVER_PLACEHOLDER,
     excerpt:
       "Now our new website is live—and it’s more than just an updated showcase. It’s a clearer story of how we help products become cohesive and ready for growth.",
     lead: "We’ve long wanted to bring together in one place everything that Plus In Plus has become: our approach, our services, and the projects through which we put ideas to the test. Now our new website is live—and it’s more than just an updated showcase. It’s a clearer story of how we help products become cohesive and ready for growth.",
@@ -383,7 +393,7 @@ export const STUDIO_BLOG_POSTS: CatalogBlogPost[] = [
     metaLabel: "October 2, 2026 · 5-minute read",
     category: "Outdoor",
     readTime: 5,
-    image: "/assets/shop/sign-design-2.jpg",
+    image: POST_COVER_PLACEHOLDER,
     excerpt:
       "How viewing geometry, facade materials, and halo lighting turn ordinary shopfronts into unmistakable street landmarks.",
     lead: "Great signage never fights the building it lives on. Instead, it studies brick texture, street width, sun angles, and evening illumination so the brand feels native to the architecture while remaining instantly legible from across the avenue.",
@@ -421,7 +431,7 @@ export const STUDIO_BLOG_POSTS: CatalogBlogPost[] = [
     metaLabel: "September 24, 2026 · 3-minute read",
     category: "Design",
     readTime: 3,
-    image: "/assets/shop/large-billboard-building.jpg",
+    image: POST_COVER_PLACEHOLDER,
     excerpt:
       "Why restraint, contrast, and five words or fewer beat dense layouts on high-speed urban avenues.",
     lead: "When scaling a campaign from a smartphone screen to a ten-story building wrap, every extra element competes for attention. Clarity wins when typography, negative space, and a single visual anchor work in unison.",
@@ -458,7 +468,7 @@ export const STUDIO_BLOG_POSTS: CatalogBlogPost[] = [
     metaLabel: "September 14, 2026 · 4-minute read",
     category: "Design",
     readTime: 4,
-    image: "/assets/shop/bag-design.jpg",
+    image: POST_COVER_PLACEHOLDER,
     excerpt:
       "From conference totes to window posters: crafting physical touchpoints people actually keep.",
     lead: "Event collateral often gets treated as a last-minute checklist item. Treated thoughtfully, a well-proportioned bag, badge, and stage banner become the most photographed part of the entire gathering.",
@@ -486,8 +496,7 @@ export const STUDIO_BLOG_POSTS: CatalogBlogPost[] = [
 export function mergeCatalogServices(
   dbServices: ServiceView[]
 ): CatalogServiceItem[] {
-  if (!dbServices.length) return STUDIO_SERVICES;
-
+  // The database is authoritative: an empty result must never republish presets.
   return dbServices.map((svc) => {
     const preset = STUDIO_SERVICES.find(
       (item) =>
@@ -497,10 +506,7 @@ export function mergeCatalogServices(
         (svc.slug === "advertisement-fence" &&
           item.slug === "advertisement-on-the-fence")
     );
-    const validCover =
-      svc.coverImage && !svc.coverImage.endsWith(".svg")
-        ? svc.coverImage
-        : preset?.coverImage ?? "/assets/shop/sign-design.jpg";
+    const validCover = serviceCover(svc.coverImage);
 
     return {
       ...svc,
@@ -509,14 +515,7 @@ export function mergeCatalogServices(
       shapesIntroduction:
         preset?.shapesIntroduction ??
         "Depending on your brand's needs, we can design:",
-      gallery: preset
-        ? [validCover, ...preset.gallery.slice(1)]
-        : [
-            validCover,
-            "/assets/shop/sign-design-2.jpg",
-            "/assets/shop/bag-design.jpg",
-            "/assets/shop/large-billboard-building.jpg",
-          ],
+      gallery: [validCover],
     };
   });
 }
@@ -535,10 +534,7 @@ export function resolveServiceBySlug(
   );
 
   if (dbService) {
-    const cover =
-      dbService.coverImage && !dbService.coverImage.endsWith(".svg")
-        ? dbService.coverImage
-        : preset?.coverImage ?? "/assets/shop/sign-design.jpg";
+    const cover = serviceCover(dbService.coverImage);
     return {
       ...dbService,
       category: dbService.category === "large" ? "large" : "small",
@@ -546,36 +542,24 @@ export function resolveServiceBySlug(
       shapesIntroduction:
         preset?.shapesIntroduction ??
         "We aren't limited to standard shapes. Depending on your brand's needs, we can design:",
-      gallery: preset
-        ? [cover, ...preset.gallery.slice(1)]
-        : [
-            cover,
-            "/assets/shop/sign-design-2.jpg",
-            "/assets/shop/sign-design-3.jpg",
-            "/assets/shop/sign-design-4.jpg",
-          ],
+      gallery: [cover],
     };
   }
 
-  return preset ?? null;
+  // A missing/unpublished database row is a 404/redirect, not a preset fallback.
+  return null;
 }
 
 export function mergeCatalogPosts(dbPosts: PostView[]): CatalogBlogPost[] {
-  if (!dbPosts.length) return STUDIO_BLOG_POSTS;
-
-  const merged: CatalogBlogPost[] = dbPosts.map((post, idx) => {
+  return dbPosts.map((post) => {
     const preset = STUDIO_BLOG_POSTS.find(
-      (p) =>
-        p.slug === post.slug ||
-        (post.slug === "were-up-and-running" && p.slug === "we-re-up-and-running")
+      (candidate) =>
+        candidate.slug === post.slug ||
+        (post.slug === "were-up-and-running" &&
+          candidate.slug === "we-re-up-and-running")
     );
 
-    const fallbackImg =
-      preset?.image ?? STUDIO_BLOG_POSTS[idx % STUDIO_BLOG_POSTS.length].image;
-    const validCover =
-      post.coverImage && !post.coverImage.endsWith(".svg")
-        ? post.coverImage
-        : fallbackImg;
+    const validCover = postCover(post.coverImage);
     const dateObj = post.publishedAt ?? post.createdAt;
     const formattedDate = new Intl.DateTimeFormat("en-US", {
       month: "long",
@@ -585,48 +569,42 @@ export function mergeCatalogPosts(dbPosts: PostView[]): CatalogBlogPost[] {
     }).format(new Date(dateObj));
     const readMins = post.readTime || preset?.readTime || 4;
 
-    if (preset && post.title === preset.title) {
-      return {
-        ...preset,
-        id: post.id,
-        slug: preset?.slug ?? post.slug,
-        title: post.title,
-        excerpt: post.excerpt,
-        image: validCover,
-        dateLabel: formattedDate,
-        metaLabel: `${formattedDate} · ${readMins}-minute read`,
-        readTime: readMins,
-        htmlContent: post.content,
-      };
-    }
+    // The original demo seed stored only one HTML paragraph for the launch
+    // article. Preserve its authored four-section translation only for that
+    // exact, untouched legacy row. Any CMS edit switches the body back to the
+    // database immediately; presets never override an editor's content.
+    const useLegacyLaunchCopy = Boolean(
+      preset?.slug === "we-re-up-and-running" &&
+        post.title === preset.title &&
+        post.excerpt === preset.excerpt &&
+        post.content.trim() === `<p>${preset.excerpt}</p>`
+    );
 
     return {
       id: post.id,
-      slug: preset?.slug ?? post.slug,
+      slug: post.slug,
       title: post.title,
       dateLabel: formattedDate,
+      publishedAt: dateObj,
       metaLabel: `${formattedDate} · ${readMins}-minute read`,
       category: preset?.category ?? "Studio",
       readTime: readMins,
       image: validCover,
       excerpt: post.excerpt,
-      lead: post.excerpt,
-      quote: post.excerpt,
-      quoteAttribution: "Plus In Plus Studio",
-      author: {
+      lead: useLegacyLaunchCopy ? preset!.lead : post.excerpt,
+      quote: useLegacyLaunchCopy ? preset!.quote : post.excerpt,
+      quoteAttribution: useLegacyLaunchCopy
+        ? preset!.quoteAttribution
+        : "Plus In Plus Studio",
+      author: preset?.author ?? {
         name: "Plus In Plus Editorial",
         role: "Design Studio Team",
         initials: "PP",
       },
-      sections: [],
-      closing: "",
-      htmlContent: post.content,
+      sections: useLegacyLaunchCopy ? preset!.sections : [],
+      closing: useLegacyLaunchCopy ? preset!.closing : "",
+      htmlContent: useLegacyLaunchCopy ? undefined : post.content,
+      useLegacyLaunchCopy,
     };
   });
-
-  const launchPost = STUDIO_BLOG_POSTS.find((post) => post.slug === "we-re-up-and-running");
-  if (launchPost && !merged.some((post) => post.slug === launchPost.slug)) {
-    merged.push(launchPost);
-  }
-  return merged;
 }

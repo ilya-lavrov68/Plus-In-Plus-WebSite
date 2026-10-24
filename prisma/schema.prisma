@@ -202,6 +202,9 @@ model Order {
   number          String?        @unique
   userId          String
   user            User           @relation("CustomerOrders", fields: [userId], references: [id], onDelete: Cascade)
+  // Exactly one active cart per user. NULL is released at checkout, so SQLite
+  // can keep any number of submitted orders for the same customer.
+  cartKey         String?        @unique
   status          String         @default("cart")
   estimatedAmount Int            @default(0)
   subtotal        Int            @default(0)
@@ -289,7 +292,9 @@ model Payment {
   paidAt     DateTime?
 
   @@index([orderId])
-  @@index([provider, externalId])
+  // Robokassa identifies a payment by provider + InvId. Prevent concurrent
+  // invoice attempts from creating ambiguous callback targets.
+  @@unique([provider, externalId])
   @@map("payments")
 }
 

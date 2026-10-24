@@ -1,6 +1,7 @@
 import type { PostModel, ServiceModel } from "@/lib/generated/prisma/models";
 
 import { parseJsonArray } from "@/lib/db-helpers";
+import { postCover, serviceCover } from "@/lib/content-placeholders";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -66,7 +67,7 @@ function toServiceView(service: ServiceModel): ServiceView {
     includes: parseJsonArray(service.includes),
     shapes: parseJsonArray(service.shapes),
     resultText: service.resultText,
-    coverImage: service.coverImage,
+    coverImage: serviceCover(service.coverImage),
   };
 }
 
@@ -77,7 +78,7 @@ function toPostView(post: PostModel): PostView {
     slug: post.slug,
     excerpt: post.excerpt,
     content: post.content,
-    coverImage: post.coverImage,
+    coverImage: postCover(post.coverImage),
     images: post.images ?? null,
     readTime: post.readTime,
     source: post.source,
@@ -129,6 +130,7 @@ export interface PublicServiceItem {
   category: string;
   coverImage: string;
   isActive: boolean;
+  isOrderable: boolean;
 }
 
 export function toPublicServiceItem(
@@ -144,6 +146,7 @@ export function toPublicServiceItem(
     | "category"
     | "coverImage"
     | "isActive"
+    | "isOrderable"
   >
 ): PublicServiceItem {
   return {
@@ -158,8 +161,9 @@ export function toPublicServiceItem(
     priceType: service.priceType ?? "quote",
     currency: service.currency ?? "RUB",
     category: service.category === "large" ? "large" : "small",
-    coverImage: service.coverImage,
+    coverImage: serviceCover(service.coverImage),
     isActive: Boolean(service.isActive),
+    isOrderable: Boolean(service.isOrderable),
   };
 }
 
@@ -168,7 +172,7 @@ export async function getActiveServices(): Promise<PublicServiceItem[]> {
 
   try {
     const services = await prisma.service.findMany({
-      where: { isActive: true },
+      where: { isActive: true, isPublished: true },
       orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
     });
     return services.map(toPublicServiceItem);
@@ -216,6 +220,7 @@ export async function getPublishedService(slugOrId: string): Promise<ServiceView
     const service = await prisma.service.findFirst({
       where: {
         isPublished: true,
+        isActive: true,
         OR: [{ slug: { in: slugs } }, { id: slugOrId }],
       },
     });
@@ -280,6 +285,7 @@ export async function getServicePricing(slugOrId: string): Promise<ServicePricin
     const service = await prisma.service.findFirst({
       where: {
         isPublished: true,
+        isActive: true,
         OR: [{ slug: { in: slugs } }, { id: slugOrId }],
       },
       include: {
@@ -290,7 +296,7 @@ export async function getServicePricing(slugOrId: string): Promise<ServicePricin
       },
     });
 
-    if (!service || !service.isOrderable) return null;
+    if (!service) return null;
 
     return {
       serviceId: service.id,

@@ -1,6 +1,8 @@
 import { auth } from "@/auth";
 import type { Locale } from "@/i18n";
 import { isAuthConfigured } from "@/lib/auth-secret";
+import { canAddServiceToCart, MAX_CART_QUANTITY } from "@/lib/commerce";
+import { productCover, serviceCover } from "@/lib/content-placeholders";
 import { toPublicServiceItem } from "@/lib/data";
 import { calculateEstimate } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
@@ -21,6 +23,10 @@ export interface UnifiedCartItem {
   category?: string;
   slug?: string;
   coverImage?: string;
+  /** Current catalog eligibility; stale lines stay visible so they can be removed. */
+  unavailable: boolean;
+  /** Current product stock (or the global service line limit), capped at 99. */
+  maxQuantity: number;
 }
 
 export interface UnifiedCartPayload {
@@ -101,8 +107,12 @@ export async function getOrCreateCartOrder(userId: string) {
   });
 
   if (!cart) {
-    cart = await prisma.order.create({
-      data: { userId, status: "cart" },
+    // The nullable unique key permits exactly one active cart per customer.
+    // Upsert makes concurrent first requests converge on the same row.
+    cart = await prisma.order.upsert({
+      where: { cartKey: userId },
+      create: { userId, status: "cart", cartKey: userId },
+      update: {},
       include: { items: { orderBy: { id: "asc" } } },
     });
   }
@@ -199,6 +209,11 @@ export async function enrichCartItems(
         category: product?.category ?? undefined,
         slug: product?.slug ?? undefined,
         coverImage: product?.coverImage ?? undefined,
+        unavailable: !product || !product.isActive,
+        maxQuantity: Math.max(
+          0,
+          Math.min(MAX_CART_QUANTITY, product?.stock ?? 0),
+        ),
       };
     }
 
@@ -226,6 +241,8 @@ export async function enrichCartItems(
       category: rawSvc?.category ?? undefined,
       slug: rawSvc?.slug ?? undefined,
       coverImage: rawSvc?.coverImage ?? undefined,
+      unavailable: !rawSvc || !canAddServiceToCart(rawSvc),
+      maxQuantity: MAX_CART_QUANTITY,
     };
   });
 }
@@ -280,7 +297,7 @@ export async function getCart(): Promise<CartView> {
           itemId: item.itemId || item.productId || "",
           title: info?.name || item.title || "Product",
           slug: product?.slug ?? "",
-          coverImage: product?.coverImage ?? "/assets/shop/bag-design.jpg",
+          coverImage: productCover(product?.coverImage),
           quantity: item.quantity,
           currency: "RUB",
           options: [],
@@ -339,7 +356,7 @@ export async function getCart(): Promise<CartView> {
         serviceId: service.id,
         title: info?.name || service.title,
         slug: service.slug,
-        coverImage: service.coverImage,
+        coverImage: serviceCover(service.coverImage),
         quantity: item.quantity,
         currency: service.currency,
         options,

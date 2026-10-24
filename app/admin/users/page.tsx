@@ -1,20 +1,40 @@
 import { Users as UsersIcon } from "lucide-react";
 
+import { AdminPagination } from "@/components/admin/admin-pagination";
 import { UsersTable } from "@/components/admin/users-table";
 import { EmptyState } from "@/components/site/empty-state";
-import { getAllUsers, getUserActivity, getUserBlockStatuses } from "@/lib/admin-data";
+import {
+  getAdminUserCount,
+  getAllUsers,
+  getUserActivities,
+  getUserBlockStatuses,
+} from "@/lib/admin-data";
+import { clampPage, totalPages } from "@/lib/pagination";
 import { getRequestTranslations } from "@/lib/server-i18n";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminUsersPage() {
-  const [users, t] = await Promise.all([getAllUsers(), getRequestTranslations("admin")]);
-  const blockStatuses = await getUserBlockStatuses(users.map((user) => user.id));
-  const usersWithActivity = await Promise.all(users.map(async (user) => ({
+interface AdminUsersPageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+export default async function AdminUsersPage({ searchParams }: AdminUsersPageProps) {
+  const [query, total, t] = await Promise.all([
+    searchParams,
+    getAdminUserCount(),
+    getRequestTranslations("admin"),
+  ]);
+  const page = clampPage(query.page, total);
+  const users = await getAllUsers(page);
+  const [blockStatuses, activityByUser] = await Promise.all([
+    getUserBlockStatuses(users.map((user) => user.id)),
+    getUserActivities(users.map((user) => user.id)),
+  ]);
+  const usersWithActivity = users.map((user) => ({
     ...user,
     isBlocked: Boolean(blockStatuses[user.id]),
-    activities: await getUserActivity(user.id),
-  })));
+    activities: activityByUser[user.id] ?? [],
+  }));
 
   return (
     <div>
@@ -32,6 +52,15 @@ export default async function AdminUsersPage() {
           />
         </div>
       )}
+      <AdminPagination
+        basePath="/admin/users"
+        page={page}
+        pageCount={totalPages(total)}
+        navigationLabel={t("pagination")}
+        previousLabel={t("previousPage")}
+        nextLabel={t("nextPage")}
+        statusLabel={t("pageStatus", { page, pageCount: totalPages(total) })}
+      />
     </div>
   );
 }

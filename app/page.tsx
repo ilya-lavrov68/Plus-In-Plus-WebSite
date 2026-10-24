@@ -36,6 +36,8 @@ export default async function HomePage() {
           Studio: tBlog("categoryStudio"),
           Outdoor: tBlog("categoryOutdoor"),
         }}
+        emptyTitle={tBlog("empty.title")}
+        emptyDescription={tBlog("empty.description")}
       />
       <CtaSection />
     </>

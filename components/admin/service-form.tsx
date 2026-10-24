@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
 import { SafeImage } from "@/components/site/safe-image";
 import { CoverImageHelp } from "@/components/admin/cover-image-help";
+import { ServicePricingFields, type ServicePricingInitial } from "@/components/admin/service-pricing-fields";
 import { IMAGE_ACCEPT, MAX_COVER_BYTES } from "@/lib/upload-policy";
 
 export interface ServiceFormProps {
@@ -36,6 +37,7 @@ export interface ServiceFormProps {
     resultText: string;
     coverImage: string;
     isPublished: boolean;
+    pricing?: ServicePricingInitial;
   };
 }
 
@@ -149,6 +151,8 @@ export function ServiceForm({ mode, serviceId, initial }: ServiceFormProps) {
         <Label htmlFor="service-result">{t("form.resultText")}</Label>
         <Textarea id="service-result" name="resultText" maxLength={10000} required rows={3} defaultValue={initial?.resultText} />
       </div>
+
+      <ServicePricingFields initial={initial?.pricing} />
 
       <div className="space-y-2">
         <Label htmlFor="service-cover">{t("form.coverImage")}</Label>

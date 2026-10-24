@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { AddToCartButton } from "@/components/site/add-to-cart-button";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,7 @@ export interface ServiceCardData {
   /** Base price in rubles. */
   basePrice: number;
   priceType?: string;
+  isOrderable?: boolean;
   coverImage?: string;
   category: string;
 }
@@ -35,13 +36,14 @@ export function ServiceCard({
   onSelect,
 }: ServiceCardProps) {
   const t = useTranslations("services");
+  const numberLocale = useLocale() === "ru" ? "ru-RU" : "en-GB";
   const router = useRouter();
 
   const isSmall = service.category === "small";
   const priceLabel =
     service.priceType === "quote" && service.basePrice <= 0
       ? t("priceOnRequest")
-      : `${service.priceType === "from" ? `${t("from")} ` : ""}${service.basePrice.toLocaleString("ru-RU")} ₽`;
+      : `${service.priceType === "from" ? `${t("from")} ` : ""}${service.basePrice.toLocaleString(numberLocale)} ₽`;
 
   const handleSelect = () => {
     if (onSelect) {
@@ -118,13 +120,15 @@ export function ServiceCard({
               {selected ? t("selected") : t("select")}
             </Button>
           </div>
-          <AddToCartButton
-            itemType="service"
-            itemId={service.id}
-            itemName={service.name}
-            size="sm"
-            className="w-full"
-          />
+          {service.isOrderable && service.priceType !== "quote" ? (
+            <AddToCartButton
+              itemType="service"
+              itemId={service.id}
+              itemName={service.name}
+              size="sm"
+              className="w-full"
+            />
+          ) : null}
         </div>
       </CardContent>
     </Card>

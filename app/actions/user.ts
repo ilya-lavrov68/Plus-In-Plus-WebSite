@@ -1,5 +1,6 @@
 "use server";
 
+import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
@@ -7,12 +8,20 @@ import { getActionTranslator } from "@/lib/action-i18n";
 import { recordActivity } from "@/lib/activity-log";
 import { isAuthConfigured } from "@/lib/auth-secret";
 import { prisma } from "@/lib/prisma";
-import { checkRateLimit, hashRateLimitIdentifier } from "@/lib/rate-limit";
+import { checkRateLimitAsync, hashRateLimitIdentifier } from "@/lib/rate-limit";
 import { localAvatarPath } from "@/lib/upload-policy";
 import { cleanupUpload, saveImageUpload, UploadValidationError } from "@/lib/uploads";
-import { firstIssueMessage, profileSchema } from "@/lib/validators";
+import { firstIssueMessage, passwordSchema, profileSchema, utf8Bytes } from "@/lib/validators";
 
 const WINDOW_MS = 10 * 60 * 1000;
+
+class PasswordChangeError extends Error {}
+
+export interface ChangePasswordInput {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
 
 export interface UpdateUserProfileInput {
   firstName?: string;
@@ -53,11 +62,11 @@ export async function updateUserProfile(
   }
 
   if (
-    !checkRateLimit(
+    !(await checkRateLimitAsync(
       hashRateLimitIdentifier(`profile:${session.user.id}`),
       20,
       WINDOW_MS
-    ).allowed
+    )).allowed
   ) {
     throw new Error(t("tooManyProfileUpdates"));
   }
@@ -165,5 +174,80 @@ export async function updateUserProfile(
       throw new Error(error.message);
     }
     throw error instanceof Error ? error : new Error(t("profileSaveFailed"));
+  }
+}
+
+/** Change the caller's password and revoke every JWT issued for the old hash. */
+export async function changePassword(
+  data: ChangePasswordInput,
+): Promise<{ ok: true }> {
+  const t = await getActionTranslator();
+  try {
+    if (!isAuthConfigured() || !prisma) {
+      throw new PasswordChangeError(t("loginToEditProfile"));
+    }
+    const session = await auth();
+    if (!session?.user?.id) {
+      throw new PasswordChangeError(t("loginToEditProfile"));
+    }
+    if (
+      !(await checkRateLimitAsync(
+        hashRateLimitIdentifier(`password:${session.user.id}`),
+        5,
+        WINDOW_MS,
+      )).allowed
+    ) {
+      throw new PasswordChangeError(t("tooManyPasswordChanges"));
+    }
+
+    const currentPassword =
+      typeof data?.currentPassword === "string" ? data.currentPassword : "";
+    const newPassword = typeof data?.newPassword === "string" ? data.newPassword : "";
+    const confirmPassword =
+      typeof data?.confirmPassword === "string" ? data.confirmPassword : "";
+    const parsed = passwordSchema.safeParse(newPassword);
+    if (!currentPassword || utf8Bytes(currentPassword) > 72) {
+      throw new PasswordChangeError(t("currentPasswordIncorrect"));
+    }
+    if (!parsed.success) {
+      throw new PasswordChangeError(t(firstIssueMessage(parsed.error)));
+    }
+    if (newPassword !== confirmPassword) {
+      throw new PasswordChangeError(t("validation.passwordsDoNotMatch"));
+    }
+    if (currentPassword === newPassword) {
+      throw new PasswordChangeError(t("passwordUnchanged"));
+    }
+
+    const existing = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { id: true, email: true, passwordHash: true, isBlocked: true },
+    });
+    if (!existing || existing.isBlocked) {
+      throw new PasswordChangeError(t("unauthorized"));
+    }
+    const valid = await bcrypt.compare(currentPassword, existing.passwordHash);
+    if (!valid) throw new PasswordChangeError(t("currentPasswordIncorrect"));
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: existing.id },
+        data: { passwordHash },
+        select: { id: true },
+      });
+      await recordActivity(tx, {
+        action: "password changed",
+        entityType: "user",
+        entityId: existing.id,
+        title: existing.email,
+        actorId: existing.id,
+      });
+    });
+    return { ok: true };
+  } catch (error) {
+    if (error instanceof PasswordChangeError) throw new Error(error.message);
+    console.error("Password change failed:", error);
+    throw new Error(t("passwordChangeFailed"));
   }
 }
