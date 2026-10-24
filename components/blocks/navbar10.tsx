@@ -10,7 +10,6 @@ import {
   Globe,
   Layers,
   LayoutDashboard,
-  MenuIcon,
   MessageSquare,
   Paintbrush,
   Send,
@@ -31,9 +30,10 @@ import {
 } from "react";
 
 import { AccountModal } from "@/components/site/account-modal";
-import { CartIcon } from "@/components/site/cart-icon";
+import { CartIcon, useCartCount } from "@/components/site/cart-icon";
 import { MediaPlaceholder } from "@/components/site/media-placeholder";
 import { LanguageSwitcher } from "@/components/site/language-switcher";
+import { MobileBottomNav } from "@/components/site/mobile-bottom-nav";
 import { HeaderWordmarkLogo } from "@/components/site/logo";
 import { UserAvatar } from "@/components/site/user-avatar";
 import {
@@ -109,6 +109,7 @@ interface MobileNavigationMenuProps {
   dashboardHref: string | null;
   signedIn: boolean;
   menuLabel: string;
+  closeLabel: string;
 }
 
 type NavLinkProps = {
@@ -273,6 +274,7 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
   const [accountOpen, setAccountOpen] = useState<boolean>(false);
   const [accountReturnFocusId, setAccountReturnFocusId] = useState("account-trigger");
   const { data: session } = useSession();
+  const cartCount = useCartCount();
   const t = useTranslations("header");
   const tc = useTranslations("common");
   const tn = useTranslations("navigation");
@@ -320,7 +322,7 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
 
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth > MOBILE_BREAKPOINT) {
+      if (window.innerWidth >= MOBILE_BREAKPOINT) {
         setOpen(false);
       }
     };
@@ -354,7 +356,7 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
 
   return (
     <Fragment>
-      <section className="pointer-events-auto fixed top-0 z-50 flex w-full items-center justify-center border-b-0 bg-background/65 shadow-[0_12px_40px_rgba(0,0,0,0.14)] backdrop-blur-2xl">
+      <section className="pointer-events-auto fixed top-0 z-50 flex w-full items-center justify-center border-b-0 bg-background/65 backdrop-blur-2xl">
         <NavigationMenu className="h-20 max-w-full after:absolute after:inset-0 after:z-40 after:block after:size-full after:bg-transparent after:content-[''] [&>div:last-child>div]:mt-0 [&>div:last-child>div]:rounded-none [&>div:last-child>div]:border-0 [&>div:last-child>div]:border-b-0">
           <div className="container relative z-50 grid w-full grid-cols-2 items-center justify-between gap-4 lg:grid-cols-3 lg:gap-8">
             <Link
@@ -380,7 +382,7 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
             <div className="justify-self-end">
               <div className="hidden items-center gap-2.5 lg:flex">
                 <LanguageSwitcher />
-                <CartIcon />
+                {session?.user ? <CartIcon count={cartCount} /> : null}
                 <Button variant="outline" size="sm" asChild>
                   <Link href="/contact">{t("contact")}</Link>
                 </Button>
@@ -425,28 +427,19 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
                 )}
               </div>
 
-              <div className="flex items-center gap-1 lg:hidden">
+              <div className="flex items-center lg:hidden">
                 <LanguageSwitcher />
-                <CartIcon />
-                <Button
-                  id="mobile-menu-trigger"
-                  className="size-11"
-                  variant="ghost"
-                  size="icon"
-                  aria-label={open ? tc("closeMenu") : tc("openMenu")}
-                  onClick={handleMobileMenu}
-                >
-                  {open ? (
-                    <X className="size-5 stroke-foreground" />
-                  ) : (
-                    <MenuIcon className="size-5 stroke-foreground" />
-                  )}
-                </Button>
               </div>
             </div>
           </div>
         </NavigationMenu>
       </section>
+      <MobileBottomNav
+        cartCount={cartCount}
+        menuOpen={open}
+        onMenuToggle={handleMobileMenu}
+        onNavigate={() => setOpen(false)}
+      />
       <MobileNavigationMenu
         open={open}
         navigation={navigation}
@@ -466,6 +459,7 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
         dashboardHref={dashboardHref}
         signedIn={Boolean(session?.user)}
         menuLabel={tc("mobileMainNavigation")}
+        closeLabel={tc("closeMenu")}
       />
       <AccountModal
         open={accountOpen}
@@ -572,7 +566,7 @@ const DropdownMenu1 = ({ links }: { links?: MenuLink[] }) => {
           </li>
         ))}
       </ul>
-      <div className="glass-surface relative !h-[16rem] w-full overflow-hidden rounded-2xl bg-white/[0.05]">
+      <div className="glass-surface shadow-none relative !h-[16rem] w-full overflow-hidden rounded-2xl bg-white/[0.05]">
         {links.map((link, index) => (
           <div
             key={`default-nav-link-img-${index}`}
@@ -702,7 +696,7 @@ const FeaturedImageLink = ({ link }: { link?: MenuLink }) => {
       <Link href={link.url} className="group block w-full max-w-[36.875rem]">
         <AspectRatio
           ratio={1.77245509}
-          className="glass-surface overflow-hidden rounded-2xl bg-white/[0.05]"
+          className="glass-surface shadow-none overflow-hidden rounded-2xl bg-white/[0.05]"
         >
           <div className="size-full">
             <Badge className="absolute top-2 left-2">{tAdmin("new")}</Badge>
@@ -738,10 +732,10 @@ const FeaturedLink = ({ link }: { link: MenuLink }) => {
       href={link.url}
       target={link.external ? "_blank" : undefined}
       rel={link.external ? "noopener noreferrer" : undefined}
-      className="glass-surface group relative flex w-full overflow-hidden rounded-2xl bg-white/[0.055] px-8 py-7"
+      className="glass-surface shadow-none group relative flex w-full overflow-hidden rounded-2xl bg-white/[0.055] px-8 py-7"
     >
       <div className="relative z-10 flex w-full items-center gap-6">
-        <div className="flex size-12 shrink-0 rounded-lg bg-background shadow-lg">
+        <div className="flex size-12 shrink-0 rounded-lg bg-background">
           {link.icon && (
             <link.icon className="m-auto size-5 stroke-foreground" />
           )}
@@ -830,26 +824,40 @@ const MobileNavigationMenu = ({
   dashboardHref,
   signedIn,
   menuLabel,
+  closeLabel,
 }: MobileNavigationMenuProps) => {
   return (
     <Sheet open={open} onOpenChange={(next) => !next && onClose()}>
       <SheetContent
+        id="mobile-navigation-dialog"
         aria-describedby={undefined}
         side="top"
-        className="inset-0 z-40 h-dvh w-full overflow-y-auto bg-background pt-20 [&>button]:hidden"
+        className="inset-0 z-[70] h-dvh w-full overflow-y-auto bg-background p-0 shadow-none [&>button]:hidden"
       >
-        <div className="container py-8">
-          <div className="sr-only">
-            <SheetTitle>{menuLabel}</SheetTitle>
+        <div className="container flex min-h-full flex-col pt-[calc(1rem+env(safe-area-inset-top))] pb-[var(--mobile-bottom-nav-clearance)]">
+          <div className="flex h-16 shrink-0 items-center justify-between gap-4">
+            <SheetTitle className="text-base font-medium">
+              {menuLabel}
+            </SheetTitle>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-11 shrink-0"
+              aria-label={closeLabel}
+              onClick={onClose}
+            >
+              <X aria-hidden="true" className="size-5" />
+            </Button>
           </div>
-          <div className="flex min-h-full flex-col gap-6">
+          <div className="flex flex-1 flex-col gap-6 pb-8">
             <Accordion type="multiple" className="w-full">
               {navigation.map((item, index) =>
                 renderMobileMenuItem(item, index, onClose)
               )}
             </Accordion>
 
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 [&_a]:min-h-12 [&_button]:min-h-12">
               <Button variant="outline" asChild>
                 <Link href="/contact" onClick={onClose}>
                   {contactLabel}
@@ -914,10 +922,10 @@ const renderMobileMenuItem = (
         value={`nav-${index}`}
         className="border-b-0"
       >
-        <AccordionTrigger className="h-[2.5rem] items-center text-base font-normal text-foreground hover:no-underline">
+        <AccordionTrigger className="min-h-12 items-center text-base font-normal text-foreground hover:no-underline">
           {item.title}
         </AccordionTrigger>
-        <AccordionContent className="flex flex-col gap-6 p-2">
+        <AccordionContent className="flex flex-col gap-6 p-2 [&_a]:min-h-12 [&_a]:rounded-xl [&_a]:p-3 [&_a]:transition-colors [&_a]:active:bg-accent">
           {item.featuredLinks && (
             <div className="flex flex-col gap-2 p-2">
               {item.featuredLinks.map((link, idx) => (
@@ -970,7 +978,7 @@ const renderMobileMenuItem = (
       key={item.title}
       href={item.url || "/"}
       onClick={onClose}
-      className="flex h-[2.5rem] items-center rounded-md text-left text-base leading-[3.75] font-normal text-foreground transition-colors"
+      className="flex min-h-12 items-center rounded-xl px-3 text-left text-base leading-normal font-normal text-foreground transition-colors active:bg-accent"
     >
       {item.title}
     </Link>

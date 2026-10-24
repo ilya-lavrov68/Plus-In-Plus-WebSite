@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
 
 import { Navbar } from "@/components/site/navbar";
@@ -12,6 +12,12 @@ import { getRequestTranslations } from "@/lib/server-i18n";
 import { messages } from "@/i18n";
 
 import "@/styles/globals.css";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   const [t, locale, settings] = await Promise.all([
@@ -53,7 +59,7 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} data-locale={locale} className="dark">
-      <body className="flex min-h-screen flex-col bg-background text-foreground antialiased">
+      <body className="flex min-h-screen flex-col bg-background pb-[var(--mobile-bottom-nav-clearance)] text-foreground antialiased lg:pb-0">
         <NextIntlClientProvider locale={locale} messages={messages[locale]}>
           <Providers>
             <Navbar />

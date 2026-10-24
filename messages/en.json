@@ -55,6 +55,14 @@
     "loadingContent": "Loading content",
     "partnersLogoAlt": "Plus In Plus and TS Connect"
   },
+  "mobileNav": {
+    "label": "Mobile navigation",
+    "home": "Home",
+    "services": "Services",
+    "orders": "Orders",
+    "cart": "Cart",
+    "menu": "Menu"
+  },
   "cookies": {
     "title": "We use cookies",
     "body": "We use cookies to improve your experience, analyze site traffic, and personalize content. By clicking \"Accept all\", you consent to our use of cookies. Read our <link>Privacy Policy</link>.",

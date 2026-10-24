@@ -77,7 +77,7 @@ export function CookieBanner() {
       role="dialog"
       aria-live="polite"
       aria-label={t("title")}
-      className="fixed inset-x-0 bottom-0 z-50 p-4 animate-in fade-in slide-in-from-bottom-6 duration-300"
+      className="fixed inset-x-0 bottom-[var(--mobile-bottom-nav-clearance)] z-50 p-4 animate-in fade-in slide-in-from-bottom-6 duration-300 lg:bottom-0"
     >
       <div className="mx-auto max-w-4xl overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
         {/* Основная часть */}

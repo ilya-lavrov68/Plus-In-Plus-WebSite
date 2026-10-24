@@ -23,6 +23,7 @@ for (const extension of [".ts", ".tsx"]) {
 }
 
 let sessionStatus = "unauthenticated";
+let currentPathname = "/";
 const tag =
   (name) =>
   ({ children, ...props }) =>
@@ -37,7 +38,7 @@ Module._load = function (name, parent, isMain) {
   if (name === "next/navigation") {
     return {
       useRouter: () => ({ push() {}, replace() {}, refresh() {} }),
-      usePathname: () => "/",
+      usePathname: () => currentPathname,
     };
   }
   if (name === "next-auth/react") {
@@ -129,11 +130,16 @@ const { CandlestickChart } = require("../components/spectrumui/candlestick-chart
 const { ServiceConfigurator } = require("../components/site/service-configurator.tsx");
 const { OrderCard } = require("../components/site/order-card.tsx");
 const { CookieBanner } = require("../components/site/cookie-banner.tsx");
+const {
+  MobileBottomNav,
+  isMobileNavigationActive,
+} = require("../components/site/mobile-bottom-nav.tsx");
 const { STUDIO_SERVICES, STUDIO_BLOG_POSTS } = require("../lib/studio-catalog.ts");
 const { COVER_IMAGE_GUIDES } = require("../lib/upload-policy.ts");
 
 beforeEach(() => {
   sessionStatus = "unauthenticated";
+  currentPathname = "/";
   global.HTMLFormElement = class HTMLFormElement {};
   global.window = {
     scrollY: 0,
@@ -224,6 +230,28 @@ test("Navbar10 and Footer7 render all required navigation items and footer colum
     "utf8"
   );
   assert.match(navbarSource, /className="size-full object-contain"/);
+  assert.doesNotMatch(
+    navbarSource,
+    /shadow-(?:sm|md|lg|xl|2xl|\[)/,
+    "The header must not add decorative shadows",
+  );
+  assert.equal(
+    (navbarSource.match(/glass-surface shadow-none/g) || []).length,
+    3,
+    "Every glass surface in the header must explicitly disable the shared glass shadow",
+  );
+  assert.match(
+    navbarSource,
+    /inset-0 z-\[70\][^"]*shadow-none/,
+    "The full-screen mobile sheet must stay above the bottom bar and override the shared Sheet shadow",
+  );
+  for (const file of [
+    "components/ui/navigation-menu.tsx",
+    "components/site/language-switcher.tsx",
+  ]) {
+    const source = fs.readFileSync(path.resolve(__dirname, "..", file), "utf8");
+    assert.doesNotMatch(source, /shadow-/, `${file} must stay shadow-free`);
+  }
 
   const footerImgs = footerView.root.findAllByType("img").map((img) => img.props.src);
   assert.ok(
@@ -293,6 +321,12 @@ test("Navbar10 opens the account dialog from desktop and mobile navigation", asy
     view = create(React.createElement(Navbar10));
   });
   act(() => view.root.findByProps({ id: "mobile-menu-trigger" }).props.onClick());
+  assert.ok(
+    view.root
+      .findAllByType("button")
+      .some((node) => node.props["aria-label"] === "Close menu"),
+    "The full-screen mobile menu must have its own visible close control",
+  );
   const mobileAccount = view.root
     .findAllByType("button")
     .find((node) => textOf(node) === "Account");
@@ -310,6 +344,246 @@ test("Navbar10 opens the account dialog from desktop and mobile navigation", asy
   act(() => view.unmount());
 });
 
+test("mobile bottom navigation resolves localized and nested active routes", () => {
+  const cases = [
+    ["/", "/", true],
+    ["/en", "/", true],
+    ["/ru", "/", true],
+    ["/ru/services", "/services", true],
+    ["/en/services/sign-design", "/services", true],
+    ["/shop/sign-design", "/services", true],
+    ["/ru/shop/sign-design", "/services", true],
+    ["/en/orders/order-1", "/orders", true],
+    ["/ru/cart", "/cart", true],
+    ["/blog", "/services", false],
+    ["/en/orderful", "/orders", false],
+  ];
+
+  for (const [pathname, href, expected] of cases) {
+    assert.equal(
+      isMobileNavigationActive(pathname, href),
+      expected,
+      `${pathname} vs ${href}`,
+    );
+  }
+});
+
+test("MobileBottomNav renders five touch targets and animates individual SVG icon parts", () => {
+  currentPathname = "/ru/shop/sign-design";
+  let menuToggles = 0;
+  let navigations = 0;
+  let view;
+
+  act(() => {
+    view = create(
+      React.createElement(MobileBottomNav, {
+        cartCount: 104,
+        menuOpen: false,
+        onMenuToggle: () => {
+          menuToggles += 1;
+        },
+        onNavigate: () => {
+          navigations += 1;
+        },
+      }),
+    );
+  });
+
+  const nav = view.root.findByProps({ "data-testid": "mobile-bottom-nav" });
+  assert.equal(nav.props["aria-label"], "Mobile navigation");
+  assert.match(nav.props.className, /fixed inset-x-0 bottom-0/);
+  assert.match(nav.props.className, /backdrop-blur-2xl/);
+  assert.match(nav.props.className, /pb-\[env\(safe-area-inset-bottom\)\]/);
+  assert.match(nav.props.className, /lg:hidden/);
+  assert.doesNotMatch(nav.props.className, /shadow-|border-|animate-mobile-nav-enter/);
+
+  const links = nav.findAllByType("a");
+  assert.deepEqual(
+    links.map((link) => link.props.href),
+    ["/", "/services", "/orders", "/cart"],
+  );
+  for (const link of links) {
+    assert.match(link.props.className, /min-h-14/);
+    assert.match(link.props.className, /focus-visible:ring-2/);
+  }
+  for (const label of ["Home", "Services", "Orders", "Cart", "Menu"]) {
+    assert.ok(textOf(nav).includes(label), "Missing mobile tab: " + label);
+  }
+
+  const home = links.find((link) => link.props.href === "/");
+  const homeIcon = home.findByProps({ "data-icon": "home" });
+  assert.doesNotMatch(homeIcon.props.className, /is-active/);
+  assert.equal(home.props["aria-current"], undefined);
+
+  const services = links.find((link) => link.props.href === "/services");
+  assert.equal(services.props["aria-current"], "page");
+  const activePlaque = services
+    .findAllByType("span")
+    .find((span) => String(span.props.className).includes("bg-primary"));
+  assert.ok(activePlaque, "The active tab must use the contrasting PIP icon plaque");
+  assert.doesNotMatch(activePlaque.props.className, /animate-mobile-nav-plaque/);
+
+  const serviceIcon = services.findByProps({ "data-icon": "services" });
+  assert.match(serviceIcon.props.className, /is-active/);
+  const serviceTiles = serviceIcon.findAllByType("rect");
+  assert.equal(serviceTiles.length, 4);
+  for (const tile of serviceTiles) {
+    assert.match(tile.props.className, /mobile-nav-animate-bottom/);
+  }
+  assert.ok(
+    serviceTiles.some((tile) => String(tile.props.className).includes("mobile-nav-delay-3")),
+    "The services tiles must have a staggered sequence",
+  );
+
+  const cart = links.find((link) => link.props.href === "/cart");
+  assert.ok(textOf(cart).includes("99+"));
+  const badge = cart
+    .findAllByType("span")
+    .find((span) => String(span.props.className).includes("bg-destructive"));
+  assert.ok(badge, "The cart badge must be rendered");
+  assert.doesNotMatch(badge.props.className, /animate-mobile-nav-badge/);
+  assert.equal(cart.props["aria-label"], "Open the cart — 104 items");
+  const cartIcon = cart.findByProps({ "data-icon": "cart" });
+  assert.equal(cartIcon.findAllByType("circle").length, 2);
+  assert.ok(
+    cartIcon
+      .findAllByType("path")
+      .some((path) => path.props.pathLength === 1 && String(path.props.className).includes("mobile-nav-animate-stroke")),
+    "The cart contour must support stroke drawing",
+  );
+
+  const menu = view.root.findByProps({ id: "mobile-menu-trigger" });
+  assert.equal(menu.props["aria-expanded"], false);
+  assert.equal(menu.props["aria-controls"], "mobile-navigation-dialog");
+  assert.equal(menu.props["aria-haspopup"], "dialog");
+  const menuIcon = menu.findByProps({ "data-icon": "menu" });
+  assert.doesNotMatch(menuIcon.props.className, /is-open/);
+  const menuLines = menuIcon.findAllByType("path");
+  assert.equal(menuLines.length, 3);
+  for (const line of menuLines) {
+    assert.match(line.props.className, /mobile-nav-menu-line/);
+  }
+  for (const part of ["top", "middle", "bottom"]) {
+    assert.ok(menuLines.some((line) => String(line.props.className).includes("mobile-nav-menu-" + part)));
+  }
+
+  act(() => menu.props.onClick());
+  act(() => services.props.onClick());
+  assert.equal(menuToggles, 1);
+  assert.equal(navigations, 1);
+
+  act(() => {
+    view.update(
+      React.createElement(MobileBottomNav, {
+        cartCount: 104,
+        menuOpen: true,
+        onMenuToggle: () => {},
+        onNavigate: () => {},
+      }),
+    );
+  });
+  const openMenu = view.root.findByProps({ id: "mobile-menu-trigger" });
+  assert.equal(openMenu.props["aria-expanded"], true);
+  const openIcon = openMenu.findByProps({ "data-icon": "menu" });
+  assert.match(openIcon.props.className, /is-open/);
+  assert.equal(openIcon.findAllByType("path").length, 3, "The same three lines must morph into X");
+
+  act(() => view.unmount());
+});
+
+test("mobile navigation animates SVG parts with reduced-motion safeguards", () => {
+  const source = fs.readFileSync(
+    path.resolve(__dirname, "../components/site/mobile-bottom-nav.tsx"),
+    "utf8",
+  );
+  const globals = fs.readFileSync(
+    path.resolve(__dirname, "../styles/globals.css"),
+    "utf8",
+  );
+
+  for (const className of [
+    "mobile-nav-animate-stroke",
+    "mobile-nav-animate-top",
+    "mobile-nav-animate-bottom",
+    "mobile-nav-menu-line",
+    "is-active",
+    "is-open",
+  ]) {
+    assert.ok(source.includes(className), "Missing SVG motion part: " + className);
+  }
+  assert.ok(source.includes("pathLength={1}"), "Drawable paths must use normalized lengths");
+  assert.doesNotMatch(
+    source,
+    /requestAnimationFrame|setInterval|layoutId|animate-mobile-nav-(?:enter|plaque|badge)/,
+    "Icon motion must not use JavaScript loops or the retired panel animations",
+  );
+
+  for (const name of ["mobile-nav-stroke-in", "mobile-nav-part-from-top", "mobile-nav-part-from-bottom"]) {
+    assert.match(globals, new RegExp(`@keyframes ${name} \\{`));
+  }
+  const keyframes = globals.match(
+    /@keyframes mobile-nav-stroke-in[\s\S]*?(?=@keyframes accordion-down)/,
+  )?.[0];
+  assert.ok(keyframes, "Mobile icon keyframes must stay grouped");
+  assert.match(keyframes, /opacity:/);
+  assert.match(keyframes, /translate3d/);
+  assert.match(keyframes, /stroke-dashoffset/);
+  assert.doesNotMatch(keyframes, /scale\(|zoom/);
+  assert.match(globals, /\.mobile-nav-icon\.is-active > \.mobile-nav-animate-stroke/);
+  assert.match(globals, /@media \(prefers-reduced-motion: no-preference\)/);
+  assert.match(globals, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.match(globals, /rotate\(45deg\)/);
+  assert.match(globals, /rotate\(-45deg\)/);
+});
+
+test("Navbar10 shares one cart request between desktop and mobile navigation", async () => {
+  sessionStatus = "authenticated";
+  let cartRequests = 0;
+  global.fetch = async (url) => {
+    if (url === "/api/cart") cartRequests += 1;
+    return { ok: true, json: async () => ({ count: 7 }) };
+  };
+
+  let view;
+  await act(async () => {
+    view = create(React.createElement(Navbar10));
+  });
+
+  assert.equal(cartRequests, 1);
+  const desktopCart = view.root.findByProps({ "data-testid": "cart-icon" });
+  assert.equal(desktopCart.props["aria-label"], "Open the cart — 7 items");
+  const mobileNav = view.root.findByProps({ "data-testid": "mobile-bottom-nav" });
+  const mobileCart = mobileNav
+    .findAllByType("a")
+    .find((link) => link.props.href === "/cart");
+  assert.equal(mobileCart.props["aria-label"], "Open the cart — 7 items");
+
+  act(() => view.unmount());
+});
+
+test("mobile navigation coordinates safe-area and fixed UI clearance", () => {
+  const read = (file) => fs.readFileSync(path.resolve(__dirname, "..", file), "utf8");
+  const layout = read("app/layout.tsx");
+  assert.match(layout, /viewportFit:\s*"cover"/);
+  assert.match(layout, /pb-\[var\(--mobile-bottom-nav-clearance\)\]/);
+
+  const globals = read("styles/globals.css");
+  assert.match(globals, /--mobile-bottom-nav-height:\s*4\.5rem/);
+  assert.match(globals, /env\(safe-area-inset-bottom\)/);
+
+  for (const file of [
+    "components/site/cookie-banner.tsx",
+    "components/site/services-catalog-view.tsx",
+    "components/ui/toast.tsx",
+  ]) {
+    assert.match(
+      read(file),
+      /bottom-\[var\(--mobile-bottom-nav-clearance\)\]/,
+      `${file} must clear the mobile bottom navigation`,
+    );
+  }
+});
+
 test("Feature314, Community3, and Cta13 render exact studio advantages, SVG logos without visible plain text, and partner copy", () => {
   let fView, cView, ctaView;
   act(() => {
@@ -321,6 +595,29 @@ test("Feature314, Community3, and Cta13 render exact studio advantages, SVG logo
   assert.ok(fText.includes("Everything is confidential"));
   assert.ok(fText.includes("Individual selection"));
   assert.ok(fText.includes("Ongoing tech support"));
+
+  const rotatingPlusIcons = fView.root
+    .findAllByType("svg")
+    .filter((icon) => String(icon.props.className).includes("group-hover:rotate-90"));
+  assert.equal(
+    rotatingPlusIcons.length,
+    3,
+    "All three Feature314 plus controls must rotate 90 degrees on card hover",
+  );
+  for (const icon of rotatingPlusIcons) {
+    assert.match(icon.props.className, /bg-secondary/);
+    assert.match(icon.props.className, /group-hover:bg-primary/);
+    assert.match(icon.props.className, /transition-\[transform,background-color,color\]/);
+  }
+  const featureSource = fs.readFileSync(
+    path.resolve(__dirname, "../components/blocks/feature314.tsx"),
+    "utf8",
+  );
+  assert.doesNotMatch(
+    featureSource,
+    /bg-slate-950\/30|backdrop-blur-xl/,
+    "Feature logos and plus controls must not acquire decorative glass backgrounds",
+  );
 
   const cImgs = cView.root.findAllByType("img").map((img) => img.props.src);
   assert.ok(
