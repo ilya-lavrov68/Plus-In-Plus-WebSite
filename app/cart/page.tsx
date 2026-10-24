@@ -1,406 +1,87 @@
-"use client";
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { FileText } from "lucide-react";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { auth } from "@/auth";
+import { CartPanel } from "@/components/site/cart-panel";
+import { EmptyState } from "@/components/site/empty-state";
+import { OrderCard } from "@/components/site/order-card";
+import { getCustomerOrders } from "@/lib/customer-orders";
+import { getRequestTranslations } from "@/lib/server-i18n";
 
-import { notifyCartUpdated } from "@/components/site/cart-icon";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/components/ui/use-toast";
+export const dynamic = "force-dynamic";
 
-export interface CartItem {
-  id: string;
-  itemType: "service" | "product";
-  itemId: string;
-  quantity: number;
-  name: string;
-  price: number;
-  category?: string;
-  unavailable: boolean;
-  maxQuantity: number;
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getRequestTranslations("cart");
+  return { title: t("title"), robots: { index: false, follow: false } };
 }
 
-export default function CartPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  const t = useTranslations("cart");
-  const numberLocale = useLocale() === "ru" ? "ru-RU" : "en-GB";
+/**
+ * Корзина и заказы — одна страница.
+ *
+ * Корзина в базе и есть заказ со статусом `cart`, поэтому разделять их по
+ * разным адресам смысла нет: наверху то, что ещё не отправлено, ниже — уже
+ * отправленные заявки с их статусами, счетами и отменой. `/orders` остаётся
+ * редиректом сюда, чтобы старые ссылки и возвраты с оплаты не ломались.
+ */
+export default async function CartPage() {
+  const [session, t, tOrders] = await Promise.all([
+    auth(),
+    getRequestTranslations("cart"),
+    getRequestTranslations("orders"),
+  ]);
 
-  const [items, setItems] = useState<CartItem[]>([]);
-  const [deadline, setDeadline] = useState("");
-  const [description, setDescription] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [pendingItemId, setPendingItemId] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const todayIso = useMemo(() => new Date().toISOString().split("T")[0], []);
-
-  useEffect(() => {
-    if (status === "loading") return;
-
-    if (!session?.user) {
-      router.push("/login");
-      return;
-    }
-
-    let cancelled = false;
-    fetch("/api/cart", { cache: "no-store" })
-      .then((res) => {
-        if (res.status === 401) {
-          router.push("/login");
-          return null;
-        }
-        if (!res.ok) throw new Error("Cart request failed");
-        return res.json();
-      })
-      .then((data) => {
-        if (cancelled || !data) return;
-        setItems(Array.isArray(data.items) ? data.items : []);
-        setDeadline(
-          typeof data.deadline === "string"
-            ? data.deadline.split("T")[0]
-            : ""
-        );
-        setDescription(data.description || "");
-        setIsLoading(false);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setErrorMessage(t("loadFailed"));
-          setIsLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [session, status, router, t]);
-
-  const updateQuantity = async (id: string, nextQuantity: number) => {
-    const line = items.find((item) => item.id === id);
-    if (
-      !line ||
-      pendingItemId ||
-      nextQuantity < 1 ||
-      nextQuantity > Math.min(99, line.maxQuantity)
-    ) return;
-    setErrorMessage(null);
-    setPendingItemId(id);
-    const previous = items;
-    const updated = items.map((item) =>
-      item.id === id ? { ...item, quantity: nextQuantity } : item
-    );
-    setItems(updated);
-    notifyCartUpdated(updated.reduce((sum, item) => sum + item.quantity, 0));
-
-    try {
-      const res = await fetch("/api/cart/item", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, quantity: nextQuantity }),
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.error || t("updateFailed"));
-      if (typeof data?.count === "number") notifyCartUpdated(data.count);
-    } catch (error) {
-      setItems(previous);
-      notifyCartUpdated(previous.reduce((sum, item) => sum + item.quantity, 0));
-      const message = error instanceof Error ? error.message : t("updateFailed");
-      setErrorMessage(message);
-      toast({ title: message, variant: "destructive" });
-    } finally {
-      setPendingItemId(null);
-    }
-  };
-
-  const removeItem = async (id: string) => {
-    if (pendingItemId) return;
-    setErrorMessage(null);
-    setPendingItemId(id);
-    const previous = items;
-    const nextItems = items.filter((item) => item.id !== id);
-    setItems(nextItems);
-    notifyCartUpdated(nextItems.reduce((sum, item) => sum + item.quantity, 0));
-
-    try {
-      const res = await fetch("/api/cart/item", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.error || t("removeFailed"));
-      if (typeof data?.count === "number") notifyCartUpdated(data.count);
-    } catch (error) {
-      setItems(previous);
-      notifyCartUpdated(previous.reduce((sum, item) => sum + item.quantity, 0));
-      const message = error instanceof Error ? error.message : t("removeFailed");
-      setErrorMessage(message);
-      toast({ title: message, variant: "destructive" });
-    } finally {
-      setPendingItemId(null);
-    }
-  };
-
-  const handleCheckout = async () => {
-    if (items.length === 0 || isSubmitting || pendingItemId) return;
-    if (hasCartIssues) {
-      setErrorMessage(t("resolveItems"));
-      return;
-    }
-    setIsSubmitting(true);
-    setErrorMessage(null);
-
-    try {
-      const res = await fetch("/api/cart/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          deadline: deadline || null,
-          description: description || null,
-        }),
-      });
-
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        const msg = data?.error || t("checkoutFailed");
-        setErrorMessage(msg);
-        toast({
-          title: msg,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      notifyCartUpdated(0);
-      toast({
-        title: data?.orderNumber
-          ? t("submitted", { number: data.orderNumber })
-          : t("submitOrderRequest"),
-      });
-      router.push("/orders");
-      router.refresh();
-    } catch {
-      setErrorMessage(t("checkoutFailed"));
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const hasCartIssues = items.some(
-    (item) => item.unavailable || item.quantity > item.maxQuantity,
-  );
-  const total = items.reduce(
-    (sum, item) =>
-      item.unavailable || item.quantity > item.maxQuantity
-        ? sum
-        : sum + item.price * item.quantity,
-    0,
-  );
-
-  if (status === "loading" || isLoading) {
-    return (
-      <div className="mx-auto max-w-4xl px-6 py-28 text-center text-muted-foreground">
-        {t("loading")}
-      </div>
-    );
+  if (!session?.user?.id) {
+    redirect("/login");
   }
 
-  if (items.length === 0) {
-    return (
-      <div className="mx-auto max-w-4xl px-6 py-28 text-center">
-        <ShoppingCart
-          aria-hidden="true"
-          className="mx-auto mb-4 h-16 w-16 text-muted-foreground"
-        />
-        <h1 className="mb-4 text-3xl font-bold tracking-tight">
-          {t("emptyTitle")}
-        </h1>
-        <p
-          role={errorMessage ? "alert" : undefined}
-          className={errorMessage ? "mb-8 text-destructive" : "mb-8 text-muted-foreground"}
-        >
-          {errorMessage ?? t("emptyBody")}
-        </p>
-        <div className="flex flex-wrap justify-center gap-4">
-          <Button onClick={() => router.push("/services")}>
-            {t("browseServices")}
-          </Button>
-          <Button variant="outline" onClick={() => router.push("/shop")}>
-            {t("browseShop")}
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const orders = await getCustomerOrders();
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-24 md:py-32">
-      <h1 className="mb-8 text-3xl font-bold tracking-tight">
-        {t("shoppingCart")}
-      </h1>
+      <header className="mb-10">
+        <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
+          {t("title")}
+        </h1>
+        <p className="mt-2 text-muted-foreground">{t("subtitle")}</p>
+      </header>
 
-      <div className="space-y-6">
-        <Card className="border-border bg-card p-6">
-          <div className="space-y-4">
-            {items.map((item) => (
-              <div
-                key={item.id}
-                className="flex flex-wrap items-center justify-between gap-4 border-b border-border py-3 last:border-0"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="font-medium text-foreground">{item.name}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {item.itemType === "service"
-                      ? t("serviceLabel")
-                      : t("productLabel")}
-                    {item.category ? ` · ${item.category}` : ""}
-                  </div>
-                  {item.unavailable ? (
-                    <p className="mt-1 text-sm text-destructive">{t("itemUnavailable")}</p>
-                  ) : item.quantity > item.maxQuantity ? (
-                    <p className="mt-1 text-sm text-destructive">
-                      {t("itemStockLimited", { count: item.maxQuantity })}
-                    </p>
-                  ) : null}
-                </div>
+      <section aria-labelledby="cart-section-title">
+        <h2
+          id="cart-section-title"
+          className="mb-6 text-2xl font-semibold tracking-tight"
+        >
+          {t("shoppingCart")}
+        </h2>
+        <CartPanel />
+      </section>
 
-                <div className="flex items-center gap-4">
-                  <div className="inline-flex items-center rounded-lg border border-border">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 rounded-r-none"
-                      disabled={pendingItemId !== null || item.quantity <= 1}
-                      onClick={() =>
-                        void updateQuantity(item.id, item.quantity - 1)
-                      }
-                    >
-                      <Minus aria-hidden="true" className="h-3.5 w-3.5" />
-                    </Button>
-                    <span className="min-w-8 px-2 text-center text-sm font-medium tabular-nums">
-                      {item.quantity}
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 rounded-l-none"
-                      disabled={
-                        pendingItemId !== null ||
-                        item.unavailable ||
-                        item.quantity >= Math.min(99, item.maxQuantity)
-                      }
-                      onClick={() =>
-                        void updateQuantity(item.id, item.quantity + 1)
-                      }
-                    >
-                      <Plus aria-hidden="true" className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
+      <section
+        aria-labelledby="orders-section-title"
+        className="mt-16 border-t border-border pt-12"
+      >
+        <h2
+          id="orders-section-title"
+          className="text-2xl font-semibold tracking-tight"
+        >
+          {tOrders("title")}
+        </h2>
+        <p className="mt-2 mb-6 text-muted-foreground">{tOrders("subtitle")}</p>
 
-                  <div className="min-w-24 text-right text-lg font-bold tabular-nums">
-                    {(item.price * item.quantity).toLocaleString(numberLocale)} ₽
-                  </div>
-
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    aria-label={t("remove")}
-                    disabled={pendingItemId !== null}
-                    onClick={() => void removeItem(item.id)}
-                  >
-                    <Trash2 aria-hidden="true" className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+        {orders.length === 0 ? (
+          <EmptyState
+            icon={FileText}
+            title={tOrders("emptyTitle")}
+            description={tOrders("emptyBody")}
+          />
+        ) : (
+          <div className="space-y-6">
+            {orders.map((order) => (
+              <OrderCard key={order.id} order={order} />
             ))}
           </div>
-
-          <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
-            <div className="text-lg font-semibold">{t("estimatedTotal")}:</div>
-            <div className="text-2xl font-bold tabular-nums">
-              {total.toLocaleString(numberLocale)} ₽
-            </div>
-          </div>
-          <p className="mt-3 text-sm text-muted-foreground">{t("managerNote")}</p>
-        </Card>
-
-        <Card className="border-border bg-card p-6">
-          <h2 className="mb-4 text-xl font-semibold">{t("orderDetails")}</h2>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="cart-deadline" className="mb-2 block text-sm font-medium">
-                {t("desiredDeadline")}
-              </Label>
-              <Input
-                id="cart-deadline"
-                type="date"
-                min={todayIso}
-                value={deadline}
-                onChange={(e) => setDeadline(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="cart-description" className="mb-2 block text-sm font-medium">
-                {t("projectDescription")}
-              </Label>
-              <Textarea
-                id="cart-description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={4}
-                maxLength={4000}
-                placeholder={t("projectDescriptionPlaceholder")}
-              />
-            </div>
-          </div>
-        </Card>
-
-        {hasCartIssues ? (
-          <p role="alert" className="text-sm text-destructive">
-            {t("resolveItems")}
-          </p>
-        ) : null}
-
-        {errorMessage ? (
-          <p
-            role="alert"
-            className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive"
-          >
-            {errorMessage}
-          </p>
-        ) : null}
-
-        <div className="flex flex-wrap gap-4">
-          <Button
-            type="button"
-            onClick={() => void handleCheckout()}
-            disabled={isSubmitting || pendingItemId !== null || hasCartIssues || items.length === 0}
-            className="flex-1"
-            size="lg"
-          >
-            {isSubmitting ? t("submitting") : t("submitOrderRequest")}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
-            onClick={() => router.back()}
-          >
-            {t("continueShopping")}
-          </Button>
-        </div>
-      </div>
+        )}
+      </section>
     </div>
   );
 }

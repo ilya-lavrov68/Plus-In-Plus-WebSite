@@ -74,17 +74,6 @@
   }
 }
 
-@keyframes mobile-nav-part-from-top {
-  from {
-    opacity: 0;
-    transform: translate3d(0, -3px, 0);
-  }
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
-}
-
 @keyframes mobile-nav-part-from-bottom {
   from {
     opacity: 0;
@@ -325,10 +314,6 @@
   @media (prefers-reduced-motion: no-preference) {
     .mobile-nav-icon.is-active > .mobile-nav-animate-stroke {
       animation: mobile-nav-stroke-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
-    }
-
-    .mobile-nav-icon.is-active > .mobile-nav-animate-top {
-      animation: mobile-nav-part-from-top 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
     }
 
     .mobile-nav-icon.is-active > .mobile-nav-animate-bottom {

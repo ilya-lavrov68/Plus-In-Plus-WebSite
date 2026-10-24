@@ -101,7 +101,7 @@ const Footer7 = ({
       links: [
         { name: t("companyLinks.contactUs"), href: "/contact" },
         { name: t("orderDesign"), href: "/contact" },
-        { name: t("companyLinks.account"), href: "/orders" },
+        { name: t("companyLinks.account"), href: "/cart" },
       ],
     },
   ];

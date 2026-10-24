@@ -13,17 +13,20 @@ interface MobileBottomNavProps {
   onNavigate: () => void;
 }
 
-type MobileNavigationIcon = "home" | "services" | "orders" | "cart";
+type MobileNavigationIcon = "home" | "services" | "cart";
 
 interface MobileNavigationItem {
   href: string;
   label: MobileNavigationIcon;
 }
 
+/**
+ * Корзина и заказы объединены на /cart, поэтому отдельной вкладки «Заказы»
+ * в мобильной навигации нет: все отправленные заявки видны под корзиной.
+ */
 const ITEMS: MobileNavigationItem[] = [
   { href: "/", label: "home" },
   { href: "/services", label: "services" },
-  { href: "/orders", label: "orders" },
   { href: "/cart", label: "cart" },
 ];
 
@@ -78,22 +81,6 @@ function MobileNavIcon({
         <rect className="mobile-nav-animate-bottom mobile-nav-delay-1" x="14" y="3" width="7" height="7" rx="1" />
         <rect className="mobile-nav-animate-bottom mobile-nav-delay-2" x="14" y="14" width="7" height="7" rx="1" />
         <rect className="mobile-nav-animate-bottom mobile-nav-delay-3" x="3" y="14" width="7" height="7" rx="1" />
-      </>
-    ),
-    orders: (
-      <>
-        <rect className="mobile-nav-animate-top" x="8" y="2" width="8" height="4" rx="1" />
-        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-        <path
-          pathLength={1}
-          className="mobile-nav-animate-stroke mobile-nav-delay-1"
-          d="M9 12h6"
-        />
-        <path
-          pathLength={1}
-          className="mobile-nav-animate-stroke mobile-nav-delay-2"
-          d="M9 16h6"
-        />
       </>
     ),
     cart: (
@@ -170,7 +157,7 @@ export function MobileBottomNav({
       data-testid="mobile-bottom-nav"
       className="fixed inset-x-0 bottom-0 z-50 bg-background/90 pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] backdrop-blur-2xl lg:hidden"
     >
-      <div className="mx-auto grid h-[var(--mobile-bottom-nav-height)] max-w-xl grid-cols-5 items-stretch gap-1 px-2">
+      <div className="mx-auto grid h-[var(--mobile-bottom-nav-height)] max-w-xl grid-cols-4 items-stretch gap-1 px-2">
         {ITEMS.map((item) => {
           const active = isMobileNavigationActive(pathname, item.href);
           const count = item.href === "/cart" ? cartCount : 0;

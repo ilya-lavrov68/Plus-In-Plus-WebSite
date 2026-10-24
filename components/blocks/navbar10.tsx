@@ -103,7 +103,6 @@ interface MobileNavigationMenuProps {
   profileLabel: string;
   accountLabel: string;
   onOpenAccount: () => void;
-  ordersLabel: string;
   cartLabel: string;
   adminLabel: string;
   dashboardHref: string | null;
@@ -396,9 +395,6 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
                         </Link>
                       </Button>
                     )}
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link href="/orders">{t("orders")}</Link>
-                    </Button>
                     <button
                       id="account-trigger"
                       type="button"
@@ -453,7 +449,6 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
           setAccountReturnFocusId("mobile-menu-trigger");
           setAccountOpen(true);
         }}
-        ordersLabel={t("orders")}
         cartLabel={t("cart")}
         adminLabel={t("admin")}
         dashboardHref={dashboardHref}
@@ -818,7 +813,6 @@ const MobileNavigationMenu = ({
   profileLabel,
   accountLabel,
   onOpenAccount,
-  ordersLabel,
   cartLabel,
   adminLabel,
   dashboardHref,
@@ -875,11 +869,6 @@ const MobileNavigationMenu = ({
                   <Button variant="outline" asChild>
                     <Link href="/profile" onClick={onClose}>
                       {profileLabel}
-                    </Link>
-                  </Button>
-                  <Button variant="outline" asChild>
-                    <Link href="/orders" onClick={onClose}>
-                      {ordersLabel}
                     </Link>
                   </Button>
                   <Button variant="outline" asChild>

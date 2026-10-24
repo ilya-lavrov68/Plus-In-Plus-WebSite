@@ -38,11 +38,27 @@ function createTranslator(namespace) {
   return translate;
 }
 
+/**
+ * Cached per namespace, exactly like the real `useTranslations`: the identity
+ * of the returned function must be stable across renders, otherwise components
+ * that list it in an effect dependency re-run their effect on every render.
+ */
+const translators = new Map();
+
+function stableTranslator(namespace) {
+  let translator = translators.get(namespace);
+  if (!translator) {
+    translator = createTranslator(namespace);
+    translators.set(namespace, translator);
+  }
+  return translator;
+}
+
 module.exports = {
   NextIntlClientProvider: ({ children }) => children ?? null,
-  useTranslations: createTranslator,
+  useTranslations: stableTranslator,
   useLocale: () => "en",
   useFormatter: () => ({ dateTime: (value) => String(value), number: (value) => String(value) }),
-  getTranslations: async (namespace) => createTranslator(namespace),
+  getTranslations: async (namespace) => stableTranslator(namespace),
   getLocale: async () => "en",
 };

@@ -258,7 +258,7 @@ function ProfilePanel({
             {tProfile("title")}
           </Link>
           <Link
-            href="/orders"
+            href="/cart"
             onClick={onClose}
             className="flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium text-foreground underline-offset-4 hover:underline"
           >

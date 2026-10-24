@@ -63,7 +63,7 @@ export default async function PaymentFailPage({ searchParams }: PaymentPageProps
           ) : null}
           <div className="mt-2 flex flex-wrap justify-center gap-3">
             <Button asChild variant="outline">
-              <Link href="/orders">{t("backToOrders")}</Link>
+              <Link href="/cart">{t("backToOrders")}</Link>
             </Button>
             <Button asChild>
               <Link href="/">{t("backHome")}</Link>

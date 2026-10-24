@@ -193,7 +193,7 @@ export async function POST(request: Request) {
     revalidatePath("/admin/orders");
     revalidatePath("/admin/dashboard");
     revalidatePath("/manager/orders");
-    revalidatePath("/orders");
+    revalidatePath("/cart");
 
     return NextResponse.json({ ok: true, orderNumber });
   } catch (error) {

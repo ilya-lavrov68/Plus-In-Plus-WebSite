@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     });
 
     revalidatePath("/cart");
-    revalidatePath("/orders");
+    revalidatePath("/cart");
     revalidatePath("/admin/orders");
     revalidatePath("/manager/orders");
     revalidatePath("/admin/dashboard");
