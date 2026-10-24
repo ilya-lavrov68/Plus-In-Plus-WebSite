@@ -9,6 +9,7 @@ import {
   useReducedMotion,
   useSpring,
 } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import { cn } from '@/lib/utils';
 
@@ -542,6 +543,8 @@ function EmptyHint({
   motionOn: boolean;
   onClear: () => void;
 }) {
+  const t = useTranslations("admin.dataTable");
+
   return (
     <motion.div
       className="flex flex-col items-center gap-1 text-center"
@@ -560,16 +563,14 @@ function EmptyHint({
         transition={motionOn ? SPRING_ICON : INSTANT}
         className="text-sm font-medium text-foreground"
       >
-        {filtered ? 'No matching rows' : 'Nothing here yet'}
+        {filtered ? t('noMatchingRows') : t('nothingHere')}
       </motion.p>
       <motion.p
         variants={EMPTY_ITEM}
         transition={motionOn ? SPRING_ICON : INSTANT}
         className="text-sm text-muted-foreground"
       >
-        {filtered
-          ? 'Try different search terms or filters.'
-          : 'Rows appear here once there is data.'}
+        {filtered ? t('noMatchingDescription') : t('emptyDescription')}
       </motion.p>
       {filtered && (
         <motion.button
@@ -583,7 +584,7 @@ function EmptyHint({
             FOCUS,
           )}
         >
-          Clear filters
+          {t('clearFilters')}
         </motion.button>
       )}
     </motion.div>
@@ -698,7 +699,7 @@ export function DataTable<T>({
   title,
   toolbar,
   searchable = false,
-  searchPlaceholder = 'Search',
+  searchPlaceholder,
   searchText,
   quickFilter,
   defaultSort = null,
@@ -727,8 +728,10 @@ export function DataTable<T>({
   animate = true,
   className,
 }: DataTableProps<T>) {
+  const t = useTranslations("admin.dataTable");
   const reduced = useReducedMotion();
   const motionOn = animate && !reduced;
+  const searchLabel = searchPlaceholder ?? t('search');
   const surface = SURFACE[variant];
   const scale = DENSITY[density];
 
@@ -1197,13 +1200,13 @@ export function DataTable<T>({
                 <LayoutGroup id={`${gridId}-filters`}>
                   <div
                     role="group"
-                    aria-label={quickFilter.label ?? 'Filter rows'}
+                    aria-label={quickFilter.label ?? t('filterRows')}
                     className="flex flex-wrap items-center gap-1"
                   >
                     <FilterPill
                       active={quickValue === null}
                       onClick={() => changeQuickValue(null)}
-                      label={quickFilter.allLabel ?? 'All'}
+                      label={quickFilter.allLabel ?? t('all')}
                       count={filtered.length}
                       layoutId={`${gridId}-pill`}
                       motionOn={motionOn}
@@ -1233,8 +1236,8 @@ export function DataTable<T>({
                     type="search"
                     value={query}
                     onChange={(event) => changeQuery(event.currentTarget.value)}
-                    placeholder={searchPlaceholder}
-                    aria-label={searchPlaceholder}
+                    placeholder={searchLabel}
+                    aria-label={searchLabel}
                     className={cn(
                       'h-9 w-full rounded-xl border border-border bg-background ps-8 pe-8 text-base text-foreground placeholder:text-muted-foreground sm:text-sm',
                       'transition-[border-color] duration-150 ease-out',
@@ -1248,7 +1251,7 @@ export function DataTable<T>({
                       <motion.button
                         type="button"
                         onClick={() => changeQuery('')}
-                        aria-label="Clear search"
+                        aria-label={t('clearSearch')}
                         initial={motionOn ? { opacity: 0 } : false}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -1379,7 +1382,7 @@ export function DataTable<T>({
                         checked={allOnPage}
                         indeterminate={selectedOnPage.length > 0 && !allOnPage}
                         onChange={toggleAll}
-                        label="Select all rows on this page"
+                        label={t('selectAllRows')}
                         instant={!motionOn}
                       />
                     </th>
@@ -1471,9 +1474,9 @@ export function DataTable<T>({
                           <span
                             role="separator"
                             aria-orientation="vertical"
-                            aria-label={`Resize ${
-                              typeof column.header === 'string' ? column.header : column.id
-                            } column`}
+                            aria-label={t('resizeColumn', {
+                              name: typeof column.header === 'string' ? column.header : column.id,
+                            })}
                             aria-valuenow={Math.round(widths[column.id] ?? MIN_COL)}
                             aria-valuemin={MIN_COL}
                             tabIndex={0}
@@ -1505,7 +1508,7 @@ export function DataTable<T>({
                   })}
                   {rowActions && (
                     <th scope="col" className={cn('w-12', surface.headRule)}>
-                      <span className="sr-only">Actions</span>
+                      <span className="sr-only">{t('actions')}</span>
                     </th>
                   )}
                 </tr>
@@ -1625,7 +1628,7 @@ export function DataTable<T>({
                                 onClick={() => setExpanded(isExpanded ? null : id)}
                                 aria-expanded={isExpanded}
                                 aria-controls={isExpanded ? `${id}-detail` : undefined}
-                                aria-label={isExpanded ? `Hide ${name}` : `Show ${name}`}
+                                aria-label={t(isExpanded ? 'hideRow' : 'showRow', { name })}
                                 className={cn(
                                   'grid size-8 place-items-center rounded-xl text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100',
                                   PRESS,
@@ -1666,7 +1669,7 @@ export function DataTable<T>({
                                   setCursor(index);
                                   selectRow(index, { shiftKey: true });
                                 }}
-                                label={`Select ${name}`}
+                                label={t('selectRow', { name })}
                                 instant={!motionOn}
                               />
                             </td>
@@ -1846,14 +1849,14 @@ export function DataTable<T>({
                     className="pointer-events-auto flex max-w-full items-center gap-1 rounded-full border border-border bg-popover p-1 ps-3 whitespace-nowrap text-popover-foreground shadow-lg"
                   >
                     <span className="pe-1 text-xs font-medium tabular-nums">
-                      <FlipDigits value={selected.length} instant={!motionOn} /> selected
+                      <FlipDigits value={selected.length} instant={!motionOn} /> {t('selected')}
                     </span>
                     <span className="h-4 w-px bg-current opacity-20" />
                     {clipboard && (
                       <button
                         type="button"
                         onClick={() => void copySelection()}
-                        aria-label={`Copy ${selected.length} rows to the clipboard`}
+                        aria-label={t('copyRows', { count: selected.length })}
                         className={cn(
                           'flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm font-medium hover:bg-accent focus-visible:ring-1 focus-visible:ring-current focus-visible:outline-hidden',
                           PRESS,
@@ -1887,7 +1890,7 @@ export function DataTable<T>({
                               exit={motionOn ? { y: -8, opacity: 0 } : { opacity: 0 }}
                               transition={motionOn ? SPRING_SNAPPY : INSTANT}
                             >
-                              {copied ? 'Copied' : 'Copy'}
+                              {copied ? t('copied') : t('copy')}
                             </motion.span>
                           </AnimatePresence>
                         </span>
@@ -1902,7 +1905,7 @@ export function DataTable<T>({
                     <button
                       type="button"
                       onClick={() => setSelected([])}
-                      aria-label="Clear selection"
+                      aria-label={t('clearSelection')}
                       className={cn(
                         'grid size-7 place-items-center rounded-full opacity-60 hover:opacity-100 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-current',
                         PRESS,
@@ -1919,7 +1922,7 @@ export function DataTable<T>({
 
         {pageSize && !loading && sorted.length > 0 && (
           <nav
-            aria-label="Pagination"
+            aria-label={t('pagination')}
             className={cn(
               'flex items-center justify-between gap-3 border-t border-border py-2.5',
               scale.pad,
@@ -1928,7 +1931,7 @@ export function DataTable<T>({
           >
             <p className="text-xs text-muted-foreground">
               <FlipDigits
-                value={`${rangeStart}–${rangeEnd} of ${sorted.length}`}
+                value={t('range', { start: rangeStart, end: rangeEnd, total: sorted.length })}
                 instant={!motionOn}
               />
             </p>
@@ -1937,7 +1940,7 @@ export function DataTable<T>({
                 type="button"
                 onClick={() => setPage(safePage - 1)}
                 disabled={safePage === 0}
-                aria-label="Previous page"
+                aria-label={t('previousPage')}
                 className={cn(
                   'group/page grid size-8 place-items-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40',
                   PRESS,
@@ -1950,7 +1953,7 @@ export function DataTable<T>({
                 type="button"
                 onClick={() => setPage(safePage + 1)}
                 disabled={safePage >= pageCount - 1}
-                aria-label="Next page"
+                aria-label={t('nextPage')}
                 className={cn(
                   'group/page grid size-8 place-items-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40',
                   PRESS,
@@ -1967,9 +1970,9 @@ export function DataTable<T>({
       {/* One region, always rendered, so repeated counts announce reliably. */}
       <div role="status" aria-live="polite" className="sr-only">
         {loading
-          ? 'Loading rows'
-          : `${sorted.length} ${sorted.length === 1 ? 'row' : 'rows'}${
-              selected.length > 0 ? `, ${selected.length} selected` : ''
+          ? t('loadingRows')
+          : `${t('rowsStatus', { count: sorted.length })}${
+              selected.length > 0 ? `, ${t('selectedStatus', { count: selected.length })}` : ''
             }`}
       </div>
     </div>

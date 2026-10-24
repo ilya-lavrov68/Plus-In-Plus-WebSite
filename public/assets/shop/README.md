@@ -1,18 +1,10 @@
-# Shop mockup artwork
+# Retired stock mockups
 
-These JPEGs were extracted from the supplied `Plus in Plus Site - Shop.svg` and
-`Plus in Plus Site - Shop Service Page.svg` design files (embedded photo layers).
-They are original mockup artwork, not generated images, and are used as static
-catalog/gallery assets under `/public/assets/shop/`.
+The JPEG files in this directory are retired and must not be referenced by the
+interface, seeds, metadata, or new content. They contained third-party product
+mockup artwork and were removed from all public UI paths.
 
-| Asset | Mockup placement |
-| --- | --- |
-| `sign-design.jpg` | Small designs — Sign Design; first service-gallery image |
-| `bag-design.jpg` | Small designs — Bag Design |
-| `outdoor-glass-poster.jpg` | Small designs — Outdoor glass poster |
-| `banner-design.jpg` | Small designs — Banner Design |
-| `large-billboard-building.jpg` | Large designs — Large Billboard on a building |
-| `rooftop-advertising.jpg` | Large designs — Rooftop advertising |
-| `advertisement-on-the-fence.jpg` | Large designs — Advertisement on the fence |
-| `billboard.jpg` | Large designs — Billboard |
-| `sign-design-2.jpg`–`sign-design-4.jpg` | Remaining Sign Design gallery images |
+Use the original local placeholders in `/assets/placeholders/` when a database
+row has no approved cover. Customer-uploaded artwork remains under `/uploads/`.
+The legacy paths are recognized by `lib/content-placeholders.ts` so old database
+rows fall back safely instead of displaying the retired artwork again.

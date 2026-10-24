@@ -49,10 +49,6 @@ function isClosed(status: string): boolean {
   return status === "cancelled" || status === "refunded";
 }
 
-function isPaid(status: string): boolean {
-  return status === "paid" || status === "in_progress" || status === "completed";
-}
-
 export function OrderCard({ order }: OrderCardProps) {
   const t = useTranslations("orders");
   const locale = useLocale();
@@ -67,14 +63,24 @@ export function OrderCard({ order }: OrderCardProps) {
   const priced = agreedKopecks > 0;
   const unpriced = isUnpriced(order.status, agreedKopecks);
   const closed = isClosed(order.status);
-  const paid = isPaid(order.status);
+  const invoices = order.invoices ?? [];
+  // Статус заказа — рабочий процесс, а успешный Payment — доказательство
+  // оплаты. Только второй включает клиентское подтверждение и блокирует счета.
+  const paid = invoices.some((invoice) => invoice.status === "succeeded");
   const displayOrderNumber = order.orderNumber || order.number;
 
-  const payable = (order.invoices ?? []).find(
-    (invoice) => invoice.status === "pending" && invoice.paymentUrl
-  );
+  const latestInvoice = invoices[0];
+  const payable = !paid &&
+    latestInvoice?.status === "pending" &&
+    latestInvoice.amount === agreedKopecks
+    ? latestInvoice
+    : null;
+  const paymentHref = payable
+    ? payable.paymentUrl ?? `/api/payment/create?orderId=${encodeURIComponent(order.id)}`
+    : null;
   const invoiceWaiting =
     !unpriced &&
+    !paid &&
     !payable &&
     (order.status === "awaiting_payment" || order.status === "priced");
 
@@ -143,14 +149,14 @@ export function OrderCard({ order }: OrderCardProps) {
           <div>
             <dt className="text-sm text-muted-foreground">{t("estimate")}</dt>
             <dd className="text-sm font-medium tabular-nums">
-              {formatKopecks(order.estimatedAmount, currency)}
+              {formatKopecks(order.estimatedAmount, currency, locale)}
             </dd>
           </div>
 
           <div>
             <dt className="text-sm text-muted-foreground">{t("agreed")}</dt>
             <dd className="text-sm font-semibold tabular-nums">
-              {priced ? formatKopecks(agreedKopecks, currency) : "—"}
+              {priced ? formatKopecks(agreedKopecks, currency, locale) : "—"}
             </dd>
           </div>
         </dl>
@@ -184,7 +190,7 @@ export function OrderCard({ order }: OrderCardProps) {
                     </span>
                   </span>
                   <span className="shrink-0 tabular-nums text-muted-foreground">
-                    {formatKopecks(line.amountKopecks, currency)}
+                    {formatKopecks(line.amountKopecks, currency, locale)}
                   </span>
                 </li>
               ))}
@@ -229,8 +235,8 @@ export function OrderCard({ order }: OrderCardProps) {
                 asChild
                 className="w-fit border border-primary-foreground/20 bg-white px-4 py-2 text-primary-foreground hover:bg-white/90 hover:text-primary-foreground"
               >
-                <a href={payable.paymentUrl ?? undefined}>
-                  {t("pay")} {formatKopecks(payable.amount, currency)}
+                <a href={paymentHref ?? undefined}>
+                  {t("pay")} {formatKopecks(payable.amount, currency, locale)}
                 </a>
               </Button>
             ) : null}

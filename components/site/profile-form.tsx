@@ -1,12 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { useEffect, useState, type FormEvent } from "react";
 import { Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import { updateUserProfile } from "@/app/actions/user";
+import { changePassword, updateUserProfile } from "@/app/actions/user";
 import { UserAvatar } from "@/components/site/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 
 export interface ProfileFormProps {
+  sessionRole: string;
   initialUser: {
     email: string;
     firstName: string;
@@ -25,7 +27,7 @@ export interface ProfileFormProps {
   };
 }
 
-export function ProfileForm({ initialUser }: ProfileFormProps) {
+export function ProfileForm({ initialUser, sessionRole }: ProfileFormProps) {
   const { data: session, status, update } = useSession();
   const router = useRouter();
   const t = useTranslations("profile");
@@ -39,6 +41,11 @@ export function ProfileForm({ initialUser }: ProfileFormProps) {
     kind: "success" | "error";
     text: string;
   } | null>(null);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -50,6 +57,8 @@ export function ProfileForm({ initialUser }: ProfileFormProps) {
     [firstName, lastName].filter(Boolean).join(" ") ||
     session?.user?.name ||
     initialUser.email;
+  const staffAccount = ["FOUNDER", "ADMIN", "MANAGER"].includes(initialUser.role);
+  const staffSession = ["FOUNDER", "ADMIN", "MANAGER"].includes(sessionRole);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -97,6 +106,34 @@ export function ProfileForm({ initialUser }: ProfileFormProps) {
     }
   };
 
+  const handlePasswordSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (isChangingPassword) return;
+    setPasswordError(null);
+    setIsChangingPassword(true);
+    try {
+      await changePassword({ currentPassword, newPassword, confirmPassword });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      toast({ title: t("passwordChanged") });
+      // The server-side JWT marker revokes all sessions. Clear this browser's
+      // cookie immediately instead of leaving a profile page in a dead state.
+      await signOut({ redirect: false });
+      router.push("/login");
+      router.refresh();
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : t("passwordChangeFailed");
+      setPasswordError(message);
+      toast({ title: t("passwordChangeFailed"), description: message, variant: "destructive" });
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-2xl px-6 py-24 md:py-32">
       <div className="mb-8">
@@ -126,13 +163,29 @@ export function ProfileForm({ initialUser }: ProfileFormProps) {
                 </p>
               </div>
             </div>
-            <Badge variant="secondary" className="uppercase">
-              {initialUser.role}
-            </Badge>
+            <div className="flex flex-col gap-2 sm:items-end">
+              <Badge variant="secondary" className="uppercase">
+                {t("accountRole", { role: initialUser.role })}
+              </Badge>
+              <Badge variant="outline">
+                {staffSession ? t("staffSession") : t("customerSession")}
+              </Badge>
+            </div>
           </div>
         </CardHeader>
 
         <CardContent className="pt-6">
+          {staffAccount && !staffSession ? (
+            <div className="mb-6 rounded-lg border border-border bg-secondary/50 p-4">
+              <h2 className="text-sm font-semibold">{t("staffReauthTitle")}</h2>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                {t("staffReauthBody")}
+              </p>
+              <Button asChild variant="outline" className="mt-3">
+                <Link href="/login?mode=admin">{t("staffReauthAction")}</Link>
+              </Button>
+            </div>
+          ) : null}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="email">{t("email")}</Label>
@@ -214,6 +267,68 @@ export function ProfileForm({ initialUser }: ProfileFormProps) {
 
             <Button type="submit" disabled={isLoading}>
               {isLoading ? t("saving") : t("saveChanges")}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6 border-border bg-card">
+        <CardHeader>
+          <CardTitle>{t("passwordTitle")}</CardTitle>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {t("passwordSubtitle")}
+          </p>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="current-password">{t("currentPassword")}</Label>
+              <Input
+                id="current-password"
+                type="password"
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={(event) => setCurrentPassword(event.target.value)}
+                required
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="new-password">{t("newPassword")}</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  autoComplete="new-password"
+                  minLength={12}
+                  value={newPassword}
+                  onChange={(event) => setNewPassword(event.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-new-password">{t("confirmPassword")}</Label>
+                <Input
+                  id="confirm-new-password"
+                  type="password"
+                  autoComplete="new-password"
+                  minLength={12}
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">{t("passwordHint")}</p>
+            {passwordError ? (
+              <p
+                role="alert"
+                className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm text-destructive"
+              >
+                {passwordError}
+              </p>
+            ) : null}
+            <Button type="submit" variant="outline" disabled={isChangingPassword}>
+              {isChangingPassword ? t("changingPassword") : t("changePassword")}
             </Button>
           </form>
         </CardContent>

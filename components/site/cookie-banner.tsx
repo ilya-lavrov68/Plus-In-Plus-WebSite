@@ -5,21 +5,11 @@ import { Check, Cookie, Settings, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
-
-/**
- * Ключ хранилища с согласием на cookie. JSON вида:
- * { necessary: true, analytics, marketing, functional, timestamp }
- */
-const CONSENT_STORAGE_KEY = "cookie-consent";
-
-type ConsentPreferences = {
-  necessary: boolean;
-  analytics: boolean;
-  marketing: boolean;
-  functional: boolean;
-};
-
-type ConsentRecord = ConsentPreferences & { timestamp: string };
+import {
+  readConsent,
+  writeConsent,
+  type ConsentPreferences,
+} from "@/lib/analytics-consent";
 
 const DEFAULT_PREFERENCES: ConsentPreferences = {
   // Необходимые cookie всегда включены: без них сайт не работает.
@@ -28,26 +18,6 @@ const DEFAULT_PREFERENCES: ConsentPreferences = {
   marketing: false,
   functional: false,
 };
-
-function readConsent(): ConsentRecord | null {
-  try {
-    const raw = window.localStorage.getItem(CONSENT_STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as ConsentRecord) : null;
-  } catch {
-    // Хранилище недоступно (приватный режим, запрет cookie) — баннер
-    // просто покажется снова при следующем визите.
-    return null;
-  }
-}
-
-function writeConsent(preferences: ConsentPreferences) {
-  try {
-    const consent: ConsentRecord = { ...preferences, timestamp: new Date().toISOString() };
-    window.localStorage.setItem(CONSENT_STORAGE_KEY, JSON.stringify(consent));
-  } catch {
-    // См. readConsent: без хранилища согласие не сохранить.
-  }
-}
 
 /**
  * Всплывающее уведомление о cookie-файлах.

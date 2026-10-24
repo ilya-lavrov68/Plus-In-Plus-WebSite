@@ -29,7 +29,7 @@ const data = require("../lib/admin-data.ts");
 // with the request headers that carry the per-request CSP nonce.
 test("middleware redirects every non-admin or missing session to /", async () => {
   process.env.AUTH_SECRET = "test-secret-with-at-least-32-characters";
-  assert.deepEqual(config.matcher, ["/((?!_next|api|uploads|.*\\..*).*)", "/admin/:path*"]);
+  assert.deepEqual(config.matcher, ["/((?!_next|api|uploads|.*\\..*).*)", "/api/:path*", "/admin/:path*"]);
   for (const auth of [null, { user: { id: "test", role: "USER" } }, { user: { role: "ADMIN" } }]) {
     const response = await middleware({ url: "https://preview.example/admin/services/new", auth });
     assert.equal(response.status, 307);
@@ -46,6 +46,11 @@ test("middleware redirects every non-admin or missing session to /", async () =>
   assert.match(policy, /^default-src 'self'; /);
   assert.match(policy, /script-src 'self' 'nonce-[^']+'/);
   assert.equal(allowed.headers.get("x-content-type-options"), "nosniff");
+
+  const api = await middleware({ url: "https://preview.example/api/health", auth: null });
+  assert.equal(api.status, 200);
+  assert.equal(api.headers.get("x-content-type-options"), "nosniff");
+  assert.match(api.headers.get("content-security-policy"), /^default-src 'self'; /);
 
   process.env.AUTH_SECRET = "weak";
   const unconfigured = await middleware({

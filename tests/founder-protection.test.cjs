@@ -14,7 +14,7 @@ require.extensions[".ts"] = (module, filename) =>
   );
 
 // Только в памяти: пользователи, настройки и журнал действий.
-let actor, users, settings, logs;
+let actor, users, settings, logs, posts;
 
 const prisma = {
   user: {
@@ -37,13 +37,29 @@ const prisma = {
     },
   },
   post: {
-    updateMany: async () => ({ count: 0 }),
-    update: async () => ({}),
+    updateMany: async ({ where = {}, data }) => {
+      let count = 0;
+      for (const post of posts.values()) {
+        if (where.id && post.id !== where.id) continue;
+        if (where.isPublished !== undefined && post.isPublished !== where.isPublished) continue;
+        if (where.OR && !where.OR.some((condition) =>
+          (Object.hasOwn(condition, "publishedAt") && condition.publishedAt === null && post.publishedAt === null) ||
+          (condition.publishedAt?.lte && post.publishedAt && post.publishedAt <= condition.publishedAt.lte)
+        )) continue;
+        Object.assign(post, structuredClone(data));
+        count += 1;
+      }
+      return { count };
+    },
   },
   activityLog: {
     create: async ({ data }) => { logs.push(structuredClone(data)); return data; },
   },
-  $transaction: async (callback) => callback(prisma),
+  $transaction: async (callback) => {
+    const snapshot = structuredClone({ settings, posts, logs });
+    try { return await callback(prisma); }
+    catch (error) { settings = snapshot.settings; posts = snapshot.posts; logs = snapshot.logs; throw error; }
+  },
 };
 
 const originalLoad = Module._load;
@@ -61,7 +77,7 @@ Module._load = function (name, parent, isMain) {
   return originalLoad.call(this, name, parent, isMain);
 };
 
-const { resetUserPassword, toggleUserBlocked, updateSiteSettings, updateUserRole } =
+const { resetUserPassword, setFeaturedPost, toggleUserBlocked, updateSiteSettings, updateUserRole } =
   require("../app/actions/admin.ts");
 
 const FOUNDER_INVULNERABLE = "Action denied. Founder is invulnerable.";
@@ -73,6 +89,10 @@ function seed() {
     ["u-user", { id: "u-user", email: "user@test", role: "USER", isBlocked: false, passwordHash: "h" }],
   ]);
   settings = new Map();
+  posts = new Map([
+    ["post-published", { id: "post-published", isPublished: true, publishedAt: new Date("2026-01-01"), isFeatured: false }],
+    ["post-draft", { id: "post-draft", isPublished: false, publishedAt: null, isFeatured: true }],
+  ]);
   logs = [];
 }
 
@@ -103,6 +123,15 @@ test("основателя нельзя заблокировать", async () =>
   assert.equal(result.ok, false);
   assert.equal(result.error, FOUNDER_INVULNERABLE);
   assert.equal(users.get("u-founder").isBlocked, false);
+});
+
+test("block status rejects non-boolean input instead of coercing it", async () => {
+  for (const value of ["false", 0, 1, null, undefined, {}, []]) {
+    const result = await toggleUserBlocked("u-user", value);
+    assert.equal(result.ok, false);
+    assert.equal(users.get("u-user").isBlocked, false);
+  }
+  assert.equal(logs.length, 0);
 });
 
 test("основателю нельзя сбросить пароль (это захват аккаунта)", async () => {
@@ -178,4 +207,51 @@ test("без служебной сессии экшены админки нед�
   assert.equal((await updateUserRole("u-user", "MANAGER")).ok, false);
   assert.equal((await toggleUserBlocked("u-user", true)).ok, false);
   assert.equal((await updateSiteSettings({ studioName: "X" })).ok, false);
+});
+
+test("blank secret fields preserve existing values and unknown settings are rejected", async () => {
+  actor = { id: "u-founder", email: "founder@test", role: "FOUNDER" };
+  settings.set("robokassaPassword1", "existing-password");
+  settings.set("telegramBotToken", "existing-token");
+  settings.set("studioName", "Before");
+  const preserved = await updateSiteSettings({
+    studioName: "After",
+    robokassaPassword1: "",
+    telegramBotToken: "",
+  });
+  assert.equal(preserved.ok, true);
+  assert.equal(settings.get("studioName"), "After");
+  assert.equal(settings.get("robokassaPassword1"), "existing-password");
+  assert.equal(settings.get("telegramBotToken"), "existing-token");
+  const rejected = await updateSiteSettings({ studioName: "Changed again", unexpectedSecret: "value" });
+  assert.equal(rejected.ok, false);
+  assert.equal(settings.get("studioName"), "After");
+  assert.equal(settings.has("unexpectedSecret"), false);
+});
+
+test("dedicated Featured action selects one post and can clear the selection", async () => {
+  assert.equal((await setFeaturedPost("post-published")).ok, true);
+  assert.equal(posts.get("post-published").isFeatured, true);
+  assert.equal(posts.get("post-draft").isFeatured, false);
+  assert.equal([...posts.values()].filter((post) => post.isFeatured).length, 1);
+
+  assert.equal((await setFeaturedPost(null)).ok, true);
+  assert.equal([...posts.values()].filter((post) => post.isFeatured).length, 0);
+});
+
+test("settings and featured selection commit together or roll back together", async () => {
+  actor = { id: "u-founder", email: "founder@test", role: "FOUNDER" };
+  settings.set("studioName", "Before");
+  const failed = await updateSiteSettings({ studioName: "After" }, "post-draft");
+  assert.equal(failed.ok, false);
+  assert.equal(settings.get("studioName"), "Before");
+  assert.equal(posts.get("post-draft").isFeatured, true);
+  assert.equal(logs.length, 0);
+
+  const saved = await updateSiteSettings({ studioName: "After" }, "post-published");
+  assert.equal(saved.ok, true);
+  assert.equal(settings.get("studioName"), "After");
+  assert.equal(posts.get("post-published").isFeatured, true);
+  assert.equal(posts.get("post-draft").isFeatured, false);
+  assert.equal(logs.length, 2);
 });

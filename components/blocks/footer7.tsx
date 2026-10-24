@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Globe, Mail, Phone, Send, Video } from "lucide-react";
 
 import { WordmarkLogo } from "@/components/site/logo";
 import { STUDIO_SERVICES, type CatalogServiceItem } from "@/lib/studio-catalog";
@@ -14,6 +15,13 @@ export interface FooterSection {
 export interface Footer7Props {
   services?: CatalogServiceItem[];
   labels?: Record<string, string>;
+  socialLinks?: {
+    vk?: string;
+    telegram?: string;
+    youtube?: string;
+  };
+  contactEmail?: string;
+  contactPhone?: string;
 }
 
 const DEFAULT_LABELS: Record<string, string> = {
@@ -24,7 +32,13 @@ const DEFAULT_LABELS: Record<string, string> = {
   "servicesLinks.signDesign": "Sign Design", "servicesLinks.bagDesign": "Bag Design", "servicesLinks.websiteDesign": "Website design", "servicesLinks.badgeDesign": "Badge design", "servicesLinks.posterDesign": "Poster design", "servicesLinks.bannerMockupDesign": "Banner mockup design", "servicesLinks.largeBillboard": "Large Billboard", "servicesLinks.rooftopAdvertising": "Rooftop advertising", "auth.register": "Register",
 };
 
-const Footer7 = ({ services = STUDIO_SERVICES, labels = {} }: Footer7Props) => {
+const Footer7 = ({
+  services = STUDIO_SERVICES,
+  labels = {},
+  socialLinks = {},
+  contactEmail,
+  contactPhone,
+}: Footer7Props) => {
   const t = (key: string) => labels[key] ?? DEFAULT_LABELS[key] ?? key;
   const serviceNames: Record<string, string> = {
     "sign-design": t("servicesLinks.signDesign"),
@@ -46,6 +60,12 @@ const Footer7 = ({ services = STUDIO_SERVICES, labels = {} }: Footer7Props) => {
     { name: t("largeDesigns"), href: "/services" },
   ];
 
+  const socialItems = [
+    { label: "VK", href: socialLinks.vk ?? "https://vk.com/plusinplus", icon: Globe },
+    { label: "Telegram", href: socialLinks.telegram ?? "https://t.me/plusinplus", icon: Send },
+    { label: "YouTube", href: socialLinks.youtube ?? "https://www.youtube.com/@plusinplus", icon: Video },
+  ];
+
   const footerSections: FooterSection[] = [
     {
       title: t("services"),
@@ -64,7 +84,7 @@ const Footer7 = ({ services = STUDIO_SERVICES, labels = {} }: Footer7Props) => {
       title: t("resources"),
       links: [
         { name: t("aboutLinks.blog"), href: "/blog" },
-        { name: t("aboutLinks.studioNews"), href: "/blog/we-re-up-and-running" },
+        { name: t("aboutLinks.studioNews"), href: "/blog" },
         { name: t("companyLinks.account"), href: "/login" },
         { name: t("auth.register"), href: "/signup" },
       ],
@@ -73,7 +93,7 @@ const Footer7 = ({ services = STUDIO_SERVICES, labels = {} }: Footer7Props) => {
       title: t("legal"),
       links: [
         { name: t("legalLinks.privacyPolicy"), href: "/privacy" },
-        { name: t("legalLinks.termsOfUse"), href: "/#features" },
+        { name: t("legalLinks.termsOfUse"), href: "/terms" },
       ],
     },
     {
@@ -100,6 +120,42 @@ const Footer7 = ({ services = STUDIO_SERVICES, labels = {} }: Footer7Props) => {
             <p className="text-sm leading-relaxed text-muted-foreground">
               {t("description")}
             </p>
+            {contactEmail || contactPhone ? (
+              <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+                {contactEmail ? (
+                  <a
+                    href={`mailto:${contactEmail}`}
+                    className="inline-flex items-center gap-2 transition-colors duration-200 hover:text-foreground"
+                  >
+                    <Mail aria-hidden="true" className="h-4 w-4 shrink-0" />
+                    <span>{contactEmail}</span>
+                  </a>
+                ) : null}
+                {contactPhone ? (
+                  <a
+                    href={`tel:${contactPhone.replace(/[^+\d]/g, "")}`}
+                    className="inline-flex items-center gap-2 transition-colors duration-200 hover:text-foreground"
+                  >
+                    <Phone aria-hidden="true" className="h-4 w-4 shrink-0" />
+                    <span>{contactPhone}</span>
+                  </a>
+                ) : null}
+              </div>
+            ) : null}
+            <div className="flex items-center gap-2">
+              {socialItems.map(({ label, href, icon: Icon }) => (
+                <a
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={label}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors duration-200 hover:border-foreground/25 hover:text-foreground"
+                >
+                  <Icon aria-hidden="true" className="h-4 w-4" />
+                </a>
+              ))}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:grid-cols-5 lg:gap-12">

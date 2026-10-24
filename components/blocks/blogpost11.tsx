@@ -75,7 +75,7 @@ const Blogpost11 = ({
               )}
             </figure>
 
-            {post.sections && post.sections.length > 0 ? (
+            {!post.htmlContent && post.sections && post.sections.length > 0 ? (
               <div className="mt-12 space-y-10">
                 {post.sections.map((section, idx) => (
                   <section key={idx} className="space-y-4">

@@ -58,7 +58,8 @@ export function AddToCartButton({
       const data = await res.json().catch(() => null);
       if (!res.ok) {
         toast({
-          title: data?.error || "Failed to add to cart",
+          title:
+            (res.status < 500 ? data?.error : null) || t("addFailed"),
           variant: "destructive",
         });
         return;
@@ -74,6 +75,7 @@ export function AddToCartButton({
       setTimeout(() => setIsAdded(false), 2000);
     } catch (error) {
       console.error("Failed to add to cart:", error);
+      toast({ title: t("addFailed"), variant: "destructive" });
     } finally {
       setIsPending(false);
     }

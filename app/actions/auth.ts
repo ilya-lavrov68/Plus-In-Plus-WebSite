@@ -10,7 +10,7 @@ import { getActionTranslator } from "@/lib/action-i18n";
 import { recordActivity } from "@/lib/activity-log";
 import { isAuthConfigured } from "@/lib/auth-secret";
 import { prisma } from "@/lib/prisma";
-import { getClientAddress, checkRateLimit, hashRateLimitIdentifier } from "@/lib/rate-limit";
+import { getClientAddress, checkRateLimitAsync, hashRateLimitIdentifier } from "@/lib/rate-limit";
 import { cleanupUpload, saveImageUpload, UploadValidationError } from "@/lib/uploads";
 import { firstIssueMessage, loginSchema, profileSchema, registerSchema } from "@/lib/validators";
 
@@ -126,9 +126,8 @@ export async function loginUser(input: LoginSubmission): Promise<AuthActionResul
     account?.role === "FOUNDER" || account?.role === "ADMIN" || account?.role === "MANAGER"
       ? account.role
       : null;
-  if (adminMode && !staffRole) {
-    return { ok: false, success: false, error: t("adminNotFound") };
-  }
+  // The lookup only chooses a post-success destination. It must never short-circuit
+  // Admin mode: Auth.js performs the same password and staff checks for every account.
   // Куда вести сотрудника после служебного входа: менеджеру — в его заявки,
   // администратору и основателю — в админку.
   const staffHome = staffRole === "MANAGER" ? "/manager/orders" : "/admin/dashboard";
@@ -143,9 +142,6 @@ export async function loginUser(input: LoginSubmission): Promise<AuthActionResul
     });
   } catch (error) {
     if (error instanceof CredentialsSignin) {
-      if (error.code === "admin_account_not_found") {
-        return { ok: false, success: false, error: t("adminNotFound") };
-      }
       if (error.code === "rate_limited") {
         return { ok: false, success: false, error: t("tooManyLoginAttempts") };
       }
@@ -167,7 +163,7 @@ export async function registerUser(input: RegisterSubmission): Promise<RegisterR
   const t = await getActionTranslator();
   const requestHeaders = await headers();
   const address = getClientAddress(requestHeaders.get("x-real-ip") ?? requestHeaders.get("x-forwarded-for"));
-  if (!checkRateLimit(hashRateLimitIdentifier(`register-address:${address}`), 5, WINDOW_MS).allowed) {
+  if (!(await checkRateLimitAsync(hashRateLimitIdentifier(`register-address:${address}`), 5, WINDOW_MS)).allowed) {
     return { ok: false, success: false, error: t("tooManyRegistrationAttempts") };
   }
   const submitted = readRegisterSubmission(input);
@@ -218,7 +214,7 @@ export async function updateUserProfile(formData: FormData): Promise<AuthActionR
   try {
     const session = await auth();
     if (!session?.user?.id) return { ok: false, success: false, error: t("loginToEditProfile") };
-    if (!checkRateLimit(hashRateLimitIdentifier(`profile:${session.user.id}`), 20, WINDOW_MS).allowed) {
+    if (!(await checkRateLimitAsync(hashRateLimitIdentifier(`profile:${session.user.id}`), 20, WINDOW_MS)).allowed) {
       return { ok: false, success: false, error: t("tooManyProfileUpdates") };
     }
     const profile = profileSchema.safeParse({

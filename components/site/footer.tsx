@@ -2,12 +2,14 @@ import { Footer7 } from "@/components/blocks/footer7";
 import { getPublishedServices } from "@/lib/data";
 import { mergeCatalogServices } from "@/lib/studio-catalog";
 import { getRequestTranslations } from "@/lib/server-i18n";
+import { getPublicSiteSettings } from "@/lib/public-site-settings";
 
 export async function Footer() {
-  const [dbServices, t, ta] = await Promise.all([
+  const [dbServices, t, ta, settings] = await Promise.all([
     getPublishedServices(),
     getRequestTranslations("footer"),
     getRequestTranslations("auth"),
+    getPublicSiteSettings(),
   ]);
   const services = mergeCatalogServices(dbServices);
   const keys = [
@@ -19,5 +21,21 @@ export async function Footer() {
   ];
   const labels = Object.fromEntries(keys.map((key) => [key, t(key)]));
   labels["auth.register"] = ta("register");
-  return <Footer7 services={services} labels={labels} />;
+  if (settings.studioDescription) {
+    labels.description = settings.studioDescription;
+  }
+
+  return (
+    <Footer7
+      services={services}
+      labels={labels}
+      socialLinks={{
+        vk: settings.vkUrl,
+        telegram: settings.telegramUrl,
+        youtube: settings.youtubeUrl,
+      }}
+      contactEmail={settings.contactEmail}
+      contactPhone={settings.contactPhone}
+    />
+  );
 }

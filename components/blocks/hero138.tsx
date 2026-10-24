@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
+import { MediaPlaceholder } from "@/components/site/media-placeholder";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -33,17 +34,14 @@ const Hero138 = ({
   descriptionStrong = "We'll package it in a stylish, clear design—from website mockups to posters and event collateral.",
   primaryCta = {
     label: "Order",
-    href: "/shop",
+    href: "/services",
   },
   secondaryCta = {
     label: "Contact us",
     href: "/contact",
   },
   footnote = "Plus In Plus Design Studio",
-  image = {
-    src: "/assets/shop/sign-design.jpg",
-    alt: "Plus In Plus studio showcase",
-  },
+  image,
   showMediaStage = true,
   className,
 }: Hero138Props) => {
@@ -124,12 +122,19 @@ const Hero138 = ({
           </div>
 
           <div className="container relative z-10">
-            <div className="relative overflow-hidden rounded-xl border border-border bg-card shadow-2xl after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-28 after:bg-gradient-to-t after:from-background/85 after:to-transparent">
-              <img
-                src={image.src}
-                alt={image.alt}
-                className="aspect-[16/9] w-full object-cover object-center"
-              />
+            <div className="glass-surface relative overflow-hidden rounded-[1.75rem] bg-white/[0.055] p-1.5 sm:p-2.5">
+              {image?.src ? (
+                <img
+                  src={image.src}
+                  alt={image.alt}
+                  className="aspect-[16/9] w-full rounded-[1.35rem] object-cover object-center"
+                />
+              ) : (
+                <MediaPlaceholder
+                  className="aspect-[16/9] rounded-[1.35rem]"
+                  markClassName="h-16 sm:h-20"
+                />
+              )}
             </div>
           </div>
         </div>

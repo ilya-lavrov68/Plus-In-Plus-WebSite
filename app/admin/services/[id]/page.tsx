@@ -38,6 +38,21 @@ export default async function EditServicePage({
             resultText: service.resultText,
             coverImage: service.coverImage,
             isPublished: service.isPublished,
+            pricing: {
+              basePrice: service.basePrice,
+              priceType: service.priceType,
+              isOrderable: service.isOrderable,
+              optionGroups: service.optionGroups.map((group) => ({
+                name: group.name,
+                required: group.required,
+                options: group.options.map((option) => ({
+                  label: option.label,
+                  priceDeltaRub: String(option.priceDelta / 100),
+                  priceFactor: String(option.priceFactor),
+                  isDefault: option.isDefault,
+                })),
+              })),
+            },
           }}
         />
       </div>

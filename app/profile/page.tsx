@@ -40,6 +40,7 @@ export default async function ProfilePage() {
 
   return (
     <ProfileForm
+      sessionRole={session.user.role ?? "USER"}
       initialUser={{
         email: dbUser?.email ?? session.user.email ?? "",
         firstName: dbUser?.firstName ?? session.user.firstName ?? "",

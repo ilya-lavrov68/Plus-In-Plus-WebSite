@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { type FormEvent, useState } from "react";
 import { motion } from "motion/react";
+import { useTranslations } from "next-intl";
 
 import { loginUser, registerUser } from "@/app/actions/auth";
 import { BrandMark } from "@/components/site/logo";
+import { MediaPlaceholder } from "@/components/site/media-placeholder";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,15 +19,18 @@ export interface Signup10Props {
   defaultMode?: "login" | "register";
   mode?: "login" | "register";
   callbackUrl?: string;
+  defaultAdminMode?: boolean;
 }
 
 const Signup10 = ({
   defaultMode = "login",
   mode,
   callbackUrl,
+  defaultAdminMode = false,
 }: Signup10Props) => {
   const router = useRouter();
   const { update: updateSession } = useSession();
+  const t = useTranslations("auth");
   const [activeMode, setActiveMode] = useState<"login" | "register">(
     mode ?? defaultMode
   );
@@ -34,7 +39,7 @@ const Signup10 = ({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [adminMode, setAdminMode] = useState(false);
+  const [adminMode, setAdminMode] = useState(defaultAdminMode);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -53,12 +58,12 @@ const Signup10 = ({
     setError(null);
 
     if (!isLogin) {
-      if (password.length < 8) {
-        setError("Password must be at least 8 characters long.");
+      if (password.length < 12) {
+        setError(t("passwordTooShort"));
         return;
       }
       if (password !== confirmPassword) {
-        setError("Passwords do not match.");
+        setError(t("passwordsDoNotMatch"));
         return;
       }
     }
@@ -81,10 +86,7 @@ const Signup10 = ({
 
       if (!result.ok) {
         setError(
-          result.error ||
-            (isLogin
-              ? "Invalid email or password."
-              : "Could not create account. Please try again.")
+          result.error || (isLogin ? t("loginError") : t("registerError"))
         );
         setLoading(false);
         return;
@@ -99,7 +101,7 @@ const Signup10 = ({
       router.push(destination);
       router.refresh();
     } catch {
-      setError("Authentication failed. Please try again.");
+      setError(t("genericError"));
       setLoading(false);
     }
   };
@@ -118,18 +120,18 @@ const Signup10 = ({
               </Link>
 
               <h1 className="mt-6 text-center text-3xl font-semibold tracking-tight md:text-4xl">
-                {isLogin ? "Log in" : "Register"}
+                {isLogin ? t("login") : t("register")}
               </h1>
               <p className="mx-auto mt-2.5 max-w-sm text-center text-sm leading-relaxed text-muted-foreground">
                 {isLogin
-                  ? "Sign in to manage your Plus In Plus orders and studio requests."
-                  : "Create a Plus In Plus account to place orders and track your designs."}
+                  ? t("loginPageDescription")
+                  : t("registerPageDescription")}
               </p>
             </div>
 
             <div
               role="tablist"
-              aria-label="Authentication mode"
+              aria-label={t("authenticationMode")}
               className="mt-8 grid grid-cols-2 rounded-full border border-border bg-muted p-1"
             >
               <button
@@ -150,7 +152,7 @@ const Signup10 = ({
                     className="absolute inset-0 rounded-full bg-primary shadow-sm"
                   />
                 )}
-                <span className="relative z-10">Log in</span>
+                <span className="relative z-10">{t("login")}</span>
               </button>
               <button
                 type="button"
@@ -170,37 +172,37 @@ const Signup10 = ({
                     className="absolute inset-0 rounded-full bg-primary shadow-sm"
                   />
                 )}
-                <span className="relative z-10">Register</span>
+                <span className="relative z-10">{t("register")}</span>
               </button>
             </div>
 
             <form
-              aria-label={isLogin ? "Log in" : "Register"}
+              aria-label={isLogin ? t("login") : t("register")}
               onSubmit={handleSubmit}
               className="mt-7 space-y-4"
             >
               {!isLogin && (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label htmlFor="auth-first-name">First name</Label>
+                    <Label htmlFor="auth-first-name">{t("firstName")}</Label>
                     <Input
                       id="auth-first-name"
                       name="firstName"
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
-                      placeholder="Alex"
+                      placeholder={t("firstNamePlaceholder")}
                       className="h-12 rounded-full px-5"
                       required
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="auth-last-name">Last name</Label>
+                    <Label htmlFor="auth-last-name">{t("lastName")}</Label>
                     <Input
                       id="auth-last-name"
                       name="lastName"
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
-                      placeholder="Morozov"
+                      placeholder={t("lastNamePlaceholder")}
                       className="h-12 rounded-full px-5"
                       required
                     />
@@ -209,7 +211,7 @@ const Signup10 = ({
               )}
 
               <div className="space-y-1.5">
-                <Label htmlFor="auth-email">Email</Label>
+                <Label htmlFor="auth-email">{t("email")}</Label>
                 <Input
                   id="auth-email"
                   name="email"
@@ -224,7 +226,7 @@ const Signup10 = ({
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="auth-password">Password</Label>
+                <Label htmlFor="auth-password">{t("password")}</Label>
                 <Input
                   id="auth-password"
                   name="password"
@@ -241,7 +243,7 @@ const Signup10 = ({
               {!isLogin && (
                 <div className="space-y-1.5">
                   <Label htmlFor="auth-confirm-password">
-                    Confirm password
+                    {t("confirmPassword")}
                   </Label>
                   <Input
                     id="auth-confirm-password"
@@ -267,7 +269,7 @@ const Signup10 = ({
                     htmlFor="auth-admin-mode"
                     className="cursor-pointer text-sm font-medium text-foreground"
                   >
-                    Admin mode
+                    {t("adminMode")}
                   </Label>
                   <Switch
                     id="auth-admin-mode"
@@ -293,27 +295,24 @@ const Signup10 = ({
               >
                 {loading
                   ? isLogin
-                    ? "Signing in..."
-                    : "Creating account..."
+                    ? t("signingIn")
+                    : t("creatingAccount")
                   : isLogin
-                    ? "Log in"
-                    : "Register"}
+                    ? t("loginButton")
+                    : t("registerButton")}
               </Button>
             </form>
           </div>
         </div>
 
-        <div className="relative hidden overflow-hidden border-l border-border bg-muted lg:block">
-          <img
-            src="/assets/shop/sign-design-2.jpg"
-            alt="Plus In Plus studio work"
-            className="size-full object-cover"
+        <div className="relative hidden overflow-hidden border-l-0 bg-muted lg:block">
+          <MediaPlaceholder
+            className="absolute inset-0"
+            markClassName="h-20 opacity-20"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-background/85 via-background/20 to-transparent" />
-          <div className="absolute right-12 bottom-12 left-12 max-w-lg">
-            <p className="text-2xl leading-snug font-medium text-white">
-              Stylish, clear design—from website mockups to signage, posters,
-              and event collateral.
+          <div className="absolute right-8 bottom-8 left-8 max-w-lg rounded-2xl bg-slate-950/35 p-6 backdrop-blur-2xl">
+            <p className="text-xl leading-snug font-medium text-white">
+              {t("studioPitch")}
             </p>
           </div>
         </div>

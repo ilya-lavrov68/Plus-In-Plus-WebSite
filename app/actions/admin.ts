@@ -8,6 +8,8 @@ import { getActionTranslator } from "@/lib/action-i18n";
 import { recordActivity } from "@/lib/activity-log";
 import { requireAdmin, requireFounder } from "@/lib/admin-session";
 import { prisma } from "@/lib/prisma";
+import { isSecretSiteSettingKey, isSiteSettingKey } from "@/lib/site-settings";
+import type { Prisma } from "@/lib/generated/prisma/client";
 
 export interface AdminActionResult {
   ok: boolean;
@@ -57,7 +59,7 @@ export async function toggleUserBlocked(userId: string, blocked: boolean): Promi
   const t = await getActionTranslator();
   const admin = await requireAdmin();
   if (!admin || !prisma) return { ok: false, error: t("unauthorized") };
-  if (!validId(userId)) return { ok: false, error: t("invalidUser") };
+  if (!validId(userId) || typeof blocked !== "boolean") return { ok: false, error: t("invalidUser") };
   if (admin.id === userId && blocked) return { ok: false, error: t("cannotBlockSelf") };
   try {
     const target = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
@@ -66,7 +68,7 @@ export async function toggleUserBlocked(userId: string, blocked: boolean): Promi
     // «выключить» владельца сайта одним переключателем.
     if (target.role === "FOUNDER") return { ok: false, error: t("founderInvulnerable") };
 
-    const user = await prisma.user.update({ where: { id: userId }, data: { isBlocked: Boolean(blocked) } });
+    const user = await prisma.user.update({ where: { id: userId }, data: { isBlocked: blocked } });
     await prisma.activityLog.create({ data: { action: blocked ? "blocked" : "unblocked", entityType: "user", entityId: user.id, title: user.email, actorId: admin.id } });
     revalidatePath("/admin/users");
     return { ok: true };
@@ -102,28 +104,74 @@ export async function resetUserPassword(userId: string): Promise<AdminActionResu
   }
 }
 
+class FeaturedPostUpdateError extends Error {}
+
+async function applyFeaturedPost(tx: Prisma.TransactionClient, postId: string | null, actorId: string) {
+  await tx.post.updateMany({ data: { isFeatured: false } });
+  if (postId) {
+    const selected = await tx.post.updateMany({
+      where: {
+        id: postId,
+        isPublished: true,
+        OR: [{ publishedAt: null }, { publishedAt: { lte: new Date() } }],
+      },
+      data: { isFeatured: true },
+    });
+    if (selected.count !== 1) throw new FeaturedPostUpdateError();
+  }
+  await recordActivity(tx, {
+    action: "updated",
+    entityType: "post",
+    entityId: postId ?? "none",
+    title: "Featured post",
+    actorId,
+  });
+}
+
 /**
  * Настройки сайта ведёт ТОЛЬКО основатель: в той же таблице лежат пароли
  * Робокассы и токен Telegram-бота. Обычный админ сюда не допускается —
  * это тот же уровень доступа, что и вкладка Settings в интерфейсе.
  */
-export async function updateSiteSettings(settings: Record<string, string>): Promise<AdminActionResult> {
+export async function updateSiteSettings(
+  settings: Record<string, string>,
+  featuredPostId?: string | null,
+): Promise<AdminActionResult> {
   const t = await getActionTranslator();
   const admin = await requireFounder();
   if (!admin || !prisma) return { ok: false, error: t("unauthorized") };
-  if (!settings || typeof settings !== "object") return { ok: false, error: t("invalidSettings") };
-  const safeEntries = Object.entries(settings).filter(([key, value]) => /^[a-zA-Z0-9_.-]{1,80}$/.test(key) && typeof value === "string").slice(0, 100);
+  if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
+    return { ok: false, error: t("invalidSettings") };
+  }
+  const entries = Object.entries(settings);
+  if (
+    entries.length > 100 ||
+    entries.some(([key, value]) => !isSiteSettingKey(key) || typeof value !== "string" || value.length > 5000) ||
+    (featuredPostId !== undefined && featuredPostId !== null && !validId(featuredPostId))
+  ) {
+    return { ok: false, error: t("invalidSettings") };
+  }
+  // Blank password/token fields mean "keep the configured value". Existing
+  // secrets are never sent to the browser, so they cannot be round-tripped.
+  const safeEntries = entries.filter(([key, value]) => !(isSecretSiteSettingKey(key) && value === ""));
   try {
     await prisma.$transaction(async (tx) => {
       for (const [key, value] of safeEntries) {
-        await tx.siteSetting.upsert({ where: { key }, update: { value: value.slice(0, 5000) }, create: { key, value: value.slice(0, 5000) } });
+        await tx.siteSetting.upsert({ where: { key }, update: { value }, create: { key, value } });
       }
       await recordActivity(tx, { action: "updated", entityType: "setting", entityId: "site", title: "Site settings", actorId: admin.id });
+      if (featuredPostId !== undefined) {
+        await applyFeaturedPost(tx, featuredPostId, admin.id);
+      }
     });
     revalidatePath("/admin/settings");
     revalidatePath("/");
+    if (featuredPostId !== undefined) revalidatePath("/admin/dashboard");
     return { ok: true };
   } catch (error) {
+    if (error instanceof FeaturedPostUpdateError) {
+      return { ok: false, error: t("featuredPostUpdateFailed") };
+    }
     console.error("Failed to update site settings:", error);
     return { ok: false, error: t("settingsSaveFailed") };
   }
@@ -136,9 +184,7 @@ export async function setFeaturedPost(postId: string | null): Promise<AdminActio
   if (postId !== null && !validId(postId)) return { ok: false, error: t("invalidPost") };
   try {
     await prisma.$transaction(async (tx) => {
-      await tx.post.updateMany({ data: { isFeatured: false } });
-      if (postId) await tx.post.update({ where: { id: postId }, data: { isFeatured: true } });
-      await recordActivity(tx, { action: "updated", entityType: "post", entityId: postId ?? "none", title: "Featured post", actorId: admin.id });
+      await applyFeaturedPost(tx, postId, admin.id);
     });
     revalidatePath("/");
     revalidatePath("/admin/dashboard");

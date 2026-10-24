@@ -4,6 +4,7 @@ import { XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
+import { getRequestLocale } from "@/lib/request-locale";
 import { getRequestTranslations } from "@/lib/server-i18n";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +23,10 @@ function first(value: string | string[] | undefined): string {
  */
 export default async function PaymentFailPage({ searchParams }: PaymentPageProps) {
   const query = await searchParams;
-  const t = await getRequestTranslations("payment");
+  const [t, locale] = await Promise.all([
+    getRequestTranslations("payment"),
+    getRequestLocale(),
+  ]);
 
   const invId = first(query.InvId);
   const outSum = first(query.OutSum);
@@ -54,7 +58,7 @@ export default async function PaymentFailPage({ searchParams }: PaymentPageProps
           {invId ? <p className="text-sm text-muted-foreground">{t("invoiceNumber")}: {invId}</p> : null}
           {outSum ? (
             <p className="text-sm text-muted-foreground">
-              {t("amount")}: {Number(outSum.replace(",", ".")).toLocaleString("ru-RU")} ₽
+              {t("amount")}: {Number(outSum.replace(",", ".")).toLocaleString(locale === "ru" ? "ru-RU" : "en-GB")} ₽
             </p>
           ) : null}
           <div className="mt-2 flex flex-wrap justify-center gap-3">

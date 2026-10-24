@@ -12,6 +12,7 @@ import { getAdminOrder } from "@/lib/admin-orders";
 import { requireStaff } from "@/lib/admin-session";
 import { formatKopecks } from "@/lib/pricing";
 import { getRequestTranslations } from "@/lib/server-i18n";
+import { getRequestLocale } from "@/lib/request-locale";
 
 /** Выбранные опции клиента: [{ group, option, ... }] → «Тираж: 100 шт». */
 interface OptionSnapshotEntry {
@@ -40,18 +41,18 @@ function readOptions(snapshot: string): string[] {
   });
 }
 
-function formatDate(value: Date | null): string {
+function formatDate(value: Date | null, locale: string): string {
   if (!value) return "—";
-  return new Intl.DateTimeFormat("ru-RU", {
+  return new Intl.DateTimeFormat(locale === "ru" ? "ru-RU" : "en-US", {
     dateStyle: "medium",
     timeStyle: "short",
     timeZone: "UTC",
   }).format(value);
 }
 
-function formatDateOnly(value: Date | null): string {
+function formatDateOnly(value: Date | null, locale: string): string {
   if (!value) return "—";
-  return new Intl.DateTimeFormat("ru-RU", {
+  return new Intl.DateTimeFormat(locale === "ru" ? "ru-RU" : "en-US", {
     dateStyle: "medium",
     timeZone: "UTC",
   }).format(value);
@@ -68,7 +69,10 @@ export async function OrderDetailView({
   orderId: string;
   basePath: OrdersBasePath;
 }) {
-  const t = await getRequestTranslations("admin");
+  const [t, locale] = await Promise.all([
+    getRequestTranslations("admin"),
+    getRequestLocale(),
+  ]);
 
   // Кто смотрит карточку: заблокированный заказ правит только основатель.
   // Страница и так за гардами /admin и /manager, здесь роль нужна форме.
@@ -80,6 +84,9 @@ export async function OrderDetailView({
 
   const priced = order.total > 0;
   const currency = order.currency || "RUB";
+  const hasSuccessfulPayment = order.payments.some((payment) => payment.status === "succeeded");
+  const priceChangeClosed = hasSuccessfulPayment ||
+    ["paid", "in_progress", "completed", "cancelled", "refunded"].includes(order.status);
 
   return (
     <div>
@@ -102,9 +109,9 @@ export async function OrderDetailView({
         ) : null}
       </div>
       <p className="mt-2 text-sm text-muted-foreground">
-        {t("created")}: {formatDate(order.createdAt)}
-        {order.priceAgreedAt ? ` · ${t("agreed")}: ${formatDate(order.priceAgreedAt)}` : ""}
-        {order.paidAt ? ` · ${t("status_paid")}: ${formatDate(order.paidAt)}` : ""}
+        {t("created")}: {formatDate(order.createdAt, locale)}
+        {order.priceAgreedAt ? ` · ${t("agreed")}: ${formatDate(order.priceAgreedAt, locale)}` : ""}
+        {order.paidAt ? ` · ${t("status_paid")}: ${formatDate(order.paidAt, locale)}` : ""}
       </p>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(280px,1fr)]">
@@ -119,13 +126,13 @@ export async function OrderDetailView({
                 <div>
                   <p className="text-sm text-muted-foreground">{t("estimated")}</p>
                   <p className="text-2xl font-semibold tabular-nums">
-                    {formatKopecks(order.estimatedAmount, currency)}
+                    {formatKopecks(order.estimatedAmount, currency, locale)}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">{t("agreed")}</p>
                   <p className="text-2xl font-semibold tabular-nums">
-                    {priced ? formatKopecks(order.total, currency) : "—"}
+                    {priced ? formatKopecks(order.total, currency, locale) : "—"}
                   </p>
                 </div>
               </div>
@@ -136,15 +143,21 @@ export async function OrderDetailView({
                 </p>
               ) : null}
 
-              <OrderPriceForm
-                orderId={order.id}
-                estimatedAmount={order.estimatedAmount}
-                currentTotal={order.total}
-                currentNote={order.managerNote}
-                currency={currency}
-                isLocked={order.isLocked}
-                canEditLocked={canEditLocked}
-              />
+              {priceChangeClosed ? (
+                <p className="rounded-xl border border-border bg-muted/50 px-3.5 py-2.5 text-sm text-muted-foreground">
+                  {t("priceLockedAfterPayment")}
+                </p>
+              ) : (
+                <OrderPriceForm
+                  orderId={order.id}
+                  estimatedAmount={order.estimatedAmount}
+                  currentTotal={order.total}
+                  currentNote={order.managerNote}
+                  currency={currency}
+                  isLocked={order.isLocked}
+                  canEditLocked={canEditLocked}
+                />
+              )}
             </CardContent>
           </Card>
 
@@ -165,8 +178,8 @@ export async function OrderDetailView({
                         </p>
                         <p className="text-sm tabular-nums text-muted-foreground">
                           {item.unitPrice
-                            ? formatKopecks(item.totalPrice, currency)
-                            : `${t("estimated")} ${formatKopecks(item.estimatedUnitPrice * item.quantity, currency)}`}
+                            ? formatKopecks(item.totalPrice, currency, locale)
+                            : `${t("estimated")} ${formatKopecks(item.estimatedUnitPrice * item.quantity, currency, locale)}`}
                         </p>
                       </div>
                       {options.length ? (
@@ -187,7 +200,7 @@ export async function OrderDetailView({
                 <div>
                   <h3 className="text-sm font-semibold">{t("deadline")}</h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {order.deadline ? formatDateOnly(order.deadline) : t("noDeadline")}
+                    {order.deadline ? formatDateOnly(order.deadline, locale) : t("noDeadline")}
                   </p>
                 </div>
                 <div>
@@ -227,7 +240,7 @@ export async function OrderDetailView({
                     <li key={payment.id} className="py-2.5 first:pt-0 last:pb-0">
                       <div className="flex items-baseline justify-between gap-2">
                         <span className="tabular-nums">
-                          {formatKopecks(payment.amount, payment.currency)}
+                          {formatKopecks(payment.amount, payment.currency, locale)}
                         </span>
                         <span className="text-xs text-muted-foreground">
                           {/* Провайдер и статус сырые: это служебные данные,
@@ -236,7 +249,7 @@ export async function OrderDetailView({
                         </span>
                       </div>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        {formatDate(payment.createdAt)}
+                        {formatDate(payment.createdAt, locale)}
                       </p>
                       {payment.paymentUrl ? (
                         <a
@@ -261,7 +274,7 @@ export async function OrderDetailView({
 
               {/* Оплата по согласованной цене: маршрут сам достанет или
                   создаст счёт и уведёт на форму Робокассы. */}
-              {order.status === "awaiting_payment" && priced ? (
+              {order.status === "awaiting_payment" && priced && !hasSuccessfulPayment ? (
                 <a
                   href={`/api/payment/create?orderId=${encodeURIComponent(order.id)}`}
                   className={`${buttonVariants({ variant: "default", size: "sm" })} mt-4 w-full`}

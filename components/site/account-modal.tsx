@@ -42,6 +42,8 @@ import { cn } from "@/lib/utils";
 export interface AccountModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Visible control that receives focus after the dialog closes. */
+  returnFocusId?: string;
 }
 
 function FormError({ message }: { message: string | null }) {
@@ -115,7 +117,9 @@ function ProfilePanel({
       }
       await signOut({ redirect: false, redirectTo: "/" });
       onClose();
-      if (pathname.startsWith("/admin")) router.replace("/");
+      if (pathname.startsWith("/admin") || pathname.startsWith("/manager")) {
+        router.replace("/");
+      }
       router.refresh();
     } catch {
       setError(t("logoutRetry"));
@@ -133,15 +137,15 @@ function ProfilePanel({
             {profileName(user) || user.email}
           </p>
           <p className="break-all text-sm text-muted-foreground">{user.email}</p>
-          {user.role === "FOUNDER" || user.role === "ADMIN" || user.role === "MANAGER" ? (
-            <p className="mt-1 text-xs font-medium text-foreground">
-              {user.role === "FOUNDER"
-                ? t("founderSession")
-                : user.role === "ADMIN"
-                  ? t("adminSession")
-                  : t("managerSession")}
-            </p>
-          ) : null}
+          <p className="mt-1 text-xs font-medium text-foreground">
+            {user.role === "FOUNDER"
+              ? t("founderSession")
+              : user.role === "ADMIN"
+                ? t("adminSession")
+                : user.role === "MANAGER"
+                  ? t("managerSession")
+                  : t("customerSession")}
+          </p>
         </div>
       </div>
 
@@ -292,7 +296,11 @@ function ProfilePanel({
   );
 }
 
-export function AccountModal({ open, onOpenChange }: AccountModalProps) {
+export function AccountModal({
+  open,
+  onOpenChange,
+  returnFocusId = "account-trigger",
+}: AccountModalProps) {
   const t = useTranslations("auth");
   const router = useRouter();
   const { data: session, status, update } = useSession();
@@ -400,7 +408,7 @@ export function AccountModal({ open, onOpenChange }: AccountModalProps) {
         className="max-h-[90dvh] w-[calc(100vw_-_2rem)] overflow-y-auto rounded-xl transition-none sm:max-w-md"
         onCloseAutoFocus={(event) => {
           event.preventDefault();
-          document.getElementById("account-trigger")?.focus();
+          document.getElementById(returnFocusId)?.focus();
         }}
       >
         <DialogHeader>

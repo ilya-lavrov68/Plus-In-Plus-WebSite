@@ -10,7 +10,7 @@ export async function CtaSection() {
     <Cta13
       heading={t("ctaTitle")}
       description={t("ctaDescription")}
-      primaryButton={{ text: hero("order"), url: "/shop" }}
+      primaryButton={{ text: hero("order"), url: "/services" }}
       secondaryButton={{ text: hero("contactUs"), url: "/contact" }}
     />
   );

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
-import { checkRateLimit, getClientAddress, hashRateLimitIdentifier } from "@/lib/rate-limit";
+import { checkRateLimitAsync, getClientAddress, hashRateLimitIdentifier } from "@/lib/rate-limit";
 
 const DEVICES = new Set(["desktop", "mobile", "tablet"]);
 const WINDOW_MS = 10 * 60 * 1000;
@@ -17,9 +17,9 @@ function requestAddress(request: Request): string {
   return getClientAddress(request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for"));
 }
 
-function limitExceeded(request: Request, scope: string): boolean {
+async function limitExceeded(request: Request, scope: string): Promise<boolean> {
   const key = hashRateLimitIdentifier(`page-view:${scope}:${requestAddress(request)}`);
-  return !checkRateLimit(key, ADDRESS_LIMIT, WINDOW_MS).allowed;
+  return !(await checkRateLimitAsync(key, ADDRESS_LIMIT, WINDOW_MS)).allowed;
 }
 
 function payloadTooLarge(request: Request): boolean {
@@ -37,10 +37,13 @@ function clean(value: unknown, max: number): string | null {
  */
 export async function POST(request: Request) {
   if (!prisma) return NextResponse.json({ ok: false }, { status: 503 });
-  if (limitExceeded(request, "post")) return NextResponse.json({ ok: false }, { status: 429 });
+  if (await limitExceeded(request, "post")) return NextResponse.json({ ok: false }, { status: 429 });
   if (payloadTooLarge(request)) return NextResponse.json({ ok: false }, { status: 413 });
   try {
     const body = await request.json().catch(() => ({}));
+    if (body?.analyticsConsent !== true) {
+      return NextResponse.json({ ok: false, error: "Analytics consent required" }, { status: 403 });
+    }
     const path = clean(body?.path, 300) ?? "/";
     if (!path.startsWith("/")) return NextResponse.json({ ok: false }, { status: 400 });
     // Служебные части не считаем: там ходят сотрудники, а не посетители.
@@ -75,10 +78,13 @@ export async function POST(request: Request) {
  */
 export async function PATCH(request: Request) {
   if (!prisma) return NextResponse.json({ ok: false }, { status: 503 });
-  if (limitExceeded(request, "patch")) return NextResponse.json({ ok: false }, { status: 429 });
+  if (await limitExceeded(request, "patch")) return NextResponse.json({ ok: false }, { status: 429 });
   if (payloadTooLarge(request)) return NextResponse.json({ ok: false }, { status: 413 });
   try {
     const body = await request.json().catch(() => ({}));
+    if (body?.analyticsConsent !== true) {
+      return NextResponse.json({ ok: false, error: "Analytics consent required" }, { status: 403 });
+    }
     const id = clean(body?.id, 100);
     const durationMs = Number(body?.durationMs);
     if (!id || !Number.isFinite(durationMs) || durationMs < 0) {

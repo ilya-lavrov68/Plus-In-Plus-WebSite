@@ -7,6 +7,8 @@ interface BlogSectionProps {
   posts?: CatalogBlogPost[];
   allCategoryLabel?: string;
   categoryLabels?: Partial<Record<CatalogBlogPost["category"], string>>;
+  emptyTitle?: string;
+  emptyDescription?: string;
   asPageHeading?: boolean;
   id?: string;
 }
@@ -17,6 +19,8 @@ export function BlogSection({
   posts,
   allCategoryLabel,
   categoryLabels,
+  emptyTitle,
+  emptyDescription,
   asPageHeading = false,
   id,
 }: BlogSectionProps) {
@@ -28,6 +32,8 @@ export function BlogSection({
       posts={posts}
       allCategoryLabel={allCategoryLabel}
       categoryLabels={categoryLabels}
+      emptyTitle={emptyTitle}
+      emptyDescription={emptyDescription}
       asPageHeading={asPageHeading}
     />
   );

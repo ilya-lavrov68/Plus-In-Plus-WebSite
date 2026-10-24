@@ -6,6 +6,7 @@ import { getActionTranslator } from "@/lib/action-i18n";
 import { recordActivity } from "@/lib/activity-log";
 import { requireAdmin } from "@/lib/admin-session";
 import { prisma } from "@/lib/prisma";
+import { cleanupPostCoverIfUnused } from "@/lib/media-cleanup";
 import { revalidatePost } from "@/lib/revalidate-content";
 import { sanitizePostContent } from "@/lib/sanitize-post-content";
 import * as uploadModule from "@/lib/uploads";
@@ -132,6 +133,11 @@ export async function createPost(formData: FormData): Promise<PostActionResult> 
     const finalImages = await processAlbumFiles(formData, parsed.data.images ?? null);
 
     const post = await prisma.$transaction(async (tx) => {
+      // The post form has the same single-Featured invariant as the dedicated
+      // dashboard/settings control. Clear the previous selection atomically.
+      if (parsed.data.isFeatured) {
+        await tx.post.updateMany({ data: { isFeatured: false } });
+      }
       const created = await tx.post.create({
         data: {
           ...parsed.data,
@@ -180,6 +186,12 @@ export async function updatePost(id: string, formData: FormData): Promise<PostAc
       : null;
 
     await prisma.$transaction(async (tx) => {
+      if (parsed.data.isFeatured) {
+        await tx.post.updateMany({
+          where: { id: { not: id } },
+          data: { isFeatured: false },
+        });
+      }
       await tx.post.update({
         where: { id },
         data: {
@@ -198,7 +210,7 @@ export async function updatePost(id: string, formData: FormData): Promise<PostAc
     console.error("Failed to update post:", error);
     return { ok: false, error: t("updatePostFailed") };
   }
-  if (newCover) await cleanupUpload(oldCover, "blog");
+  if (newCover) await cleanupPostCoverIfUnused(oldCover);
   revalidatePost(id, oldSlug, parsed.data.slug);
   return { ok: true, id };
 }
@@ -209,6 +221,9 @@ export async function bulkUpdatePosts(ids: string[], action: "publish" | "unpubl
   if (!admin || !prisma) return { ok: false, error: t("unauthorized") };
   if (!Array.isArray(ids) || ids.length === 0 || ids.length > 100 || ids.some((id) => typeof id !== "string" || !id || id.length > 128)) {
     return { ok: false, error: t("selectValidPost") };
+  }
+  if (action !== "publish" && action !== "unpublish" && action !== "delete") {
+    return { ok: false, error: t("invalidRequest") };
   }
   const removedCovers: string[] = [];
   try {
@@ -221,6 +236,12 @@ export async function bulkUpdatePosts(ids: string[], action: "publish" | "unpubl
           await tx.post.delete({ where: { id } });
           await recordActivity(tx, { action: "deleted", entityType: "post", entityId: id, title: post.title, actorId: admin.id });
         } else {
+          if (action === "publish" && post.isFeatured) {
+            await tx.post.updateMany({
+              where: { id: { not: id } },
+              data: { isFeatured: false },
+            });
+          }
           await tx.post.update({ where: { id }, data: { isPublished: action === "publish", publishedAt: action === "publish" ? post.publishedAt ?? new Date() : null } });
           await recordActivity(tx, { action: action === "publish" ? "published" : "unpublished", entityType: "post", entityId: id, title: post.title, actorId: admin.id });
         }
@@ -230,7 +251,7 @@ export async function bulkUpdatePosts(ids: string[], action: "publish" | "unpubl
     console.error("Failed to update posts in bulk:", error);
     return { ok: false, error: t("bulkUpdatePostsFailed") };
   }
-  await Promise.all(removedCovers.map((cover) => cleanupUpload(cover, "blog")));
+  await Promise.all(removedCovers.map((cover) => cleanupPostCoverIfUnused(cover)));
   ids.forEach((id) => revalidatePost(id));
   revalidatePath("/admin/blog");
   return { ok: true };
@@ -297,7 +318,7 @@ export async function deletePost(id: string): Promise<PostActionResult> {
     console.error("Failed to delete post:", error);
     return { ok: false, error: t("deletePostFailed") };
   }
-  await cleanupUpload(cover, "blog");
+  await cleanupPostCoverIfUnused(cover);
   revalidatePost(id, slug);
   return { ok: true, id };
 }

@@ -15,7 +15,7 @@ export async function GET() {
   try {
     const [services, locale] = await Promise.all([
       prisma.service.findMany({
-        where: { isActive: true },
+        where: { isActive: true, isPublished: true },
         orderBy: [
           { category: "desc" },
           { sortOrder: "asc" },

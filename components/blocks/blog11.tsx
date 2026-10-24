@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { motion } from "motion/react";
+import { Newspaper } from "lucide-react";
 
+import { EmptyState } from "@/components/site/empty-state";
 import { Separator } from "@/components/ui/separator";
 import { STUDIO_BLOG_POSTS, type CatalogBlogPost } from "@/lib/studio-catalog";
 
@@ -15,6 +17,8 @@ export interface Blog11Props {
   asPageHeading?: boolean;
   allCategoryLabel?: string;
   categoryLabels?: Partial<Record<CatalogBlogPost["category"], string>>;
+  emptyTitle?: string;
+  emptyDescription?: string;
 }
 
 const Blog11 = ({
@@ -25,6 +29,8 @@ const Blog11 = ({
   asPageHeading = false,
   allCategoryLabel = "All",
   categoryLabels = {},
+  emptyTitle = "The blog is empty",
+  emptyDescription = "Our first article is coming soon.",
 }: Blog11Props) => {
   const layoutScope = id || heading.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
@@ -34,11 +40,14 @@ const Blog11 = ({
   }, [posts]);
 
   const [activeCategory, setActiveCategory] = useState<string>("All");
+  const selectedCategory = categories.includes(activeCategory)
+    ? activeCategory
+    : "All";
 
   const filteredPosts = useMemo(() => {
-    if (activeCategory === "All") return posts;
-    return posts.filter((post) => post.category === activeCategory);
-  }, [activeCategory, posts]);
+    if (selectedCategory === "All") return posts;
+    return posts.filter((post) => post.category === selectedCategory);
+  }, [selectedCategory, posts]);
 
   const HeadingTag = asPageHeading ? "h1" : "h2";
 
@@ -57,7 +66,7 @@ const Blog11 = ({
               <Separator className="my-8" />
               <div className="flex flex-wrap gap-5 lg:flex-col lg:gap-4">
                 {categories.map((category) => {
-                  const isActive = activeCategory === category;
+                  const isActive = selectedCategory === category;
                   return (
                     <button
                       key={category}
@@ -91,7 +100,15 @@ const Blog11 = ({
           </div>
 
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:col-span-8">
-            {filteredPosts.map((post, index) => {
+            {posts.length === 0 ? (
+              <div className="sm:col-span-2">
+                <EmptyState
+                  icon={Newspaper}
+                  title={emptyTitle}
+                  description={emptyDescription}
+                />
+              </div>
+            ) : (filteredPosts.map((post, index) => {
               const isFeatured = index === 0;
               return (
                 <article key={post.id}>
@@ -123,7 +140,7 @@ const Blog11 = ({
                             : "text-muted-foreground group-hover:text-white/85 group-focus-visible:text-white/85"
                         }`}
                       >
-                        {post.category}
+                        {categoryLabels[post.category] ?? post.category}
                       </span>
                       <span
                         className={`text-xs transition-colors duration-200 ${
@@ -148,7 +165,7 @@ const Blog11 = ({
                   </Link>
                 </article>
               );
-            })}
+            }))}
           </div>
         </div>
       </div>

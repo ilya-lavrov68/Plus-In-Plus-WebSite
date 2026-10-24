@@ -173,6 +173,7 @@ const mockPrisma = {
         orderNumber: data.orderNumber ?? null,
         number: data.number ?? null,
         userId: data.userId,
+        cartKey: data.cartKey ?? null,
         status: data.status ?? "cart",
         estimatedAmount: data.estimatedAmount ?? 0,
         subtotal: 0,
@@ -194,11 +195,30 @@ const mockPrisma = {
       if (include?.items) copy.items = [];
       return copy;
     },
+    upsert: async ({ where, create, include }) => {
+      const existing = [...ordersMap.values()].find((order) => order.cartKey === where.cartKey);
+      if (existing) {
+        const copy = structuredClone(existing);
+        if (include?.items) copy.items = itemsForOrder(copy.id);
+        return copy;
+      }
+      return mockPrisma.order.create({ data: create, include });
+    },
     update: async ({ where, data }) => {
       const row = ordersMap.get(where.id);
       if (!row) throw new Error("Order not found");
       Object.assign(row, structuredClone(data), { updatedAt: new Date() });
       return structuredClone(row);
+    },
+    updateMany: async ({ where, data }) => {
+      let count = 0;
+      for (const row of ordersMap.values()) {
+        if (where.id && row.id !== where.id) continue;
+        if (where.status && row.status !== where.status) continue;
+        Object.assign(row, structuredClone(data), { updatedAt: new Date() });
+        count += 1;
+      }
+      return { count };
     },
     count: async ({ where = {} } = {}) => {
       return [...ordersMap.values()].filter((o) => {
@@ -209,12 +229,14 @@ const mockPrisma = {
   },
   orderItem: {
     findFirst: async ({ where }) => {
-      const found = [...orderItemsMap.values()].find(
-        (i) =>
-          i.orderId === where.orderId &&
-          i.itemType === where.itemType &&
-          i.itemId === where.itemId
-      );
+      const found = [...orderItemsMap.values()].find((i) => {
+        if (where.id && i.id !== where.id) return false;
+        if (where.orderId && i.orderId !== where.orderId) return false;
+        if (where.itemType && i.itemType !== where.itemType) return false;
+        if (where.itemId && i.itemId !== where.itemId) return false;
+        if (where.optionsSnapshot !== undefined && i.optionsSnapshot !== where.optionsSnapshot) return false;
+        return true;
+      });
       return found ? structuredClone(found) : null;
     },
     findMany: async ({ where }) => {
@@ -250,9 +272,10 @@ const mockPrisma = {
       let count = 0;
       for (const row of orderItemsMap.values()) {
         if (
-          row.orderId === where.orderId &&
-          row.itemId === where.itemId &&
-          row.itemType === where.itemType
+          (!where.orderId || row.orderId === where.orderId) &&
+          (!where.itemId || row.itemId === where.itemId) &&
+          (!where.itemType || row.itemType === where.itemType) &&
+          (where.optionsSnapshot === undefined || row.optionsSnapshot === where.optionsSnapshot)
         ) {
           Object.assign(row, structuredClone(data));
           count += 1;
@@ -264,9 +287,10 @@ const mockPrisma = {
       let count = 0;
       for (const [id, row] of orderItemsMap.entries()) {
         if (
-          row.orderId === where.orderId &&
-          row.itemId === where.itemId &&
-          row.itemType === where.itemType
+          (!where.id || row.id === where.id) &&
+          (!where.orderId || row.orderId === where.orderId) &&
+          (!where.itemId || row.itemId === where.itemId) &&
+          (!where.itemType || row.itemType === where.itemType)
         ) {
           orderItemsMap.delete(id);
           count += 1;
@@ -343,6 +367,7 @@ test("schema defines single Order model (status default cart), OrderItem.itemTyp
   assert.match(schema, /model\s+Product\s*\{/);
   assert.match(schema, /status\s+String\s+@default\("cart"\)/);
   assert.match(schema, /orderNumber\s+String\?\s+@unique/);
+  assert.match(schema, /cartKey\s+String\?\s+@unique/);
   assert.match(schema, /itemType\s+String/);
   assert.match(schema, /itemId\s+String/);
 
@@ -394,6 +419,7 @@ test("unified cart stores both services and products in one Order (status='cart'
   assert.equal(ordersMap.size, 1);
   const draftCart = [...ordersMap.values()][0];
   assert.equal(draftCart.status, "cart");
+  assert.equal(draftCart.cartKey, "usr-1");
   assert.equal(draftCart.orderNumber, null);
 
   // While status='cart', /orders (getCustomerOrders) returns 0 orders!
@@ -414,6 +440,10 @@ test("unified cart stores both services and products in one Order (status='cart'
   assert.equal(prdLine.name, "PIP Studio Hoodie");
   assert.equal(prdLine.price, 4500);
   assert.equal(prdLine.quantity, 2);
+  assert.equal(svcLine.unavailable, false);
+  assert.equal(svcLine.maxQuantity, 99);
+  assert.equal(prdLine.unavailable, false);
+  assert.equal(prdLine.maxQuantity, 15);
 
   // Header badge count endpoint returns 3
   const countBefore = await (await cartCountRoute.GET()).json();
@@ -441,6 +471,7 @@ test("unified cart stores both services and products in one Order (status='cart'
   // Still only 1 Order row — transitioned in place to status='pending'!
   assert.equal(ordersMap.size, 1);
   assert.equal(ordersMap.get(draftCart.id).status, "pending");
+  assert.equal(ordersMap.get(draftCart.id).cartKey, null);
   assert.equal(ordersMap.get(draftCart.id).orderNumber, "ПИП-000001");
 
   // Header cart count is now 0
@@ -455,6 +486,127 @@ test("unified cart stores both services and products in one Order (status='cart'
   assert.equal(submittedOrders[0].items.length, 2);
 });
 
+test("concurrent first cart writes converge on one cart and checkout releases its unique key", async () => {
+  const [serviceResponse, productResponse] = await Promise.all([
+    cartItemRoute.POST(new Request("http://localhost/api/cart/item", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ itemType: "service", itemId: "svc-sign", quantity: 1 }),
+    })),
+    cartItemRoute.POST(new Request("http://localhost/api/cart/item", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ itemType: "product", itemId: "prd-hoodie", quantity: 1 }),
+    })),
+  ]);
+  assert.equal(serviceResponse.status, 200);
+  assert.equal(productResponse.status, 200);
+  assert.equal(ordersMap.size, 1);
+  const firstCart = [...ordersMap.values()][0];
+  assert.equal(firstCart.cartKey, "usr-1");
+
+  const checkout = await cartCheckoutRoute.POST(new Request("http://localhost/api/cart/checkout", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({}),
+  }));
+  assert.equal(checkout.status, 200);
+  assert.equal(ordersMap.get(firstCart.id).cartKey, null);
+
+  const nextCart = await cartGetRoute.GET();
+  assert.equal(nextCart.status, 200);
+  assert.equal(ordersMap.size, 2);
+  const activeCarts = [...ordersMap.values()].filter((order) => order.status === "cart");
+  assert.equal(activeCarts.length, 1);
+  assert.equal(activeCarts[0].cartKey, "usr-1");
+  assert.notEqual(activeCarts[0].id, firstCart.id);
+});
+
+test("configured service lines keep immutable identities for independent update and delete", async () => {
+  servicesMap.get("svc-sign").optionGroups = [{
+    id: "group-finish",
+    serviceId: "svc-sign",
+    name: "Finish",
+    required: false,
+    sortOrder: 0,
+    options: [
+      { id: "option-matte", groupId: "group-finish", label: "Matte", priceDelta: 0, priceFactor: 1, isDefault: true, sortOrder: 0 },
+      { id: "option-gloss", groupId: "group-finish", label: "Gloss", priceDelta: 10_000, priceFactor: 1, isDefault: false, sortOrder: 1 },
+    ],
+  }];
+  for (const optionIds of [["option-matte"], ["option-gloss"]]) {
+    const response = await cartItemRoute.POST(new Request("http://localhost/api/cart/item", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ itemType: "service", itemId: "svc-sign", optionIds }),
+    }));
+    assert.equal(response.status, 200, JSON.stringify(await response.json()));
+  }
+  assert.equal(orderItemsMap.size, 2, "different configurations are separate rows");
+  const payload = await (await cartGetRoute.GET()).json();
+  const [first, second] = payload.items;
+  assert.notEqual(first.id, second.id);
+  const update = await cartItemRoute.PATCH(new Request("http://localhost/api/cart/item", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id: first.id, quantity: 3 }),
+  }));
+  assert.equal(update.status, 200);
+  assert.equal(orderItemsMap.get(first.id).quantity, 3);
+  assert.equal(orderItemsMap.get(second.id).quantity, 1);
+  const remove = await cartItemRoute.DELETE(new Request("http://localhost/api/cart/item", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id: second.id }),
+  }));
+  assert.equal(remove.status, 200);
+  assert.equal(orderItemsMap.has(first.id), true);
+  assert.equal(orderItemsMap.has(second.id), false);
+});
+
+test("direct cart mutations reject unavailable services and excess product stock", async () => {
+  servicesMap.get("svc-sign").isPublished = false;
+  const unavailable = await cartItemRoute.POST(new Request("http://localhost/api/cart/item", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ itemType: "service", itemId: "svc-sign" }),
+  }));
+  assert.equal(unavailable.status, 400);
+  servicesMap.get("svc-sign").isPublished = true;
+  servicesMap.get("svc-sign").isOrderable = false;
+  const quoteOnly = await cartItemRoute.POST(new Request("http://localhost/api/cart/item", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ itemType: "service", itemId: "svc-sign" }),
+  }));
+  assert.equal(quoteOnly.status, 400);
+  const excessStock = await cartItemRoute.POST(new Request("http://localhost/api/cart/item", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ itemType: "product", itemId: "prd-hoodie", quantity: 16 }),
+  }));
+  assert.equal(excessStock.status, 400);
+  assert.equal(orderItemsMap.size, 0);
+});
+
+test("existing cart lines expose stale catalog eligibility and cannot be checked out", async () => {
+  await cartItemRoute.POST(new Request("http://localhost/api/cart/item", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ itemType: "service", itemId: "svc-sign" }),
+  }));
+  servicesMap.get("svc-sign").isPublished = false;
+  const payload = await (await cartGetRoute.GET()).json();
+  assert.equal(payload.items[0].unavailable, true);
+  const checkout = await cartCheckoutRoute.POST(new Request("http://localhost/api/cart/checkout", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({}),
+  }));
+  assert.equal(checkout.status, 400);
+  assert.equal([...ordersMap.values()][0].status, "cart");
+});
+
 test("DELETE /api/cart/item removes individual item and checkout rejects empty cart", async () => {
   await cartItemRoute.POST(
     new Request("http://localhost/api/cart/item", {
@@ -464,11 +616,14 @@ test("DELETE /api/cart/item removes individual item and checkout rejects empty c
     })
   );
 
+  const cartPayload = await (await cartGetRoute.GET()).json();
+  const line = cartPayload.items.find((item) => item.itemId === "svc-sign");
+  assert.ok(line?.id, "the API exposes the immutable order-item id");
   const delRes = await cartItemRoute.DELETE(
     new Request("http://localhost/api/cart/item", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ itemType: "service", itemId: "svc-sign" }),
+      body: JSON.stringify({ id: line.id }),
     })
   );
   assert.equal(delRes.status, 200);

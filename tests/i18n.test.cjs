@@ -143,6 +143,43 @@ test("every translated key exists and receives the values its message needs", ()
   assert.deepEqual(problems, []);
 });
 
+test("blog empty states use the existing nested catalog messages", () => {
+  for (const locale of locales) {
+    assert.equal(typeof lookup(catalogs[locale], "blog.empty.title"), "string");
+    assert.equal(typeof lookup(catalogs[locale], "blog.empty.description"), "string");
+  }
+  for (const file of ["app/page.tsx", "app/blog/(index)/page.tsx", "app/shop/[slug]/content.tsx"]) {
+    const source = fs.readFileSync(path.join(rootDir, file), "utf8");
+    assert.ok(source.includes('empty.title'), `${file} must read blog.empty.title`);
+    assert.ok(source.includes('empty.description'), `${file} must read blog.empty.description`);
+  }
+});
+
+test("money and price prefixes follow the active locale without losing the ruble sign", () => {
+  const { formatKopecks, pricePrefix } = require("../lib/pricing.ts");
+  assert.equal(formatKopecks(1_560_000, "RUB", "en"), "15,600 ₽");
+  assert.match(formatKopecks(1_560_000, "RUB", "ru"), /^15[ \u00a0\u202f]600 ₽$/);
+  assert.equal(pricePrefix("from", "en"), "From ");
+  assert.equal(pricePrefix("from", "ru"), "от ");
+  assert.equal(pricePrefix("fixed", "en"), "");
+});
+
+test("shared Spectrum tables take their controls and accessibility labels from the catalogs", () => {
+  const source = fs.readFileSync(path.join(rootDir, "components/spectrumui/data-table.tsx"), "utf8");
+  assert.ok(source.includes('useTranslations("admin.dataTable")'));
+  for (const stale of [
+    'aria-label="Clear search"',
+    'aria-label="Pagination"',
+    'aria-label="Previous page"',
+    'aria-label="Next page"',
+    "searchPlaceholder = 'Search'",
+    "'No matching rows'",
+    "'Loading rows'",
+  ]) {
+    assert.equal(source.includes(stale), false, `hardcoded table copy remains: ${stale}`);
+  }
+});
+
 test("the validator limits quoted in the messages are the real ones", () => {
   // lib/validators.ts promises that the numbers in `actions.validation.*` mirror its constants.
   const { MAX_NAME_LENGTH, MAX_PASSWORD_BYTES, MAX_SLUG_LENGTH, MIN_PASSWORD_LENGTH } = require("../lib/validators.ts");

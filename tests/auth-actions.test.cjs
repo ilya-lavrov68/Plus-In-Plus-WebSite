@@ -119,18 +119,19 @@ test("registration reports a created account if automatic login is temporarily u
   assert.equal(users[0].role, "USER");
 });
 
-test("admin mode passes only for an existing ADMIN row and never for a regular account", async () => {
+test("admin mode delegates account classification to Auth.js and uses one credential failure", async () => {
   users.push({ id: "user-mock", email: "person@example.com", role: "USER", passwordHash: "hash" });
-  assert.deepEqual(await loginUser({ ...registration(), adminMode: true }), {
-    ok: false, success: false, error: "Admin account not found. Please log in as a regular user.",
+  signinError = new CredentialsSignin();
+  const regularResult = await loginUser({ ...registration(), adminMode: true });
+  assert.deepEqual(regularResult, {
+    ok: false, success: false, error: "Invalid email or password.",
   });
-  // The non-admin admin-mode attempt never reaches Auth.js, so no session is created.
-  assert.equal(signIns.length, 0);
+  assert.equal(signIns.length, 1, "the role prelookup does not reject before credential verification");
 
   users = [{ id: "admin-mock", email: "person@example.com", role: "ADMIN", passwordHash: "hash" }];
   signinError = Object.assign(new CredentialsSignin(), { code: "admin_account_not_found" });
-  const result = await loginUser({ ...registration(), adminMode: true });
-  assert.equal(result.error, "Admin account not found. Please log in as a regular user.");
+  const adminResult = await loginUser({ ...registration(), adminMode: true });
+  assert.deepEqual(adminResult, regularResult, "legacy/provider codes cannot leak account classification");
 
   signinError = null;
   assert.deepEqual(await loginUser({ ...registration(), adminMode: true }), {
@@ -155,9 +156,11 @@ test("login accepts FormData with the isAdminMode flag", async () => {
 
   const admin = new FormData();
   admin.set("email", "person@example.com"); admin.set("password", "a-long-passphrase"); admin.set("isAdminMode", "true");
+  signinError = new CredentialsSignin();
   assert.deepEqual(await loginUser(admin), {
-    ok: false, success: false, error: "Admin account not found. Please log in as a regular user.",
+    ok: false, success: false, error: "Invalid email or password.",
   });
+  assert.equal(signIns.length, 2);
 });
 
 test("profile changes require authentication and ignore submitted id, email, role and hash", async () => {

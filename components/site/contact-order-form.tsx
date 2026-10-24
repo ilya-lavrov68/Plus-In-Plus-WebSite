@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useCallback, useMemo, useState, type FormEvent } from "react";
 import { ArrowUpRight, Calendar, Layers, LogIn } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { createOrder } from "@/app/actions/orders";
 import { ServiceSelector } from "@/components/site/service-selector";
@@ -29,6 +29,7 @@ export function ContactOrderForm({
   const router = useRouter();
   const { data: session, status } = useSession();
   const t = useTranslations("contact");
+  const numberLocale = useLocale() === "ru" ? "ru-RU" : "en-GB";
 
   const [selectedServices, setSelectedServices] =
     useState<string[]>(initialSelectedIds);
@@ -196,7 +197,7 @@ export function ContactOrderForm({
                 </p>
               </div>
               <div className="text-xl font-bold tabular-nums text-foreground">
-                {estimatedRub.toLocaleString("ru-RU")} ₽
+                {estimatedRub.toLocaleString(numberLocale)} ₽
               </div>
             </div>
           ) : null}

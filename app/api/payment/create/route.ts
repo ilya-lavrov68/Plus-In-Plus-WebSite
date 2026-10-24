@@ -60,6 +60,7 @@ async function createPaymentRedirect(request: Request): Promise<Response> {
         status: true,
         total: true,
         currency: true,
+        payments: { where: { status: "succeeded" }, select: { id: true }, take: 1 },
         user: { select: { email: true } },
       },
     }),
@@ -79,7 +80,7 @@ async function createPaymentRedirect(request: Request): Promise<Response> {
     return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
   }
 
-  if (order.status === "paid" || order.status === "completed") {
+  if (order.payments.length > 0) {
     return NextResponse.redirect(new URL("/payment/success", request.url), 303);
   }
   // Пока менеджер не согласовал цену, оплачивать нечего — total равен нулю.

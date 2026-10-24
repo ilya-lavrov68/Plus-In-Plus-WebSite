@@ -3,13 +3,15 @@
 import { revalidatePath } from "next/cache";
 
 import { getActionTranslator } from "@/lib/action-i18n";
-import { recordActivity } from "@/lib/activity-log";
+import { requireActiveCustomer } from "@/lib/cart";
 import {
-  getOrCreateCartOrder,
-  requireActiveCustomer,
-  syncCartEstimatedAmount,
-} from "@/lib/cart";
-import { calculateEstimate } from "@/lib/pricing";
+  CartOperationError,
+  addCartItem,
+  checkoutOwnedCart,
+  removeOwnedCartItem,
+  updateOwnedCartItem,
+  type CartOperationErrorCode,
+} from "@/lib/cart-operations";
 import { prisma } from "@/lib/prisma";
 
 export interface CartActionResult {
@@ -24,35 +26,12 @@ export interface CartCheckoutResult {
   orderNumber?: string;
 }
 
-const MAX_QUANTITY = 99;
+function errorKey(error: unknown): CartOperationErrorCode | "genericError" {
+  return error instanceof CartOperationError ? error.code : "genericError";
+}
 
-function sanitizeOptions(
-  service: {
-    optionGroups: Array<{
-      id: string;
-      required: boolean;
-      options: Array<{ id: string; isDefault: boolean }>;
-    }>;
-  },
-  optionIds: string[]
-): Map<string, string> | null {
-  const chosenByGroup = new Map<string, string>();
-  for (const optionId of optionIds) {
-    if (typeof optionId !== "string") continue;
-    const group = service.optionGroups.find((candidate) =>
-      candidate.options.some((option) => option.id === optionId)
-    );
-    if (!group) continue;
-    if (!chosenByGroup.has(group.id)) chosenByGroup.set(group.id, optionId);
-  }
-  for (const group of service.optionGroups) {
-    if (!group.required || chosenByGroup.has(group.id)) continue;
-    const fallback =
-      group.options.find((option) => option.isDefault) ?? group.options[0];
-    if (!fallback) return null;
-    chosenByGroup.set(group.id, fallback.id);
-  }
-  return chosenByGroup;
+function revalidateCart() {
+  revalidatePath("/cart");
 }
 
 /** Кладёт услугу с выбранными опциями в единую корзину Order (status='cart'). */
@@ -62,82 +41,24 @@ export async function addToCart(input: {
   quantity?: number;
 }): Promise<CartActionResult> {
   const t = await getActionTranslator();
-
   const customer = await requireActiveCustomer();
   if (!customer) return { ok: false, error: t("unauthorized") };
   if (!prisma) return { ok: false, error: t("genericError") };
 
-  const quantity = Math.min(
-    MAX_QUANTITY,
-    Math.max(1, Math.trunc(Number(input.quantity ?? 1)) || 1)
-  );
-
-  const service = await prisma.service.findFirst({
-    where: { id: input.serviceId, isActive: true },
-    include: {
-      optionGroups: {
-        orderBy: { sortOrder: "asc" },
-        include: { options: { orderBy: { sortOrder: "asc" } } },
-      },
-    },
-  });
-  if (!service) return { ok: false, error: t("serviceNotFound") };
-
-  const chosenByGroup = sanitizeOptions(service, input.optionIds ?? []);
-  if (!chosenByGroup) return { ok: false, error: t("incompleteOptions") };
-
-  const estimate = calculateEstimate(
-    {
-      basePrice: service.basePrice,
-      priceType: service.priceType,
-      groups: service.optionGroups,
-    },
-    [...chosenByGroup.values()]
-  );
-
-  const optionsSnapshot = JSON.stringify(estimate.selected);
-
   try {
-    const cart = await getOrCreateCartOrder(customer.id);
-    const existing = await prisma.orderItem.findFirst({
-      where: {
-        orderId: cart.id,
-        itemType: "service",
-        itemId: service.id,
-        optionsSnapshot,
-      },
+    const result = await addCartItem(customer.id, {
+      itemType: "service",
+      itemId: input.serviceId,
+      optionIds: input.optionIds,
+      quantity: input.quantity,
     });
-
-    if (existing) {
-      await prisma.orderItem.update({
-        where: { id: existing.id },
-        data: {
-          quantity: Math.min(MAX_QUANTITY, existing.quantity + quantity),
-          title: service.title,
-          estimatedUnitPrice: estimate.estimatedAmount,
-        },
-      });
-    } else {
-      await prisma.orderItem.create({
-        data: {
-          orderId: cart.id,
-          itemType: "service",
-          itemId: service.id,
-          serviceId: service.id,
-          title: service.title,
-          quantity,
-          estimatedUnitPrice: estimate.estimatedAmount,
-          optionsSnapshot,
-        },
-      });
-    }
-
-    const count = await syncCartEstimatedAmount(cart.id);
-    revalidatePath("/cart");
-    return { ok: true, count };
+    revalidateCart();
+    return { ok: true, count: result.count };
   } catch (error) {
-    console.error("Failed to add to cart:", error);
-    return { ok: false, error: t("genericError") };
+    if (!(error instanceof CartOperationError)) {
+      console.error("Failed to add to cart:", error);
+    }
+    return { ok: false, error: t(errorKey(error)) };
   }
 }
 
@@ -146,35 +67,22 @@ export async function updateCartItemQuantity(input: {
   quantity: number;
 }): Promise<CartActionResult> {
   const t = await getActionTranslator();
-
   const customer = await requireActiveCustomer();
   if (!customer) return { ok: false, error: t("unauthorized") };
   if (!prisma) return { ok: false, error: t("genericError") };
 
-  const quantity = Math.trunc(Number(input.quantity));
-  if (!Number.isFinite(quantity) || quantity < 1 || quantity > MAX_QUANTITY) {
-    return { ok: false, error: t("genericError") };
-  }
-
   try {
-    const cart = await prisma.order.findFirst({
-      where: { userId: customer.id, status: "cart" },
-      orderBy: { createdAt: "desc" },
+    const result = await updateOwnedCartItem(customer.id, {
+      id: input.itemId,
+      quantity: input.quantity,
     });
-    if (!cart) return { ok: false, error: t("genericError") };
-
-    const updated = await prisma.orderItem.updateMany({
-      where: { id: input.itemId, orderId: cart.id },
-      data: { quantity },
-    });
-    if (!updated.count) return { ok: false, error: t("genericError") };
-
-    const count = await syncCartEstimatedAmount(cart.id);
-    revalidatePath("/cart");
-    return { ok: true, count };
+    revalidateCart();
+    return { ok: true, count: result.count };
   } catch (error) {
-    console.error("Failed to update the cart item:", error);
-    return { ok: false, error: t("genericError") };
+    if (!(error instanceof CartOperationError)) {
+      console.error("Failed to update the cart item:", error);
+    }
+    return { ok: false, error: t(errorKey(error)) };
   }
 }
 
@@ -182,33 +90,20 @@ export async function removeCartItem(input: {
   itemId: string;
 }): Promise<CartActionResult> {
   const t = await getActionTranslator();
-
   const customer = await requireActiveCustomer();
   if (!customer) return { ok: false, error: t("unauthorized") };
   if (!prisma) return { ok: false, error: t("genericError") };
 
   try {
-    const cart = await prisma.order.findFirst({
-      where: { userId: customer.id, status: "cart" },
-      orderBy: { createdAt: "desc" },
-    });
-    if (!cart) return { ok: true, count: 0 };
-
-    await prisma.orderItem.deleteMany({
-      where: { id: input.itemId, orderId: cart.id },
-    });
-
-    const count = await syncCartEstimatedAmount(cart.id);
-    revalidatePath("/cart");
-    return { ok: true, count };
+    const result = await removeOwnedCartItem(customer.id, input.itemId);
+    revalidateCart();
+    return { ok: true, count: result.count };
   } catch (error) {
-    console.error("Failed to remove the cart item:", error);
-    return { ok: false, error: t("genericError") };
+    if (!(error instanceof CartOperationError)) {
+      console.error("Failed to remove the cart item:", error);
+    }
+    return { ok: false, error: t(errorKey(error)) };
   }
-}
-
-function formatOrderNumber(sequence: number): string {
-  return `ПИП-${String(sequence).padStart(6, "0")}`;
 }
 
 export async function checkoutCart(input?: {
@@ -216,102 +111,25 @@ export async function checkoutCart(input?: {
   deadline?: string | null;
 }): Promise<CartCheckoutResult> {
   const t = await getActionTranslator();
-
   const customer = await requireActiveCustomer();
   if (!customer) return { ok: false, error: t("unauthorized") };
   if (!prisma) return { ok: false, error: t("genericError") };
 
-  const cart = await prisma.order.findFirst({
-    where: { userId: customer.id, status: "cart" },
-    orderBy: { createdAt: "desc" },
-    include: { items: true },
-  });
-  if (!cart || !cart.items.length) return { ok: false, error: t("cartEmpty") };
-
-  let parsedDeadline: Date | null = null;
-  if (input?.deadline) {
-    const candidate = new Date(input.deadline);
-    if (!Number.isNaN(candidate.getTime())) {
-      parsedDeadline = candidate;
-    }
-  }
-
-  const note =
-    typeof input?.note === "string" ? input.note.trim().slice(0, 4000) : "";
-
-  const serviceQuantities = new Map<string, number>();
-  let estimatedAmount = 0;
-  for (const item of cart.items) {
-    estimatedAmount += item.estimatedUnitPrice * item.quantity;
-    if (item.itemType === "service") {
-      const svcId = item.itemId || item.serviceId;
-      if (svcId) {
-        serviceQuantities.set(
-          svcId,
-          (serviceQuantities.get(svcId) ?? 0) + item.quantity
-        );
-      }
-    }
-  }
-
-  let orderNumber = "";
   try {
-    const baseCount = await prisma.order.count({
-      where: { status: { not: "cart" } },
+    const result = await checkoutOwnedCart(customer.id, {
+      note: input?.note,
+      deadline: input?.deadline,
     });
-    for (let attempt = 0; attempt < 5; attempt += 1) {
-      orderNumber = formatOrderNumber(baseCount + 1 + attempt);
-      try {
-        await prisma.$transaction(async (tx) => {
-          await tx.orderService.deleteMany({ where: { orderId: cart.id } });
-          if (serviceQuantities.size > 0) {
-            await tx.orderService.createMany({
-              data: [...serviceQuantities.entries()].map(
-                ([serviceId, quantity]) => ({
-                  orderId: cart.id,
-                  serviceId,
-                  quantity,
-                })
-              ),
-            });
-          }
-
-          await tx.order.update({
-            where: { id: cart.id },
-            data: {
-              status: "pending",
-              orderNumber,
-              number: orderNumber,
-              deadline: parsedDeadline,
-              description: note || null,
-              customerNote: note || null,
-              estimatedAmount,
-            },
-          });
-
-          await recordActivity(tx, {
-            action: "create",
-            entityType: "order",
-            entityId: cart.id,
-            title: `${orderNumber} — ${cart.items
-              .map((line) => line.title || line.itemId)
-              .join(", ")
-              .slice(0, 180)}`,
-            actorId: customer.id,
-          });
-        });
-        break;
-      } catch (error) {
-        const code = (error as { code?: string })?.code;
-        if (code !== "P2002" || attempt === 4) throw error;
-      }
-    }
+    revalidatePath("/cart");
+    revalidatePath("/orders");
+    revalidatePath("/admin/orders");
+    revalidatePath("/manager/orders");
+    revalidatePath("/admin/dashboard");
+    return { ok: true, orderNumber: result.orderNumber };
   } catch (error) {
-    console.error("Failed to checkout the cart:", error);
-    return { ok: false, error: t("genericError") };
+    if (!(error instanceof CartOperationError)) {
+      console.error("Failed to checkout the cart:", error);
+    }
+    return { ok: false, error: t(errorKey(error)) };
   }
-
-  revalidatePath("/cart");
-  revalidatePath("/orders");
-  return { ok: true, orderNumber };
 }

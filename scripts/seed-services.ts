@@ -24,7 +24,7 @@ const services: SeedServiceSpec[] = [
     category: "small",
     isActive: true,
     sortOrder: 1,
-    coverImage: "/assets/shop/sign-design.jpg",
+    coverImage: "/assets/placeholders/service-cover.svg",
   },
   {
     name: "Bag Design",
@@ -34,7 +34,7 @@ const services: SeedServiceSpec[] = [
     category: "small",
     isActive: true,
     sortOrder: 2,
-    coverImage: "/assets/shop/bag-design.jpg",
+    coverImage: "/assets/placeholders/service-cover.svg",
   },
   {
     name: "Outdoor Glass Poster",
@@ -44,7 +44,7 @@ const services: SeedServiceSpec[] = [
     category: "small",
     isActive: true,
     sortOrder: 3,
-    coverImage: "/assets/shop/outdoor-glass-poster.jpg",
+    coverImage: "/assets/placeholders/service-cover.svg",
   },
   {
     name: "Banner Design",
@@ -54,7 +54,7 @@ const services: SeedServiceSpec[] = [
     category: "small",
     isActive: true,
     sortOrder: 4,
-    coverImage: "/assets/shop/banner-design.jpg",
+    coverImage: "/assets/placeholders/service-cover.svg",
   },
 
   // Large designs (4)
@@ -67,7 +67,7 @@ const services: SeedServiceSpec[] = [
     category: "large",
     isActive: true,
     sortOrder: 5,
-    coverImage: "/assets/shop/large-billboard-building.jpg",
+    coverImage: "/assets/placeholders/service-cover.svg",
   },
   {
     name: "Rooftop Advertising",
@@ -77,7 +77,7 @@ const services: SeedServiceSpec[] = [
     category: "large",
     isActive: true,
     sortOrder: 6,
-    coverImage: "/assets/shop/rooftop-advertising.jpg",
+    coverImage: "/assets/placeholders/service-cover.svg",
   },
   {
     name: "Advertisement on the Fence",
@@ -88,7 +88,7 @@ const services: SeedServiceSpec[] = [
     category: "large",
     isActive: true,
     sortOrder: 7,
-    coverImage: "/assets/shop/advertisement-on-the-fence.jpg",
+    coverImage: "/assets/placeholders/service-cover.svg",
   },
   {
     name: "Billboard",
@@ -98,7 +98,7 @@ const services: SeedServiceSpec[] = [
     category: "large",
     isActive: true,
     sortOrder: 8,
-    coverImage: "/assets/shop/billboard.jpg",
+    coverImage: "/assets/placeholders/service-cover.svg",
   },
 ];
 

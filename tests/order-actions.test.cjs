@@ -14,7 +14,7 @@ require.extensions[".ts"] = (module, filename) =>
   );
 
 // Только в памяти. Никаких записей в реальную БД.
-let admin, customer, orders, orderItems, payments, logs, invalidated, sequence;
+let admin, customer, orders, orderItems, payments, logs, invalidated, sequence, invoiceClients, invoiceFailure;
 
 const prisma = {
   order: {
@@ -33,6 +33,15 @@ const prisma = {
       if (!row) throw new Error("missing order");
       Object.assign(row, structuredClone(data));
       return structuredClone(row);
+    },
+    updateMany: async ({ where, data }) => {
+      const row = orders.get(where.id);
+      if (!row || (where.status && row.status !== where.status)) return { count: 0 };
+      const successful = (row.payments ?? []).some((payment) => payment.status === "succeeded");
+      if (where.payments?.none && successful) return { count: 0 };
+      if (where.payments?.some && !successful) return { count: 0 };
+      Object.assign(row, structuredClone(data));
+      return { count: 1 };
     },
   },
   orderItem: {
@@ -54,7 +63,18 @@ const prisma = {
     create: async ({ data }) => { logs.push(structuredClone(data)); return data; },
   },
 };
-prisma.$transaction = async (callback) => callback(prisma);
+prisma.$transaction = async (callback) => {
+  const snapshot = structuredClone({ orders, orderItems, payments, logs });
+  try {
+    return await callback(prisma);
+  } catch (error) {
+    orders = snapshot.orders;
+    orderItems = snapshot.orderItems;
+    payments = snapshot.payments;
+    logs = snapshot.logs;
+    throw error;
+  }
+};
 
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
@@ -69,7 +89,9 @@ Module._load = function (name, parent, isMain) {
   if (name === "next/cache") return { revalidatePath: (url) => invalidated.push(url) };
   // Выставление счёта в этих тестах не проверяем — здесь важна цена, статус
   // и права. Провайдер оплаты покрыт отдельным файлом.
-  if (name === "@/lib/payments/invoice") return { issueInvoice: async ({ amount, orderNumber }) => {
+  if (name === "@/lib/payments/invoice") return { issueInvoice: async ({ amount, orderNumber }, tx) => {
+    invoiceClients.push(tx);
+    if (invoiceFailure) return null;
     const row = { id: `pay-${++sequence}`, orderId: "ord-test", provider: "robokassa",
       externalId: String(Number(orderNumber.replace(/\D/g, "")) * 1000),
       status: "pending", amount, currency: "RUB", paymentUrl: null, createdAt: new Date() };
@@ -98,6 +120,7 @@ function seedOrder(overrides = {}) {
     customerNote: "Хочу побыстрее",
     managerNote: null,
     priceAgreedAt: null,
+    payments: [],
     ...overrides,
   });
   orderItems.set("item-1", {
@@ -123,6 +146,8 @@ beforeEach(() => {
   logs = [];
   invalidated = [];
   sequence = 0;
+  invoiceClients = [];
+  invoiceFailure = false;
 });
 
 test("setOrderPrice: фиксирует цену, статус и менеджера", async () => {
@@ -149,6 +174,26 @@ test("setOrderPrice: создаёт счёт на согласованную с�
   assert.equal(payment.orderId, id);
   // Ссылки пока нет — её даст платёжный провайдер.
   assert.equal(payment.paymentUrl, null);
+  assert.equal(invoiceClients[0], prisma, "invoice writes use the order transaction client");
+});
+
+test("setOrderPrice rolls back the price and line writes if the invoice cannot be issued", async () => {
+  const id = seedOrder();
+  const before = structuredClone(orders.get(id));
+  invoiceFailure = true;
+  const oldError = console.error;
+  console.error = () => {};
+  let result;
+  try {
+    result = await setOrderPrice({ orderId: id, amountRub: "35000" });
+  } finally {
+    console.error = oldError;
+  }
+  assert.equal(result.ok, false);
+  assert.deepEqual(orders.get(id), before);
+  assert.equal(orderItems.get("item-1").totalPrice, 0);
+  assert.equal(payments.size, 0);
+  assert.equal(logs.length, 0);
 });
 
 test("setOrderPrice: раскладывает сумму по позициям пропорционально", async () => {
@@ -198,8 +243,8 @@ test("setOrderPrice: принимает запятую как разделите
   assert.equal(orders.get(id).total, 123_450);
 });
 
-test("setOrderPrice: не трогает закрытые заказы", async () => {
-  for (const status of ["cancelled", "refunded"]) {
+test("setOrderPrice: не трогает оплаченные, выполняемые и закрытые заказы", async () => {
+  for (const status of ["paid", "in_progress", "completed", "cancelled", "refunded"]) {
     orders = new Map(); orderItems = new Map(); payments = new Map(); logs = [];
     const id = seedOrder({ status });
     const result = await setOrderPrice({ orderId: id, amountRub: "35000" });
@@ -236,11 +281,51 @@ test("setOrderPrice: обычный пользователь не может с�
   assert.equal(orders.get(id).total, 0);
 });
 
-test("updateOrderStatus: переводит заказ в следующий статус", async () => {
-  const id = seedOrder({ status: "paid" });
+test("setOrderPrice: успешный платёж блокирует цену даже при устаревшем статусе", async () => {
+  const id = seedOrder({
+    status: "awaiting_payment",
+    total: 3_000_000,
+    payments: [{ id: "pay-success", status: "succeeded" }],
+  });
+  const result = await setOrderPrice({ orderId: id, amountRub: "1000" });
+  assert.equal(result.ok, false);
+  assert.equal(result.error, "The price cannot be changed after a successful payment.");
+  assert.equal(orders.get(id).total, 3_000_000);
+  assert.equal(payments.size, 0, "новый счёт не создан");
+});
+
+test("updateOrderStatus: переводит оплаченный заказ в работу", async () => {
+  const id = seedOrder({
+    status: "paid",
+    payments: [{ id: "pay-success", status: "succeeded" }],
+  });
   const result = await updateOrderStatus({ orderId: id, status: "in_progress" });
   assert.equal(result.ok, true);
   assert.equal(orders.get(id).status, "in_progress");
+});
+
+test("updateOrderStatus: статус paid без платежа не даёт начать работу", async () => {
+  const id = seedOrder({ status: "paid" });
+  const result = await updateOrderStatus({ orderId: id, status: "in_progress" });
+  assert.equal(result.ok, false);
+  assert.equal(result.error, "A successful payment is required before work can start or be completed.");
+  assert.equal(orders.get(id).status, "paid");
+});
+
+test("updateOrderStatus: запрещает произвольные и обратные переходы", async () => {
+  for (const [from, to] of [
+    ["awaiting_payment", "in_progress"],
+    ["paid", "awaiting_payment"],
+    ["in_progress", "paid"],
+    ["completed", "in_progress"],
+    ["cancelled", "negotiating"],
+  ]) {
+    orders = new Map(); orderItems = new Map(); payments = new Map(); logs = [];
+    const id = seedOrder({ status: from });
+    const result = await updateOrderStatus({ orderId: id, status: to });
+    assert.equal(result.ok, false, `${from} → ${to} должно быть запрещено`);
+    assert.equal(orders.get(id).status, from);
+  }
 });
 
 test("updateOrderStatus: оплаченным может отметить только платёжная система", async () => {

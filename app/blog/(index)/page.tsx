@@ -36,6 +36,8 @@ export default async function BlogPage() {
       posts={posts}
       allCategoryLabel={t("allCategory")}
       categoryLabels={{ Design: t("categoryDesign"), Studio: t("categoryStudio"), Outdoor: t("categoryOutdoor") }}
+      emptyTitle={t("empty.title")}
+      emptyDescription={t("empty.description")}
       asPageHeading
     />
   );

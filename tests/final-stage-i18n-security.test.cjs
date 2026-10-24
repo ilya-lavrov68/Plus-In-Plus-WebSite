@@ -49,7 +49,10 @@ Module._load = function (name, parent, isMain) {
     return {
       prisma: {
         siteSetting: {
-          findMany: async () => [{ key: "siteName", value: "Plus In Plus" }],
+          findMany: async () => [
+            { key: "studioName", value: "Plus In Plus" },
+            { key: "robokassaPassword1", value: "server-only-secret" },
+          ],
         },
       },
     };
@@ -145,7 +148,9 @@ test("getSiteSettings enforces FOUNDER-only access in data layer", async () => {
 
   currentAdmin = { id: "founder-1", role: "FOUNDER" };
   const settings = await getSiteSettings();
-  assert.deepEqual(settings, { siteName: "Plus In Plus" });
+  assert.deepEqual(settings.values, { studioName: "Plus In Plus" });
+  assert.equal(settings.secrets.robokassaPassword1, true);
+  assert.doesNotMatch(JSON.stringify(settings), /server-only-secret/);
 });
 
 test("service localization translates seeded studio services to RU without overwriting custom admin titles", () => {
@@ -183,12 +188,26 @@ test("service localization translates seeded studio services to RU without overw
   assert.equal(ruList[1].title, "Авторская вывеска VIP");
   assert.equal(ruList[1].shortDesc, "Кастомное описание администратора");
 
-  // Slug aliases resolve cleanly for both old and new canonical slugs
-  const billboard = resolveServiceBySlug("large-billboard-building", null);
+  // Slug aliases are resolved by the DB query; no database row means no public service.
+  assert.equal(resolveServiceBySlug("large-billboard-building", null), null);
+  const databaseService = (slug) => ({
+    id: `db-${slug}`, slug,
+    title: slug === "large-billboard" ? "Large Billboard on a building" : "Advertisement on the fence",
+    category: "large",
+    shortDesc: "Short", fullDesc: "Full", includes: [], shapes: [],
+    resultText: "Result", coverImage: "/assets/shop/large-billboard-building.jpg",
+  });
+  const billboard = resolveServiceBySlug(
+    "large-billboard-building",
+    databaseService("large-billboard"),
+  );
   assert.ok(billboard);
   assert.equal(localizeCatalogService(billboard, "ru").title, "Крупный брандмауэр на здании");
 
-  const fence = resolveServiceBySlug("advertisement-fence", null);
+  const fence = resolveServiceBySlug(
+    "advertisement-fence",
+    databaseService("advertisement-on-the-fence"),
+  );
   assert.ok(fence);
   assert.equal(localizeCatalogService(fence, "ru").title, "Реклама на ограждении");
 });

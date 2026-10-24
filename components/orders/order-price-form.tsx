@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Lock, LockOpen } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { setOrderLocked, setOrderPrice } from "@/app/actions/orders";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,7 @@ export function OrderPriceForm({
 }: OrderPriceFormProps) {
   const t = useTranslations("admin");
   const ta = useTranslations("actions");
+  const locale = useLocale();
 
   // Заблокированный заказ для не-основателя — только чтение. Сервер всё
   // равно откажет (orderLocked), но поля честно выключаем и здесь.
@@ -149,7 +150,7 @@ export function OrderPriceForm({
             aria-describedby="price-hint"
           />
           <p id="price-hint" className="text-xs text-muted-foreground">
-            {t("estimated")}: {formatKopecks(estimatedAmount, currency)}
+            {t("estimated")}: {formatKopecks(estimatedAmount, currency, locale)}
             {drift !== null && drift !== 0 && (
               <>
                 {" · "}

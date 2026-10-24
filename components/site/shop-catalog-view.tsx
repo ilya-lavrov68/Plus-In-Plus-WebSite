@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { AddToCartButton } from "@/components/site/add-to-cart-button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,7 @@ export function ShopCatalogView({
 }) {
   const tShop = useTranslations("shop");
   const tCart = useTranslations("cart");
+  const numberLocale = useLocale() === "ru" ? "ru-RU" : "en-GB";
 
   if (products.length === 0) {
     return (
@@ -54,7 +55,7 @@ export function ShopCatalogView({
     <div className="container py-24 md:py-32">
       <div className="border-b border-border/60 pb-10">
         <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
-          Shop
+          {tShop("pageTitle")}
         </h1>
       </div>
 
@@ -100,7 +101,7 @@ export function ShopCatalogView({
 
               <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-4">
                 <div className="text-lg font-bold tabular-nums">
-                  {product.price.toLocaleString("ru-RU")} ₽
+                  {product.price.toLocaleString(numberLocale)} ₽
                 </div>
                 <AddToCartButton
                   itemType="product"

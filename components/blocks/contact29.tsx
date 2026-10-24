@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import {
@@ -109,6 +110,7 @@ const Contact29 = ({
   const [message, setMessage] = useState("");
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [requiresAuth, setRequiresAuth] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -126,6 +128,7 @@ const Contact29 = ({
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
+    setRequiresAuth(false);
     setSubmitting(true);
 
     try {
@@ -145,9 +148,8 @@ const Contact29 = ({
 
       const payload = await response.json().catch(() => null);
       if (!response.ok) {
-        setError(
-          t("validationError")
-        );
+        setRequiresAuth(response.status === 401);
+        setError(t(response.status === 401 ? "loginRequired" : "validationError"));
         setSubmitting(false);
         return;
       }
@@ -374,6 +376,12 @@ const Contact29 = ({
                       {error}
                     </p>
                   )}
+
+                  {requiresAuth ? (
+                    <Button asChild className="mb-3 w-full sm:w-auto">
+                      <Link href="/login">{t("loginToSend")}</Link>
+                    </Button>
+                  ) : null}
 
                   <Button
                     type="submit"

@@ -3,13 +3,9 @@ import bcrypt from "bcryptjs";
 
 import { isAuthConfigured } from "@/lib/auth-secret";
 import { prisma } from "@/lib/prisma";
-import { checkRateLimit, getClientAddress, hashRateLimitIdentifier } from "@/lib/rate-limit";
+import { checkRateLimitAsync, getClientAddress, hashRateLimitIdentifier } from "@/lib/rate-limit";
 import { localAvatarPath } from "@/lib/upload-policy";
 import { profileName } from "@/lib/user-profile";
-
-export class AdminAccountNotFound extends CredentialsSignin {
-  code = "admin_account_not_found";
-}
 
 export class LoginRateLimited extends CredentialsSignin {
   code = "rate_limited";
@@ -30,8 +26,10 @@ export async function authorizeCredentials(
   const address = getClientAddress(
     request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for"),
   );
-  const addressLimit = checkRateLimit(hashRateLimitIdentifier(`login-address:${address}`), 30, LOGIN_WINDOW_MS);
-  const accountLimit = checkRateLimit(hashRateLimitIdentifier(`login-account:${address}:${email}`), 8, LOGIN_WINDOW_MS);
+  const [addressLimit, accountLimit] = await Promise.all([
+    checkRateLimitAsync(hashRateLimitIdentifier(`login-address:${address}`), 30, LOGIN_WINDOW_MS),
+    checkRateLimitAsync(hashRateLimitIdentifier(`login-account:${address}:${email}`), 8, LOGIN_WINDOW_MS),
+  ]);
   if (!addressLimit.allowed || !accountLimit.allowed) throw new LoginRateLimited();
 
   if (!isAuthConfigured() || !prisma) return null;
@@ -55,11 +53,8 @@ export async function authorizeCredentials(
   // проходят, обычный USER нет, даже если включит переключатель.
   const isStaffRole =
     account?.role === "FOUNDER" || account?.role === "ADMIN" || account?.role === "MANAGER";
-  if (adminMode && !isStaffRole) {
-    throw new AdminAccountNotFound();
-  }
-  if (!account || !validPassword) return null;
-  if (account.isBlocked) return null;
+  if (!account || !validPassword || account.isBlocked) return null;
+  if (adminMode && !isStaffRole) return null;
 
   return {
     id: account.id,

@@ -32,7 +32,12 @@ export default async function AdminSettingsPage() {
       <h1 className="text-3xl font-bold tracking-tight">{t("settings")}</h1>
       <p className="mt-2 text-muted-foreground">{t("settingsSubtitle")}</p>
       <div className="mt-8">
-        <SettingsForm initial={settings} posts={posts} robokassaSource={robokassa.source} />
+        <SettingsForm
+          initial={settings.values}
+          secretStatus={settings.secrets}
+          posts={posts}
+          robokassaSource={robokassa.source}
+        />
       </div>
       {!posts.length ? <div className="mt-8"><EmptyState icon={Settings} title={t("noPublishedPosts")} description={t("publishPostToFeature")} /></div> : null}
     </div>

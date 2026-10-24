@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { requireAdmin } from "@/lib/admin-session";
-import { checkRateLimit, hashRateLimitIdentifier } from "@/lib/rate-limit";
+import { checkRateLimitAsync, hashRateLimitIdentifier } from "@/lib/rate-limit";
 import { saveAlbumImage } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
@@ -16,11 +16,11 @@ export async function POST(request: Request) {
   }
 
   if (
-    !checkRateLimit(
+    !(await checkRateLimitAsync(
       hashRateLimitIdentifier(`upload-album:${admin.id}`),
       30,
       WINDOW_MS
-    ).allowed
+    )).allowed
   ) {
     return NextResponse.json(
       { error: "Too many upload attempts. Try again later." },

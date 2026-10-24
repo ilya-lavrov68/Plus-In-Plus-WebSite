@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ArrowRight } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import {
   ServiceCard,
@@ -22,6 +22,7 @@ export function ServicesCatalogView({
   largeServices,
 }: ServicesCatalogViewProps) {
   const t = useTranslations("services");
+  const numberLocale = useLocale() === "ru" ? "ru-RU" : "en-GB";
   const router = useRouter();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
@@ -136,7 +137,7 @@ export function ServicesCatalogView({
             </span>
             <span className="text-sm tabular-nums text-muted-foreground">
               {t("estimatedBase", {
-                amount: `${estimatedBaseRub.toLocaleString("ru-RU")} ₽`,
+                amount: `${estimatedBaseRub.toLocaleString(numberLocale)} ₽`,
               })}
             </span>
           </div>

@@ -20,7 +20,7 @@ const Cta13 = ({
   description = "Tell us about your idea and we will package it in a clear, memorable visual system—from storefront signage to large-format outdoor media.",
   primaryButton = {
     text: "Order",
-    url: "/shop",
+    url: "/services",
   },
   secondaryButton = {
     text: "Contact us",
@@ -30,7 +30,7 @@ const Cta13 = ({
   return (
     <section className="py-24 md:py-32">
       <div className="container">
-        <div className="rounded-2xl border border-border bg-card p-8 md:p-16">
+        <div className="glass-surface rounded-[1.75rem] border-0 bg-white/[0.055] p-8 md:p-16">
           <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-center">
             <div className="max-w-2xl">
               <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
@@ -45,7 +45,7 @@ const Cta13 = ({
                 <Link href={primaryButton.url}>{primaryButton.text}</Link>
               </Button>
               {secondaryButton && (
-                <Button size="lg" variant="outline" asChild>
+                <Button size="lg" variant="secondary" asChild>
                   <Link href={secondaryButton.url}>{secondaryButton.text}</Link>
                 </Button>
               )}

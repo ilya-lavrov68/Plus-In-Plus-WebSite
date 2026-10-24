@@ -3,17 +3,27 @@ import type { Metadata } from "next";
 import { Signup10 } from "@/components/blocks/signup10";
 import { createPageMetadata } from "@/lib/seo";
 import { getRequestLocale } from "@/lib/request-locale";
+import { getRequestTranslations } from "@/lib/server-i18n";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const locale = await getRequestLocale();
+  const [locale, t] = await Promise.all([
+    getRequestLocale(),
+    getRequestTranslations("metadata"),
+  ]);
   return createPageMetadata({
-    title: "Log in — Plus In Plus",
-    description: "Sign in to your Plus In Plus account or staff dashboard.",
+    title: t("login"),
+    description: t("loginDescription"),
     path: "/login",
     locale,
   });
 }
 
-export default function LoginPage() {
-  return <Signup10 defaultMode="login" />;
+interface LoginPageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const query = await searchParams;
+  const mode = Array.isArray(query.mode) ? query.mode[0] : query.mode;
+  return <Signup10 defaultMode="login" defaultAdminMode={mode === "admin"} />;
 }

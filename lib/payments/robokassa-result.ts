@@ -42,6 +42,10 @@ export async function handleRobokassaResult(request: Request): Promise<Response>
     console.error("[robokassa] Уведомление без InvId");
     return new NextResponse("OK0", { status: 200 });
   }
+  if (!orderId) {
+    console.error(`[robokassa] Уведомление без Shp_OrderId для счёта ${invId}`);
+    return new NextResponse(`OK${invId}`, { status: 200 });
+  }
 
   // Подпись считается по второму паролю — это и есть подтверждение, что
   // вызов пришёл от Робокассы, а не от кого-то, кто узнал адрес.
@@ -73,6 +77,13 @@ export async function handleRobokassaResult(request: Request): Promise<Response>
       return new NextResponse(`OK${invId}`, { status: 200 });
     }
 
+    // Подписанный Shp_OrderId связывает счёт именно с этим заказом. Без этой
+    // проверки валидное уведомление можно было бы применить к другой записи.
+    if (payment.orderId !== orderId) {
+      console.error(`[robokassa] Заказ не совпал для счёта ${invId}`);
+      return new NextResponse(`OK${invId}`, { status: 200 });
+    }
+
     // Сумму проверяем обязательно: иначе, подделав OutSum, можно оплатить
     // заказ за копейку.
     if (payment.amount !== amountKopecks) {
@@ -88,29 +99,59 @@ export async function handleRobokassaResult(request: Request): Promise<Response>
       return new NextResponse(`OK${invId}`, { status: 200 });
     }
 
+    if (payment.status !== "pending") {
+      console.error(`[robokassa] Счёт ${invId} больше не ожидает оплаты`);
+      return new NextResponse(`OK${invId}`, { status: 200 });
+    }
+
     const now = new Date();
     await prisma.$transaction(async (tx) => {
-      await tx.payment.update({
-        where: { id: payment.id },
+      const [latestInvoice, order] = await Promise.all([
+        tx.payment.findFirst({
+          where: { orderId: payment.orderId, provider: "robokassa" },
+          orderBy: { createdAt: "desc" },
+          select: { id: true, status: true },
+        }),
+        tx.order.findUnique({
+          where: { id: payment.orderId },
+          select: { id: true, orderNumber: true, number: true, status: true, total: true },
+        }),
+      ]);
+
+      // После выставления нового счёта или изменения согласованной цены старое
+      // уведомление не должно оплачивать заказ, даже если старая запись ещё pending.
+      if (
+        latestInvoice?.id !== payment.id ||
+        latestInvoice.status !== "pending" ||
+        !order ||
+        order.status !== "awaiting_payment" ||
+        order.total !== payment.amount
+      ) {
+        console.error(`[robokassa] Счёт ${invId} устарел или заказ уже закрыт для оплаты`);
+        return;
+      }
+
+      const claimed = await tx.payment.updateMany({
+        where: { id: payment.id, status: "pending" },
         data: {
           status: "succeeded",
           paidAt: now,
           rawPayload: JSON.stringify({ outSum, invId, orderId, receivedAt: now.toISOString() }),
         },
       });
-      const order = await tx.order.findUnique({
-        where: { id: payment.orderId },
-        select: { id: true, orderNumber: true, number: true, status: true },
-      });
-      if (!order || order.status === "paid" || order.status === "completed") return;
+      if (claimed.count !== 1) return;
 
-      await tx.order.update({
-        where: { id: payment.orderId },
+      const updatedOrder = await tx.order.updateMany({
+        where: { id: order.id, status: "awaiting_payment", total: payment.amount },
         // Оплаченный заказ ещё предстоит сделать — это статус paid, а не
         // completed. Завершённым его отметят позже. Блокировка (isLocked)
         // webhook не останавливает: замок — от ручных правок, а не от денег.
         data: { status: "paid", paidAt: now },
       });
+      if (updatedOrder.count !== 1) {
+        throw new Error(`Order ${order.id} changed while confirming payment ${payment.id}`);
+      }
+
       await recordActivity(tx, {
         action: "paid",
         entityType: "order",

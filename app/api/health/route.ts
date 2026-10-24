@@ -14,7 +14,21 @@ import { prisma } from "@/lib/prisma";
  */
 export const dynamic = "force-dynamic";
 
-const REQUIRED_TABLES = ["users", "services", "posts", "activity_logs"] as const;
+const REQUIRED_TABLES = [
+  "users",
+  "services",
+  "products",
+  "service_option_groups",
+  "service_options",
+  "posts",
+  "activity_logs",
+  "page_views",
+  "orders",
+  "order_services",
+  "order_items",
+  "payments",
+  "site_settings",
+] as const;
 
 export async function GET() {
   const config = resolveDatabaseConfig();

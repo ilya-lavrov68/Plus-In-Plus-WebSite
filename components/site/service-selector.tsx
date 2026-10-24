@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -22,6 +22,7 @@ export function ServiceSelector({
   onServicesLoaded,
 }: ServiceSelectorProps) {
   const t = useTranslations("services");
+  const numberLocale = useLocale() === "ru" ? "ru-RU" : "en-GB";
   const [services, setServices] = useState<PublicServiceItem[]>(
     initialServices ?? []
   );
@@ -65,7 +66,7 @@ export function ServiceSelector({
       return t("priceOnRequest");
     }
     const prefix = service.priceType === "from" ? `${t("from")} ` : "";
-    return `${prefix}${service.basePrice.toLocaleString("ru-RU")} ₽`;
+    return `${prefix}${service.basePrice.toLocaleString(numberLocale)} ₽`;
   };
 
   const renderSection = (title: string, items: PublicServiceItem[]) => (

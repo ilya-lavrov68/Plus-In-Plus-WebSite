@@ -27,7 +27,7 @@ const Community3 = ({
     <section id={id} className="py-32">
       <div className="container">
         <div className="flex flex-col items-center text-center">
-          <Badge variant="outline" className="rounded-full px-3.5 py-1 text-xs">
+          <Badge variant="secondary" className="rounded-full border-0 bg-white/[0.055] px-3.5 py-1 text-xs backdrop-blur-xl">
             {badge}
           </Badge>
           <h2 className="mt-4 text-4xl font-semibold tracking-tight md:text-5xl">
@@ -38,7 +38,7 @@ const Community3 = ({
           </p>
 
           <div className="mt-12 grid w-full max-w-2xl grid-cols-1 gap-6 sm:grid-cols-2">
-            <Card className="p-8 transition-colors duration-200 ease-out hover:border-foreground/25 hover:bg-white/[0.04]">
+            <Card className="glass-surface rounded-2xl border-0 bg-white/[0.05] p-8 transition-transform duration-200 ease-out hover:-translate-y-1">
               <Link
                 href="/"
                 className="flex h-full flex-col items-center justify-center gap-4 text-center"
@@ -52,7 +52,7 @@ const Community3 = ({
               </Link>
             </Card>
 
-            <Card className="p-8 transition-colors duration-200 ease-out hover:border-foreground/25 hover:bg-white/[0.04]">
+            <Card className="glass-surface rounded-2xl border-0 bg-white/[0.05] p-8 transition-transform duration-200 ease-out hover:-translate-y-1">
               <a
                 href="https://tsconnect.ru"
                 target="_blank"

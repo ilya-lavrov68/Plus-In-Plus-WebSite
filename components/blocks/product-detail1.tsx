@@ -21,6 +21,7 @@ export interface ProductDetail1Labels {
 export interface ProductDetail1Props {
   service?: CatalogServiceItem;
   serviceId?: string;
+  canAddToCart?: boolean;
   configuratorSlot?: ReactNode;
   labels?: ProductDetail1Labels;
 }
@@ -28,6 +29,7 @@ export interface ProductDetail1Props {
 const ProductDetail1 = ({
   service = STUDIO_SERVICES[0],
   serviceId,
+  canAddToCart = false,
   configuratorSlot,
   labels,
 }: ProductDetail1Props) => {
@@ -97,7 +99,7 @@ const ProductDetail1 = ({
                   {labels?.order ?? "Order"}
                 </Link>
               </Button>
-              {serviceId ? (
+              {serviceId && canAddToCart ? (
                 <AddToCartButton
                   itemType="service"
                   itemId={serviceId}

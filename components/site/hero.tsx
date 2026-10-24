@@ -10,10 +10,9 @@ export async function Hero() {
       headingPrimary={t("heroPrimary")}
       descriptionLead={t("heroDescriptionLead")}
       descriptionStrong={t("heroDescriptionStrong")}
-      primaryCta={{ label: hero("order"), href: "/shop" }}
+      primaryCta={{ label: hero("order"), href: "/services" }}
       secondaryCta={{ label: hero("contactUs"), href: "/contact" }}
       footnote={t("heroFootnote")}
-      image={{ src: "/assets/shop/sign-design.jpg", alt: t("heroAlt") }}
     />
   );
 }

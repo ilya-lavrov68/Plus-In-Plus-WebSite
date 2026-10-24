@@ -202,6 +202,14 @@ const prisma = {
       Object.assign(row, structuredClone(data));
       return structuredClone(row);
     },
+    updateMany: async ({ where, data }) => {
+      const row = orders.get(where.id);
+      if (!row || (where.status && row.status !== where.status)) return { count: 0 };
+      const successful = (row.payments ?? []).some((payment) => payment.status === "succeeded");
+      if (where.payments?.none && successful) return { count: 0 };
+      Object.assign(row, structuredClone(data));
+      return { count: 1 };
+    },
   },
   orderItem: {
     update: async ({ where, data }) => {
@@ -221,6 +229,10 @@ const prisma = {
 
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
+  if (name === "bcryptjs") return {
+    compare: async (password, hash) => password === "current-password" && hash === "current-hash",
+    hash: async (password) => `hash:${password}`,
+  };
   if (name === "@/lib/prisma") return { prisma };
   if (name === "@/lib/admin-session") {
     return {
@@ -285,7 +297,7 @@ const {
   toggleServiceActive,
   saveQuickService,
 } = require("../app/actions/services.ts");
-const { updateUserProfile } = require("../app/actions/user.ts");
+const { changePassword, updateUserProfile } = require("../app/actions/user.ts");
 
 beforeEach(() => {
   seq = 0;
@@ -302,6 +314,7 @@ beforeEach(() => {
         avatar: null,
         role: "USER",
         isBlocked: false,
+        passwordHash: "current-hash",
       },
     ],
     [
@@ -604,4 +617,29 @@ test("HARD CONSTRAINT: updateUserProfile requires authorization and never mutate
   assert.equal(stored.lastName, "Smirnov");
   assert.equal(stored.email, "client@pip.test");
   assert.equal(stored.role, "USER");
+});
+
+test("password changes verify the current password, validate the replacement and audit the update", async () => {
+  const valid = {
+    currentPassword: "current-password",
+    newPassword: "a-new-long-passphrase",
+    confirmPassword: "a-new-long-passphrase",
+  };
+  await assert.rejects(
+    () => changePassword({ ...valid, currentPassword: "wrong-password" }),
+    /current password is incorrect/i,
+  );
+  assert.equal(users.get("usr-client").passwordHash, "current-hash");
+  await assert.rejects(
+    () => changePassword({ ...valid, confirmPassword: "different-passphrase" }),
+    /do not match/i,
+  );
+
+  assert.deepEqual(await changePassword(valid), { ok: true });
+  assert.equal(users.get("usr-client").passwordHash, "hash:a-new-long-passphrase");
+  assert.equal(logs.at(-1).action, "password changed");
+  assert.equal(logs.at(-1).actorId, "usr-client");
+
+  sessionUser = null;
+  await assert.rejects(() => changePassword(valid), /log in/i);
 });

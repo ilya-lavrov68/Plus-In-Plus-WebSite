@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
  */
 const links = [
   { key: "orders", href: "/manager/orders", icon: ShoppingCart },
-  { key: "users", href: "/manager/users", icon: Users },
+  { key: "customers", href: "/manager/users", icon: Users },
 ];
 
 export function ManagerNav({ canEditSite }: { canEditSite: boolean }) {

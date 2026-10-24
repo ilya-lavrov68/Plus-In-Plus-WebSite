@@ -2,11 +2,12 @@ import Link from "next/link";
 import { ArrowUpRight, Plus } from "lucide-react";
 
 import { BrandMark } from "@/components/site/logo";
+import { MediaPlaceholder } from "@/components/site/media-placeholder";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
 export interface Feature314SmallCard {
-  image: string;
+  image?: string;
   topNote: string;
   title: string;
   summary: string;
@@ -14,7 +15,7 @@ export interface Feature314SmallCard {
 }
 
 export interface Feature314BigCard {
-  image: string;
+  image?: string;
   label: string;
   title: string;
   summary: string;
@@ -34,7 +35,6 @@ export interface Feature314Props {
 
 const DEFAULT_SMALL_CARDS: Feature314SmallCard[] = [
   {
-    image: "/assets/shop/bag-design.jpg",
     topNote: "Confidential workflow",
     title: "Everything is confidential",
     summary:
@@ -42,16 +42,14 @@ const DEFAULT_SMALL_CARDS: Feature314SmallCard[] = [
     url: "/contact",
   },
   {
-    image: "/assets/shop/sign-design-3.jpg",
     topNote: "Tailored approach",
     title: "Individual selection",
     summary: "We take an individualized approach with each person.",
-    url: "/shop",
+    url: "/services",
   },
 ];
 
 const DEFAULT_BIG_CARD: Feature314BigCard = {
-  image: "/assets/shop/outdoor-glass-poster.jpg",
   label: "Plus In Plus®",
   title: "Ongoing tech support",
   summary: "We're always here to help if the design isn't quite right.",
@@ -84,28 +82,34 @@ const Feature314 = ({
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-4">
-            {smallCards.map((card, idx) => (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            {smallCards.map((card) => (
               <Card
-                key={idx}
-                className="group col-span-1 rounded-xl border-0 p-4 shadow-none transition-colors duration-200 ease-out hover:bg-accent/50"
+                key={card.title}
+                className="glass-surface group col-span-1 rounded-[1.5rem] border-0 bg-white/[0.065] p-4 transition-transform duration-300 ease-out hover:-translate-y-1"
               >
                 <Link
                   href={card.url}
-                  className="flex h-full w-full flex-col justify-between gap-8"
+                  className="flex h-full w-full flex-col justify-between gap-6"
                 >
-                  <div className="relative flex w-full items-start justify-between">
-                    <img
-                      src={card.image}
-                      alt={card.title}
-                      className="size-24 rounded-xl object-cover lg:size-32"
-                    />
-                    <Plus
-                      size={20}
-                      className="rounded-full bg-secondary p-0.5 transition-colors duration-200 group-hover:bg-primary group-hover:text-primary-foreground"
-                    />
+                  <div className="relative h-40 overflow-hidden rounded-[1.15rem]">
+                    {card.image ? (
+                      <img
+                        src={card.image}
+                        alt={card.title}
+                        className="h-full min-h-40 w-full object-cover"
+                      />
+                    ) : (
+                      <MediaPlaceholder
+                        className="h-full min-h-40"
+                        markClassName="h-9"
+                      />
+                    )}
+                    <span className="absolute top-3 right-3 flex size-7 items-center justify-center rounded-full bg-slate-950/30 text-white backdrop-blur-xl">
+                      <Plus className="size-3.5" />
+                    </span>
                   </div>
-                  <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-4 px-1 pb-1">
                     <span className="text-xs text-muted-foreground">
                       {card.topNote}
                     </span>
@@ -118,29 +122,34 @@ const Feature314 = ({
               </Card>
             ))}
 
-            <Card className="group min-h-[30rem] rounded-xl border-0 p-0 shadow-none md:col-span-2 md:min-h-[32rem]">
-              <Link href={bigCard.url} className="block h-full">
-                <div className="relative h-full w-full overflow-hidden rounded-xl">
-                  <img
-                    src={bigCard.image}
-                    alt={bigCard.title}
-                    className="aspect-[4/3] h-full w-full rounded-xl object-cover transition-opacity duration-300 ease-out group-hover:opacity-90"
-                  />
-                  <div className="pointer-events-none absolute top-0 flex w-full items-center justify-between p-8">
-                    <BrandMark className="h-7" />
-                    <Plus
-                      size={20}
-                      className="rounded-full bg-secondary p-0.5 transition-colors duration-200 group-hover:bg-primary group-hover:text-primary-foreground"
+            <Card className="glass-surface group min-h-[30rem] rounded-[1.75rem] border-0 bg-white/[0.065] p-2 md:col-span-2">
+              <Link href={bigCard.url} className="flex h-full flex-col">
+                <div className="relative min-h-[24rem] flex-1 overflow-hidden rounded-[1.35rem]">
+                  {bigCard.image ? (
+                    <img
+                      src={bigCard.image}
+                      alt={bigCard.title}
+                      className="h-full min-h-[24rem] w-full object-cover"
                     />
+                  ) : (
+                    <MediaPlaceholder className="h-full min-h-[24rem]" />
+                  )}
+                  <div className="pointer-events-none absolute top-4 right-4 left-4 flex items-center justify-between">
+                    <span className="rounded-xl bg-slate-950/30 px-3 py-2 backdrop-blur-xl">
+                      <BrandMark className="h-6" />
+                    </span>
+                    <span className="flex size-8 items-center justify-center rounded-full bg-slate-950/30 text-white backdrop-blur-xl">
+                      <Plus className="size-4" />
+                    </span>
                   </div>
-                  <div className="pointer-events-none absolute bottom-0 flex w-full flex-col items-end justify-end bg-gradient-to-b from-black/0 to-black/95 p-10 text-right">
-                    <h3 className="text-3xl font-medium text-white md:text-4xl">
-                      {bigCard.title}
-                    </h3>
-                    <p className="mt-2 max-w-md text-sm text-white/80">
-                      {bigCard.summary}
-                    </p>
-                  </div>
+                </div>
+                <div className="flex flex-col justify-between gap-3 p-5 sm:flex-row sm:items-end sm:p-6">
+                  <h3 className="text-2xl font-medium md:text-3xl">
+                    {bigCard.title}
+                  </h3>
+                  <p className="max-w-sm text-sm text-muted-foreground sm:text-right">
+                    {bigCard.summary}
+                  </p>
                 </div>
               </Link>
             </Card>

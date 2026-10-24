@@ -242,5 +242,11 @@ function preferredLocale(request: { headers?: { get?: (name: string) => string |
 }
 
 export const config = {
-  matcher: ["/((?!_next|api|uploads|.*\\..*).*)", "/admin/:path*"],
+  // API routes need the same CSP, framing and MIME protections as pages. The
+  // negative page matcher deliberately excludes /api, so list it explicitly.
+  matcher: [
+    "/((?!_next|api|uploads|.*\\..*).*)",
+    "/api/:path*",
+    "/admin/:path*",
+  ],
 };
