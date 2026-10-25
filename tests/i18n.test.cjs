@@ -3,6 +3,7 @@ const { test } = require("node:test");
 const fs = require("node:fs");
 const path = require("node:path");
 const ts = require("typescript");
+const { IntlMessageFormat } = require("intl-messageformat");
 
 // Only lib/validators.ts is loaded as TypeScript, for the limits it exports.
 require.extensions[".ts"] = (module, filename) => {
@@ -108,6 +109,24 @@ test("placeholders match between locales", () => {
       );
     }
   }
+});
+
+test("every catalog message is valid ICU MessageFormat", () => {
+  const problems = [];
+
+  for (const locale of locales) {
+    for (const [key, message] of flatten(catalogs[locale])) {
+      try {
+        // This is the formatter used by next-intl. Keeping tags enabled is
+        // essential: messages such as cookie consent intentionally use <link>.
+        new IntlMessageFormat(String(message), locale);
+      } catch (error) {
+        problems.push(`${locale}.json → ${key}: ${error.message}`);
+      }
+    }
+  }
+
+  assert.deepEqual(problems, []);
 });
 
 test("every translated key exists and receives the values its message needs", () => {
