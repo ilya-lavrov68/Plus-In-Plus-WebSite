@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { DecryptText } from "@/components/site/motion/decrypt-text";
 import { Button } from "@/components/ui/button";
 
 export interface Cta13Props {
@@ -28,13 +29,16 @@ const Cta13 = ({
   },
 }: Cta13Props) => {
   return (
-    <section className="py-24 md:py-32">
+    <section className="motion-section py-24 md:py-32">
       <div className="container">
-        <div className="glass-surface rounded-[1.75rem] border-0 bg-white/[0.055] p-8 md:p-16">
+        <div
+          data-reveal=""
+          className="glass-surface rounded-[1.75rem] border-0 bg-white/[0.055] p-8 md:p-16"
+        >
           <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-center">
             <div className="max-w-2xl">
               <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
-                {heading}
+                <DecryptText text={heading} seed={43} />
               </h2>
               <p className="mt-4 text-base leading-relaxed text-muted-foreground md:text-lg">
                 {description}

@@ -15,7 +15,13 @@ const {
   needsInstall,
   npmCommand,
 } = require("./lib/dependency-check.cjs");
-const { cliAvailable, generateClient, pushSchema, rootDir } = require("./lib/prisma-cli.cjs");
+const {
+  applyOfflineSqliteDdl,
+  cliAvailable,
+  generateClient,
+  pushSchema,
+  rootDir,
+} = require("./lib/prisma-cli.cjs");
 
 const nextBin = path.join(rootDir, "node_modules", "next", "dist", "bin", "next");
 
@@ -89,6 +95,30 @@ async function syncSchema(config, env) {
   if (status.ok) {
     console.log("[dev] Schema is up to date.");
     return;
+  }
+
+  // A local development database can be brought up to date with additive DDL
+  // alone. This avoids sending Prisma's destructive-change warnings through a
+  // routine `npm run dev` when only a nullable column or an index is missing.
+  if (!config.remote) {
+    console.log("[dev] Applying additive local schema updates…");
+    try {
+      await applyOfflineSqliteDdl(env);
+      const localStatus = await checkSchema({
+        url: config.url,
+        authToken: config.authToken,
+        schemaPath: undefined,
+      });
+      if (localStatus.ok) {
+        generateClient({ env });
+        console.log("[dev] Schema is up to date.");
+        return;
+      }
+    } catch (error) {
+      // Fall through to Prisma for a complete diagnostic. In particular, a
+      // duplicate unique value remains an explicit error, never an auto-reset.
+      console.warn(`[dev] Additive local update needs Prisma review: ${error.message}`);
+    }
   }
 
   console.log(

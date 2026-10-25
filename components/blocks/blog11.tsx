@@ -6,6 +6,7 @@ import { motion } from "motion/react";
 import { Newspaper } from "lucide-react";
 
 import { EmptyState } from "@/components/site/empty-state";
+import { DecryptText } from "@/components/site/motion/decrypt-text";
 import { Separator } from "@/components/ui/separator";
 import { STUDIO_BLOG_POSTS, type CatalogBlogPost } from "@/lib/studio-catalog";
 
@@ -52,19 +53,27 @@ const Blog11 = ({
   const HeadingTag = asPageHeading ? "h1" : "h2";
 
   return (
-    <section id={id} className="py-32">
+    <section id={id} className="motion-section py-32">
       <div className="container">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-12">
           <div className="lg:col-span-4">
             <div className="lg:sticky lg:top-28">
               <HeadingTag className="text-4xl font-semibold tracking-tight md:text-5xl">
-                {heading}
+                <DecryptText text={heading} seed={37} />
               </HeadingTag>
-              <p className="mt-4 text-base leading-relaxed text-muted-foreground">
+              <p
+                data-reveal=""
+                data-reveal-delay={60}
+                className="mt-4 text-base leading-relaxed text-muted-foreground"
+              >
                 {description}
               </p>
               <Separator className="my-8" />
-              <div className="flex flex-wrap gap-5 lg:flex-col lg:gap-4">
+              <div
+                data-reveal=""
+                data-reveal-delay={100}
+                className="flex flex-wrap gap-5 lg:flex-col lg:gap-4"
+              >
                 {categories.map((category) => {
                   const isActive = selectedCategory === category;
                   return (
@@ -101,7 +110,7 @@ const Blog11 = ({
 
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:col-span-8">
             {posts.length === 0 ? (
-              <div className="sm:col-span-2">
+              <div data-reveal="" className="sm:col-span-2">
                 <EmptyState
                   icon={Newspaper}
                   title={emptyTitle}
@@ -111,7 +120,11 @@ const Blog11 = ({
             ) : (filteredPosts.map((post, index) => {
               const isFeatured = index === 0;
               return (
-                <article key={post.id}>
+                <article
+                  key={post.id}
+                  data-reveal=""
+                  data-reveal-delay={Math.min(index, 5) * 50}
+                >
                   <Link
                     href={`/blog/${post.slug}`}
                     className="group relative flex h-80 flex-col justify-between overflow-hidden rounded-xl bg-muted p-6 focus-visible:outline-none focus-visible:shadow-[0_0_0_4px_rgba(250,250,250,0.18)]"

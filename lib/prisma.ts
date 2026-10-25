@@ -9,7 +9,7 @@ import { PrismaClient } from "@/lib/generated/prisma/client";
  * The connection details come from TURSO_DATABASE_URL:
  *   - production: `libsql://<db>-<org>.turso.io` + TURSO_AUTH_TOKEN (Turso Cloud)
  *   - development: the local SQLite file `prisma/dev.db` when nothing is configured,
- *     created by `npm run db:push` (also runs automatically before `npm run dev`).
+ *     created by `npm run db:push` or the additive local sync before `npm run dev`.
  *
  * The libSQL driver adapter replaces the old PostgreSQL adapter, so the same code
  * path is exercised locally and in production.

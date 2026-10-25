@@ -1,7 +1,9 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Plus } from "lucide-react";
 
 import { BrandMark } from "@/components/site/logo";
+import { DecryptText } from "@/components/site/motion/decrypt-text";
 import { MediaPlaceholder } from "@/components/site/media-placeholder";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -67,14 +69,24 @@ const Feature314 = ({
   bigCard = DEFAULT_BIG_CARD,
 }: Feature314Props) => {
   return (
-    <section id={id} className="bg-muted py-32">
+    <section id={id} className="motion-section bg-muted py-32">
       <div className="container">
         <div className="flex flex-col gap-12">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end md:gap-8">
             <h2 className="max-w-lg flex-1 whitespace-pre-line text-3xl font-bold md:text-5xl">
-              {heading}
+              {heading.split("\n").map((line, index, lines) => (
+                <Fragment key={`${index}-${line}`}>
+                  <DecryptText text={line} seed={17 + index} className="block" />
+                  {index < lines.length - 1 ? " " : null}
+                </Fragment>
+              ))}
             </h2>
-            <Button asChild className="group w-fit rounded-xl">
+            <Button
+              asChild
+              className="group w-fit rounded-xl"
+              data-reveal=""
+              data-reveal-delay={80}
+            >
               <Link href={button.url}>
                 {button.text}
                 <ArrowUpRight className="size-4 transition-transform duration-200 ease-out group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
@@ -83,10 +95,12 @@ const Feature314 = ({
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-            {smallCards.map((card) => (
+            {smallCards.map((card, index) => (
               <Card
                 key={card.title}
-                className="glass-surface group col-span-1 rounded-[1.5rem] border-0 bg-white/[0.065] p-4 transition-transform duration-300 ease-out hover:-translate-y-1"
+                data-reveal=""
+                data-reveal-delay={index * 70}
+                className="glass-surface group col-span-1 rounded-[1.5rem] border-0 bg-white/[0.065] p-4 transition-[background-color] duration-200 ease-out hover:bg-white/[0.09]"
               >
                 <Link
                   href={card.url}
@@ -123,7 +137,11 @@ const Feature314 = ({
               </Card>
             ))}
 
-            <Card className="glass-surface group min-h-[30rem] rounded-[1.75rem] border-0 bg-white/[0.065] p-2 md:col-span-2">
+            <Card
+              data-reveal=""
+              data-reveal-delay={120}
+              className="glass-surface group min-h-[30rem] rounded-[1.75rem] border-0 bg-white/[0.065] p-2 md:col-span-2"
+            >
               <Link href={bigCard.url} className="flex h-full flex-col">
                 <div className="relative min-h-[24rem] flex-1 overflow-hidden rounded-[1.35rem]">
                   {bigCard.image ? (

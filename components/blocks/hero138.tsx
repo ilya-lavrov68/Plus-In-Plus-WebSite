@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { MediaPlaceholder } from "@/components/site/media-placeholder";
+import { DecryptText } from "@/components/site/motion/decrypt-text";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -48,7 +49,7 @@ const Hero138 = ({
   return (
     <section
       className={cn(
-        "relative overflow-hidden bg-background pt-16 pb-24 md:pt-24 md:pb-32",
+        "motion-section relative overflow-hidden bg-background pt-16 pb-24 md:pt-24 md:pb-32",
         className
       )}
     >
@@ -56,16 +57,31 @@ const Hero138 = ({
         <h1 className="max-w-5xl text-4xl font-medium tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
           {headingMuted ? (
             <>
-              <span className="text-muted-foreground">{headingMuted}</span>{" "}
-              <span className="block text-foreground">{headingPrimary}</span>
+              <DecryptText
+                text={headingMuted}
+                trigger="mount"
+                seed={3}
+                className="text-muted-foreground"
+              />{" "}
+              <DecryptText
+                text={headingPrimary}
+                trigger="mount"
+                seed={5}
+                className="block text-foreground"
+              />
             </>
           ) : (
-            <span className="text-foreground">{headingPrimary}</span>
+            <DecryptText
+              text={headingPrimary}
+              trigger="mount"
+              seed={5}
+              className="text-foreground"
+            />
           )}
         </h1>
 
         <div className="mt-10 flex flex-col justify-between gap-8 lg:mt-14 lg:flex-row lg:items-start">
-          <div>
+          <div data-reveal="" data-reveal-delay={80}>
             <div className="flex flex-wrap items-center gap-3">
               {primaryCta && (
                 <Button size="lg" asChild>
@@ -86,7 +102,11 @@ const Hero138 = ({
             )}
           </div>
 
-          <p className="max-w-md text-base leading-relaxed text-muted-foreground md:text-lg">
+          <p
+            data-reveal=""
+            data-reveal-delay={140}
+            className="max-w-md text-base leading-relaxed text-muted-foreground md:text-lg"
+          >
             {descriptionLead}
             {descriptionStrong && (
               <strong className="font-semibold text-foreground">
@@ -98,7 +118,7 @@ const Hero138 = ({
       </div>
 
       {showMediaStage && (
-        <div className="relative mt-16 md:mt-24">
+        <div data-reveal="" data-reveal-delay={180} className="relative mt-16 md:mt-24">
           <div
             aria-hidden="true"
             className="pointer-events-none absolute -top-12 right-0 left-0 mx-auto grid h-80 max-w-6xl grid-cols-4 gap-8 px-8 opacity-25 blur-3xl"
