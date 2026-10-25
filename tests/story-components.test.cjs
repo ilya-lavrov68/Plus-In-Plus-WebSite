@@ -100,7 +100,7 @@ beforeEach(() => {
   refreshed = 0;
 });
 
-test("landing story renders author content with a scroll-driven line and reduced-motion fallback", () => {
+test("landing story renders author content without a second JavaScript scroll driver", () => {
   let view;
   act(() => {
     view = create(React.createElement(StoryTimeline, timelineProps()));
@@ -112,11 +112,10 @@ test("landing story renders author content with a scroll-driven line and reduced
   assert.ok(text.includes("A real launch"));
   assert.equal(view.root.findAllByType("article").length, 2);
   assert.equal(view.root.findAllByType("span").filter((node) => node.props["data-story-dot"] === 0).length, 1);
-  assert.equal(scrollCalls[0].offset[0], "start 80%");
-  assert.equal(scrollCalls[0].offset[1], "end 45%");
+  assert.equal(scrollCalls.length, 0);
 
   const progress = view.root.findByProps({ "data-story-progress": "" });
-  assert.equal(progress.props.style.scaleY, 1, "reduced motion shows the complete line immediately");
+  assert.equal(progress.props.style, undefined);
   assert.match(progress.props.className, /origin-top/);
   assert.match(progress.props.className, /story-timeline-progress/);
   assert.equal(view.root.findAll((node) => node.props.dangerouslySetInnerHTML).length, 0);
@@ -124,22 +123,31 @@ test("landing story renders author content with a scroll-driven line and reduced
   act(() => view.unmount());
 });
 
-test("timeline motion uses the actual scroll progress when motion is allowed", () => {
-  reducedMotion = false;
+test("timeline uses native scroll timelines with static and reduced-motion fallbacks", () => {
   let view;
   act(() => {
     view = create(React.createElement(StoryTimeline, timelineProps({ events: [events[0]] })));
   });
 
   const progress = view.root.findByProps({ "data-story-progress": "" });
-  assert.equal(progress.props.style.scaleY, scrollProgress);
-  const dot = view.root.findByProps({ "data-story-dot": 0 });
-  assert.deepEqual(dot.props.style.opacity.output, [0.35, 1]);
-  assert.deepEqual(dot.props.style.scale.output, [0.7, 1]);
+  assert.equal(progress.props.style, undefined);
+  assert.equal(scrollCalls.length, 0);
+  assert.equal(view.root.findByProps({ "data-story-dot": 0 }).props.style, undefined);
+
+  const source = fs.readFileSync(
+    path.resolve(__dirname, "../components/site/story-timeline.tsx"),
+    "utf8",
+  );
+  assert.doesNotMatch(source, /^"use client"/m);
+  assert.doesNotMatch(source, /useScroll|useSpring|useTransform|requestAnimationFrame/);
 
   const globals = fs.readFileSync(path.resolve(__dirname, "../styles/globals.css"), "utf8");
-  assert.match(globals, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.story-timeline-progress/);
-  assert.match(globals, /\.story-timeline-dot/);
+  assert.match(globals, /@supports \(animation-timeline: view\(\)\)/);
+  assert.match(globals, /animation-range: entry 8% exit 55%/);
+  assert.match(globals, /animation-range: entry 0% cover 12%/);
+  assert.match(globals, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.story-timeline-progress,[\s\S]*?animation: none !important;/);
+  assert.match(globals, /\.story-card \{[^}]*backdrop-filter: blur\(12px\);[^}]*\}/);
+  assert.doesNotMatch(globals, /\.story-card \{[^}]*box-shadow:[^}]*\}/);
   act(() => view.unmount());
 });
 

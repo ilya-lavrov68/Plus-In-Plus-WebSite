@@ -1,15 +1,4 @@
-"use client";
-
 import { History } from "lucide-react";
-import {
-  motion,
-  useReducedMotion,
-  useScroll,
-  useSpring,
-  useTransform,
-  type MotionValue,
-} from "motion/react";
-import { useRef } from "react";
 
 import { cn } from "@/lib/utils";
 import type { StoryEvent } from "@/lib/story-content";
@@ -28,34 +17,16 @@ interface StoryTimelineProps {
   labels: StoryTimelineLabels;
 }
 
-interface StoryMomentProps {
-  event: StoryEvent;
-  index: number;
-  total: number;
-  progress: MotionValue<number>;
-  reducedMotion: boolean;
-}
-
-function StoryMoment({ event, index, total, progress, reducedMotion }: StoryMomentProps) {
-  const threshold = total <= 1 ? 0 : index / (total - 1);
-  const activationStart = Math.max(0, threshold - 0.06);
-  const activationEnd = Math.min(1, threshold + 0.02);
-  const dotOpacity = useTransform(progress, [activationStart, activationEnd], [0.35, 1]);
-  const dotScale = useTransform(progress, [activationStart, activationEnd], [0.7, 1]);
-
+function StoryMoment({ event, index }: { event: StoryEvent; index: number }) {
   return (
     <li className="relative grid pl-12 md:grid-cols-2 md:gap-24 md:pl-0">
       <span
         aria-hidden="true"
         className="absolute left-0 top-5 z-10 flex size-6 items-center justify-center rounded-full bg-secondary md:left-1/2 md:-translate-x-1/2"
       >
-        <motion.span
+        <span
           data-story-dot={index}
           className="story-timeline-dot size-2.5 rounded-full bg-primary"
-          style={{
-            opacity: reducedMotion ? 1 : dotOpacity,
-            scale: reducedMotion ? 1 : dotScale,
-          }}
         />
       </span>
 
@@ -64,7 +35,7 @@ function StoryMoment({ event, index, total, progress, reducedMotion }: StoryMome
         data-reveal-delay={Math.min(index, 5) * 60}
         aria-labelledby={`story-event-${event.id}`}
         className={cn(
-          "glass-surface rounded-[1.5rem] bg-white/[0.045] p-6 sm:p-7",
+          "story-card rounded-[1.5rem] bg-white/[0.045] p-6 sm:p-7",
           index % 2 === 0 ? "md:col-start-1" : "md:col-start-2",
         )}
       >
@@ -82,19 +53,12 @@ function StoryMoment({ event, index, total, progress, reducedMotion }: StoryMome
   );
 }
 
+/**
+ * Server-rendered content with progressive CSS scroll-timeline enhancement.
+ * Lenis remains the site's only JavaScript scroll driver; unsupported browsers
+ * simply show the complete line and active markers without hiding content.
+ */
 export function StoryTimeline({ heading, description, events, labels }: StoryTimelineProps) {
-  const timelineRef = useRef<HTMLDivElement>(null);
-  const reducedMotion = useReducedMotion() === true;
-  const { scrollYProgress } = useScroll({
-    target: timelineRef,
-    offset: ["start 80%", "end 45%"],
-  });
-  const progress = useSpring(scrollYProgress, {
-    stiffness: 140,
-    damping: 30,
-    mass: 0.35,
-  });
-
   return (
     <section id="story" aria-labelledby="story-heading" className="motion-section bg-background py-24 md:py-32">
       <div className="container">
@@ -122,7 +86,7 @@ export function StoryTimeline({ heading, description, events, labels }: StoryTim
           </p>
         </div>
 
-        <div ref={timelineRef}>
+        <div>
           {events.length === 0 ? (
             <div
               data-reveal=""
@@ -145,21 +109,13 @@ export function StoryTimeline({ heading, description, events, labels }: StoryTim
                 aria-hidden="true"
                 className="absolute bottom-8 left-[11px] top-8 w-0.5 rounded-full bg-foreground/10 md:left-[calc(50%-1px)]"
               />
-              <motion.span
+              <span
                 aria-hidden="true"
                 data-story-progress=""
                 className="story-timeline-progress absolute bottom-8 left-[11px] top-8 w-0.5 origin-top rounded-full bg-foreground/70 md:left-[calc(50%-1px)]"
-                style={{ scaleY: reducedMotion ? 1 : progress }}
               />
               {events.map((event, index) => (
-                <StoryMoment
-                  key={event.id}
-                  event={event}
-                  index={index}
-                  total={events.length}
-                  progress={progress}
-                  reducedMotion={reducedMotion}
-                />
+                <StoryMoment key={event.id} event={event} index={index} />
               ))}
             </ol>
           )}
