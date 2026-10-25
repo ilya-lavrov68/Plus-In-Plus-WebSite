@@ -83,17 +83,6 @@
   }
 }
 
-@keyframes story-dot-activate {
-  from {
-    opacity: 0.35;
-    transform: scale(0.7);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
 @keyframes decrypt-character-lock {
   from {
     opacity: 0.25;
@@ -466,21 +455,35 @@
     backdrop-filter: blur(12px);
   }
 
-  /* Native compositor-driven scroll animation: no second JavaScript scroll
-   * loop is installed alongside Lenis. Unsupported browsers keep the visible
-   * static line and markers declared by the base styles. */
+  /* Markers animate once when the existing reveal observer activates their
+   * card. The pending-only selector keeps SSR/no-JS content fully visible. */
+  .story-timeline-dot {
+    opacity: 1;
+    transform: scale(1);
+    transition:
+      opacity 180ms ease-out,
+      transform 180ms ease-out;
+  }
+
+  [data-reveal="pending"] + .story-timeline-marker .story-timeline-dot {
+    opacity: 0.35;
+    transform: scale(0.7);
+  }
+
+  /* Keep one continuous scroll animation, measured against the stable track
+   * instead of the transforming line. Unsupported browsers keep the visible
+   * static line declared by the base styles. */
   @supports (animation-timeline: view()) {
-    .story-timeline-progress {
-      animation: story-line-grow 1s linear both;
-      animation-timeline: view();
-      animation-range: entry 8% exit 55%;
-      will-change: transform;
+    .story-timeline-track {
+      view-timeline-name: --story-track;
+      view-timeline-axis: block;
     }
 
-    .story-timeline-dot {
-      animation: story-dot-activate 1s linear both;
-      animation-timeline: view();
-      animation-range: entry 0% cover 12%;
+    .story-timeline-progress {
+      animation: story-line-grow 1s linear both;
+      animation-timeline: --story-track;
+      animation-range: entry 8% exit 55%;
+      will-change: transform;
     }
   }
 
@@ -602,6 +605,7 @@
     opacity: 1 !important;
     transform: none !important;
     animation: none !important;
+    transition: none !important;
   }
 }
 

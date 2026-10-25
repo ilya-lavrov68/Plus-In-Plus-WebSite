@@ -123,7 +123,7 @@ test("landing story renders author content without a second JavaScript scroll dr
   act(() => view.unmount());
 });
 
-test("timeline uses native scroll timelines with static and reduced-motion fallbacks", () => {
+test("timeline keeps one native line animation with event-driven markers and readable fallbacks", () => {
   let view;
   act(() => {
     view = create(React.createElement(StoryTimeline, timelineProps({ events: [events[0]] })));
@@ -133,6 +133,9 @@ test("timeline uses native scroll timelines with static and reduced-motion fallb
   assert.equal(progress.props.style, undefined);
   assert.equal(scrollCalls.length, 0);
   assert.equal(view.root.findByProps({ "data-story-dot": 0 }).props.style, undefined);
+  const momentChildren = view.root.findAllByType("li")[0].children;
+  assert.equal(momentChildren[0].type, "article");
+  assert.match(momentChildren[1].props.className, /story-timeline-marker/);
 
   const source = fs.readFileSync(
     path.resolve(__dirname, "../components/site/story-timeline.tsx"),
@@ -142,10 +145,17 @@ test("timeline uses native scroll timelines with static and reduced-motion fallb
   assert.doesNotMatch(source, /useScroll|useSpring|useTransform|requestAnimationFrame/);
 
   const globals = fs.readFileSync(path.resolve(__dirname, "../styles/globals.css"), "utf8");
+  assert.match(view.root.findByType("ol").props.className, /story-timeline-track/);
   assert.match(globals, /@supports \(animation-timeline: view\(\)\)/);
+  assert.match(globals, /view-timeline-name: --story-track/);
+  assert.match(globals, /animation-timeline: --story-track/);
+  assert.match(globals, /@keyframes story-line-grow/);
+  assert.match(globals, /\.story-timeline-progress \{[^}]*animation: story-line-grow 1s linear both;/);
   assert.match(globals, /animation-range: entry 8% exit 55%/);
-  assert.match(globals, /animation-range: entry 0% cover 12%/);
-  assert.match(globals, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.story-timeline-progress,[\s\S]*?animation: none !important;/);
+  assert.equal((globals.match(/^\s*animation-timeline:/gm) || []).length, 1);
+  assert.doesNotMatch(globals, /story-dot-activate/);
+  assert.match(globals, /\[data-reveal="pending"\] \+ \.story-timeline-marker \.story-timeline-dot/);
+  assert.match(globals, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.story-timeline-progress,[\s\S]*?animation: none !important;[\s\S]*?transition: none !important;/);
   assert.match(globals, /\.story-card \{[^}]*backdrop-filter: blur\(12px\);[^}]*\}/);
   assert.doesNotMatch(globals, /\.story-card \{[^}]*box-shadow:[^}]*\}/);
   act(() => view.unmount());
