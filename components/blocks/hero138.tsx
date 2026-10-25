@@ -142,7 +142,7 @@ const Hero138 = ({
           </div>
 
           <div className="container relative z-10">
-            <div className="glass-surface relative overflow-hidden rounded-[1.75rem] bg-white/[0.055] p-1.5 sm:p-2.5">
+            <div className="hero-media-frame relative overflow-hidden rounded-[1.75rem] bg-white/[0.055] p-1.5 sm:p-2.5">
               {image?.src ? (
                 <img
                   src={image.src}

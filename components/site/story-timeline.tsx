@@ -18,6 +18,8 @@ interface StoryTimelineProps {
 }
 
 function StoryMoment({ event, index }: { event: StoryEvent; index: number }) {
+  const isLeft = index % 2 === 0;
+
   return (
     <li className="relative grid pl-12 md:grid-cols-2 md:gap-24 md:pl-0">
       <article
@@ -25,8 +27,8 @@ function StoryMoment({ event, index }: { event: StoryEvent; index: number }) {
         data-reveal-delay={Math.min(index, 5) * 60}
         aria-labelledby={`story-event-${event.id}`}
         className={cn(
-          "story-card rounded-[1.5rem] bg-white/[0.045] p-6 sm:p-7",
-          index % 2 === 0 ? "md:col-start-1" : "md:col-start-2",
+          "story-card col-start-1 row-start-1 rounded-[1.5rem] bg-white/[0.045] p-6 sm:p-7",
+          isLeft ? "md:col-start-1" : "md:col-start-2",
         )}
       >
         <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
@@ -40,9 +42,47 @@ function StoryMoment({ event, index }: { event: StoryEvent; index: number }) {
         </p>
       </article>
 
+      <svg
+        aria-hidden="true"
+        data-story-trace=""
+        className={cn(
+          "story-moment-outline pointer-events-none z-[5] col-start-1 row-start-1 h-full min-h-0 w-full min-w-0 overflow-visible text-foreground/45",
+          isLeft
+            ? "story-moment-outline--from-right md:col-start-1"
+            : "md:col-start-2",
+        )}
+      >
+        <rect
+          className="story-moment-outline-rect"
+          x="1%"
+          y="1%"
+          width="98%"
+          height="98%"
+          rx="24"
+          pathLength={1}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+
       <span
         aria-hidden="true"
-        className="story-timeline-marker absolute left-0 top-5 z-10 flex size-6 items-center justify-center rounded-full bg-secondary md:left-1/2 md:-translate-x-1/2"
+        data-story-connector=""
+        className={cn(
+          "story-moment-connector absolute left-3 top-1/2 z-[6] h-px w-9 origin-left bg-foreground/50",
+          isLeft
+            ? "md:left-[calc(50%-3rem)] md:w-12 md:origin-right"
+            : "md:left-1/2 md:w-12",
+        )}
+      />
+
+      <span
+        aria-hidden="true"
+        className="story-timeline-marker absolute left-0 top-1/2 z-10 flex size-6 -translate-y-1/2 items-center justify-center rounded-full bg-secondary md:left-1/2 md:-translate-x-1/2"
       >
         <span
           data-story-dot={index}
@@ -55,9 +95,9 @@ function StoryMoment({ event, index }: { event: StoryEvent; index: number }) {
 
 /**
  * Server-rendered content with one progressive CSS scroll-timeline for the
- * line. Markers use the existing one-shot reveal observer instead of keeping
- * a separate scroll timeline alive for every moment. Unsupported browsers
- * simply show the complete line and active markers without hiding content.
+ * spine. Connectors, rounded card traces and markers use the existing one-shot
+ * reveal observer instead of keeping more scroll timelines alive. Unsupported
+ * browsers simply show the complete line and traces without hiding content.
  */
 export function StoryTimeline({ heading, description, events, labels }: StoryTimelineProps) {
   return (
