@@ -20,16 +20,6 @@ interface StoryTimelineProps {
 function StoryMoment({ event, index }: { event: StoryEvent; index: number }) {
   return (
     <li className="relative grid pl-12 md:grid-cols-2 md:gap-24 md:pl-0">
-      <span
-        aria-hidden="true"
-        className="absolute left-0 top-5 z-10 flex size-6 items-center justify-center rounded-full bg-secondary md:left-1/2 md:-translate-x-1/2"
-      >
-        <span
-          data-story-dot={index}
-          className="story-timeline-dot size-2.5 rounded-full bg-primary"
-        />
-      </span>
-
       <article
         data-reveal=""
         data-reveal-delay={Math.min(index, 5) * 60}
@@ -49,13 +39,24 @@ function StoryMoment({ event, index }: { event: StoryEvent; index: number }) {
           {event.description}
         </p>
       </article>
+
+      <span
+        aria-hidden="true"
+        className="story-timeline-marker absolute left-0 top-5 z-10 flex size-6 items-center justify-center rounded-full bg-secondary md:left-1/2 md:-translate-x-1/2"
+      >
+        <span
+          data-story-dot={index}
+          className="story-timeline-dot size-2.5 rounded-full bg-primary"
+        />
+      </span>
     </li>
   );
 }
 
 /**
- * Server-rendered content with progressive CSS scroll-timeline enhancement.
- * Lenis remains the site's only JavaScript scroll driver; unsupported browsers
+ * Server-rendered content with one progressive CSS scroll-timeline for the
+ * line. Markers use the existing one-shot reveal observer instead of keeping
+ * a separate scroll timeline alive for every moment. Unsupported browsers
  * simply show the complete line and active markers without hiding content.
  */
 export function StoryTimeline({ heading, description, events, labels }: StoryTimelineProps) {
@@ -103,7 +104,7 @@ export function StoryTimeline({ heading, description, events, labels }: StoryTim
           ) : (
             <ol
               aria-label={labels.timelineLabel}
-              className="relative mt-14 space-y-6 md:mt-20 md:space-y-10"
+              className="story-timeline-track relative mt-14 space-y-6 md:mt-20 md:space-y-10"
             >
               <span
                 aria-hidden="true"
