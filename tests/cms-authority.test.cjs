@@ -71,6 +71,9 @@ test("blog presentation mapping never injects an unpublished launch post or repl
   assert.equal(posts[0].id, "database-post");
   assert.equal(posts[0].slug, "database-custom-slug");
   assert.equal(posts.some((post) => post.slug === "we-re-up-and-running"), false);
+  assert.equal(posts[0].quote, undefined, "an excerpt is not article quote content");
+  assert.equal(posts[0].quoteAttribution, undefined, "no studio attribution is invented");
+  assert.equal(posts[0].author, undefined, "no editorial byline is invented");
 });
 
 test("only the exact untouched launch seed may use preset sections", () => {
@@ -79,6 +82,8 @@ test("only the exact untouched launch seed may use preset sections", () => {
   assert.equal(legacy.useLegacyLaunchCopy, true);
   assert.equal(legacy.sections, preset.sections);
   assert.equal(legacy.htmlContent, undefined);
+  assert.equal(legacy.quote, preset.quote, "the authored preset quote remains explicit");
+  assert.equal(legacy.author, preset.author, "the authored preset byline remains explicit");
 
   const editedRow = launchRow({
     title: "Edited in Admin",

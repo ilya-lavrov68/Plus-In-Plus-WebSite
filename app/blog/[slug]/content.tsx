@@ -6,6 +6,7 @@ import { localizeBlogPosts } from "@/lib/blog-localization";
 import { getPublishedPosts } from "@/lib/data";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getRequestTranslations } from "@/lib/server-i18n";
+import { renderPostContent } from "@/lib/post-content";
 import { mergeCatalogPosts } from "@/lib/studio-catalog";
 
 export default async function BlogPostContent({ slug }: { slug: string }) {
@@ -22,6 +23,9 @@ export default async function BlogPostContent({ slug }: { slug: string }) {
   }
 
   const post = allPosts[index];
+  const renderedPost = post.htmlContent
+    ? { ...post, htmlContent: renderPostContent(post.htmlContent) }
+    : post;
   const previousPost =
     index < allPosts.length - 1 ? allPosts[index + 1] : null;
   const nextPost = index > 0 ? allPosts[index - 1] : null;
@@ -31,7 +35,7 @@ export default async function BlogPostContent({ slug }: { slug: string }) {
   return (
     <>
       <Blogpost11
-        post={post}
+        post={renderedPost}
         previousPost={previousPost}
         nextPost={nextPost}
         previousLabel={tBlog("previous")}

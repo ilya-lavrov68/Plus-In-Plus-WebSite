@@ -152,6 +152,46 @@ test("blog CRUD sanitizes HTML, preserves publication date and revalidates old/n
   assert.ok(cleaned.some((c) => c.url === record.coverImage && c.kind === "blog"));
 });
 
+test("blog actions preserve Markdown source for later editing and enforce its existing size boundary", async () => {
+  const source = [
+    "## Author heading",
+    "",
+    "Raw <b>source</b> stays editable.[^1]",
+    "",
+    ":::canva",
+    "https://www.canva.com/design/ABC_123/view",
+    ":::",
+    "",
+    "[^1]: Author-provided note.",
+  ].join("\n");
+  const form = postForm();
+  form.set("contentFormat", "markdown");
+  form.set("content", source);
+  const created = await posts.createPost(form);
+  assert.equal(created.ok, true);
+  assert.equal(
+    store.post.get(created.id).content,
+    `<!-- pip:markdown -->\n${source}`,
+    "the source is not converted or sanitized before editing",
+  );
+
+  const edit = postForm(false);
+  edit.set("contentFormat", "markdown");
+  edit.set("content", `${source}\n\nSecond author paragraph.`);
+  assert.equal((await posts.updatePost(created.id, edit)).ok, true);
+  assert.match(store.post.get(created.id).content, /Second author paragraph\.$/);
+  assert.match(store.post.get(created.id).content, /Raw <b>source<\/b>/);
+
+  const empty = postForm();
+  empty.set("contentFormat", "markdown");
+  empty.set("content", "   ");
+  assert.equal((await posts.createPost(empty)).ok, false);
+  const oversized = postForm();
+  oversized.set("contentFormat", "markdown");
+  oversized.set("content", "x".repeat(100_001));
+  assert.equal((await posts.createPost(oversized)).ok, false);
+});
+
 test("create, edit and bulk publish preserve exactly one Featured post", async () => {
   const firstForm = postForm();
   firstForm.set("slug", "first-featured");

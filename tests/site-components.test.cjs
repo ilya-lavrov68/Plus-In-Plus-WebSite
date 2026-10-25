@@ -872,6 +872,23 @@ test("Blogpost11 gives explicit CMS HTML precedence over preset sections", () =>
   act(() => view.unmount());
 });
 
+test("Blogpost11 omits the quote figure when the CMS author supplied no quote", () => {
+  const post = {
+    ...STUDIO_BLOG_POSTS[0],
+    quote: undefined,
+    quoteAttribution: undefined,
+    author: undefined,
+    htmlContent: "<p>Only the author-managed body</p>",
+  };
+  let view;
+  act(() => {
+    view = create(React.createElement(Blogpost11, { post }));
+  });
+  assert.equal(view.root.findAllByType("figure").length, 0);
+  assert.doesNotMatch(textOf(view.root), /Plus In Plus Studio|Plus In Plus Editorial|We care not only about how a single screen looks/);
+  act(() => view.unmount());
+});
+
 test("Blog11 renders its localized empty state and translated category labels", () => {
   let emptyView, categoryView;
   act(() => {
