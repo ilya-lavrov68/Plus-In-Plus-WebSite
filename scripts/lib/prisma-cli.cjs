@@ -128,6 +128,7 @@ const OFFLINE_SQLITE_DDL = [
     "orderNumber" TEXT,
     "number" TEXT,
     "userId" TEXT NOT NULL,
+    "cartKey" TEXT,
     "status" TEXT NOT NULL DEFAULT 'cart',
     "estimatedAmount" INTEGER NOT NULL DEFAULT 0,
     "subtotal" INTEGER NOT NULL DEFAULT 0,
@@ -204,7 +205,6 @@ const OFFLINE_SQLITE_DDL = [
     CONSTRAINT "payments_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders" ("id") ON DELETE CASCADE ON UPDATE CASCADE
   )`,
   `CREATE INDEX IF NOT EXISTS "payments_orderId_idx" ON "payments"("orderId")`,
-  `CREATE INDEX IF NOT EXISTS "payments_provider_externalId_idx" ON "payments"("provider", "externalId")`,
   `CREATE TABLE IF NOT EXISTS "site_settings" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "key" TEXT NOT NULL,
@@ -212,6 +212,21 @@ const OFFLINE_SQLITE_DDL = [
     "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "site_settings_key_key" ON "site_settings"("key")`,
+];
+
+// Nullable columns can be added to an existing local table without rebuilding it
+// or touching its rows. Keep this list limited to backwards-compatible additions.
+const ADDITIVE_SQLITE_COLUMNS = [
+  { table: "orders", column: "cartKey", definition: '"cartKey" TEXT' },
+];
+
+// Unique indexes are created only after the required columns exist. SQLite itself
+// rejects duplicates; no rows are deleted or rewritten to force synchronization.
+const ADDITIVE_SQLITE_UNIQUE_INDEXES = [
+  `CREATE UNIQUE INDEX IF NOT EXISTS "orders_cartKey_key" ON "orders"("cartKey")`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "payments_provider_externalId_key" ON "payments"("provider", "externalId")`,
+  // The unique index covers the same queries as the legacy non-unique one.
+  `DROP INDEX IF EXISTS "payments_provider_externalId_idx"`,
 ];
 
 async function applyOfflineSqliteDdl(env) {
@@ -226,6 +241,16 @@ async function applyOfflineSqliteDdl(env) {
   const client = createClient({ url, authToken });
   try {
     for (const statement of OFFLINE_SQLITE_DDL) {
+      await client.execute(statement);
+    }
+    for (const { table, column, definition } of ADDITIVE_SQLITE_COLUMNS) {
+      const info = await client.execute(`pragma table_info("${table}")`);
+      const exists = info.rows.some((row) => String(row.name) === column);
+      if (!exists) {
+        await client.execute(`ALTER TABLE "${table}" ADD COLUMN ${definition}`);
+      }
+    }
+    for (const statement of ADDITIVE_SQLITE_UNIQUE_INDEXES) {
       await client.execute(statement);
     }
     return true;
@@ -311,4 +336,11 @@ function generateClient({ env }) {
   return result.status === 0;
 }
 
-module.exports = { cliAvailable, generateClient, prismaCli, pushSchema, rootDir };
+module.exports = {
+  applyOfflineSqliteDdl,
+  cliAvailable,
+  generateClient,
+  prismaCli,
+  pushSchema,
+  rootDir,
+};

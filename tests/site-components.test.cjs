@@ -37,6 +37,19 @@ const routerStub = {
   },
 };
 
+const lenisInstances = [];
+class LenisStub {
+  constructor(options) {
+    this.options = options;
+    this.destroyed = false;
+    lenisInstances.push(this);
+  }
+
+  destroy() {
+    this.destroyed = true;
+  }
+}
+
 const tag =
   (name) =>
   ({ children, ...props }) =>
@@ -44,6 +57,7 @@ const tag =
 
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
+  if (name === "lenis") return { __esModule: true, default: LenisStub };
   if (name === "next-intl") return require("./next-intl-stub.cjs");
   if (name === "next-intl/server") return require("./next-intl-stub.cjs");
   if (name === "next/link") return tag("a");
@@ -181,6 +195,8 @@ const {
 } = require("../components/site/mobile-bottom-nav.tsx");
 const { STUDIO_SERVICES, STUDIO_BLOG_POSTS } = require("../lib/studio-catalog.ts");
 const { COVER_IMAGE_GUIDES } = require("../lib/upload-policy.ts");
+const { DecryptText } = require("../components/site/motion/decrypt-text.tsx");
+const { ScrollExperience } = require("../components/site/motion/scroll-experience.tsx");
 
 beforeEach(() => {
   sessionStatus = "unauthenticated";
@@ -189,6 +205,7 @@ beforeEach(() => {
   cancelResult = { ok: true };
   refreshed = 0;
   customerOrders = [];
+  lenisInstances.length = 0;
   global.HTMLFormElement = class HTMLFormElement {};
   global.window = {
     scrollY: 0,
@@ -1398,4 +1415,230 @@ test("interface copy contains no emoji glyphs; controls use icon components", ()
   for (const file of files) {
     assert.equal(emoji.test(fs.readFileSync(file, "utf8")), false, `emoji in ${path.relative(process.cwd(), file)}`);
   }
+});
+
+test("card hover and reveal motion stay layout-stable and preserve scroll anchors", () => {
+  let featureView;
+  let communityView;
+  act(() => {
+    featureView = create(React.createElement(Feature314));
+    communityView = create(React.createElement(Community3));
+  });
+
+  const cards = [featureView, communityView].flatMap((view) =>
+    view.root.findAllByType("div").filter((node) =>
+      String(node.props.className).includes("glass-surface"),
+    ),
+  );
+  assert.equal(cards.length, 5);
+  for (const card of cards) {
+    assert.doesNotMatch(card.props.className, /hover:-translate|group-hover:-translate/);
+    assert.equal(card.props["data-reveal"], "");
+  }
+  for (const view of [featureView, communityView]) {
+    assert.match(view.root.findByType("section").props.className, /motion-section/);
+  }
+
+  const globals = fs.readFileSync(path.resolve(__dirname, "../styles/globals.css"), "utf8");
+  assert.match(globals, /overflow-anchor:\s*none/);
+  assert.match(globals, /@media \(prefers-reduced-motion: reduce\)/);
+
+  act(() => {
+    featureView.unmount();
+    communityView.unmount();
+  });
+});
+
+test("DecryptText keeps readable stable glyphs and resolves a single scramble", () => {
+  let now = 0;
+  let nextFrame = 0;
+  const frames = new Map();
+  global.requestAnimationFrame = (callback) => {
+    const id = ++nextFrame;
+    frames.set(id, callback);
+    return id;
+  };
+  global.cancelAnimationFrame = (id) => frames.delete(id);
+  Object.defineProperty(global, "performance", {
+    configurable: true,
+    value: { now: () => now },
+  });
+  global.window.matchMedia = () => ({
+    matches: false,
+    addEventListener() {},
+    removeEventListener() {},
+  });
+
+  let rootNode;
+  const characters = [];
+  let view;
+  act(() => {
+    view = create(
+      React.createElement(DecryptText, {
+        text: "Плюс UI",
+        trigger: "mount",
+        startDelay: 0,
+        stagger: 20,
+        jitter: 0,
+      }),
+      {
+        createNodeMock(element) {
+          if (element.props["data-decrypt-text"] !== undefined) {
+            rootNode = { dataset: { decryptState: "idle" } };
+            return rootNode;
+          }
+          if (element.props["data-character"] !== undefined) {
+            const node = {
+              dataset: {
+                character: element.props["data-character"],
+                state: "plain",
+              },
+              textContent: element.props.children,
+            };
+            characters.push(node);
+            return node;
+          }
+          return null;
+        },
+      },
+    );
+  });
+
+  assert.equal(view.root.findAll((node) => node.props.className === "sr-only").length, 1);
+  assert.equal(view.root.findAll((node) => node.props.className === "invisible").length, 6);
+  assert.equal(characters.length, 6);
+  assert.equal(rootNode.dataset.decryptState, "scrambling");
+
+  for (let index = 0; index < 80 && rootNode.dataset.decryptState !== "complete"; index += 1) {
+    now += 50;
+    const batch = [...frames.values()];
+    frames.clear();
+    for (const callback of batch) callback(now);
+  }
+
+  assert.equal(rootNode.dataset.decryptState, "complete");
+  assert.equal(frames.size, 0);
+  for (const character of characters) {
+    assert.equal(character.textContent, character.dataset.character);
+    assert.equal(character.dataset.state, "lock");
+  }
+  act(() => view.unmount());
+});
+
+test("ScrollExperience smooths desktop anchors and reveals below-fold content", () => {
+  class FakeHTMLElement {
+    constructor(top) {
+      this.top = top;
+      this.dataset = { reveal: "" };
+      this.style = { setProperty() {} };
+    }
+    hasAttribute(name) {
+      return name === "data-reveal";
+    }
+    querySelectorAll() {
+      return [];
+    }
+    getBoundingClientRect() {
+      return { top: this.top, bottom: this.top + 100 };
+    }
+  }
+
+  const belowFold = new FakeHTMLElement(1200);
+  global.HTMLElement = FakeHTMLElement;
+  global.window.innerHeight = 800;
+  global.window.matchMedia = (query) => ({
+    matches: query.includes("pointer: fine"),
+    addEventListener() {},
+    removeEventListener() {},
+  });
+  global.document = {
+    body: {},
+    querySelectorAll: (selector) => (selector === "[data-reveal]" ? [belowFold] : []),
+  };
+
+  let intersectionObserver;
+  global.IntersectionObserver = class {
+    constructor(callback) {
+      this.callback = callback;
+      intersectionObserver = this;
+    }
+    observe(element) {
+      this.element = element;
+    }
+    unobserve() {}
+    disconnect() {}
+  };
+  global.MutationObserver = class {
+    observe() {}
+    disconnect() {}
+  };
+
+  let view;
+  act(() => {
+    view = create(React.createElement(ScrollExperience));
+  });
+
+  assert.equal(belowFold.dataset.reveal, "pending");
+  assert.equal(intersectionObserver.element, belowFold);
+  assert.equal(lenisInstances.length, 1);
+  assert.equal(lenisInstances[0].options.anchors, true);
+  assert.equal(lenisInstances[0].options.autoRaf, true);
+  assert.equal(lenisInstances[0].options.syncTouch, false);
+
+  act(() => {
+    intersectionObserver.callback([{ isIntersecting: true, target: belowFold }]);
+  });
+  assert.equal(belowFold.dataset.reveal, "visible");
+
+  act(() => view.unmount());
+  assert.equal(lenisInstances[0].destroyed, true);
+});
+
+test("reduced motion resolves decrypt text and bypasses Lenis without hiding content", () => {
+  const reducedQuery = (query) => ({
+    matches: query.includes("prefers-reduced-motion"),
+    addEventListener() {},
+    removeEventListener() {},
+  });
+  global.window.matchMedia = reducedQuery;
+  const element = {
+    dataset: { reveal: "" },
+  };
+  global.document = {
+    querySelectorAll: () => [element],
+  };
+
+  let rootNode;
+  let characterNode;
+  let decryptView;
+  let scrollView;
+  act(() => {
+    decryptView = create(React.createElement(DecryptText, { text: "A", trigger: "mount" }), {
+      createNodeMock(host) {
+        if (host.props["data-decrypt-text"] !== undefined) {
+          rootNode = { dataset: { decryptState: "idle" } };
+          return rootNode;
+        }
+        if (host.props["data-character"] !== undefined) {
+          characterNode = {
+            dataset: { character: "A", state: "plain" },
+            textContent: "A",
+          };
+          return characterNode;
+        }
+        return null;
+      },
+    });
+    scrollView = create(React.createElement(ScrollExperience));
+  });
+
+  assert.equal(rootNode.dataset.decryptState, "complete");
+  assert.equal(characterNode.textContent, "A");
+  assert.equal(element.dataset.reveal, "visible");
+  assert.equal(lenisInstances.length, 0);
+
+  act(() => {
+    decryptView.unmount();
+    scrollView.unmount();
+  });
 });
