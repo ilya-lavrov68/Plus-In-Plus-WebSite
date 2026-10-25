@@ -17,6 +17,7 @@ const segmentKeys: Record<string, string> = {
   analytics: "analytics",
   services: "services",
   blog: "blog",
+  story: "story",
   users: "users",
   settings: "settings",
   new: "breadcrumbNew",

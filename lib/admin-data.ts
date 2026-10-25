@@ -4,6 +4,7 @@ import { requireAdmin, requireFounder, requireStaff } from "@/lib/admin-session"
 import { paginationOffset, ADMIN_PAGE_SIZE } from "@/lib/pagination";
 import { prisma } from "@/lib/prisma";
 import { SECRET_SITE_SETTING_KEYS, isSecretSiteSettingKey, isSiteSettingKey } from "@/lib/site-settings";
+import { parseStoredStoryContent, STORY_SETTING_KEY } from "@/lib/story-content";
 
 /** Protect data access itself: App Router layouts and pages can render in parallel. */
 async function adminDatabase() {
@@ -303,6 +304,15 @@ export async function getUserActivity(userId: string) {
     orderBy: { createdAt: "desc" },
     select: { id: true, action: true, entityType: true, title: true, createdAt: true },
   });
+}
+
+export async function getAdminStoryContent() {
+  const db = await adminDatabase();
+  const row = await db.siteSetting.findUnique({
+    where: { key: STORY_SETTING_KEY },
+    select: { value: true },
+  });
+  return parseStoredStoryContent(row?.value);
 }
 
 export async function getSiteSettings() {

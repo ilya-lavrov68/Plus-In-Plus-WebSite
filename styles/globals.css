@@ -550,6 +550,12 @@
   .decrypt-text-glyph {
     animation: none !important;
   }
+
+  .story-timeline-progress,
+  .story-timeline-dot {
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }
 
 @supports (scrollbar-gutter: stable) {

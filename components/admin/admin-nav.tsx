@@ -8,6 +8,7 @@ import {
   BarChart3,
   BookOpen,
   ExternalLink,
+  History,
   LayoutDashboard,
   LogOut,
   Palette,
@@ -27,6 +28,7 @@ const links = [
   { key: "analytics", href: "/admin/analytics", icon: BarChart3 },
   { key: "services", href: "/admin/services", icon: Palette },
   { key: "blog", href: "/admin/blog", icon: BookOpen },
+  { key: "story", href: "/admin/story", icon: History },
   { key: "orders", href: "/admin/orders", icon: ShoppingCart },
   { key: "users", href: "/admin/users", icon: Users },
   // Settings — только основателю: там пароли Робокассы и токены уведомлений.
