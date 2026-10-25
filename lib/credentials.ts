@@ -20,6 +20,20 @@ import { webAuthnConfigFromRequest } from "@/lib/webauthn-config";
 
 type AuthenticationResponseJSON = Parameters<typeof verifyAuthenticationResponse>[0]["response"];
 
+const MAX_WEBAUTHN_RESPONSE_LENGTH = 16_384;
+
+/** Auth.js delivers credentials text fields as strings, never as nested objects. */
+function parseWebAuthnResponse(value: unknown): AuthenticationResponseJSON | null {
+  if (typeof value !== "string" || !value || value.length > MAX_WEBAUTHN_RESPONSE_LENGTH) return null;
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    return parsed as AuthenticationResponseJSON;
+  } catch {
+    return null;
+  }
+}
+
 export class LoginRateLimited extends CredentialsSignin {
   code = "rate_limited";
 }
@@ -122,11 +136,17 @@ async function authorizePendingLogin(
   if (!pending) return null;
 
   let verified = false;
-  const response = credentials.webAuthnResponse;
-  if (response && typeof response === "object" && JSON.stringify(response).length <= 16_384) {
-    const assertion = response as AuthenticationResponseJSON;
-    const stored = pending.user.webAuthnCredentials.find((credential) => credential.id === assertion.id);
-    if (stored && pending.webAuthnChallenge) {
+  const rawResponse = credentials.webAuthnResponse;
+  const hasWebAuthnResponse = rawResponse !== undefined && rawResponse !== null && rawResponse !== "";
+  if (hasWebAuthnResponse) {
+    // A malformed passkey payload must not silently fall back to the TOTP/backup
+    // branch. In particular, "[object Object]" is the legacy serialization bug,
+    // not an empty authenticator code.
+    const assertion = parseWebAuthnResponse(rawResponse);
+    const stored = assertion
+      ? pending.user.webAuthnCredentials.find((credential) => credential.id === assertion.id)
+      : undefined;
+    if (assertion && stored && pending.webAuthnChallenge) {
       try {
         const config = webAuthnConfigFromRequest(request);
         const verification = await verifyAuthenticationResponse({

@@ -191,7 +191,13 @@ export async function loginUser(input: LoginSubmission): Promise<AuthActionResul
       pendingLoginId: submission.pendingLoginId,
       pendingLoginSecret: submission.pendingLoginSecret,
       mfaCode: submission.mfaCode,
-      webAuthnResponse: submission.webAuthnResponse,
+      // Auth.js credentials are sent as URLSearchParams. Passing the assertion
+      // object directly turns it into "[object Object]" before authorize() runs.
+      // Keep the browser response intact as JSON and decode it at the credentials
+      // boundary, where its size and shape are checked before WebAuthn verification.
+      ...(submission.webAuthnResponse === undefined ? {} : {
+        webAuthnResponse: JSON.stringify(submission.webAuthnResponse),
+      }),
       redirect: false,
       redirectTo: staffRole && pending?.role !== "USER" ? staffHome : "/",
     } : {
