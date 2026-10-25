@@ -15,7 +15,7 @@ import { toast } from "@/components/ui/use-toast";
 import { SafeImage } from "@/components/site/safe-image";
 import { CoverImageHelp } from "@/components/admin/cover-image-help";
 import { ImageAlbumUploader } from "@/components/admin/image-album-uploader";
-import { LazyRichTextEditor } from "@/components/admin/lazy-rich-text-editor";
+import { PostContentEditor } from "@/components/admin/post-content-editor";
 import { IMAGE_ACCEPT, MAX_COVER_BYTES } from "@/lib/upload-policy";
 import { parseJsonArray } from "@/lib/db-helpers";
 import { slugify } from "@/lib/slug";
@@ -136,13 +136,7 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
         <Textarea id="post-excerpt" name="excerpt" maxLength={500} required rows={2} defaultValue={initial?.excerpt} />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="post-content">{t("form.contentLabel")}</Label>
-        <LazyRichTextEditor name="content" initialValue={initial?.content} />
-        <p className="text-xs text-muted-foreground">
-          {t("form.contentHelp")}
-        </p>
-      </div>
+      <PostContentEditor initialContent={initial?.content} />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">

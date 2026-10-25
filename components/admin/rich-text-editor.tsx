@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Editor } from "@tiptap/core";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useTranslations } from "next-intl";
+
+import { CanvaEmbedNode } from "@/components/admin/canva-embed-node";
+import { normalizeCanvaEmbedUrl } from "@/lib/canva";
 
 const toolbar = [
   { label: "B", titleKey: "bold", run: (editor: Editor | null) => editor?.chain().focus().toggleBold().run() },
@@ -14,16 +17,43 @@ const toolbar = [
   { label: "1.", titleKey: "numberedList", run: (editor: Editor | null) => editor?.chain().focus().toggleOrderedList().run() },
 ];
 
-/** Tiptap editor with a deliberately small toolbar; content is sanitised again in the server action. */
-export function RichTextEditor({ name, initialValue = "" }: { name: string; initialValue?: string }) {
+export interface CanvaInsertion {
+  url: string;
+  nonce: number;
+}
+
+interface RichTextEditorProps {
+  name?: string;
+  initialValue?: string;
+  canvaInsertion?: CanvaInsertion;
+}
+
+/** Tiptap editor with a small toolbar and a narrowly defined Canva block node. */
+export function RichTextEditor({
+  name,
+  initialValue = "",
+  canvaInsertion,
+}: RichTextEditorProps) {
   const t = useTranslations("admin");
   const [html, setHtml] = useState(initialValue);
+  const handledInsertion = useRef(0);
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [StarterKit, CanvaEmbedNode],
     content: initialValue,
     immediatelyRender: false,
     onUpdate: ({ editor: currentEditor }) => setHtml(currentEditor.getHTML()),
   });
+
+  useEffect(() => {
+    if (!editor || !canvaInsertion || handledInsertion.current === canvaInsertion.nonce) {
+      return;
+    }
+    handledInsertion.current = canvaInsertion.nonce;
+    const src = normalizeCanvaEmbedUrl(canvaInsertion.url);
+    if (!src) return;
+    editor.chain().focus().insertContent({ type: "canvaEmbed", attrs: { src } }).run();
+    setHtml(editor.getHTML());
+  }, [canvaInsertion, editor]);
 
   return (
     <div className="overflow-hidden rounded-md border border-input bg-background shadow-sm">
@@ -42,7 +72,7 @@ export function RichTextEditor({ name, initialValue = "" }: { name: string; init
         ))}
       </div>
       <EditorContent editor={editor} className="article-content min-h-56 p-4 [&_.ProseMirror]:min-h-48 [&_.ProseMirror]:outline-none" />
-      <input type="hidden" name={name} value={html} readOnly />
+      {name ? <input type="hidden" name={name} value={html} readOnly /> : null}
     </div>
   );
 }

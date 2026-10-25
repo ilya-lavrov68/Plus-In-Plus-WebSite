@@ -75,7 +75,7 @@ function coverFile(form: FormData, t: MessageTranslator): File | null {
 const PRICE_TYPES = ["fixed", "from", "quote"] as const;
 
 /** Статусы заказов, считающихся активными (не завершён и не отменён). */
-export const ACTIVE_ORDER_STATUSES = [
+const ACTIVE_ORDER_STATUSES = [
   "pending",
   "quote_requested",
   "negotiating",

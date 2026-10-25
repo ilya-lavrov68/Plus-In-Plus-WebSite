@@ -30,9 +30,9 @@ export interface CatalogBlogPost {
   image: string;
   excerpt: string;
   lead: string;
-  quote: string;
-  quoteAttribution: string;
-  author: {
+  quote?: string;
+  quoteAttribution?: string;
+  author?: {
     name: string;
     role: string;
     initials: string;
@@ -592,15 +592,11 @@ export function mergeCatalogPosts(dbPosts: PostView[]): CatalogBlogPost[] {
       image: validCover,
       excerpt: post.excerpt,
       lead: useLegacyLaunchCopy ? preset!.lead : post.excerpt,
-      quote: useLegacyLaunchCopy ? preset!.quote : post.excerpt,
-      quoteAttribution: useLegacyLaunchCopy
-        ? preset!.quoteAttribution
-        : "Plus In Plus Studio",
-      author: preset?.author ?? {
-        name: "Plus In Plus Editorial",
-        role: "Design Studio Team",
-        initials: "PP",
-      },
+      // Ordinary CMS articles render only what their author put in the body.
+      // The untouched legacy preset retains its own explicitly authored quote.
+      quote: useLegacyLaunchCopy ? preset!.quote : undefined,
+      quoteAttribution: useLegacyLaunchCopy ? preset!.quoteAttribution : undefined,
+      author: useLegacyLaunchCopy ? preset!.author : undefined,
       sections: useLegacyLaunchCopy ? preset!.sections : [],
       closing: useLegacyLaunchCopy ? preset!.closing : "",
       htmlContent: useLegacyLaunchCopy ? undefined : post.content,

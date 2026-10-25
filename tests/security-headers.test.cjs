@@ -34,6 +34,8 @@ test("the policy locks the site down to its own origin", () => {
   assert.deepEqual(policy["img-src"], ["'self'", "data:", "blob:"]);
   assert.deepEqual(policy["connect-src"], ["'self'"]);
   assert.deepEqual(policy["frame-ancestors"], ["'none'"]);
+  assert.deepEqual(policy["frame-src"], ["https://www.canva.com", "https://canva.com"]);
+  assert.equal(policy["script-src"].some((source) => source.includes("canva")), false);
   assert.ok(policy["upgrade-insecure-requests"] !== undefined, "production upgrades http subresources");
 });
 

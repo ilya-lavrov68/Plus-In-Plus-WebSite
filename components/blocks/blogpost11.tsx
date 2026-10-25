@@ -46,34 +46,38 @@ const Blogpost11 = ({
               {post.lead}
             </p>
 
-            <div className="mt-8 flex items-center gap-3.5">
-              <Avatar className="size-11 border border-border">
-                <AvatarFallback className="bg-secondary text-xs font-semibold text-foreground">
-                  {post.author.initials}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <div className="text-sm font-medium text-foreground">
-                  {post.author.name}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {post.author.role}
+            {post.author ? (
+              <div className="mt-8 flex items-center gap-3.5">
+                <Avatar className="size-11 border border-border">
+                  <AvatarFallback className="bg-secondary text-xs font-semibold text-foreground">
+                    {post.author.initials}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <div className="text-sm font-medium text-foreground">
+                    {post.author.name}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {post.author.role}
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : null}
 
-            <Separator className="my-8" />
+            {post.author || post.quote?.trim() ? <Separator className="my-8" /> : null}
 
-            <figure className="rounded-xl border border-primary/25 bg-card p-6 md:p-8">
-              <blockquote className="text-lg leading-relaxed font-medium text-foreground">
-                &ldquo;{post.quote}&rdquo;
-              </blockquote>
-              {post.quoteAttribution && (
-                <figcaption className="mt-3 text-xs text-muted-foreground">
-                  — {post.quoteAttribution}
-                </figcaption>
-              )}
-            </figure>
+            {post.quote?.trim() ? (
+              <figure className="rounded-xl border border-primary/25 bg-card p-6 md:p-8">
+                <blockquote className="text-lg leading-relaxed font-medium text-foreground">
+                  &ldquo;{post.quote}&rdquo;
+                </blockquote>
+                {post.quoteAttribution && (
+                  <figcaption className="mt-3 text-xs text-muted-foreground">
+                    — {post.quoteAttribution}
+                  </figcaption>
+                )}
+              </figure>
+            ) : null}
 
             {!post.htmlContent && post.sections && post.sections.length > 0 ? (
               <div className="mt-12 space-y-10">

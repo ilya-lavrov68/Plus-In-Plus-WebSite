@@ -10,10 +10,11 @@
  *     that Next.js renders — Next.js copies the request's CSP nonce onto them;
  *   * styles: our Tailwind stylesheet plus `style="…"` attributes (React, TipTap);
  *   * images, fonts, fetches: same origin only (`/uploads/…`, `/images/…`, `/api/…`);
- *   * frames, plugins, `<base>`: nothing.
+ *   * frames: only validated Canva design embeds; plugins and `<base>`: nothing.
  *
- * There are no third-party scripts, fonts or analytics on the site, so no external host has
- * to be allowlisted. `PIP_CSP=report-only` sends the same policy as
+ * There are no third-party scripts, fonts or analytics on the site. Canva is the only external
+ * frame host, while scripts, images and connections remain same-origin. `PIP_CSP=report-only`
+ * sends the same policy as
  * `Content-Security-Policy-Report-Only` (observe without breaking), `PIP_CSP=off` disables it.
  */
 
@@ -65,6 +66,7 @@ export function buildContentSecurityPolicy({
     "form-action 'self'",
     "base-uri 'self'",
     "object-src 'none'",
+    "frame-src https://www.canva.com https://canva.com",
     `frame-ancestors ${ancestors.join(" ")}`,
   ];
 

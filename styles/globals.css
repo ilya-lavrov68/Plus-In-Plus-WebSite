@@ -454,6 +454,10 @@
     @apply mt-8 text-xl font-semibold tracking-tight text-foreground;
   }
 
+  .article-content h4 {
+    @apply mt-6 text-lg font-semibold tracking-tight text-foreground;
+  }
+
   .article-content p {
     @apply mt-4 leading-7;
   }
@@ -475,7 +479,56 @@
   }
 
   .article-content img {
-    @apply mt-6 rounded-xl border border-border;
+    @apply mt-6 h-auto max-w-full rounded-xl border border-border;
+  }
+
+  .article-content pre {
+    @apply mt-6 overflow-x-auto rounded-lg bg-muted p-4 text-sm;
+  }
+
+  .article-content code {
+    @apply rounded bg-muted px-1 py-0.5 font-mono text-[0.9em] text-foreground;
+  }
+
+  .article-content pre code {
+    @apply rounded-none bg-transparent p-0;
+  }
+
+  .article-table-scroll {
+    @apply mt-6 overflow-x-auto;
+  }
+
+  .article-content table {
+    @apply w-full border-collapse text-left text-sm;
+  }
+
+  .article-content th,
+  .article-content td {
+    @apply border-b border-border px-3 py-2 align-top;
+  }
+
+  .article-content th {
+    @apply font-semibold text-foreground;
+  }
+
+  .article-canva {
+    @apply mt-8 aspect-video w-full overflow-hidden rounded-xl bg-muted;
+  }
+
+  .article-canva iframe {
+    @apply h-full w-full border-0;
+  }
+
+  .article-content > iframe.article-canva-frame {
+    @apply mt-8 aspect-video w-full border-0;
+  }
+
+  .article-content .footnotes {
+    @apply mt-10 text-sm;
+  }
+
+  .article-content .footnote-backref {
+    @apply ml-2 no-underline;
   }
 
   .article-content hr {

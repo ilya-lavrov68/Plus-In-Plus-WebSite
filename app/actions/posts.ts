@@ -9,6 +9,12 @@ import { prisma } from "@/lib/prisma";
 import { cleanupPostCoverIfUnused } from "@/lib/media-cleanup";
 import { revalidatePost } from "@/lib/revalidate-content";
 import { sanitizePostContent } from "@/lib/sanitize-post-content";
+import {
+  isMarkdownPostContent,
+  markdownSource,
+  MAX_POST_SOURCE_LENGTH,
+  toMarkdownPostContent,
+} from "@/lib/post-content-format";
 import * as uploadModule from "@/lib/uploads";
 import { cleanupUpload, saveImageUpload, UploadValidationError } from "@/lib/uploads";
 import { createPostSchema, firstIssueMessage } from "@/lib/validators";
@@ -34,10 +40,13 @@ function scheduledDate(form: FormData): Date | null {
 
 function parseCommonFields(form: FormData, t: MessageTranslator) {
   const rawContent = text(form, "content");
-  if (rawContent.length > 100_000) return { error: t("postTooLong") };
-  // Unsafe HTML is removed before validation, so a post is never stored (or
-  // counted) as non-empty because of a script tag.
-  const content = sanitizePostContent(rawContent);
+  const wantsMarkdown =
+    text(form, "contentFormat") === "markdown" || isMarkdownPostContent(rawContent);
+  const sourceContent = wantsMarkdown ? markdownSource(rawContent) : rawContent;
+  if (sourceContent.length > MAX_POST_SOURCE_LENGTH) return { error: t("postTooLong") };
+  // Markdown remains lossless for later editing and is rendered/sanitized for
+  // public output. HTML keeps the existing sanitize-before-validation boundary.
+  const content = wantsMarkdown ? sourceContent : sanitizePostContent(rawContent);
 
   const rawSourceUrl = text(form, "sourceUrl");
   const rawSource = text(form, "source") || "manual";
@@ -74,6 +83,9 @@ function parseCommonFields(form: FormData, t: MessageTranslator) {
   return {
     data: {
       ...result.data,
+      content: wantsMarkdown
+        ? toMarkdownPostContent(result.data.content)
+        : result.data.content,
       // A selected datetime is kept for scheduling. Publishing without one is immediate.
       publishedAt: isPublished ? result.data.publishedAt ?? new Date() : null,
     },
