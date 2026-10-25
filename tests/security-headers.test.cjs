@@ -78,6 +78,8 @@ test("the policy mode is read from PIP_CSP and maps to a header", () => {
   assert.equal(cspMode("REPORT"), "report-only");
   assert.equal(cspMode("off"), "off");
   assert.equal(cspMode("0"), "off");
+  assert.equal(cspMode("off", true), "enforce", "production cannot disable CSP");
+  assert.equal(cspMode("0", true), "enforce");
 
   assert.equal(cspHeaderName("enforce"), "content-security-policy");
   assert.equal(cspHeaderName("report-only"), "content-security-policy-report-only");
@@ -95,6 +97,10 @@ test("the static headers are sent everywhere, framing denial only in production"
   assert.equal(production["Referrer-Policy"], "strict-origin-when-cross-origin");
   assert.match(production["Permissions-Policy"], /camera=\(\)/);
   assert.equal(production["X-Frame-Options"], "DENY");
+  assert.equal(production["X-XSS-Protection"], "0");
+  assert.equal(production["Strict-Transport-Security"], "max-age=31536000; includeSubDomains");
+  assert.equal(development["Strict-Transport-Security"], undefined);
+  assert.equal(development["X-XSS-Protection"], "0");
   // Development must stay embeddable, otherwise the live preview shows a blank frame.
   assert.equal(development["X-Frame-Options"], undefined);
 });

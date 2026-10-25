@@ -15,7 +15,8 @@
  * There are no third-party scripts, fonts or analytics on the site. Canva is the only external
  * frame host, while scripts, images and connections remain same-origin. `PIP_CSP=report-only`
  * sends the same policy as
- * `Content-Security-Policy-Report-Only` (observe without breaking), `PIP_CSP=off` disables it.
+ * `Content-Security-Policy-Report-Only` (observe without breaking). `PIP_CSP=off` is
+ * accepted only for local development; production always sends a CSP header.
  */
 
 export interface ContentSecurityPolicyOptions {
@@ -33,9 +34,11 @@ export const CSP_HEADER = "content-security-policy";
 export const CSP_REPORT_ONLY_HEADER = "content-security-policy-report-only";
 
 /** Read once per request; Next.js inlines `process.env` for the middleware bundle. */
-export function cspMode(value = process.env.PIP_CSP): CspMode {
+export function cspMode(value = process.env.PIP_CSP, production = false): CspMode {
   const normalized = value?.trim().toLowerCase();
-  if (normalized === "off" || normalized === "0" || normalized === "false") return "off";
+  if (normalized === "off" || normalized === "0" || normalized === "false") {
+    return production ? "enforce" : "off";
+  }
   if (normalized === "report-only" || normalized === "report") return "report-only";
   return "enforce";
 }
@@ -84,8 +87,16 @@ export function staticSecurityHeaders(production: boolean): Record<string, strin
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    // Disable the removed/legacy browser XSS auditor; nonce CSP is the real boundary.
+    "X-XSS-Protection": "0",
     // Legacy browsers without CSP support; `frame-ancestors` covers the rest.
-    ...(production ? { "X-Frame-Options": "DENY" } : {}),
+    ...(production
+      ? {
+          "X-Frame-Options": "DENY",
+          // No `preload`: submitting the domain requires a separate all-subdomain review.
+          "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+        }
+      : {}),
   };
 }
 

@@ -42,6 +42,10 @@ Module._load = function (name, parent, isMain) {
   if (name === "next/headers") return { headers: async () => new Headers({ "x-real-ip": `203.0.113.${ip}` }) };
   if (name === "next/cache") return { revalidatePath: (p) => refreshed.push(p) };
   if (name === "@/lib/prisma") return { prisma };
+  if (name === "@/lib/password-breach") return {
+    CompromisedPasswordError: class CompromisedPasswordError extends Error {},
+    assertPasswordNotCompromised: async () => {},
+  };
   if (name === "@/lib/uploads") return {
     UploadValidationError,
     saveImageUpload: async (file, kind) => { const url = `/uploads/${kind}/11111111-1111-4111-a111-111111111111.webp`; uploads.push({ file, kind, url }); return url; },
@@ -51,7 +55,7 @@ Module._load = function (name, parent, isMain) {
   return originalLoad.call(this, name, parent, isMain);
 };
 const { registerUser, loginUser, updateUserProfile, logout } = require("../app/actions/auth.ts");
-const registration = () => ({ firstName: "  First ", lastName: " Last ", email: " PERSON@example.com ", password: "a-long-passphrase", confirmPassword: "a-long-passphrase" });
+const registration = () => ({ firstName: "  First ", lastName: " Last ", email: " PERSON@example.com ", password: "a-Long-passphrase1", confirmPassword: "a-Long-passphrase1" });
 const profileForm = () => { const f = new FormData(); f.set("firstName", "Changed"); f.set("lastName", "Name"); return f; };
 
 beforeEach(() => {
@@ -74,6 +78,8 @@ test("registration ALWAYS creates USER, even the first account with malicious ad
   assert.equal(await bcrypt.compare(input.password, users[0].passwordHash), true);
   assert.equal(users[0].password, undefined);
   assert.equal(activity[0].action, "registered");
+  assert.equal(activity[0].title, "User account");
+  assert.equal(JSON.stringify(activity).includes(input.email), false, "audit titles must not contain email addresses");
   assert.equal(signIns[0].adminMode, "false");
   assert.equal(signIns[0].redirect, false);
 });
@@ -90,7 +96,7 @@ test("registration validates names, confirm password and bcrypt UTF-8 byte limit
 test("registration accepts plain FormData (spec) and still forces the USER role", async () => {
   const form = new FormData();
   form.set("firstName", " Form "); form.set("lastName", "Data");
-  form.set("email", " Form@Example.com "); form.set("password", "a-long-passphrase");
+  form.set("email", " Form@Example.com "); form.set("password", "a-Long-passphrase1");
   // Extra fields a hostile payload could submit; the action reads none of them.
   form.set("role", "ADMIN"); form.set("adminMode", "true"); form.set("id", "chosen-id");
   assert.deepEqual(await registerUser(form), { ok: true, success: true, isAdmin: false });
@@ -141,6 +147,9 @@ test("admin mode delegates account classification to Auth.js and uses one creden
   assert.deepEqual(await loginUser({ ...registration(), adminMode: false, redirectTo: "https://evil.test" }), {
     ok: true, success: true, isAdmin: false,
   });
+  assert.deepEqual(activity.map((entry) => entry.action), ["staff login", "login"]);
+  assert.equal(activity.every((entry) => entry.title === "User account"), true);
+  assert.equal(JSON.stringify(activity).includes("person@example.com"), false);
   // An admin account that does not ask for admin mode gets a regular session.
   assert.equal(signIns.at(-1).adminMode, "false");
   assert.equal(signIns.at(-1).redirectTo, "/");
@@ -149,13 +158,13 @@ test("admin mode delegates account classification to Auth.js and uses one creden
 test("login accepts FormData with the isAdminMode flag", async () => {
   users.push({ id: "user-mock", email: "person@example.com", role: "USER", passwordHash: "hash" });
   const regular = new FormData();
-  regular.set("email", " Person@Example.com "); regular.set("password", "a-long-passphrase"); regular.set("isAdminMode", "false");
+  regular.set("email", " Person@Example.com "); regular.set("password", "a-Long-passphrase1"); regular.set("isAdminMode", "false");
   assert.deepEqual(await loginUser(regular), { ok: true, success: true, isAdmin: false });
   assert.equal(signIns[0].adminMode, "false");
   assert.equal(signIns[0].email, "person@example.com");
 
   const admin = new FormData();
-  admin.set("email", "person@example.com"); admin.set("password", "a-long-passphrase"); admin.set("isAdminMode", "true");
+  admin.set("email", "person@example.com"); admin.set("password", "a-Long-passphrase1"); admin.set("isAdminMode", "true");
   signinError = new CredentialsSignin();
   assert.deepEqual(await loginUser(admin), {
     ok: false, success: false, error: "Invalid email or password.",
@@ -213,7 +222,10 @@ test("failed profile transaction removes the new file, preserving the previous a
   assert.equal(activity.length, 0);
 });
 
-test("logout delegates cookie invalidation to Auth.js without an arbitrary redirect", async () => {
+test("logout delegates cookie invalidation to Auth.js and writes a PII-free audit event", async () => {
+  session = { user: { id: "self-mock" } };
   assert.deepEqual(await logout(), { ok: true, success: true });
   assert.deepEqual(signOuts, [{ redirect: false, redirectTo: "/" }]);
+  assert.equal(activity[0].action, "logout");
+  assert.equal(activity[0].title, "User account");
 });

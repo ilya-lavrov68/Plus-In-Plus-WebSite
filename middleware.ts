@@ -48,7 +48,7 @@ function isProtectedPath(pathname: string): {
  * as on the way out — with the same nonce.
  */
 function securityContext() {
-  const headerName = cspHeaderName(cspMode());
+  const headerName = cspHeaderName(cspMode(undefined, production));
   const policy = headerName
     ? buildContentSecurityPolicy({
         nonce: createNonce(),

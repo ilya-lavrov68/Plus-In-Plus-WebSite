@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
-import { checkRateLimitAsync, getClientAddress, hashRateLimitIdentifier } from "@/lib/rate-limit";
+import { checkRateLimitAsync, getClientAddress, hashRateLimitIdentifier, retryAfterHeaders } from "@/lib/rate-limit";
+import { isJsonObject, readJsonBody } from "@/lib/request-body";
 
 const DEVICES = new Set(["desktop", "mobile", "tablet"]);
 const WINDOW_MS = 10 * 60 * 1000;
@@ -17,14 +18,9 @@ function requestAddress(request: Request): string {
   return getClientAddress(request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for"));
 }
 
-async function limitExceeded(request: Request, scope: string): Promise<boolean> {
+async function pageViewRateLimit(request: Request, scope: string) {
   const key = hashRateLimitIdentifier(`page-view:${scope}:${requestAddress(request)}`);
-  return !(await checkRateLimitAsync(key, ADDRESS_LIMIT, WINDOW_MS)).allowed;
-}
-
-function payloadTooLarge(request: Request): boolean {
-  const declared = Number(request.headers.get("content-length") ?? 0);
-  return Number.isFinite(declared) && declared > MAX_BODY_BYTES;
+  return checkRateLimitAsync(key, ADDRESS_LIMIT, WINDOW_MS);
 }
 
 function clean(value: unknown, max: number): string | null {
@@ -37,11 +33,14 @@ function clean(value: unknown, max: number): string | null {
  */
 export async function POST(request: Request) {
   if (!prisma) return NextResponse.json({ ok: false }, { status: 503 });
-  if (await limitExceeded(request, "post")) return NextResponse.json({ ok: false }, { status: 429 });
-  if (payloadTooLarge(request)) return NextResponse.json({ ok: false }, { status: 413 });
+  const limit = await pageViewRateLimit(request, "post");
+  if (!limit.allowed) return NextResponse.json({ ok: false }, { status: 429, headers: retryAfterHeaders(limit.retryAfterSeconds) });
   try {
-    const body = await request.json().catch(() => ({}));
-    if (body?.analyticsConsent !== true) {
+    const result = await readJsonBody(request, MAX_BODY_BYTES);
+    if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: result.status });
+    if (!isJsonObject(result.value)) return NextResponse.json({ ok: false }, { status: 400 });
+    const body = result.value;
+    if (body.analyticsConsent !== true) {
       return NextResponse.json({ ok: false, error: "Analytics consent required" }, { status: 403 });
     }
     const path = clean(body?.path, 300) ?? "/";
@@ -78,11 +77,14 @@ export async function POST(request: Request) {
  */
 export async function PATCH(request: Request) {
   if (!prisma) return NextResponse.json({ ok: false }, { status: 503 });
-  if (await limitExceeded(request, "patch")) return NextResponse.json({ ok: false }, { status: 429 });
-  if (payloadTooLarge(request)) return NextResponse.json({ ok: false }, { status: 413 });
+  const limit = await pageViewRateLimit(request, "patch");
+  if (!limit.allowed) return NextResponse.json({ ok: false }, { status: 429, headers: retryAfterHeaders(limit.retryAfterSeconds) });
   try {
-    const body = await request.json().catch(() => ({}));
-    if (body?.analyticsConsent !== true) {
+    const result = await readJsonBody(request, MAX_BODY_BYTES);
+    if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: result.status });
+    if (!isJsonObject(result.value)) return NextResponse.json({ ok: false }, { status: 400 });
+    const body = result.value;
+    if (body.analyticsConsent !== true) {
       return NextResponse.json({ ok: false, error: "Analytics consent required" }, { status: 403 });
     }
     const id = clean(body?.id, 100);

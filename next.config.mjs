@@ -5,6 +5,7 @@ const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+  { key: "X-XSS-Protection", value: "0" },
 ];
 
 const nextConfig = {
@@ -17,7 +18,7 @@ const nextConfig = {
     // Production remains protected from framing. Development can be embedded in the live preview.
     if (process.env.NODE_ENV === "production") {
       headers.push({ key: "X-Frame-Options", value: "DENY" });
-      if (publicUrl.startsWith("https://")) headers.push({ key: "Strict-Transport-Security", value: "max-age=31536000" });
+      if (publicUrl.startsWith("https://")) headers.push({ key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" });
     }
     return [{ source: "/:path*", headers }];
   },

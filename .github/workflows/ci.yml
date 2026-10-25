@@ -41,6 +41,13 @@ jobs:
       - name: Check the environment (deps, lockfile, Prisma client, database)
         run: npm run doctor
 
+      - name: Repository security policy audit
+        run: npm run security:audit
+
+      # Fails on reported vulnerabilities; never use --force or ignore audit output.
+      - name: Dependency vulnerability audit
+        run: npm run security:dependencies
+
       - name: Lint
         run: npm run lint
 

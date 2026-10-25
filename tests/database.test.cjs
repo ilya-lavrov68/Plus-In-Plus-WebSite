@@ -12,6 +12,12 @@ require.extensions[".ts"] = (module, filename) => module._compile(ts.transpileMo
 }).outputText, filename);
 
 const rootDir = path.join(__dirname, "..");
+const originalLoad = Module._load;
+Module._load = function (name, parent, isMain) {
+  if (name.startsWith("@/")) name = path.resolve(rootDir, name.slice(2));
+  return originalLoad.call(this, name, parent, isMain);
+};
+
 const { parseLineList, parseJsonArray, toJsonArray } = require("../lib/db-helpers.ts");
 const { describeDatabaseUrl, localDatabaseUrl, resolveDatabaseConfig, unsupportedDatabaseUrlMessage } = require("../lib/database.ts");
 const { slugify, withNumericSuffix } = require("../lib/slug.ts");
@@ -140,7 +146,7 @@ test("slug generation transliterates Russian titles and stays ASCII", () => {
 // ---------------------------------------------------------------------------
 
 test("registerSchema keeps the documented password and name rules", () => {
-  const valid = { firstName: " First ", lastName: "Last", email: " PERSON@Example.com ", password: "a-long-passphrase", confirmPassword: "a-long-passphrase" };
+  const valid = { firstName: " First ", lastName: "Last", email: " PERSON@Example.com ", password: "a-Long-passphrase1", confirmPassword: "a-Long-passphrase1" };
   const parsed = validators.registerSchema.safeParse(valid);
   assert.equal(parsed.success, true);
   assert.equal(parsed.data.email, "person@example.com");
@@ -157,7 +163,7 @@ test("registerSchema keeps the documented password and name rules", () => {
   ]) {
     assert.equal(validators.registerSchema.safeParse(broken).success, false, JSON.stringify(broken).slice(0, 80));
   }
-  assert.equal(validators.registerSchema.safeParse(valid).data.password, "a-long-passphrase");
+  assert.equal(validators.registerSchema.safeParse(valid).data.password, "a-Long-passphrase1");
 });
 
 test("service and post schemas reject what the database cannot store safely", () => {
