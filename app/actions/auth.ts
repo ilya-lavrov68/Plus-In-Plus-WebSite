@@ -9,8 +9,10 @@ import { auth, signIn, signOut } from "@/auth";
 import { getActionTranslator } from "@/lib/action-i18n";
 import { recordActivity } from "@/lib/activity-log";
 import { isAuthConfigured } from "@/lib/auth-secret";
+import { assertPasswordNotCompromised, CompromisedPasswordError } from "@/lib/password-breach";
 import { prisma } from "@/lib/prisma";
 import { getClientAddress, checkRateLimitAsync, hashRateLimitIdentifier } from "@/lib/rate-limit";
+import { logSecurityEvent, logServerError } from "@/lib/security-log";
 import { cleanupUpload, saveImageUpload, UploadValidationError } from "@/lib/uploads";
 import { firstIssueMessage, loginSchema, profileSchema, registerSchema } from "@/lib/validators";
 
@@ -97,6 +99,17 @@ function isUniqueViolation(error: unknown): boolean {
   return typeof error === "object" && error !== null && (error as { code?: string }).code === "P2002";
 }
 
+async function recordAuthActivity(action: "login" | "staff login" | "logout", userId: string): Promise<void> {
+  if (!prisma) return;
+  try {
+    await prisma.activityLog.create({
+      data: { action, entityType: "user", entityId: userId, title: "User account", actorId: userId },
+    });
+  } catch (error) {
+    logServerError("auth.audit.write_failed", error);
+  }
+}
+
 export async function loginUser(input: LoginSubmission): Promise<AuthActionResult> {
   const t = await getActionTranslator();
   if (!isAuthConfigured() || !prisma) {
@@ -105,8 +118,8 @@ export async function loginUser(input: LoginSubmission): Promise<AuthActionResul
   const submission = readLoginSubmission(input);
   const credentials = loginSchema.safeParse({ email: submission.email, password: submission.password });
   if (!credentials.success) {
-    // Never confirm which part of a credential pair was wrong.
-    console.warn("Rejected malformed login input:", firstIssueMessage(credentials.error));
+    // Never confirm which part of a credential pair was wrong or log its values.
+    logSecurityEvent("auth.login.malformed", { staffMode: submission.adminMode === true });
     return { ok: false, success: false, error: t("invalidCredentials") };
   }
   const { email, password } = credentials.data;
@@ -115,11 +128,11 @@ export async function loginUser(input: LoginSubmission): Promise<AuthActionResul
   // Admin mode is a privilege opt-in, not a role mutation: it passes only for an
   // existing staff row (FOUNDER, ADMIN or MANAGER — registration always
   // creates USER accounts).
-  let account: { role: string } | null;
+  let account: { id: string; role: string } | null;
   try {
-    account = await prisma.user.findUnique({ where: { email }, select: { role: true } });
+    account = await prisma.user.findUnique({ where: { email }, select: { id: true, role: true } });
   } catch (error) {
-    console.error("Login lookup failed:", error);
+    logServerError("auth.login.lookup_failed", error);
     return { ok: false, success: false, error: t("unableToLogIn") };
   }
   const staffRole =
@@ -143,15 +156,18 @@ export async function loginUser(input: LoginSubmission): Promise<AuthActionResul
   } catch (error) {
     if (error instanceof CredentialsSignin) {
       if (error.code === "rate_limited") {
+        logSecurityEvent("auth.login.rate_limited", { staffMode: adminMode });
         return { ok: false, success: false, error: t("tooManyLoginAttempts") };
       }
+      logSecurityEvent("auth.login.failed", { staffMode: adminMode });
       return { ok: false, success: false, error: t("invalidCredentials") };
     }
     if (error instanceof AuthError) return { ok: false, success: false, error: t("unableToLogIn") };
-    console.error("Login failed:", error);
+    logServerError("auth.login.failed", error);
     return { ok: false, success: false, error: t("unableToLogIn") };
   }
 
+  if (account) await recordAuthActivity(adminMode ? "staff login" : "login", account.id);
   const isAdmin = adminMode && (staffRole === "FOUNDER" || staffRole === "ADMIN");
   return adminMode && staffRole
     ? { ok: true, success: true, isAdmin, redirectTo: staffHome }
@@ -180,17 +196,25 @@ export async function registerUser(input: RegisterSubmission): Promise<RegisterR
   try {
     const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } });
     if (existing) return { ok: false, success: false, error: t("registrationFailedWithDetails") };
+    await assertPasswordNotCompromised(password);
     const passwordHash = await bcrypt.hash(password, 12);
     await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: { email, passwordHash, firstName, lastName, role: "USER" },
-        select: { id: true, email: true },
+        select: { id: true },
       });
-      await recordActivity(tx, { action: "registered", entityType: "user", entityId: user.id, title: user.email, actorId: user.id });
+      await recordActivity(tx, { action: "registered", entityType: "user", entityId: user.id, title: "User account", actorId: user.id });
     });
   } catch (error) {
+    if (error instanceof CompromisedPasswordError) {
+      return {
+        ok: false,
+        success: false,
+        error: t(error.code === "compromised" ? "validation.passwordCompromised" : "validation.passwordBreachUnavailable"),
+      };
+    }
     if (isUniqueViolation(error)) return { ok: false, success: false, error: t("registrationFailedWithDetails") };
-    console.error("Registration failed:", error);
+    logServerError("auth.registration.failed", error);
     return { ok: false, success: false, error: t("registrationFailed") };
   }
 
@@ -224,7 +248,7 @@ export async function updateUserProfile(formData: FormData): Promise<AuthActionR
     if (!profile.success) return { ok: false, success: false, error: t(firstIssueMessage(profile.error)) };
     const { firstName, lastName } = profile.data;
     const existing = await prisma.user.findUnique({
-      where: { id: session.user.id }, select: { id: true, avatar: true, email: true },
+      where: { id: session.user.id }, select: { id: true, avatar: true },
     });
     if (!existing) return { ok: false, success: false, error: t("accountGone") };
     const file = formData.get("avatar");
@@ -239,14 +263,14 @@ export async function updateUserProfile(formData: FormData): Promise<AuthActionR
         data: { firstName: firstName || null, lastName: lastName || null, ...(newAvatar ? { avatar: newAvatar } : {}) },
         select: { id: true },
       });
-      await recordActivity(tx, { action: "updated profile", entityType: "user", entityId: existing.id, title: existing.email, actorId: existing.id });
+      await recordActivity(tx, { action: "updated profile", entityType: "user", entityId: existing.id, title: "User account", actorId: existing.id });
     });
     saved = true;
     if (newAvatar) await cleanupUpload(existing.avatar, "avatars");
   } catch (error) {
     if (newAvatar && !saved) await cleanupUpload(newAvatar, "avatars");
     if (error instanceof UploadValidationError) return { ok: false, success: false, error: error.message };
-    console.error("Profile update failed:", error);
+    logServerError("auth.profile.update_failed", error);
     return { ok: false, success: false, error: t("profileSaveFailed") };
   }
   revalidatePath("/admin/users");
@@ -256,11 +280,19 @@ export async function updateUserProfile(formData: FormData): Promise<AuthActionR
 
 export async function logout(): Promise<AuthActionResult> {
   const t = await getActionTranslator();
+  let actorId: string | null = null;
+  try {
+    actorId = (await auth())?.user?.id ?? null;
+  } catch (error) {
+    // Logout must remain available even if a best-effort audit lookup fails.
+    logServerError("auth.logout.session_lookup_failed", error);
+  }
   try {
     await signOut({ redirect: false, redirectTo: "/" });
+    if (actorId) await recordAuthActivity("logout", actorId);
     return { ok: true, success: true };
   } catch (error) {
-    console.error("Logout failed:", error);
+    logServerError("auth.logout.failed", error);
     return { ok: false, success: false, error: t("logoutFailed") };
   }
 }

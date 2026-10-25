@@ -11,6 +11,7 @@ import {
   updateOwnedCartItem,
 } from "@/lib/cart-operations";
 import { prisma } from "@/lib/prisma";
+import { readJsonBody } from "@/lib/request-body";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +50,9 @@ export async function POST(request: Request) {
   if (!customer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!prisma) return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
 
-  const parsed = addCartItemSchema.safeParse(await request.json().catch(() => null));
+  const body = await readJsonBody(request, 64 * 1024);
+  if (!body.ok) return NextResponse.json({ error: body.error }, { status: body.status });
+  const parsed = addCartItemSchema.safeParse(body.value);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid cart item data" }, { status: 400 });
   }
@@ -67,7 +70,9 @@ export async function PATCH(request: Request) {
   if (!customer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!prisma) return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
 
-  const parsed = updateCartItemSchema.safeParse(await request.json().catch(() => null));
+  const body = await readJsonBody(request, 64 * 1024);
+  if (!body.ok) return NextResponse.json({ error: body.error }, { status: body.status });
+  const parsed = updateCartItemSchema.safeParse(body.value);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid cart item data" }, { status: 400 });
   }
@@ -85,7 +90,9 @@ export async function DELETE(request: Request) {
   if (!customer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!prisma) return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
 
-  const parsed = removeCartItemSchema.safeParse(await request.json().catch(() => null));
+  const body = await readJsonBody(request, 64 * 1024);
+  if (!body.ok) return NextResponse.json({ error: body.error }, { status: body.status });
+  const parsed = removeCartItemSchema.safeParse(body.value);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid cart item data" }, { status: 400 });
   }

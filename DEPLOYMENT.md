@@ -268,14 +268,17 @@ it). Details: [README → Database](README.md#database).
   new one and update the hosting panel.
 - `/api/health` reports booleans only (reachability, driver, `remote`) — no URL,
   token, table contents or user data. It is safe to expose publicly.
-- Production sends `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`
-  and `Permissions-Policy` headers; HSTS is added when `AUTH_URL` uses HTTPS.
+- Production sends `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`,
+  `Permissions-Policy` and `X-XSS-Protection: 0`. HSTS uses
+  `max-age=31536000; includeSubDomains`; before exposing the site, verify HTTPS on every
+  subdomain and configure the proxy to redirect HTTP to HTTPS. No HSTS preload submission
+  is implied. Run external Security Headers and SSL Labs checks on the real endpoint.
 - `Content-Security-Policy` is built per request in `middleware.ts` with a fresh nonce
   (Next.js copies it onto its inline scripts). Production: `frame-ancestors 'none'`,
   no `unsafe-inline`/`unsafe-eval` for scripts. If a future integration needs an external
   script, add its origin to `lib/security-headers.ts` — do not weaken the policy ad hoc.
-  `PIP_CSP=report-only` (observe violations without blocking) and `PIP_CSP=off`
-  (emergency switch) are available; they are read by the middleware at runtime.
+  `PIP_CSP=report-only` observes violations without blocking. `PIP_CSP=off` is honored only
+  in local development; production ignores that value and keeps enforcing CSP.
 - `npm run doctor` checks the install, the Prisma client, the database target, `AUTH_SECRET`
   and `engines.node`; it never prints secret values.
 - Public write endpoints (`/api/support`, `/api/page-view`), authentication, password/profile
@@ -285,3 +288,9 @@ it). Details: [README → Database](README.md#database).
   still recommended as the first line of defence. Shared-backend outages fall back locally
   without logging credentials. The admin import preview only fetches public http(s) pages
   (`lib/ssrf-guard.ts`): loopback, private, link-local and cloud-metadata addresses are refused.
+- Registration and password changes use HIBP k-anonymity by default. Production rejects the
+  new password safely if the service is unavailable (`PIP_HIBP_REQUIRED=1`, also the production
+  default); test provider connectivity before launch. `PIP_HIBP_REQUIRED=0` is an explicit
+  availability exception, not a recommendation. Existing logins do not call HIBP.
+- Complete the operational assessment and launch gaps in [`docs/security/README.md`](docs/security/README.md),
+  including staff MFA, session architecture, centralized alerting and an isolated restore drill.

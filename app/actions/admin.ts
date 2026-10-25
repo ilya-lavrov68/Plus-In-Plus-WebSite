@@ -8,6 +8,7 @@ import { getActionTranslator } from "@/lib/action-i18n";
 import { recordActivity } from "@/lib/activity-log";
 import { requireAdmin, requireFounder } from "@/lib/admin-session";
 import { prisma } from "@/lib/prisma";
+import { logServerError } from "@/lib/security-log";
 import { isSecretSiteSettingKey, isSiteSettingKey } from "@/lib/site-settings";
 import type { Prisma } from "@/lib/generated/prisma/client";
 
@@ -44,13 +45,13 @@ export async function updateUserRole(userId: string, role: AssignableRole): Prom
     // из админки. Снять FOUNDER можно только скриптом с доступом к БД.
     if (target.role === "FOUNDER") return { ok: false, error: t("founderInvulnerable") };
 
-    const user = await prisma.user.update({ where: { id: userId }, data: { role } });
-    await prisma.activityLog.create({ data: { action: `role changed to ${role}`, entityType: "user", entityId: user.id, title: user.email, actorId: admin.id } });
+    const user = await prisma.user.update({ where: { id: userId }, data: { role }, select: { id: true } });
+    await prisma.activityLog.create({ data: { action: `role changed to ${role}`, entityType: "user", entityId: user.id, title: "User account", actorId: admin.id } });
     revalidatePath("/admin/users");
     revalidatePath("/admin/dashboard");
     return { ok: true };
   } catch (error) {
-    console.error("Failed to update user role:", error);
+    logServerError("admin.user.role_update_failed", error);
     return { ok: false, error: t("roleUpdateFailed") };
   }
 }
@@ -68,12 +69,12 @@ export async function toggleUserBlocked(userId: string, blocked: boolean): Promi
     // «выключить» владельца сайта одним переключателем.
     if (target.role === "FOUNDER") return { ok: false, error: t("founderInvulnerable") };
 
-    const user = await prisma.user.update({ where: { id: userId }, data: { isBlocked: blocked } });
-    await prisma.activityLog.create({ data: { action: blocked ? "blocked" : "unblocked", entityType: "user", entityId: user.id, title: user.email, actorId: admin.id } });
+    const user = await prisma.user.update({ where: { id: userId }, data: { isBlocked: blocked }, select: { id: true } });
+    await prisma.activityLog.create({ data: { action: blocked ? "blocked" : "unblocked", entityType: "user", entityId: user.id, title: "User account", actorId: admin.id } });
     revalidatePath("/admin/users");
     return { ok: true };
   } catch (error) {
-    console.error("Failed to update user block status:", error);
+    logServerError("admin.user.block_update_failed", error);
     return { ok: false, error: t("userStatusUpdateFailed") };
   }
 }
@@ -94,12 +95,12 @@ export async function resetUserPassword(userId: string): Promise<AdminActionResu
     }
 
     const temporaryPassword = randomBytes(9).toString("base64url");
-    const user = await prisma.user.update({ where: { id: userId }, data: { passwordHash: await bcrypt.hash(temporaryPassword, 12) } });
-    await prisma.activityLog.create({ data: { action: "password reset", entityType: "user", entityId: user.id, title: user.email, actorId: admin.id } });
+    const user = await prisma.user.update({ where: { id: userId }, data: { passwordHash: await bcrypt.hash(temporaryPassword, 12) }, select: { id: true } });
+    await prisma.activityLog.create({ data: { action: "password reset", entityType: "user", entityId: user.id, title: "User account", actorId: admin.id } });
     revalidatePath("/admin/users");
     return { ok: true, temporaryPassword };
   } catch (error) {
-    console.error("Failed to reset user password:", error);
+    logServerError("admin.user.password_reset_failed", error);
     return { ok: false, error: t("passwordResetFailed") };
   }
 }
@@ -172,7 +173,7 @@ export async function updateSiteSettings(
     if (error instanceof FeaturedPostUpdateError) {
       return { ok: false, error: t("featuredPostUpdateFailed") };
     }
-    console.error("Failed to update site settings:", error);
+    logServerError("admin.settings.update_failed", error);
     return { ok: false, error: t("settingsSaveFailed") };
   }
 }
@@ -191,7 +192,7 @@ export async function setFeaturedPost(postId: string | null): Promise<AdminActio
     revalidatePath("/admin/settings");
     return { ok: true };
   } catch (error) {
-    console.error("Failed to set featured post:", error);
+    logServerError("admin.featured_post.update_failed", error);
     return { ok: false, error: t("featuredPostUpdateFailed") };
   }
 }

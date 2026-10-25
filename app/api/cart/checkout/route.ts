@@ -6,6 +6,7 @@ import { getActionTranslator } from "@/lib/action-i18n";
 import { requireActiveCustomer } from "@/lib/cart";
 import { CartOperationError, checkoutOwnedCart } from "@/lib/cart-operations";
 import { prisma } from "@/lib/prisma";
+import { readJsonBody } from "@/lib/request-body";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,9 @@ export async function POST(request: Request) {
   if (!customer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!prisma) return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
 
-  const parsed = checkoutSchema.safeParse(await request.json().catch(() => ({})));
+  const body = await readJsonBody(request, 32 * 1024);
+  if (!body.ok) return NextResponse.json({ error: body.error }, { status: body.status });
+  const parsed = checkoutSchema.safeParse(body.value);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid checkout data" }, { status: 400 });
   }

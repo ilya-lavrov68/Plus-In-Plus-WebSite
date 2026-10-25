@@ -4,7 +4,8 @@ import { NextResponse } from "next/server";
 import { recordActivity } from "@/lib/activity-log";
 import { requireActiveCustomer } from "@/lib/cart";
 import { prisma } from "@/lib/prisma";
-import { checkRateLimitAsync, getClientAddress, hashRateLimitIdentifier } from "@/lib/rate-limit";
+import { checkRateLimitAsync, getClientAddress, hashRateLimitIdentifier, retryAfterHeaders } from "@/lib/rate-limit";
+import { isJsonObject, readJsonBody } from "@/lib/request-body";
 
 const WINDOW_MS = 10 * 60 * 1000;
 /** A contact form needs a handful of attempts, not a hundred: the endpoint writes to the DB. */
@@ -36,27 +37,27 @@ export async function POST(request: Request) {
   const address = getClientAddress(
     request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for"),
   );
-  if (!(await checkRateLimitAsync(hashRateLimitIdentifier(`support-address:${address}`), ADDRESS_LIMIT, WINDOW_MS)).allowed) {
+  const addressLimit = await checkRateLimitAsync(
+    hashRateLimitIdentifier(`support-address:${address}`), ADDRESS_LIMIT, WINDOW_MS,
+  );
+  if (!addressLimit.allowed) {
     return NextResponse.json(
       { ok: false, error: "Too many requests. Please wait a few minutes and try again." },
-      { status: 429 }
+      { status: 429, headers: retryAfterHeaders(addressLimit.retryAfterSeconds) },
     );
   }
 
-  const declaredLength = Number(request.headers.get("content-length") ?? 0);
-  if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) {
-    return NextResponse.json({ ok: false, error: "The message is too long." }, { status: 413 });
-  }
-
-  let body: Record<string, unknown>;
-  try {
-    body = (await request.json()) as Record<string, unknown>;
-  } catch {
+  const bodyResult = await readJsonBody(request, MAX_BODY_BYTES);
+  if (!bodyResult.ok) {
     return NextResponse.json(
-      { ok: false, error: "Invalid request payload." },
-      { status: 400 }
+      { ok: false, error: bodyResult.error },
+      { status: bodyResult.status },
     );
   }
+  if (!isJsonObject(bodyResult.value)) {
+    return NextResponse.json({ ok: false, error: "Invalid request payload." }, { status: 400 });
+  }
+  const body = bodyResult.value;
 
   const firstName =
     typeof body.firstName === "string" ? body.firstName.trim().slice(0, 80) : "";
@@ -93,10 +94,13 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!(await checkRateLimitAsync(hashRateLimitIdentifier(`support-email:${email}`), EMAIL_LIMIT, WINDOW_MS)).allowed) {
+  const emailLimit = await checkRateLimitAsync(
+    hashRateLimitIdentifier(`support-email:${email}`), EMAIL_LIMIT, WINDOW_MS,
+  );
+  if (!emailLimit.allowed) {
     return NextResponse.json(
       { ok: false, error: "Too many requests for this email. Please wait a few minutes." },
-      { status: 429 }
+      { status: 429, headers: retryAfterHeaders(emailLimit.retryAfterSeconds) },
     );
   }
 

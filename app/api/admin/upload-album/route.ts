@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { requireAdmin } from "@/lib/admin-session";
-import { checkRateLimitAsync, hashRateLimitIdentifier } from "@/lib/rate-limit";
+import { checkRateLimitAsync, hashRateLimitIdentifier, retryAfterHeaders } from "@/lib/rate-limit";
 import { saveAlbumImage } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
@@ -15,16 +15,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (
-    !(await checkRateLimitAsync(
-      hashRateLimitIdentifier(`upload-album:${admin.id}`),
-      30,
-      WINDOW_MS
-    )).allowed
-  ) {
+  const limit = await checkRateLimitAsync(
+    hashRateLimitIdentifier(`upload-album:${admin.id}`),
+    30,
+    WINDOW_MS,
+  );
+  if (!limit.allowed) {
     return NextResponse.json(
       { error: "Too many upload attempts. Try again later." },
-      { status: 429 }
+      { status: 429, headers: retryAfterHeaders(limit.retryAfterSeconds) },
     );
   }
 

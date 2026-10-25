@@ -3,7 +3,8 @@ import bcrypt from "bcryptjs";
 
 import { isAuthConfigured } from "@/lib/auth-secret";
 import { prisma } from "@/lib/prisma";
-import { checkRateLimitAsync, getClientAddress, hashRateLimitIdentifier } from "@/lib/rate-limit";
+import { checkRateLimitAsync, getClientAddress, hashRateLimitIdentifier, progressiveLoginDelayMs } from "@/lib/rate-limit";
+import { logServerError } from "@/lib/security-log";
 import { localAvatarPath } from "@/lib/upload-policy";
 import { profileName } from "@/lib/user-profile";
 
@@ -12,7 +13,9 @@ export class LoginRateLimited extends CredentialsSignin {
 }
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const LOGIN_WINDOW_MS = 10 * 60 * 1000;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_ADDRESS_LIMIT = 10;
+const LOGIN_ACCOUNT_LIMIT = 5;
 // A timing-only hash, not an account or a usable fallback credential.
 const DUMMY_PASSWORD_HASH = "$2b$12$qnL7tEhdPNWWPbkgx8fMpe5U3xM1IRqTjZma3qx4rlEztpzpV21QO";
 
@@ -27,10 +30,14 @@ export async function authorizeCredentials(
     request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for"),
   );
   const [addressLimit, accountLimit] = await Promise.all([
-    checkRateLimitAsync(hashRateLimitIdentifier(`login-address:${address}`), 30, LOGIN_WINDOW_MS),
-    checkRateLimitAsync(hashRateLimitIdentifier(`login-account:${address}:${email}`), 8, LOGIN_WINDOW_MS),
+    checkRateLimitAsync(hashRateLimitIdentifier(`login-address:${address}`), LOGIN_ADDRESS_LIMIT, LOGIN_WINDOW_MS),
+    checkRateLimitAsync(hashRateLimitIdentifier(`login-account:${address}:${email}`), LOGIN_ACCOUNT_LIMIT, LOGIN_WINDOW_MS),
   ]);
   if (!addressLimit.allowed || !accountLimit.allowed) throw new LoginRateLimited();
+
+  // Delay rises before the hard block and remains bounded to avoid a cheap DoS vector.
+  const delayMs = progressiveLoginDelayMs(accountLimit.attempts);
+  if (delayMs > 0) await new Promise((resolve) => setTimeout(resolve, delayMs));
 
   if (!isAuthConfigured() || !prisma) return null;
   if (!EMAIL_PATTERN.test(email) || email.length > 254 || !password || Buffer.byteLength(password, "utf8") > 72) {
@@ -42,7 +49,7 @@ export async function authorizeCredentials(
   try {
     account = await prisma.user.findUnique({ where: { email } });
   } catch (error) {
-    console.error("Credential lookup failed:", error);
+    logServerError("auth.credentials.lookup_failed", error);
     await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
     return null;
   }

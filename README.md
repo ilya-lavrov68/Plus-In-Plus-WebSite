@@ -230,6 +230,8 @@ pm2 startup
 Единая проверка кода, типов, тестов и сборки:
 
 ```bash
+npm run security:audit
+npm run security:dependencies
 npm run lint
 npx tsc --noEmit
 npm test
@@ -405,6 +407,15 @@ ROBOKASSA_HASH_ALGO="md5"
 
 ---
 
+## Безопасность
+
+- Проверки репозитория: `npm run security:audit` и `npm run security:dependencies` (полный `npm audit`, также запускается в CI).
+- Оценка OWASP/NIST CSF 2.0/MITRE ATT&CK, результаты сканирований, оставшиеся риски и план: [`docs/security/README.md`](docs/security/README.md).
+- Runbooks: [Incident Response](docs/security/incident-response.md), [GDPR](docs/security/gdpr.md), [Backup/DR/ransomware](docs/security/disaster-recovery.md).
+- Приватное сообщение об уязвимости: [`SECURITY.md`](SECURITY.md).
+
+Для production обязательны HTTPS-only reverse proxy, проверенные secure cookies, `UPSTASH_*` для общего rate limiting при нескольких инстансах и внешние проверки TLS/заголовков. HSTS `includeSubDomains` можно включать только после проверки HTTPS на всех поддоменах; preload-лист не используется. Документы не заменяют penetration test, restore drill или инфраструктурный аудит.
+
 ## Что внутри текущей версии сайта
 
 | Маршрут | Блок UI / Модуль | Назначение |
@@ -446,6 +457,7 @@ ROBOKASSA_HASH_ALGO="md5"
 | `npm run build` / `npm start` | Production-сборка и запуск сервера (`next start`) |
 | `npm run lint` / `npx tsc --noEmit` | Проверка ESLint и строгой типизации TypeScript |
 | `npm test` | Запуск полного набора автотестов (`tests/*.test.cjs`) |
+| `npm run security:audit` / `npm run security:dependencies` | Проверка security-политик исходников и полный аудит зависимостей |
 | `npm run db:push` / `npm run db:check` | Синхронизация `prisma/schema.prisma` с БД и проверка всех таблиц |
 | `npm run db:seed-demo` | Заполнение **локальной** SQLite-базы демо-данными и тестовыми ролями |
 | `npm run db:promote-admin -- <email>` | Выдача служебной роли: по умолчанию `ADMIN`, `--founder` — `FOUNDER`, `--manager` — `MANAGER`, `--revoke` возвращает роль `USER`; без аргументов — список аккаунтов |

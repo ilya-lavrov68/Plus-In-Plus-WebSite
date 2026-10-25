@@ -39,13 +39,45 @@ export const emailSchema = z
   .max(MAX_EMAIL_LENGTH, "validation.email")
   .refine((value) => EMAIL_PATTERN.test(value), "validation.email");
 
+const COMMON_PASSWORDS = new Set([
+  "123456789012", "111111111111", "1234567890ab", "aaaaaaaaaaaa",
+  "qwerty123", "qwerty123!", "qwertyuiop", "qwertyuiop123!",
+  "password", "password1", "password12", "password123", "password123!",
+  "passw0rd", "passw0rd123", "p@ssw0rd", "p@ssw0rd1", "p@ssw0rd123!",
+  "admin123", "admin123!", "administrator123!", "root123456!",
+  "letmein", "letmein123", "letmein123!", "welcome", "welcome1", "welcome123!",
+  "changeme", "changeme123!", "iloveyou", "iloveyou123!", "dragon123!",
+  "football123!", "baseball123!", "monkey123!", "sunshine123!",
+  "princess123!", "master123!", "shadow123!", "superman123!",
+  "correcthorsebatterystaple", "plusinplus", "plusinplus123!",
+]);
+
+export function passwordCharacterClassCount(value: string): number {
+  return [
+    /\p{Ll}/u, // Unicode lowercase letter
+    /\p{Lu}/u, // Unicode uppercase letter
+    /\p{N}/u, // Unicode number
+    /[^\p{L}\p{N}]/u, // Symbol, punctuation, whitespace or other non-alphanumeric character
+  ].filter((pattern) => pattern.test(value)).length;
+}
+
+/** Small offline denylist; HIBP performs the substantially broader breach check. */
+export function isCommonPassword(value: string): boolean {
+  return COMMON_PASSWORDS.has(value.toLowerCase());
+}
+
 export const passwordSchema = z
   .string()
   .min(MIN_PASSWORD_LENGTH, "validation.passwordTooShort")
   .refine(
     (value) => utf8Bytes(value) <= MAX_PASSWORD_BYTES,
     "validation.passwordTooLong",
-  );
+  )
+  .refine(
+    (value) => passwordCharacterClassCount(value) >= 3,
+    "validation.passwordComplexity",
+  )
+  .refine((value) => !isCommonPassword(value), "validation.passwordCommon");
 
 /** Optional human names: no control characters, no runaway length. */
 export const optionalNameSchema = z

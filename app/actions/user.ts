@@ -9,6 +9,8 @@ import { recordActivity } from "@/lib/activity-log";
 import { isAuthConfigured } from "@/lib/auth-secret";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimitAsync, hashRateLimitIdentifier } from "@/lib/rate-limit";
+import { logServerError } from "@/lib/security-log";
+import { assertPasswordNotCompromised, CompromisedPasswordError } from "@/lib/password-breach";
 import { localAvatarPath } from "@/lib/upload-policy";
 import { cleanupUpload, saveImageUpload, UploadValidationError } from "@/lib/uploads";
 import { firstIssueMessage, passwordSchema, profileSchema, utf8Bytes } from "@/lib/validators";
@@ -89,7 +91,7 @@ export async function updateUserProfile(
 
   const existing = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, email: true, avatar: true, isBlocked: true },
+    select: { id: true, avatar: true, isBlocked: true },
   });
 
   if (!existing || existing.isBlocked) {
@@ -144,7 +146,7 @@ export async function updateUserProfile(
         action: "updated profile",
         entityType: "user",
         entityId: existing.id,
-        title: existing.email,
+        title: "User account",
         actorId: existing.id,
       });
 
@@ -221,7 +223,7 @@ export async function changePassword(
 
     const existing = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { id: true, email: true, passwordHash: true, isBlocked: true },
+      select: { id: true, passwordHash: true, isBlocked: true },
     });
     if (!existing || existing.isBlocked) {
       throw new PasswordChangeError(t("unauthorized"));
@@ -229,6 +231,16 @@ export async function changePassword(
     const valid = await bcrypt.compare(currentPassword, existing.passwordHash);
     if (!valid) throw new PasswordChangeError(t("currentPasswordIncorrect"));
 
+    try {
+      await assertPasswordNotCompromised(newPassword);
+    } catch (error) {
+      if (error instanceof CompromisedPasswordError) {
+        throw new PasswordChangeError(t(
+          error.code === "compromised" ? "validation.passwordCompromised" : "validation.passwordBreachUnavailable",
+        ));
+      }
+      throw error;
+    }
     const passwordHash = await bcrypt.hash(newPassword, 12);
     await prisma.$transaction(async (tx) => {
       await tx.user.update({
@@ -240,14 +252,14 @@ export async function changePassword(
         action: "password changed",
         entityType: "user",
         entityId: existing.id,
-        title: existing.email,
+        title: "User account",
         actorId: existing.id,
       });
     });
     return { ok: true };
   } catch (error) {
     if (error instanceof PasswordChangeError) throw new Error(error.message);
-    console.error("Password change failed:", error);
+    logServerError("auth.password.change_failed", error);
     throw new Error(t("passwordChangeFailed"));
   }
 }

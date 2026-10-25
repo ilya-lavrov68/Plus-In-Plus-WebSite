@@ -234,6 +234,10 @@ Module._load = function (name, parent, isMain) {
     hash: async (password) => `hash:${password}`,
   };
   if (name === "@/lib/prisma") return { prisma };
+  if (name === "@/lib/password-breach") return {
+    CompromisedPasswordError: class CompromisedPasswordError extends Error {},
+    assertPasswordNotCompromised: async () => {},
+  };
   if (name === "@/lib/admin-session") {
     return {
       requireAdmin: async () =>
@@ -622,8 +626,8 @@ test("HARD CONSTRAINT: updateUserProfile requires authorization and never mutate
 test("password changes verify the current password, validate the replacement and audit the update", async () => {
   const valid = {
     currentPassword: "current-password",
-    newPassword: "a-new-long-passphrase",
-    confirmPassword: "a-new-long-passphrase",
+    newPassword: "a-New-long-passphrase1",
+    confirmPassword: "a-New-long-passphrase1",
   };
   await assert.rejects(
     () => changePassword({ ...valid, currentPassword: "wrong-password" }),
@@ -636,7 +640,7 @@ test("password changes verify the current password, validate the replacement and
   );
 
   assert.deepEqual(await changePassword(valid), { ok: true });
-  assert.equal(users.get("usr-client").passwordHash, "hash:a-new-long-passphrase");
+  assert.equal(users.get("usr-client").passwordHash, "hash:a-New-long-passphrase1");
   assert.equal(logs.at(-1).action, "password changed");
   assert.equal(logs.at(-1).actorId, "usr-client");
 

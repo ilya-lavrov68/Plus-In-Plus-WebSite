@@ -40,7 +40,7 @@ const { authorizeCredentials } = require("../lib/credentials.ts");
 const { saveImageUpload, deleteImageUpload } = require("../lib/uploads.ts");
 const { localAvatarPath } = require("../lib/upload-policy.ts");
 const { sanitizePostContent } = require("../lib/sanitize-post-content.ts");
-const { checkRateLimit, checkRateLimitAsync, getClientAddress, hashRateLimitIdentifier } = require("../lib/rate-limit.ts");
+const { checkRateLimit, checkRateLimitAsync, getClientAddress, hashRateLimitIdentifier, progressiveLoginDelayMs, retryAfterHeaders } = require("../lib/rate-limit.ts");
 const { GET: readUpload } = require("../app/uploads/[kind]/[filename]/route.ts");
 require("../auth.ts");
 
@@ -90,7 +90,7 @@ test("invalid emails, overlong bcrypt passwords and weak configuration are rejec
 
 test("repeated credential attempts are throttled before additional bcrypt work", async () => {
   const req = request();
-  for (let attempt = 0; attempt < 8; attempt += 1) {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
     assert.equal(await authorizeCredentials({ ...credentials(), password: "wrong" }, req), null);
   }
   const atLimit = compareCalls;
@@ -162,9 +162,11 @@ test("rate limits expire without exposing raw identifiers", () => {
   assert.notEqual(key, "registration:test@example.com");
   assert.equal(checkRateLimit(key, 2, 10_000, 1_000).allowed, true);
   assert.equal(checkRateLimit(key, 2, 10_000, 2_000).allowed, true);
-  assert.deepEqual(checkRateLimit(key, 2, 10_000, 3_000), { allowed: false, retryAfterSeconds: 8 });
+  assert.deepEqual(checkRateLimit(key, 2, 10_000, 3_000), { allowed: false, retryAfterSeconds: 8, attempts: 2 });
   assert.equal(checkRateLimit(key, 2, 10_000, 11_000).allowed, true);
   assert.equal(getClientAddress("203.0.113.4, 10.0.0.1"), "203.0.113.4");
+  assert.deepEqual([1, 2, 3, 4, 5, 20].map(progressiveLoginDelayMs), [0, 0, 250, 500, 1000, 2000]);
+  assert.deepEqual(retryAfterHeaders(5.2), { "Retry-After": "6" });
 });
 
 test("shared rate limits use an atomic backend command and hashed keys", async () => {
@@ -184,7 +186,7 @@ test("shared rate limits use an atomic backend command and hashed keys", async (
   try {
     const raw = "login:test@example.com";
     const result = await checkRateLimitAsync(hashRateLimitIdentifier(raw), 2, 10_000);
-    assert.deepEqual(result, { allowed: false, retryAfterSeconds: 5 });
+    assert.deepEqual(result, { allowed: false, retryAfterSeconds: 5, attempts: 3 });
     assert.equal(requestBody[0], "EVAL");
     assert.equal(requestBody[2], "1");
     assert.ok(requestBody[3].startsWith("pip:rate-limit:"));

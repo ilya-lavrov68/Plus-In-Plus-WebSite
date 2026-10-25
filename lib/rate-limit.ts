@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 
+import { logServerError } from "@/lib/security-log";
+
 interface Bucket {
   count: number;
   expiresAt: number;
@@ -14,6 +16,8 @@ const buckets = globalRateLimits.__pipRateLimits ??= new Map<string, Bucket>();
 export interface RateLimitResult {
   allowed: boolean;
   retryAfterSeconds: number;
+  /** Attempts in the current fixed window, used for bounded progressive delays. */
+  attempts: number;
 }
 
 /** Process-local throttling. Use a CDN/WAF for distributed production limits. */
@@ -37,18 +41,19 @@ export function checkRateLimit(
     }
 
     buckets.set(key, { count: 1, expiresAt: now + windowMs });
-    return { allowed: true, retryAfterSeconds: 0 };
+    return { allowed: true, retryAfterSeconds: 0, attempts: 1 };
   }
 
   if (current.count >= limit) {
     return {
       allowed: false,
       retryAfterSeconds: Math.max(1, Math.ceil((current.expiresAt - now) / 1000)),
+      attempts: current.count,
     };
   }
 
   current.count += 1;
-  return { allowed: true, retryAfterSeconds: 0 };
+  return { allowed: true, retryAfterSeconds: 0, attempts: current.count };
 }
 
 const SHARED_LIMIT_SCRIPT = `
@@ -106,19 +111,27 @@ export async function checkRateLimitAsync(
       throw new Error("Invalid shared rate-limit response");
     }
     return count <= limit
-      ? { allowed: true, retryAfterSeconds: 0 }
+      ? { allowed: true, retryAfterSeconds: 0, attempts: count }
       : {
           allowed: false,
           retryAfterSeconds: Math.max(1, Math.ceil(Math.max(0, ttl) / 1000)),
+          attempts: count,
         };
   } catch (error) {
-    // Never log the REST URL or token. Keep the local safety net operational.
-    console.warn(
-      "Shared rate limiter unavailable; using the local fallback:",
-      error instanceof Error ? error.message : "unknown error",
-    );
+    // Never log the REST URL, token or provider message. Keep the local safety net operational.
+    logServerError("rate_limit.shared_unavailable", error);
     return checkRateLimit(key, limit, windowMs);
   }
+}
+
+export function retryAfterHeaders(retryAfterSeconds: number): Record<string, string> {
+  return { "Retry-After": String(Math.max(1, Math.ceil(retryAfterSeconds))) };
+}
+
+/** Bounded delay before bcrypt: 250 ms from attempt three, capped at two seconds. */
+export function progressiveLoginDelayMs(attempts: number): number {
+  if (!Number.isFinite(attempts) || attempts < 3) return 0;
+  return Math.min(2_000, 250 * 2 ** Math.min(3, Math.floor(attempts) - 3));
 }
 
 /** Hash identifiers before retaining them in the in-process limiter map. */
