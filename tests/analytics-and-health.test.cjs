@@ -12,13 +12,17 @@ require.extensions[".ts"] = (module, filename) => module._compile(ts.transpileMo
 let creates;
 let updates;
 let tableRows;
+let tableError;
 let addressSequence = 40;
 const prisma = {
   pageView: {
     create: async ({ data }) => { creates.push(structuredClone(data)); return { id: "view-1" }; },
     updateMany: async ({ where, data }) => { updates.push({ where: structuredClone(where), data: structuredClone(data) }); return { count: 1 }; },
   },
-  $queryRaw: async () => structuredClone(tableRows),
+  $queryRaw: async () => {
+    if (tableError) throw tableError;
+    return structuredClone(tableRows);
+  },
 };
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
@@ -33,7 +37,8 @@ const health = require("../app/api/health/route.ts");
 const consent = require("../lib/analytics-consent.ts");
 
 const ALL_TABLES = [
-  "users", "services", "products", "service_option_groups", "service_options",
+  "users", "pending_logins", "auth_sessions", "mfa_backup_codes", "webauthn_credentials",
+  "services", "products", "service_option_groups", "service_options",
   "posts", "activity_logs", "page_views", "orders", "order_services",
   "order_items", "payments", "site_settings",
 ];
@@ -41,7 +46,11 @@ const ALL_TABLES = [
 function request(method, body) {
   return new Request("http://localhost/api/page-view", {
     method,
-    headers: { "Content-Type": "application/json", "x-real-ip": `203.0.113.${addressSequence++}` },
+    headers: {
+      "Content-Type": "application/json",
+      "Origin": "http://localhost",
+      "x-real-ip": `203.0.113.${addressSequence++}`,
+    },
     body: JSON.stringify(body),
   });
 }
@@ -50,6 +59,7 @@ beforeEach(() => {
   creates = [];
   updates = [];
   tableRows = ALL_TABLES.map((name) => ({ name }));
+  tableError = null;
 });
 
 test("page-view API rejects writes without analytics consent", async () => {
@@ -101,4 +111,31 @@ test("health check requires every table used by the current schema", async () =>
   const missing = await health.GET();
   assert.equal(missing.status, 503);
   assert.deepEqual((await missing.json()).database.missingTables, ["payments"]);
+});
+
+test("health failures use structured redacted logging without connection data", async () => {
+  const secretConnection = "libsql://private.example.turso.io?authToken=do-not-log-this";
+  tableError = Object.assign(new Error(`driver failed for ${secretConnection}`), { code: "P1001" });
+  const errors = [];
+  const originalError = console.error;
+  console.error = (value) => errors.push(String(value));
+  let response;
+  let body;
+  try {
+    response = await health.GET();
+    body = JSON.stringify(await response.json());
+  } finally {
+    console.error = originalError;
+  }
+
+  assert.equal(response.status, 503);
+  assert.equal(errors.length, 1);
+  const event = JSON.parse(errors[0]);
+  assert.equal(event.event, "health.check_failed");
+  assert.equal(event.level, "error");
+  assert.equal(event.code, "P1001");
+  assert.equal(JSON.stringify(event).includes(secretConnection), false);
+  assert.equal(JSON.stringify(event).includes("driver failed"), false);
+  assert.equal(body.includes(secretConnection), false);
+  assert.equal(body.includes("do-not-log-this"), false);
 });

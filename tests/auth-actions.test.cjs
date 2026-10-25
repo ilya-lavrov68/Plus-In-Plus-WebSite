@@ -134,7 +134,7 @@ test("admin mode delegates account classification to Auth.js and uses one creden
   });
   assert.equal(signIns.length, 1, "the role prelookup does not reject before credential verification");
 
-  users = [{ id: "admin-mock", email: "person@example.com", role: "ADMIN", passwordHash: "hash" }];
+  users = [{ id: "admin-mock", email: "person@example.com", role: "ADMIN", passwordHash: "hash", mfaSecret: "encrypted-test-secret", webAuthnCredentials: [] }];
   signinError = Object.assign(new CredentialsSignin(), { code: "admin_account_not_found" });
   const adminResult = await loginUser({ ...registration(), adminMode: true });
   assert.deepEqual(adminResult, regularResult, "legacy/provider codes cannot leak account classification");

@@ -45,7 +45,85 @@ model User {
   // Заказы, которые этот пользователь заблокировал от редактирования.
   lockedOrders  Order[]      @relation("LockedOrders")
 
+  // Optional second factors. Secrets are encrypted before they reach the DB;
+  // backup codes and refresh tokens are stored only as one-way hashes.
+  mfaSecret                          String?
+  mfaPendingSecret                   String?
+  mfaPendingCreatedAt                DateTime?
+  mfaEnabledAt                       DateTime?
+  webAuthnRegistrationChallenge      String?
+  webAuthnRegistrationChallengeExp   DateTime?
+  authSessions                       AuthSession[]
+  mfaBackupCodes                     MfaBackupCode[]
+  webAuthnCredentials                WebAuthnCredential[]
+  pendingLogins                      PendingLogin[]
+
   @@map("users")
+}
+
+/// A short-lived password-verified login waiting for its second factor.
+/// The browser receives id + a random secret; only the secret hash is stored.
+model PendingLogin {
+  id                 String   @id
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role               String   @default("USER")
+  secretHash         String
+  webAuthnChallenge  String?
+  attempts           Int      @default(0)
+  createdAt          DateTime @default(now())
+  expiresAt          DateTime
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("pending_logins")
+}
+
+/// Server-side refresh-session registry. Access JWTs last 15 minutes; refresh
+/// tokens rotate and remain bound to the original absolute expiry and device.
+model AuthSession {
+  id           String    @id
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshHash  String    @unique
+  deviceHash   String
+  role         String    @default("USER")
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime  @default(now())
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  revokeReason String?
+
+  @@index([userId, revokedAt, expiresAt])
+  @@index([expiresAt])
+  @@map("auth_sessions")
+}
+
+model MfaBackupCode {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String    @unique
+  createdAt DateTime  @default(now())
+  usedAt    DateTime?
+
+  @@index([userId, usedAt])
+  @@map("mfa_backup_codes")
+}
+
+model WebAuthnCredential {
+  id         String    @id // base64url credential ID, never a credential secret
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  publicKey  String // base64url COSE public key
+  counter    String    @default("0") // decimal string, avoids SQLite/BigInt surprises
+  transports String    @default("[]") // JSON-encoded string array
+  name       String    @default("Passkey")
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  @@index([userId])
+  @@map("webauthn_credentials")
 }
 
 model Service {
@@ -165,6 +243,8 @@ model ActivityLog {
   title      String
   actorId    String?
   actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  /** Set by the retention job after the direct actor relation is removed. */
+  actorPseudonym String?
   createdAt  DateTime @default(now())
 
   @@index([createdAt])

@@ -14,6 +14,7 @@ import {
   User,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { startAuthentication } from "@simplewebauthn/browser";
 
 import {
   loginUser,
@@ -22,6 +23,7 @@ import {
   updateUserProfile,
 } from "@/app/actions/auth";
 import type { AuthActionResult } from "@/app/actions/auth";
+import { getMfaPasskeyOptions } from "@/app/actions/mfa";
 import { UserAvatar } from "@/components/site/user-avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -307,18 +309,29 @@ export function AccountModal({
   const [tab, setTab] = useState<"login" | "register">("login");
   const [adminMode, setAdminMode] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
+  const [mfaChallenge, setMfaChallenge] = useState<{
+    id: string;
+    secret: string;
+    hasTotp: boolean;
+    hasPasskeys: boolean;
+  } | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   function switchTab(value: string) {
     setTab(value === "register" ? "register" : "login");
     setAdminMode(false);
+    setMfaChallenge(null);
+    setMfaCode("");
     setError(null);
   }
 
   function handleOpenChange(value: boolean) {
     if (!value) {
       setAdminMode(false);
+      setMfaChallenge(null);
+      setMfaCode("");
       setError(null);
       setTab("login");
     }
@@ -332,13 +345,34 @@ export function AccountModal({
       return;
     }
     setAdminMode(false);
-    if (result.isAdmin && result.redirectTo) {
+    setMfaChallenge(null);
+    setMfaCode("");
+    if (result.redirectTo && (result.isAdmin || result.mfaSetupRequired)) {
       onOpenChange(false);
       router.push(result.redirectTo);
       return;
     }
     onOpenChange(false);
     router.refresh();
+  }
+
+  async function processLoginResult(result: AuthActionResult) {
+    if (result.mfaRequired && result.pendingLoginId && result.pendingLoginSecret) {
+      setMfaChallenge({
+        id: result.pendingLoginId,
+        secret: result.pendingLoginSecret,
+        hasTotp: result.hasTotp === true,
+        hasPasskeys: result.hasPasskeys === true,
+      });
+      setMfaCode("");
+      setError(result.error ?? null);
+      return;
+    }
+    if (!result.ok) {
+      setError(result.error ?? t("loginFailed"));
+      return;
+    }
+    await finishLogin(result);
   }
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
@@ -348,18 +382,46 @@ export function AccountModal({
     setError(null);
     setPending(true);
     try {
-      const result = await loginUser({
-        email: String(data.get("email") ?? ""),
-        password: String(data.get("password") ?? ""),
-        adminMode,
-      });
-      if (!result.ok) {
-        setError(result.error ?? t("loginFailed"));
-        return;
-      }
-      await finishLogin(result);
+      const result = mfaChallenge
+        ? await loginUser({
+            pendingLoginId: mfaChallenge.id,
+            pendingLoginSecret: mfaChallenge.secret,
+            mfaCode,
+            adminMode,
+          })
+        : await loginUser({
+            email: String(data.get("email") ?? ""),
+            password: String(data.get("password") ?? ""),
+            adminMode,
+          });
+      await processLoginResult(result);
     } catch {
       setError(t("genericError"));
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function handlePasskey() {
+    if (!mfaChallenge || pending) return;
+    setError(null);
+    setPending(true);
+    try {
+      const options = await getMfaPasskeyOptions(mfaChallenge.id, mfaChallenge.secret);
+      if (!options.ok) {
+        setError(options.error ?? t("passkeyUnavailable"));
+        return;
+      }
+      const assertion = await startAuthentication({ optionsJSON: options.options });
+      const result = await loginUser({
+        pendingLoginId: mfaChallenge.id,
+        pendingLoginSecret: mfaChallenge.secret,
+        webAuthnResponse: assertion,
+        adminMode,
+      });
+      await processLoginResult(result);
+    } catch {
+      setError(t("passkeyStartFailed"));
     } finally {
       setPending(false);
     }
@@ -445,6 +507,8 @@ export function AccountModal({
             <TabsContent value="login">
               <form aria-label={t("login")} onSubmit={handleLogin}>
                 <fieldset disabled={pending} className="space-y-4">
+                  {!mfaChallenge ? (
+                    <>
                   <div className="space-y-2">
                     <Label htmlFor="login-email">{t("email")}</Label>
                     <Input
@@ -502,9 +566,47 @@ export function AccountModal({
                       disabled={pending}
                     />
                   </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="login-mfa-code">{t("mfaCode")}</Label>
+                        <Input
+                          id="login-mfa-code"
+                          name="mfaCode"
+                          autoComplete="one-time-code"
+                          autoCapitalize="characters"
+                          value={mfaCode}
+                          onChange={(event) => setMfaCode(event.target.value)}
+                          required={mfaChallenge.hasTotp}
+                          maxLength={64}
+                          aria-describedby="login-mfa-help"
+                        />
+                        <p id="login-mfa-help" className="text-xs leading-relaxed text-muted-foreground">
+                          {mfaChallenge.hasTotp ? t("mfaCodeHelp") : t("passkeyOrBackupHelp")}
+                        </p>
+                      </div>
+                      {mfaChallenge.hasPasskeys ? (
+                        <Button type="button" variant="outline" className="w-full" onClick={handlePasskey}>
+                          {t("usePasskey")}
+                        </Button>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="w-full rounded text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                        onClick={() => {
+                          setMfaChallenge(null);
+                          setMfaCode("");
+                          setError(null);
+                        }}
+                      >
+                        {t("mfaBack")}
+                      </button>
+                    </>
+                  )}
                   <FormError message={error} />
                   <Button type="submit" className="w-full">
-                    {pending ? t("signingIn") : t("loginButton")}
+                    {pending ? t("signingIn") : mfaChallenge ? t("verifyMfa") : t("loginButton")}
                   </Button>
                   <button
                     type="button"

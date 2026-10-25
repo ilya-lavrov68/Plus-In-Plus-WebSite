@@ -105,6 +105,11 @@ Module._load = function (name, parent, isMain) {
       },
     };
   }
+  if (name === "@/app/actions/mfa") {
+    return {
+      getMfaPasskeyOptions: async () => ({ ok: false, error: "MFA is not configured in this component test." }),
+    };
+  }
   if (name === "@/app/actions/user") {
     return {
       updateUserProfile: async (input) => {

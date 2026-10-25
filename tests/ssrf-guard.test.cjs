@@ -12,7 +12,7 @@ require.extensions[".ts"] = (module, filename) => {
   );
 };
 
-const { assertPublicUrl, isBlockedHostname, isPrivateAddress, UnsafeTargetError } = require("../lib/ssrf-guard.ts");
+const { assertPublicUrl, fetchPublicText, isBlockedHostname, isPrivateAddress, UnsafeTargetError } = require("../lib/ssrf-guard.ts");
 
 // Everything here is offline: addresses that need DNS are only checked for rejection, and the
 // accepted cases use IP literals, which the guard validates without resolving anything.
@@ -103,4 +103,51 @@ test("credentials and non-http schemes never reach the network", async () => {
   await assert.rejects(assertPublicUrl("https://admin:secret@8.8.8.8/"), /credentials/);
   await assert.rejects(assertPublicUrl("javascript:alert(1)"), UnsafeTargetError);
   await assert.rejects(assertPublicUrl("data:text/html,<script>"), UnsafeTargetError);
+});
+
+test("response reads stop at the byte cap even when one chunk is larger", async () => {
+  let cancelled = false;
+  let readCount = 0;
+  const body = {
+    getReader: () => ({
+      read: async () => {
+        readCount += 1;
+        return { done: false, value: new TextEncoder().encode("0123456789abcdef") };
+      },
+      cancel: async () => { cancelled = true; },
+    }),
+  };
+  let dispatcherSeen = false;
+  const fetchImpl = async (_url, init) => {
+    dispatcherSeen = Boolean(init.dispatcher);
+    return { status: 200, ok: true, headers: new Headers(), body };
+  };
+
+  const text = await fetchPublicText("https://93.184.216.34/large", {
+    fetchImpl,
+    maxBytes: 5,
+    timeoutMs: 1_000,
+  });
+
+  assert.equal(text, "01234");
+  assert.equal(readCount, 1, "the consumer must not read another chunk after reaching the cap");
+  assert.equal(cancelled, true, "the unread response stream must be cancelled");
+  assert.equal(dispatcherSeen, true, "the validated DNS target must be passed to the transport");
+});
+
+test("every redirect is revalidated before another request", async () => {
+  const calls = [];
+  const fetchImpl = async (url) => {
+    calls.push(String(url));
+    return new Response(null, {
+      status: 302,
+      headers: { Location: "http://127.0.0.1/internal" },
+    });
+  };
+
+  await assert.rejects(
+    fetchPublicText("https://93.184.216.34/start", { fetchImpl, timeoutMs: 1_000 }),
+    UnsafeTargetError,
+  );
+  assert.deepEqual(calls, ["https://93.184.216.34/start"]);
 });

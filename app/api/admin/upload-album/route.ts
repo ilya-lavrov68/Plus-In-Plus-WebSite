@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 
 import { requireAdmin } from "@/lib/admin-session";
 import { checkRateLimitAsync, hashRateLimitIdentifier, retryAfterHeaders } from "@/lib/rate-limit";
-import { saveAlbumImage } from "@/lib/uploads";
+import { isSameOriginRequest } from "@/lib/request-origin";
+import { logServerError } from "@/lib/security-log";
+import { saveAlbumImage, UploadValidationError } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +12,7 @@ const WINDOW_MS = 10 * 60 * 1000;
 const MAX_FILES_PER_REQUEST = 20;
 
 export async function POST(request: Request) {
+  if (!isSameOriginRequest(request)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const admin = await requireAdmin();
   if (!admin) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -58,8 +61,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, urls });
   } catch (error) {
-    console.error("Failed to upload album images:", error);
-    const message = error instanceof Error ? error.message : "Upload failed.";
+    logServerError("admin.upload_album_failed", error);
+    const message = error instanceof UploadValidationError ? error.message : "Upload failed.";
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }

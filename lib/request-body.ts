@@ -20,14 +20,18 @@ export function isJsonObject(value: unknown): value is Record<string, unknown> {
  * Reads JSON with an actual streamed byte limit. Content-Length is only an early
  * rejection hint: chunked requests and false declarations are still capped while read.
  */
-export async function readJsonBody(request: Request, maxBytes: number): Promise<JsonBodyResult> {
+export async function readJsonBody(
+  request: Request,
+  maxBytes: number,
+  acceptedMediaTypes: readonly string[] = ["application/json"],
+): Promise<JsonBodyResult> {
   if (!Number.isSafeInteger(maxBytes) || maxBytes < 1) {
     throw new Error("Invalid JSON body limit.");
   }
 
   const mediaType = request.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase();
-  if (mediaType !== "application/json") {
-    return failure(415, "Content-Type must be application/json.");
+  if (!mediaType || !acceptedMediaTypes.includes(mediaType)) {
+    return failure(415, `Content-Type must be ${acceptedMediaTypes.join(" or ")}.`);
   }
 
   const declaredHeader = request.headers.get("content-length");

@@ -1,107 +1,112 @@
-# Incident-response runbook (template)
+# Runbook реагирования на инциденты (шаблон)
 
-Status: operational template, not yet approved or exercised. Before production, assign named primary/deputy owners and private contact details in a restricted operational document; do not commit personal phone numbers, credentials or sensitive contact trees to Git.
+**Статус:** шаблон, не утверждённый и не отрепетированный operational process. До production назначьте основных и резервных владельцев, закрытые контакты и on-call порядок в ограниченном operational document. Не коммитьте телефоны, credentials или чувствительную contact tree в Git.
 
-## 1. Roles and severity
+## 1. Роли и severity
 
-| Role | Required responsibility |
+| Роль | Обязанность |
 | --- | --- |
-| Incident commander | Declares severity, assigns work, controls timeline and approves containment/recovery. |
-| Technical lead | Preserves evidence, investigates application/database/host data and implements fixes. |
-| Security/privacy lead | Assesses personal-data impact, regulatory duties and safe logging/redaction. |
-| Communications owner | Coordinates approved customer, partner, provider and regulator communications. |
-| Scribe | Records UTC timestamps, commands, evidence locations, decisions and outstanding actions. |
+| Руководитель инцидента | Объявляет severity, распределяет работу, контролирует timeline и утверждает containment/recovery |
+| Технический владелец | Сохраняет evidence, исследует приложение/БД/host и внедряет исправление |
+| Security/privacy владелец | Оценивает влияние на персональные данные, уведомления и безопасное редактирование логов |
+| Владелец коммуникаций | Координирует согласованные сообщения клиентам, партнёрам, providers и регуляторам |
+| Летописец | Фиксирует UTC time, команды, evidence locations, решения и открытые действия |
 
-Suggested severity model (approve before use):
+Предлагаемая модель, требующая утверждения:
 
-- **SEV-1:** active compromise of founder/admin, payment integrity breach, confirmed mass personal-data exposure, ransomware or complete service outage.
-- **SEV-2:** limited account compromise, exploitable authorization/XSS/SSRF issue, sustained credential stuffing or material degradation.
-- **SEV-3:** blocked attempt, isolated defect with no confirmed impact, suspicious event requiring investigation.
+- **SEV-1:** активный компрометационный доступ founder/admin, нарушение платёжной целостности, подтверждённая массовая утечка, ransomware или полный outage.
+- **SEV-2:** ограниченный account takeover, эксплуатируемые authorization/XSS/SSRF, sustained credential stuffing или существенная деградация.
+- **SEV-3:** заблокированная попытка, изолированный дефект без подтверждённого влияния, подозрительное событие для расследования.
 
-If impact is uncertain, preserve evidence and escalate rather than assuming no breach.
+Если влияние неизвестно, сохраняйте evidence и эскалируйте, а не предполагайте отсутствие breach.
 
-## 2. First 30 minutes
+## 2. Первые 30 минут
 
-1. Record the detection source and UTC time. Open one incident channel and one restricted evidence log.
-2. Name the incident commander and technical lead. Avoid discussing sensitive indicators in public issues.
-3. Preserve volatile evidence before restarting or redeploying where safe: proxy/CDN/application logs, process/host state, deployment version, Auth.js configuration metadata (not secrets), rate-limit health and relevant ActivityLog rows.
-4. Snapshot or export evidence to access-controlled off-site storage. Record collector, source, time, integrity hash and chain of custody. Do not alter original evidence to “clean it up.”
-5. Scope affected accounts, orders, content, uploads, sessions, secrets and time window. Never put passwords, full session tokens, payment secrets or unnecessary personal data in tickets/chat.
-6. Decide whether containment requires temporary maintenance mode, route restriction, account blocking, provider key rotation or isolation. Balance evidence preservation against active harm.
+1. Записать источник обнаружения и UTC time. Создать один incident channel и один restricted evidence log.
+2. Назначить руководителя и технического владельца. Не обсуждать чувствительные indicators в публичных issues.
+3. До restart/redeploy, где это безопасно, сохранить proxy/CDN/application logs, host/process state, deployment commit, нечувствительные config metadata, rate-limit health и нужные ActivityLog rows.
+4. Экспортировать evidence в access-controlled off-site storage. Записать collector, source, time, integrity hash и chain of custody. Не «чищать» оригиналы.
+5. Определить затронутые accounts, orders, content, uploads, auth sessions, pending logins, secrets и time window.
+6. Не помещать passwords, полные access/refresh tokens, TOTP secrets, backup codes, payment secrets или лишние PII в tickets/chat.
+7. Выбрать минимально достаточный containment: maintenance mode, route restriction, account block, session revocation, key rotation или host isolation.
+8. Зафиксировать legal/incident hold. Пока он действует, не запускать удаление или `db:audit-retention` против relevant evidence без согласования.
 
-## 3. Containment levers
+## 3. Инструменты сдерживания
 
-Use the least disruptive effective action and record every change:
-
-- Block a compromised user through the existing admin control; demote/block staff where authorized. Founder protections still apply.
-- Change the account password through the approved recovery path to revoke JWTs carrying the old password stamp. Do not send temporary passwords through public channels.
-- For systemic session-key compromise, plan `AUTH_SECRET` rotation carefully: it can invalidate all sessions and requires an approved recovery/communication step.
-- Disable a vulnerable route or integration at the proxy/application layer. Preserve ordinary customer access where safe; do not silently weaken authorization or security headers.
-- Rotate affected Turso, Upstash, HIBP-related configuration (if any), payment or deployment credentials in the provider's secret manager. Never commit replacements.
-- If shared rate limiting fails, treat local fallback as reduced distributed protection; apply temporary CDN/WAF limits during an active attack.
-- For suspected host/container compromise, isolate the instance and rebuild from a known-good artifact rather than attempting only in-place cleanup.
+- Заблокировать compromised user через существующий admin control; понижать/block staff только в рамках полномочий. Founder protections сохраняются.
+- Через approved recovery сменить пароль: password stamp делает старые JWT недействительными, а transaction отзывает активные AuthSession records. Не отправлять temporary passwords в публичных каналах.
+- Для подозрения на refresh reuse проверить `auth.refresh.reuse_detected`, revocation reasons и связанные сессии. Не логировать сам token.
+- При компрометации MFA использовать отдельный verified recovery: отозвать сессии, повторно настроить TOTP/passkey и регенерировать backup codes. Не считать наличие MFA колонок доказательством её включения у всех staff.
+- При системной компрометации `AUTH_SECRET` планировать массовый logout и повторную настройку TOTP: HKDF-derived MFA key тоже изменится. Заранее подготовить communication/recovery.
+- Отключить уязвимый route/integration на proxy/application layer, не ослабляя глобально RBAC, CSP или security headers.
+- Ротировать затронутые Turso, Upstash, payment и deployment credentials в provider secret manager. Новые значения не коммитить.
+- При fallback shared rate limiter на process-local защиту временно применить CDN/WAF limits.
+- При подозрении на host/container compromise изолировать и пересобрать из known-good artifact, а не ограничиваться in-place cleanup.
 
 ## 4. Investigation checklist
 
-- Which deployment commits and configuration versions were active?
-- Which identities, roles, source addresses and user agents appear in provider logs? Correlate without copying unnecessary personal data into the incident record.
-- Are there login/rate-limit spikes, `staff login` anomalies, role/block/password changes or `auth.audit.write_failed` events?
-- Are there unexpected order totals, payment state changes, new invoices, content changes or upload names?
-- Are ActivityLog, application, CDN, database and host timelines consistent? Identify logging gaps explicitly.
-- Could secrets, backups, analytics identifiers, order notes, support messages or uploaded images have been accessed?
-- Is the entry point confirmed? If not, state the hypotheses and evidence needed; never invent root cause.
+- Какие deployment commits и config versions были активны?
+- Какие identities, roles, source addresses и user agents видны в provider logs? Коррелировать без копирования лишних PII.
+- Есть ли всплески `auth.login.*`, `auth.mfa.*`, `auth.refresh.*`, `security.csp.violation`, `health.check_failed`, role/block/password changes?
+- Нет ли неожиданных `refresh_reuse`, `refresh_race`, `session_limit`, `password_changed` или массового `mfa_enabled`?
+- Есть ли неожиданные order totals, payment states, invoices, CMS changes или upload names?
+- Согласованы ли timelines ActivityLog, application, CDN, database и host? Явно отметить logging gaps.
+- Могли ли быть затронуты secrets, backups, analytics identifiers, order notes, support messages или uploads?
+- Подтверждён ли entry point? Если нет, зафиксировать hypotheses и необходимые evidence, не выдумывая root cause.
 
-## 5. Eradication and recovery
+Structured application events намеренно содержат мало полей. CSP telemetry хранит только allowlisted directive, а sanitized server errors — event и allowlisted code. Для расследования используйте защищённые provider logs и корреляцию по времени; не расширяйте приложение логированием URL, cookies или PII ради удобства.
 
-1. Patch and test the root cause, including a regression test that fails on the vulnerable revision where feasible.
-2. Rotate affected credentials and revoke active attacker sessions/tokens.
-3. Rebuild or deploy from a reviewed commit. Verify `npm ci`, policy/dependency audits, types, tests and production build.
-4. Restore only from a known-clean backup if integrity is uncertain. Follow the isolated restore procedure in `disaster-recovery.md` first.
-5. Verify `/api/health`, authentication, staff/customer separation, order ownership, CMS integrity and payment configuration without using real customer credentials.
-6. Return gradually, monitor closely and keep enhanced logging/limits until the agreed observation period ends.
-7. Obtain incident-commander approval before closing containment or declaring recovery.
+## 5. Eradication и recovery
 
-## 6. Communication and privacy
+1. Исправить root cause и добавить regression, который по возможности падает на vulnerable revision.
+2. Ротировать credentials и отозвать attacker sessions/tokens.
+3. Выполнить deploy reviewed commit; повторить `npm ci`, audits, types, tests и production build.
+4. Если целостность сомнительна, восстановить known-clean backup сначала по изолированной процедуре из `disaster-recovery.md`.
+5. Проверить `/api/health` и все **17 таблиц**, authentication, customer/staff separation, MFA challenge/recovery, refresh revocation, order ownership, CMS и payment configuration только на test accounts/data.
+6. Возвращать трафик постепенно, сохраняя enhanced monitoring/limits на согласованный observation period.
+7. Получить approval руководителя до закрытия containment или объявления recovery.
 
-- Use approved, factual language: what is known, what is not, actions taken and safe steps for users.
-- The privacy/legal owner determines whether GDPR or another notification regime applies. Where GDPR applies to a personal-data breach, assess the supervisory-authority notification requirement without undue delay and, where required, within 72 hours of awareness; document decisions and reasons.
-- Notify affected individuals without undue delay when the applicable high-risk threshold and legal assessment require it.
-- Coordinate with hosting, Turso, Upstash, payment and other affected providers through their official incident channels.
-- Preserve evidence of notification decisions, timelines and content. Do not promise that no data was affected unless verified.
+## 6. Коммуникация и приватность
 
-## 7. Scenario playbooks
+- Использовать утверждённые факты: что известно, что неизвестно, какие действия выполнены и что безопасно сделать пользователям.
+- Privacy/legal owner определяет применимый режим уведомлений. Если применяется GDPR, оценить supervisory notification без undue delay и, когда требуется, в течение 72 часов с момента awareness; зафиксировать решение и мотивы.
+- Уведомлять затронутых лиц без undue delay, если применимый high-risk threshold и legal assessment этого требуют.
+- Координироваться с hosting, Turso, Upstash, payment и другими providers через официальные каналы.
+- Сохранять evidence решений, сроков и текстов. Не обещать отсутствие влияния без проверки.
+
+## 7. Сценарии
 
 ### Credential stuffing / account takeover
 
-Apply shared/CDN limits, preserve authentication aggregates, check successful staff logins and role/password changes, block compromised accounts, revoke sessions and require the approved recovery/MFA path. Do not log submitted passwords or full credential pairs.
+Применить shared/CDN limits, сохранить агрегированные auth events, проверить successful staff logins и role/password changes, заблокировать compromised accounts, отозвать sessions и пройти approved recovery/MFA. Не логировать submitted passwords или credential pairs.
 
-### XSS or malicious CMS content
+### XSS или вредоносный CMS-контент
 
-Preserve the sanitized and original author-controlled source in restricted evidence, disable affected publication if needed, patch sanitizer/rendering, add a payload regression, invalidate caches and review CSP reports. Do not respond by enabling broad inline scripts.
+Сохранить sanitized и author-controlled source в restricted evidence, при необходимости снять publication, исправить sanitizer/rendering, добавить payload regression, invalidate caches и изучить CSP directives. Не включать broad inline scripts.
 
-### SSRF or unauthorized outbound request
+### SSRF или неожиданный outbound request
 
-Block the destination/egress path, preserve validated URL and DNS evidence under restricted access, check cloud metadata/provider logs, rotate any potentially exposed credentials and add a redirect/rebinding test.
+Заблокировать destination/egress, сохранить validated URL/DNS evidence под restricted access, проверить metadata/provider logs и ротировать потенциально раскрытые credentials. Проверить validated-IP pinning, redirect revalidation, timeout и body cap. Live rebinding test не считается выполненным только по unit tests.
 
-### Malicious upload / storage abuse
+### Вредоносный upload / storage abuse
 
-Disable the affected upload route, preserve a controlled sample with restricted handling, check serving paths and decoder logs, remove active content only after evidence capture, and verify re-encoding/path confinement. Do not execute or open a suspicious file on a workstation.
+Отключить affected route, сохранить controlled sample с безопасным handling, проверить serving paths/decoder logs, удалить active content только после evidence capture и подтвердить re-encoding/path confinement. Не открывать подозрительный файл на workstation.
 
 ### Payment callback anomaly
 
-Keep Robokassa disabled if not intentionally accepting payments. Preserve callback/signature/state evidence without secrets, verify amount/order/latest-invoice checks, contact the provider through an official channel and reconcile manually before changing paid status.
+Не включать Robokassa, пока реальные платежи не согласованы. Сохранить callback/signature/state evidence без secrets, проверить amount/order/latest-invoice, связаться с provider официально и выполнить ручную reconciliation до изменения paid status.
 
 ### Secret exposure
 
-Revoke/rotate first according to active risk, then remove exposure through normal history/security procedures. A Git deletion alone does not revoke a secret. Inspect provider use logs and assume values in chat, CI logs or deployed artifacts may have been copied.
+Сначала revoke/rotate по активному риску, затем устранить exposure через history/security process. Git deletion не отзывает secret. Проверить provider use logs; считать значения из chat, CI logs и deployed artifacts потенциально скопированными.
 
 ### Ransomware / destructive action
 
-Isolate affected systems, preserve evidence, disable synchronization of potentially encrypted files to healthy backups, protect immutable/offline copies, rotate backup credentials if exposed and rebuild from known-clean infrastructure. Recovery requires an isolated restore validation, not just the presence of backup files.
+Изолировать системы, сохранить evidence, остановить синхронизацию potentially encrypted files в healthy backups, защитить immutable/offline copies, ротировать backup credentials и rebuild из known-clean infrastructure. Recovery требует изолированного restore test, а не только наличия archives.
 
-## 8. Closure and improvement
+## 8. Закрытие и улучшение
 
-- Confirm containment, eradication, monitoring and required communications are complete.
-- Produce a blameless post-incident review with timeline, root cause/evidence, control failures, customer impact and corrective owners/dates.
-- Add regression tests and update threat models, IR/GDPR/DR documents and alert rules.
-- Track all remediation to verified closure; schedule a tabletop exercise at least annually and after major architecture changes (recommended cadence, not yet approved policy).
+- Подтвердить containment, eradication, monitoring и required communications.
+- Подготовить blameless post-incident review: timeline, evidence-based root cause, control failures, customer impact, owners/dates.
+- Добавить regressions и обновить threat model, IR/GDPR/DR и alert rules.
+- Довести remediation до проверенного закрытия. Tabletop рекомендуется минимум ежегодно и после крупных architecture changes; это рекомендуемый, ещё не утверждённый cadence.

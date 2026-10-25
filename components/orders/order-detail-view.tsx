@@ -275,12 +275,15 @@ export async function OrderDetailView({
               {/* Оплата по согласованной цене: маршрут сам достанет или
                   создаст счёт и уведёт на форму Робокассы. */}
               {order.status === "awaiting_payment" && priced && !hasSuccessfulPayment ? (
-                <a
-                  href={`/api/payment/create?orderId=${encodeURIComponent(order.id)}`}
-                  className={`${buttonVariants({ variant: "default", size: "sm" })} mt-4 w-full`}
-                >
-                  {t("payNow")}
-                </a>
+                <form method="POST" action="/api/payment/create" className="mt-4">
+                  <input type="hidden" name="orderId" value={order.id} />
+                  <button
+                    type="submit"
+                    className={`${buttonVariants({ variant: "default", size: "sm" })} w-full`}
+                  >
+                    {t("payNow")}
+                  </button>
+                </form>
               ) : null}
             </CardContent>
           </Card>

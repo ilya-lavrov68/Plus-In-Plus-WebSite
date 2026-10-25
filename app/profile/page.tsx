@@ -30,6 +30,8 @@ export default async function ProfilePage() {
           avatar: true,
           role: true,
           isBlocked: true,
+          mfaSecret: true,
+          webAuthnCredentials: { select: { id: true, name: true }, orderBy: { createdAt: "asc" } },
         },
       })
     : null;
@@ -41,6 +43,11 @@ export default async function ProfilePage() {
   return (
     <ProfileForm
       sessionRole={session.user.role ?? "USER"}
+      security={{
+        required: ["FOUNDER", "ADMIN", "MANAGER"].includes(dbUser?.role ?? ""),
+        initialTotpEnabled: Boolean(dbUser?.mfaSecret),
+        initialPasskeys: dbUser?.webAuthnCredentials.map((credential) => ({ id: credential.id, name: credential.name })) ?? [],
+      }}
       initialUser={{
         email: dbUser?.email ?? session.user.email ?? "",
         firstName: dbUser?.firstName ?? session.user.firstName ?? "",

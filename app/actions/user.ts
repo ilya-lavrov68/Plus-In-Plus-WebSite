@@ -248,6 +248,10 @@ export async function changePassword(
         data: { passwordHash },
         select: { id: true },
       });
+      await tx.authSession.updateMany({
+        where: { userId: existing.id, revokedAt: null },
+        data: { revokedAt: new Date(), revokeReason: "password_changed" },
+      });
       await recordActivity(tx, {
         action: "password changed",
         entityType: "user",

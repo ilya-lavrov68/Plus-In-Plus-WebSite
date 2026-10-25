@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { issueInvoice } from "@/lib/payments/invoice";
+import { checkRateLimitAsync, getClientAddress, hashRateLimitIdentifier, retryAfterHeaders } from "@/lib/rate-limit";
+import { isSameOriginRequest } from "@/lib/request-origin";
 import { roleLevel } from "@/lib/user-profile";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +20,13 @@ export const runtime = "nodejs";
  * оплатить нельзя.
  */
 async function createPaymentRedirect(request: Request): Promise<Response> {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+  }
+  const contentType = request.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase();
+  if (contentType !== "application/x-www-form-urlencoded") {
+    return NextResponse.json({ ok: false, error: "unsupported_media_type" }, { status: 415 });
+  }
   if (!prisma) {
     return NextResponse.json({ ok: false, error: "payments_unavailable" }, { status: 503 });
   }
@@ -26,14 +35,23 @@ async function createPaymentRedirect(request: Request): Promise<Response> {
   if (!session?.user?.id) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
-
-  const url = new URL(request.url);
-  let orderId = url.searchParams.get("orderId")?.trim() ?? "";
-  if (!orderId && request.method === "POST") {
-    const form = await request.formData().catch(() => null);
-    const value = form?.get("orderId");
-    if (typeof value === "string") orderId = value.trim();
+  const address = getClientAddress(request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for"));
+  const limit = await checkRateLimitAsync(
+    hashRateLimitIdentifier(`payment-create:${address}:${session.user.id}`),
+    10,
+    10 * 60 * 1000,
+  );
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { ok: false, error: "rate_limited" },
+      { status: 429, headers: retryAfterHeaders(limit.retryAfterSeconds) },
+    );
   }
+
+  let orderId = "";
+  const form = await request.formData().catch(() => null);
+  const value = form?.get("orderId");
+  if (typeof value === "string") orderId = value.trim();
   if (!orderId || orderId.length > 128) {
     return NextResponse.json({ ok: false, error: "order_id_required" }, { status: 400 });
   }
@@ -101,10 +119,6 @@ async function createPaymentRedirect(request: Request): Promise<Response> {
   }
 
   return NextResponse.redirect(invoice.paymentUrl, 303);
-}
-
-export async function GET(request: Request): Promise<Response> {
-  return createPaymentRedirect(request);
 }
 
 export async function POST(request: Request): Promise<Response> {

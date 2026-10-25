@@ -6,6 +6,7 @@ import { requireActiveCustomer } from "@/lib/cart";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimitAsync, getClientAddress, hashRateLimitIdentifier, retryAfterHeaders } from "@/lib/rate-limit";
 import { isJsonObject, readJsonBody } from "@/lib/request-body";
+import { isSameOriginRequest } from "@/lib/request-origin";
 
 const WINDOW_MS = 10 * 60 * 1000;
 /** A contact form needs a handful of attempts, not a hundred: the endpoint writes to the DB. */
@@ -18,6 +19,9 @@ function formatOrderNumber(sequence: number): string {
 }
 
 export async function POST(request: Request) {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
+  }
   if (!prisma) {
     return NextResponse.json(
       { ok: false, error: "Database connection is temporarily unavailable." },

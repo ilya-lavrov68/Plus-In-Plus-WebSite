@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-session";
 import { checkRateLimitAsync, hashRateLimitIdentifier, retryAfterHeaders } from "@/lib/rate-limit";
 import { isJsonObject, readJsonBody } from "@/lib/request-body";
+import { isSameOriginRequest } from "@/lib/request-origin";
 import { fetchPublicText, UnsafeTargetError } from "@/lib/ssrf-guard";
 
 const allowedSources = new Set(["vk", "telegram", "youtube"]);
@@ -17,6 +18,7 @@ const WINDOW_MS = 10 * 60 * 1000;
  * administrator keeps a stolen session from being used to scan hosts.
  */
 export async function POST(request: Request) {
+  if (!isSameOriginRequest(request)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
@@ -48,7 +50,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ source, sourceUrl: value, title: title.trim().slice(0, 160), description: description.trim().slice(0, 500) });
   } catch (error) {
     if (error instanceof UnsafeTargetError) {
-      console.warn(`[import-source] Blocked by the SSRF guard: ${error.message}`);
       return NextResponse.json({ error: "This address cannot be imported: only public http(s) pages are allowed." }, { status: 400 });
     }
     return NextResponse.json({ error: "The source could not be parsed. Check the URL or configure its API key in Settings." }, { status: 422 });

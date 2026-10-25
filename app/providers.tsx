@@ -5,6 +5,7 @@ import { SessionProvider } from "next-auth/react";
 
 import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { ScrollExperience } from "@/components/site/motion/scroll-experience";
+import { SessionRefresh } from "@/components/site/session-refresh";
 import { Toaster } from "@/components/ui/toast";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -17,6 +18,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <MotionConfig reducedMotion="user">
         <ScrollExperience />
         <PageViewTracker />
+        <SessionRefresh />
         {children}
         <Toaster />
       </MotionConfig>

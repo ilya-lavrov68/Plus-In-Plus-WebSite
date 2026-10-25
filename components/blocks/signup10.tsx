@@ -6,8 +6,11 @@ import { useSession } from "next-auth/react";
 import { type FormEvent, useState } from "react";
 import { motion } from "motion/react";
 import { useTranslations } from "next-intl";
+import { startAuthentication } from "@simplewebauthn/browser";
 
 import { loginUser, registerUser } from "@/app/actions/auth";
+import type { AuthActionResult } from "@/app/actions/auth";
+import { getMfaPasskeyOptions } from "@/app/actions/mfa";
 import { BrandMark } from "@/components/site/logo";
 import { MediaPlaceholder } from "@/components/site/media-placeholder";
 import { Button } from "@/components/ui/button";
@@ -40,6 +43,13 @@ const Signup10 = ({
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [adminMode, setAdminMode] = useState(defaultAdminMode);
+  const [mfaChallenge, setMfaChallenge] = useState<{
+    id: string;
+    secret: string;
+    hasTotp: boolean;
+    hasPasskeys: boolean;
+  } | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -47,6 +57,8 @@ const Signup10 = ({
 
   const switchMode = (nextMode: "login" | "register") => {
     setActiveMode(nextMode);
+    setMfaChallenge(null);
+    setMfaCode("");
     setError(null);
     if (nextMode === "register") {
       setAdminMode(false);
@@ -71,11 +83,18 @@ const Signup10 = ({
     setLoading(true);
     try {
       const result = isLogin
-        ? await loginUser({
-            email: email.trim().toLowerCase(),
-            password,
-            adminMode,
-          })
+        ? mfaChallenge
+          ? await loginUser({
+              pendingLoginId: mfaChallenge.id,
+              pendingLoginSecret: mfaChallenge.secret,
+              mfaCode,
+              adminMode,
+            })
+          : await loginUser({
+              email: email.trim().toLowerCase(),
+              password,
+              adminMode,
+            })
         : await registerUser({
             firstName: firstName.trim(),
             lastName: lastName.trim(),
@@ -83,25 +102,64 @@ const Signup10 = ({
             password,
             confirmPassword,
           });
+      await processResult(result);
+    } catch {
+      setError(t("genericError"));
+      setLoading(false);
+    }
+  }
 
-      if (!result.ok) {
-        setError(
-          result.error || (isLogin ? t("loginError") : t("registerError"))
-        );
+  async function processResult(result: AuthActionResult) {
+    if (result.mfaRequired && result.pendingLoginId && result.pendingLoginSecret) {
+      setMfaChallenge({
+        id: result.pendingLoginId,
+        secret: result.pendingLoginSecret,
+        hasTotp: result.hasTotp === true,
+        hasPasskeys: result.hasPasskeys === true,
+      });
+      setMfaCode("");
+      setError(result.error ?? null);
+      setLoading(false);
+      return;
+    }
+    if (!result.ok) {
+      setError(result.error || (isLogin ? t("loginError") : t("registerError")));
+      setLoading(false);
+      return;
+    }
+
+    await updateSession().catch(() => null);
+    const destination =
+      result.redirectTo ||
+      callbackUrl ||
+      (isLogin && adminMode ? "/admin/dashboard" : "/cart");
+    setMfaChallenge(null);
+    setMfaCode("");
+    router.push(destination);
+    router.refresh();
+  }
+
+  async function handlePasskey() {
+    if (!mfaChallenge || loading) return;
+    setError(null);
+    setLoading(true);
+    try {
+      const options = await getMfaPasskeyOptions(mfaChallenge.id, mfaChallenge.secret);
+      if (!options.ok) {
+        setError(options.error ?? t("passkeyUnavailable"));
         setLoading(false);
         return;
       }
-
-      await updateSession().catch(() => null);
-
-      const destination =
-        result.redirectTo ||
-        callbackUrl ||
-        (isLogin && adminMode ? "/admin/dashboard" : "/cart");
-      router.push(destination);
-      router.refresh();
+      const assertion = await startAuthentication({ optionsJSON: options.options });
+      const result = await loginUser({
+        pendingLoginId: mfaChallenge.id,
+        pendingLoginSecret: mfaChallenge.secret,
+        webAuthnResponse: assertion,
+        adminMode,
+      });
+      await processResult(result);
     } catch {
-      setError(t("genericError"));
+      setError(t("passkeyStartFailed"));
       setLoading(false);
     }
   };
@@ -210,6 +268,8 @@ const Signup10 = ({
                 </div>
               )}
 
+              {!mfaChallenge ? (
+                <>
               <div className="space-y-1.5">
                 <Label htmlFor="auth-email">{t("email")}</Label>
                 <Input
@@ -278,6 +338,47 @@ const Signup10 = ({
                   />
                 </div>
               )}
+                </>
+              ) : null}
+
+              {isLogin && mfaChallenge ? (
+                <>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="auth-mfa-code">{t("mfaCode")}</Label>
+                    <Input
+                      id="auth-mfa-code"
+                      name="mfaCode"
+                      autoComplete="one-time-code"
+                      autoCapitalize="characters"
+                      value={mfaCode}
+                      onChange={(event) => setMfaCode(event.target.value)}
+                      required={mfaChallenge.hasTotp}
+                      maxLength={64}
+                      className="h-12 rounded-full px-5"
+                    />
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      {mfaChallenge.hasTotp ? t("mfaCodeHelp") : t("passkeyOrBackupHelp")}
+                    </p>
+                  </div>
+                  {mfaChallenge.hasPasskeys ? (
+                    <Button type="button" variant="outline" className="w-full" onClick={handlePasskey}>
+                      {t("usePasskey")}
+                    </Button>
+                  ) : null}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => {
+                      setMfaChallenge(null);
+                      setMfaCode("");
+                      setError(null);
+                    }}
+                  >
+                    {t("mfaBack")}
+                  </Button>
+                </>
+              ) : null}
 
               {error && (
                 <p
@@ -298,7 +399,9 @@ const Signup10 = ({
                     ? t("signingIn")
                     : t("creatingAccount")
                   : isLogin
-                    ? t("loginButton")
+                    ? mfaChallenge
+                      ? t("verifyMfa")
+                      : t("loginButton")
                     : t("registerButton")}
               </Button>
             </form>

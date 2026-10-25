@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { resolveDatabaseConfig } from "@/lib/database";
 import { prisma } from "@/lib/prisma";
+import { logServerError } from "@/lib/security-log";
 
 /**
  * Deployment check: `curl https://<your-domain>/api/health`.
@@ -16,6 +17,10 @@ export const dynamic = "force-dynamic";
 
 const REQUIRED_TABLES = [
   "users",
+  "pending_logins",
+  "auth_sessions",
+  "mfa_backup_codes",
+  "webauthn_credentials",
   "services",
   "products",
   "service_option_groups",
@@ -67,7 +72,7 @@ export async function GET() {
       database: { driver: "libsql", remote: config.remote, tables: REQUIRED_TABLES.length },
     });
   } catch (error) {
-    console.error("Health check failed:", error);
+    logServerError("health.check_failed", error);
     return NextResponse.json(
       {
         status: "unavailable",

@@ -224,6 +224,9 @@ const prisma = {
       return data;
     },
   },
+  authSession: {
+    updateMany: async () => ({ count: 0 }),
+  },
   $transaction: async (fn) => fn(prisma),
 };
 

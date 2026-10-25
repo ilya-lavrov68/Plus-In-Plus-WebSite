@@ -127,14 +127,18 @@ openssl rand -base64 32
 nano .env
 ```
 
-Обязательный минимум в `.env` на сервере:
+Обязательный минимум в `.env` на сервере плюс WebAuthn-настройки, если используются passkeys:
 ```env
 TURSO_DATABASE_URL="libsql://plus-in-plus-org.turso.io"
 TURSO_AUTH_TOKEN="ваш_токен_turso"
 AUTH_SECRET="ваш_секрет_от_32_символов"
-AUTH_URL="https://ваш-домен.ru"
-NEXT_PUBLIC_SITE_URL="https://ваш-домен.ru"
+AUTH_URL="https://example.com"
+NEXT_PUBLIC_SITE_URL="https://example.com"
+WEBAUTHN_ORIGIN="https://example.com"
+WEBAUTHN_RP_ID="example.com"
 ```
+
+Для production passkeys обе `WEBAUTHN_*` настройки обязательны. RP ID записывается как ASCII hostname; для международного домена используйте его Punycode-форму. Подробности и остальные переменные — в `DEPLOYMENT.md` и `.env.example`.
 
 </td>
 </tr>
@@ -162,7 +166,9 @@ npm run db:check
 
 ### 4. Применение схемы БД
 
-Экспортируйте переменные `.env` в текущую сессию терминала и накатите схему на продакшен-базу (`seed-demo` на продакшене **не используется**):
+**Сначала backup, review и проверка на non-production копии.** Текущее изменение additive, но `prisma db push` на SQLite может пересоздавать таблицы при других изменениях; не подтверждайте потерю данных автоматически. Реальная БД в ходе репозиторной работы не изменялась.
+
+После согласования экспортируйте переменные `.env` в текущую сессию терминала и примените схему (`seed-demo` на продакшене **не используется**):
 
 ```bash
 set -a; source .env; set +a
@@ -176,6 +182,8 @@ npm run db:check
 set -a; source .env; set +a
 npm run db:promote-admin -- you@domain.ru --founder
 ```
+
+После повторного staff login настройте TOTP или passkey в профиле, сохраните backup codes и снова войдите уже со вторым фактором. Пока MFA не настроена, staff-доступ не выдаётся. `/api/health` для актуальной схемы должен сообщать `tables: 17`.
 
 </td>
 </tr>
@@ -201,7 +209,7 @@ npm run doctor
 ```
 
 - Сайт: `http://localhost:3000`
-- Админка: войдите на `/login` с включённым тумблером **«Режим администратора»** → откроется `/admin/dashboard`
+- Админка: войдите на `/login` с включённым тумблером **«Режим администратора»**. При уже настроенной MFA откроется `/admin/dashboard`; без второго фактора staff получит только клиентскую сессию и будет направлен на `/profile?mfa=required` для настройки
 - Просмотр БД в браузере: `npx prisma studio` (`http://localhost:5555`)
 
 </td>
@@ -248,9 +256,12 @@ npm run build
 ```bash
 cd /opt/plus-in-plus
 git pull --ff-only && npm ci && npm run build
-set -a; source .env; set +a && npm run db:push
+# Только если схема изменилась и уже есть backup + approval:
+set -a; source .env; set +a
+npm run db:push
+npm run db:check
 pm2 restart plus-in-plus
-npm run deploy:verify -- https://ваш-домен.ru
+npm run deploy:verify -- https://example.com
 ```
 
 </td>
@@ -375,7 +386,7 @@ tar czf backup/uploads-$(date +%F).tar.gz public/uploads
 <details>
 <summary><b>💳 Подключение оплаты Robokassa</b></summary>
 
-Без ключей Робокассы сайт полностью работоспособен: клиент отправляет заявку, а менеджер согласует стоимость и выставляет счёт в БД (просто без кнопки онлайн-оплаты). Чтобы включить платёжные ссылки, заполните в `.env`:
+Сейчас реальные платежи через Robokassa в проекте не принимаются; включение требует подтверждения цен manager/founder и отдельной live-проверки. Без ключей сайт полностью работоспособен: клиент отправляет заявку, а менеджер согласует стоимость и выставляет счёт в БД без кнопки онлайн-оплаты. Для согласованного тестирования платёжных ссылок заполните в `.env`:
 
 ```env
 ROBOKASSA_MERCHANT_LOGIN="ваш_логин"
@@ -398,7 +409,7 @@ ROBOKASSA_HASH_ALGO="md5"
 | Симптом | Причина и решение |
 | --- | --- |
 | `502 Bad Gateway` | Приложение не запущено на `:3000` → проверьте `pm2 status`, `pm2 logs plus-in-plus` и `curl http://127.0.0.1:3000/api/health`. |
-| Вошли под админом, но `/admin/dashboard` редиректит на `/` | Вход выполнен без тумблера **«Режим администратора»**. Выйдите, откройте `/login`, включите переключатель и войдите заново. |
+| Staff не попадает в `/admin/dashboard` | Проверьте, что включён **«Режим администратора»** и пройден второй фактор. Если открыт `/profile?mfa=required`, сначала настройте TOTP/passkey, сохраните backup codes и повторите вход. |
 | Вход/регистрация пишут «временно недоступны» | На сервере не задан `TURSO_DATABASE_URL` или `AUTH_SECRET` короче 32 символов → заполните `.env` и выполните `pm2 restart plus-in-plus`. |
 | `npm run db:push` пишет в локальный `dev.db` вместо Turso | Скрипты `db:*` читают переменные окружения шелла → перед запуском выполните `set -a; source .env; set +a`. |
 | `JavaScript heap out of memory` при `npm run build` | На VPS с 1 ГБ RAM добавьте swap 2 ГБ: `sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile`. |
@@ -409,12 +420,18 @@ ROBOKASSA_HASH_ALGO="md5"
 
 ## Безопасность
 
-- Проверки репозитория: `npm run security:audit` и `npm run security:dependencies` (полный `npm audit`, также запускается в CI).
-- Оценка OWASP/NIST CSF 2.0/MITRE ATT&CK, результаты сканирований, оставшиеся риски и план: [`docs/security/README.md`](docs/security/README.md).
-- Runbooks: [Incident Response](docs/security/incident-response.md), [GDPR](docs/security/gdpr.md), [Backup/DR/ransomware](docs/security/disaster-recovery.md).
+- Проверки репозитория: `npm run security:audit` и `npm run security:dependencies` (полный `npm audit`, также запускается в существующем CI).
+- MFA включает TOTP, WebAuthn/passkeys и одноразовые hashed backup codes. Staff без второго фактора получает только клиентскую сессию и обязан сначала настроить MFA.
+- Access/refresh sessions, rotation/reuse detection, device binding и лимит трёх сессий описаны в `DEPLOYMENT.md`; значения берутся из `lib/session-policy.ts`.
+- Оценка OWASP/NIST CSF 2.0/MITRE ATT&CK, результаты проверок, оставшиеся риски и план: [`docs/security/README.md`](docs/security/README.md).
+- Runbooks: [реагирование на инциденты](docs/security/incident-response.md), [GDPR и приватность](docs/security/gdpr.md), [backup/DR/ransomware](docs/security/disaster-recovery.md).
 - Приватное сообщение об уязвимости: [`SECURITY.md`](SECURITY.md).
 
-Для production обязательны HTTPS-only reverse proxy, проверенные secure cookies, `UPSTASH_*` для общего rate limiting при нескольких инстансах и внешние проверки TLS/заголовков. HSTS `includeSubDomains` можно включать только после проверки HTTPS на всех поддоменах; preload-лист не используется. Документы не заменяют penetration test, restore drill или инфраструктурный аудит.
+Для production обязательны HTTPS-only reverse proxy, проверенные secure cookies, `WEBAUTHN_*` для passkeys, `UPSTASH_*` для общего rate limiting при нескольких инстансах и внешние проверки TLS/заголовков. Production отправляет HSTS `includeSubDomains`, поэтому до запуска необходимо проверить HTTPS на всех поддоменах; preload-лист не используется. Документы и тесты не заменяют penetration test, restore drill или инфраструктурный аудит.
+
+### Обязательный UI/UX-документ
+
+Перед изменением интерфейса читайте [`docs/ui-ux-pro-max.md`](docs/ui-ux-pro-max.md): постоянный стандарт доступности, адаптивности, микроанимаций, производительности и browser evidence, закреплённый также в `AGENTS.md`.
 
 ## Что внутри текущей версии сайта
 
@@ -429,7 +446,7 @@ ROBOKASSA_HASH_ALGO="md5"
 | `/cart` | Единая корзина и заказы `Order` / `OrderItem` + `OrderCard` | Корзина и список заказов на одной странице: услуги и товары с серверной проверкой цены и остатков, отправка одной заявки на согласование, статусы и счета по отправленным заказам, отмена своего неоплаченного заказа |
 | `/login`, `/register`, `/signup` | `SignUp 10` + `AccountModal` | Локализованные вход и регистрация с отдельным режимом служебного входа |
 | `/orders` | Редирект на `/cart` | Отдельной страницы заказов больше нет: корзина и заказы объединены на `/cart`. Маршрут сохранён для старых ссылок и возврата с оплаты |
-| `/profile` | `ProfileForm` | Профиль, аватар и смена пароля с завершением старых сессий |
+| `/profile` | `ProfileForm` · `SecuritySettings` · `SessionRefresh` | Профиль, аватар, смена пароля с отзывом старых сессий, TOTP/passkeys, backup codes и refresh короткой access session |
 | `/manager/orders/*` | Кабинет `MANAGER` | Обработка заявок клиентов, согласование итоговой цены, выставление счёта, фиксация цены с блокировкой заказа и смена статусов |
 | `/admin/*` | Панель `ADMIN` / `FOUNDER` | Дашборд и журнал аудита, CRUD услуг и статей (с загрузкой WebP через Sharp), заказы, роли пользователей, аналитика просмотров. Вкладка **Settings** (ключи Робокассы, токены) и блок **финансов** в аналитике — только для `FOUNDER` |
 
@@ -458,7 +475,8 @@ ROBOKASSA_HASH_ALGO="md5"
 | `npm run lint` / `npx tsc --noEmit` | Проверка ESLint и строгой типизации TypeScript |
 | `npm test` | Запуск полного набора автотестов (`tests/*.test.cjs`) |
 | `npm run security:audit` / `npm run security:dependencies` | Проверка security-политик исходников и полный аудит зависимостей |
-| `npm run db:push` / `npm run db:check` | Синхронизация `prisma/schema.prisma` с БД и проверка всех таблиц |
+| `npm run db:push` / `npm run db:check` | Согласованная синхронизация `prisma/schema.prisma` с БД и проверка всех таблиц; перед реальной БД обязательны backup/review |
+| `npm run db:audit-retention -- --older-than-days=365` | Dry-run псевдонимизации старых ActivityLog; apply требует отдельный ключ и `--apply --confirm=PSEUDONYMIZE` |
 | `npm run db:seed-demo` | Заполнение **локальной** SQLite-базы демо-данными и тестовыми ролями |
 | `npm run db:promote-admin -- <email>` | Выдача служебной роли: по умолчанию `ADMIN`, `--founder` — `FOUNDER`, `--manager` — `MANAGER`, `--revoke` возвращает роль `USER`; без аргументов — список аккаунтов |
 | `npm run deploy:verify -- https://domain` | Внешний smoke-тест боевого домена (`/api/health` и ключевые страницы) |
@@ -468,10 +486,12 @@ ROBOKASSA_HASH_ALGO="md5"
 Иерархия: `USER` → `MANAGER` → `ADMIN` → `FOUNDER`.
 
 - **Регистрация (`/signup`)** всегда создаёт обычного клиента с ролью `USER`.
-- **Разделение сессий:** даже если у аккаунта в БД служебная роль, вход **без** включённого тумблера **«Режим администратора»** создаёт обычную клиентскую сессию. Чтобы попасть в `/admin/dashboard` или `/manager/orders`, включите тумблер при входе.
+- **Разделение сессий:** даже если у аккаунта в БД служебная роль, вход **без** включённого тумблера **«Режим администратора»** создаёт обычную клиентскую сессию. Чтобы попасть в `/admin/dashboard` или `/manager/orders`, включите тумблер и пройдите MFA.
+- **MFA для staff:** при отсутствии TOTP/passkeys служебный режим выдаёт только `USER` session и направляет на `/profile?mfa=required`. Pending login одноразовый, backup codes одноразовые, удаление последнего staff-фактора запрещено.
+- **Access/refresh:** access session действует 15 минут, refresh — 7 дней с ротацией и device binding; одновременно не более трёх сессий. Повтор старого refresh token отзывает активные сессии аккаунта. Понижение роли сохраняется в серверной сессии; позднее повышение не восстанавливает staff mode без нового входа. Единый источник чисел — `lib/session-policy.ts`.
 - **`USER`** — клиент: создаёт заявки и видит только свои.
 - **`MANAGER`** — только заявки: согласовывает цену, выставляет счёт и может **зафиксировать цену и заблокировать заказ** (`isLocked`). Заблокированный заказ не редактируется никем, кроме основателя; снять блокировку может только `FOUNDER`.
 - **`ADMIN`** — управление сайтом и пользователями: назначает менеджеров на странице `/admin/users` (селект роли `USER → MANAGER → ADMIN`). **Не** видит вкладку **Settings** и блок финансов в аналитике, **не** может редактировать заблокированные заказы и аккаунт основателя.
-- **`FOUNDER`** — основатель: полный доступ, включая **Settings** (ключи Робокассы, токен Telegram — хранятся в таблице `site_settings` и имеют приоритет над `.env`), финансы и редактирование заблокированных заказов. **Неуязвим:** из админки его нельзя понизить, заблокировать или сбросить ему пароль (ошибка `Action denied. Founder is invulnerable.`).
+- **`FOUNDER`** — основатель: полный доступ, включая **Settings** (ключи Робокассы, токен Telegram — хранятся в таблице `site_settings` и имеют приоритет над `.env`), финансы и редактирование заблокированных заказов. **Защищён в админке:** его нельзя понизить, заблокировать или сбросить ему пароль через пользовательские management actions (ошибка `Action denied. Founder is invulnerable.`).
 - **Выдача роли `FOUNDER`** — только скриптом с доступом к БД: `npm run db:promote-admin -- you@domain.ru --founder`. Через интерфейс основателя ни создать, ни изменить нельзя.
-- **Оплата (Робокасса):** ключи берутся по приоритету — вкладка **Settings** (БД) → переменные `ROBOKASSA_*` в `.env` → демо-магазин `TestMerchant` (только вне production либо при `ROBOKASSA_DEMO_MODE=1`: демо-пароль публичен, поэтому в production по умолчанию выключен). Ссылку на оплату генерирует `GET/POST /api/payment/create?orderId=…`, уведомления принимает `/api/payments/robokassa/result` (алиас `/api/payment/result`).
+- **Оплата (Робокасса):** ключи берутся по приоритету — вкладка **Settings** (БД) → переменные `ROBOKASSA_*` в `.env` → демо-магазин `TestMerchant` (только вне production либо при явном `ROBOKASSA_DEMO_MODE=1`; публичный demo-пароль делает production demo небезопасным). Ссылку создаёт только same-origin authenticated `POST /api/payment/create` с form field `orderId`, после согласования цены. Уведомления принимает `/api/payments/robokassa/result` (алиас `/api/payment/result`). Реальные платежи сейчас не принимаются; mocked tests не заменяют live verification.

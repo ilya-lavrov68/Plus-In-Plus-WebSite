@@ -18,9 +18,66 @@ const OFFLINE_SQLITE_DDL = [
     "role" TEXT NOT NULL DEFAULT 'USER',
     "isBlocked" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "mfaSecret" TEXT,
+    "mfaPendingSecret" TEXT,
+    "mfaPendingCreatedAt" DATETIME,
+    "mfaEnabledAt" DATETIME,
+    "webAuthnRegistrationChallenge" TEXT,
+    "webAuthnRegistrationChallengeExp" DATETIME
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "users_email_key" ON "users"("email")`,
+  `CREATE TABLE IF NOT EXISTS "pending_logins" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "role" TEXT NOT NULL DEFAULT 'USER',
+    "secretHash" TEXT NOT NULL,
+    "webAuthnChallenge" TEXT,
+    "attempts" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "expiresAt" DATETIME NOT NULL,
+    CONSTRAINT "pending_logins_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+  )`,
+  `CREATE INDEX IF NOT EXISTS "pending_logins_userId_idx" ON "pending_logins"("userId")`,
+  `CREATE INDEX IF NOT EXISTS "pending_logins_expiresAt_idx" ON "pending_logins"("expiresAt")`,
+  `CREATE TABLE IF NOT EXISTS "auth_sessions" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "refreshHash" TEXT NOT NULL,
+    "deviceHash" TEXT NOT NULL,
+    "role" TEXT NOT NULL DEFAULT 'USER',
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "lastUsedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "expiresAt" DATETIME NOT NULL,
+    "revokedAt" DATETIME,
+    "revokeReason" TEXT,
+    CONSTRAINT "auth_sessions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "auth_sessions_refreshHash_key" ON "auth_sessions"("refreshHash")`,
+  `CREATE INDEX IF NOT EXISTS "auth_sessions_userId_revokedAt_expiresAt_idx" ON "auth_sessions"("userId", "revokedAt", "expiresAt")`,
+  `CREATE INDEX IF NOT EXISTS "auth_sessions_expiresAt_idx" ON "auth_sessions"("expiresAt")`,
+  `CREATE TABLE IF NOT EXISTS "mfa_backup_codes" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "codeHash" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "usedAt" DATETIME,
+    CONSTRAINT "mfa_backup_codes_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "mfa_backup_codes_codeHash_key" ON "mfa_backup_codes"("codeHash")`,
+  `CREATE INDEX IF NOT EXISTS "mfa_backup_codes_userId_usedAt_idx" ON "mfa_backup_codes"("userId", "usedAt")`,
+  `CREATE TABLE IF NOT EXISTS "webauthn_credentials" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "publicKey" TEXT NOT NULL,
+    "counter" TEXT NOT NULL DEFAULT '0',
+    "transports" TEXT NOT NULL DEFAULT '[]',
+    "name" TEXT NOT NULL DEFAULT 'Passkey',
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "lastUsedAt" DATETIME,
+    CONSTRAINT "webauthn_credentials_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+  )`,
+  `CREATE INDEX IF NOT EXISTS "webauthn_credentials_userId_idx" ON "webauthn_credentials"("userId")`,
   `CREATE TABLE IF NOT EXISTS "services" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "title" TEXT NOT NULL,
@@ -103,6 +160,7 @@ const OFFLINE_SQLITE_DDL = [
     "entityId" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "actorId" TEXT,
+    "actorPseudonym" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "activity_logs_actorId_fkey" FOREIGN KEY ("actorId") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE CASCADE
   )`,
@@ -218,6 +276,13 @@ const OFFLINE_SQLITE_DDL = [
 // or touching its rows. Keep this list limited to backwards-compatible additions.
 const ADDITIVE_SQLITE_COLUMNS = [
   { table: "orders", column: "cartKey", definition: '"cartKey" TEXT' },
+  { table: "users", column: "mfaSecret", definition: '"mfaSecret" TEXT' },
+  { table: "users", column: "mfaPendingSecret", definition: '"mfaPendingSecret" TEXT' },
+  { table: "users", column: "mfaPendingCreatedAt", definition: '"mfaPendingCreatedAt" DATETIME' },
+  { table: "users", column: "mfaEnabledAt", definition: '"mfaEnabledAt" DATETIME' },
+  { table: "users", column: "webAuthnRegistrationChallenge", definition: '"webAuthnRegistrationChallenge" TEXT' },
+  { table: "users", column: "webAuthnRegistrationChallengeExp", definition: '"webAuthnRegistrationChallengeExp" DATETIME' },
+  { table: "activity_logs", column: "actorPseudonym", definition: '"actorPseudonym" TEXT' },
 ];
 
 // Unique indexes are created only after the required columns exist. SQLite itself

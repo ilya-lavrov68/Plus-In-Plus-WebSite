@@ -9,6 +9,7 @@ import { useTranslations } from "next-intl";
 
 import { changePassword, updateUserProfile } from "@/app/actions/user";
 import { UserAvatar } from "@/components/site/user-avatar";
+import { SecuritySettings, type SecuritySettingsProps } from "@/components/site/security-settings";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +19,7 @@ import { toast } from "@/components/ui/use-toast";
 
 export interface ProfileFormProps {
   sessionRole: string;
+  security?: SecuritySettingsProps;
   initialUser: {
     email: string;
     firstName: string;
@@ -27,7 +29,7 @@ export interface ProfileFormProps {
   };
 }
 
-export function ProfileForm({ initialUser, sessionRole }: ProfileFormProps) {
+export function ProfileForm({ initialUser, sessionRole, security }: ProfileFormProps) {
   const { data: session, status, update } = useSession();
   const router = useRouter();
   const t = useTranslations("profile");
@@ -333,6 +335,8 @@ export function ProfileForm({ initialUser, sessionRole }: ProfileFormProps) {
           </form>
         </CardContent>
       </Card>
+
+      {security ? <SecuritySettings {...security} /> : null}
     </div>
   );
 }

@@ -1,135 +1,147 @@
-# Plus In Plus security assessment and remediation plan
+# Оценка безопасности Plus In Plus и план дальнейших работ
 
-Assessment date: 2026-10-25. Baseline reviewed: `f31c4d7a2654655921b2b959bae30aa10909b1a1`; the hardening delta is the branch containing this document.
+Дата обновления: **2026-10-26**. База сравнения: `d583e92725c1c30095882af1e5d21ce06cb6799d`; оцениваемый delta находится в ветке, содержащей этот документ.
 
-This is a source-and-test assessment, not a certification, external penetration test, infrastructure audit, legal opinion or production security rating. No external “skills” collection or certification is claimed. No configured non-production database, production host, cloud account, TLS endpoint, SIEM or backup vault was available for verification.
+Это оценка исходников и автоматических проверок, **не** сертификация, внешний penetration test, infrastructure audit, юридическое заключение или production security rating. Не было доступа к настроенной non-production/production БД, реальному HTTPS endpoint, cloud account, SIEM, backup vault или live Robokassa. Mock repositories, in-memory doubles и disposable SQLite не выдаются за staging/production evidence.
 
-## 1. Executive result
+## 1. Результат и объём изменений
 
-The repository already had meaningful defenses: server-side RBAC and ownership checks, Auth.js credential handling, bcrypt, timing-safe unknown-account behavior, JWT revocation after password changes, bounded/shared rate limiting, Zod validation, parameterized Prisma queries, HTML sanitization, image re-encoding, SSRF checks, nonce CSP and transactional activity records.
+В baseline уже были server-side RBAC/ownership, Auth.js credentials, bcrypt, generic login failures, bounded/shared rate limiting, Zod, parameterized Prisma, HTML sanitization, image re-encoding, nonce CSP, payment signature/state checks и transactional ActivityLog.
 
-This hardening change adds:
+Текущий hardening delta добавляет или завершает:
 
-- **Passwords:** 12+ characters, maximum 72 UTF-8 bytes for bcrypt, at least three of four character classes, a small offline common-password denylist, and Have I Been Pwned range checks for registration and password changes. Only the first five SHA-1 characters are sent to HIBP; passwords and complete hashes are not sent. Production fails closed on HIBP unavailability by default. `PIP_HIBP_REQUIRED=0` is an explicit availability exception, and `PIP_HIBP_CHECK=0` disables the integration only as an explicit configuration decision.
-- **Login throttling:** five attempts per IP/account pair and ten per IP in a 15-minute fixed window, with a bounded progressive delay of 250 ms–2 s before the hard block. The existing optional atomic Upstash backend and bounded local fallback remain.
-- **Transport/browser headers:** production HSTS `max-age=31536000; includeSubDomains`, without `preload`; `X-XSS-Protection: 0` to disable the unsafe legacy auditor. Existing nonce CSP, `frame-ancestors 'none'`, `nosniff`, referrer and permissions policies are preserved. Production now ignores `PIP_CSP=off` instead of allowing CSP to be disabled.
-- **API request boundaries:** strict `application/json` handling and actual streamed byte limits, not just `Content-Length`, for the reviewed JSON write endpoints. Invalid media type, oversized body and malformed JSON produce 415, 413 and 400 respectively. Existing schema and ownership checks remain authoritative.
-- **Rate-limit semantics:** API 429 responses now include the limiter-derived `Retry-After` value in the updated handlers.
-- **Audit/log hygiene:** successful customer/staff login and logout activity records; structured failed-login/rate-limit events with fixed fields; no email in new user-audit titles; sanitized auth/admin error logging that retains only an allowlisted provider error code, not provider messages or stack data.
-- **Supply-chain gates:** `npm run security:audit` performs focused high-confidence repository policy checks, and `npm run security:dependencies` runs the full npm vulnerability audit. Both are CI gates.
+- **Additive MFA/session schema:** `pending_logins`, `auth_sessions`, `mfa_backup_codes`, `webauthn_credentials` и nullable `activity_logs.actorPseudonym`. Health проверяет 17 таблиц. **Предупреждение:** реальная схема не применялась; нужны backup, reviewed `db:push` и staging verification.
+- **TOTP:** secrets шифруются AES-256-GCM с отдельным HKDF-derived key из `AUTH_SECRET`; pending setup действует десять минут; verification throttled.
+- **WebAuthn/passkeys:** registration/authentication через SimpleWebAuthn 14, user verification required, алгоритмы `-7` и `-257`; production требует HTTPS, `WEBAUTHN_ORIGIN` и `WEBAUTHN_RP_ID` с hostname/parent-domain validation.
+- **Backup codes:** десять одноразовых кодов, только SHA-256 hashes в БД, atomic `usedAt` consumption и regeneration после owner verification. Staff не может удалить последний second factor.
+- **MFA login boundary:** пятиминутный pending login, пять попыток, одноразовое consumption. Staff без фактора получает только `USER` session и `/profile?mfa=required`; ordinary customer login сохранён. Role change во время challenge не повышает сессию автоматически.
+- **Access/refresh sessions:** 15-минутный access, семидневный refresh с исходной absolute expiry и максимум три активные sessions. Единый источник чисел — `lib/session-policy.ts`. Refresh/device hashes, rotation, device binding, reuse/race revocation, logout/password revocation и persisted role downgrade реализованы в коде: позднее повышение не восстанавливает staff mode без нового входа.
+- **Same-origin state changes:** создание платёжной ссылки и refresh принимают только POST. Payment требует `application/x-www-form-urlencoded`, auth, throttling, owner/staff checks, `awaiting_payment` и согласованную положительную цену. State-changing payment GET удалён.
+- **SSRF:** protocol/port/credential restrictions, hostname/IP/DNS validation, connection-time pinning validated address через Undici dispatcher, redirect revalidation, timeout, streamed body cap и cancellation unread body.
+- **CSP telemetry:** legacy и Reporting API bodies, включая camelCase directive fields; rate limit и body cap; structured event содержит только allowlisted directive, но не URLs, samples, cookies, IP или user agent.
+- **Sanitized errors:** health и остальные reviewed server errors логируют fixed event и allowlisted code без provider messages/stacks/connection strings.
+- **Audit retention CLI:** dry-run по умолчанию, HMAC pseudonyms для direct actor/email/IPv4, явный apply confirmation и отдельный ключ. Это не scheduled production retention и не universal GDPR deletion.
+- **Supply-chain updates:** SimpleWebAuthn 14.0.x и совместимый `undici` 7.30.1 с lockfile/overrides; полный npm audit остаётся CI gate.
+- **Постоянный UI/UX-стандарт:** `docs/ui-ux-pro-max.md` и обязательная ссылка в `AGENTS.md`; утверждённые PIP UI-решения сохранены.
 
-No database schema was changed. Customer login, separate staff-mode login, manager scope, CMS ownership, uploads, payments behavior and existing UI behavior were preserved.
+Обычный вход клиента, отдельный staff mode, manager customer/order scope, правила quote/orderable services, database-authoritative CMS, author-controlled content, uploads и RU/EN UI не удалялись.
 
-## 2. Verification results
+## 2. Подтверждённые репозиторные проверки и их границы
 
-| Check | Result | Meaning / limitation |
+| Проверка | Результат на 2026-10-26 | Что это доказывает / чего не доказывает |
 | --- | --- | --- |
-| Clean baseline tests | 331/331 passed before edits | Establishes that the starting branch was healthy after restoring local dependencies with `npm ci`. |
-| `npm audit --omit=dev --json` | 0 critical, high, moderate, low; 246 production dependencies | Point-in-time registry audit, not proof that every package is supported or vulnerability-free forever. |
-| Full `npm audit --json` | 0 critical, high, moderate, low; 722 total dependencies reported by npm | Includes development dependencies. CI runs the full audit and fails on reported vulnerabilities. |
-| `npm run security:audit` | Passed: 310 source/test/workflow files, no high-confidence findings | Detects selected high-confidence secret/token patterns, tracked env files, wildcard CORS, unreviewed HTML/raw-SQL sinks and dynamic runtime execution. It is not a full SAST or secret-scanning guarantee. |
-| Full regression suite after hardening | **342/342 passed** | Covers password policy/HIBP protocol, streamed body caps, headers, throttling, PII-free logs and existing authorization behavior. |
-| TypeScript, ESLint and production build | Passed; ESLint reported no warnings/errors | Build retained existing dependency/Edge and unset-database notices; no build failure. |
-| Local production HTTP smoke | `/` 200; protected page 307; unique nonces; HSTS/security headers present; no wildcard CORS | Production ignored `PIP_CSP=off` as intended. `/api/health` returned the expected 503 because no validation database was configured; database health was not claimed as successful. |
-| External Security Headers / SSL Labs scans | **Not run** | A/A+ cannot be claimed. A real HTTPS deployment and external scanner are required. |
-| Live HIBP integration | **Not called from tests** | Protocol behavior is tested with mocked responses; production connectivity and outage behavior must be smoke-tested without using a real user's password. |
-| Upstash shared limiter | Atomic Lua behavior unit-tested with a mocked REST response | No live Upstash credentials were available. Local fallback is not a distributed limit. |
-| Database/cloud encryption, IAM, firewall and container configuration | **Not verified** | Requires infrastructure access and provider evidence. |
-| External penetration test | **Not performed** | Source review and unit tests do not replace independent testing. |
-| Backup restoration | **Not performed** | The DR runbook is a template, not evidence of recoverability. |
+| Полный `npm test` | **370/370 passed** | Включает прежние RBAC/payment/CMS/upload regressions и новые MFA/session/CSP/SSRF/health/origin tests. Это не staging или external test. |
+| Focused MFA/session regressions | Passed внутри полного suite | TOTP challenge consumption, backup-code single use, role-demotion/re-promotion semantics, refresh rotation/reuse/device binding, three-session limit и selective revocation на in-memory doubles. Не доказывает live authenticator или distributed DB race. |
+| Focused SSRF/CSP/health/origin | Passed внутри полного suite | Body-cap read stop/cancellation, redirect revalidation, modern CSP fields/redaction, health log redaction и cross-origin rejection до side effects. Не live DNS rebinding или browser CSP verification. |
+| Focused WebAuthn config / audit retention | Passed внутри полного suite | Production origin/RP ID/HTTPS validation, deterministic pseudonyms, repeated regex safety и clean-record no-op. Не live authenticator или production retention job. |
+| `npm run security:audit` | Passed: **328 source files**, no high-confidence findings | Focused policy checks выбранных secrets/CORS/raw-SQL/HTML/dynamic-execution patterns. Не полный SAST и не гарантия отсутствия секретов. |
+| `npm run security:dependencies` | **0 vulnerabilities** | Point-in-time full npm audit. Не гарантия будущего отсутствия advisories или поддержки всех версий. |
+| ESLint / TypeScript / production build | **Passed** | `next lint` без warnings/errors, `tsc --noEmit` и `next build` успешны. Build предупредил только об отсутствующей постоянной БД для data sections. |
+| Disposable SQLite schema + local production smoke | **Passed** | `db:push`/`db:check`: 17 таблиц; health `ok`, `/`, `/shop`, `/blog`, `/sitemap.xml` — 200; payment GET — 405; cross-origin POST — 403; пустой refresh — 401; CSP reporting headers есть. Это не staging/Turso/production. |
+| Реальная БД / миграция / Turso concurrency | **Не выполнялись** | `TURSO_DATABASE_URL` для такой среды не был настроен. Нужен reviewed staging run. |
+| Operational MFA у всех staff | **Не подтверждено** | Код enforcement есть; реальные пользователи должны настроить факторы и пройти recovery drill. |
+| Live HIBP / Upstash | **Не проверялись** | Protocol/atomic behavior покрыт mocks; production connectivity и outage behavior требуют smoke. |
+| Live Robokassa | **Не выполнялась; реальные платежи не принимаются** | Нельзя заявлять successful payment. Цены и включение требуют manager/founder confirmation. |
+| Browser design review | **Не выполнялся** | UI/UX playbook и component tests не заменяют screenshots, keyboard/responsive/console observations. |
+| Security Headers / SSL Labs | **Не выполнялись** | A/A+ нельзя вывести из source headers; нужен реальный HTTPS endpoint. |
+| External penetration test | **Не выполнялся** | Source review и unit tests не заменяют независимую проверку. |
+| Backup restoration / IR/GDPR certification | **Не выполнялись** | Runbooks и CLI не доказывают recoverability, compliance или incident readiness. |
 
-`npm ci` also reported deprecated transitive/tooling packages (including ESLint 8 and older glob/rimraf-related tooling). Deprecation is not the same as a known vulnerability, but the tooling upgrade remains in the plan. The Prisma 6 support window must be reviewed before 2026-11-19; plan a tested Prisma 7 migration rather than an unreviewed jump across breaking releases.
+Полный CI в `.github/workflows/ci.yml` дополнительно запускает install/doctor, audits, lint, TypeScript, tests, disposable SQLite schema push/check, production build и HTTP smoke. Он не имеет production secrets и не применяет реальную схему.
 
 ## 3. OWASP Top 10 mapping
 
-Status **partial** means useful controls exist but production or independent assurance is still required.
+**Partial** означает наличие полезных controls при остающейся потребности в production или independent assurance.
 
-| OWASP category | Repository evidence | Remaining risk |
+| Категория | Repository evidence | Оставшийся риск |
 | --- | --- | --- |
-| A01 Broken Access Control | Server-derived roles; effective DB/token role checks; founder protections; manager customer/order scope; owned cart/order operations; authenticated account-linked support; authorization regression tests. Partial. | No external horizontal/vertical authorization test. Permission-denied events are not comprehensively centralized. |
-| A02 Cryptographic Failures | bcrypt cost 12; no plaintext password storage in application code; HSTS and secure Auth.js cookie behavior when production HTTPS is configured. Partial. | TLS/cipher configuration, certificate automation, Turso/storage/backups encryption and key rotation are not verified. Payment credentials can be stored in `site_settings`; a secret-manager migration is still needed. |
-| A03 Injection | Prisma parameter binding; reviewed analytics raw SQL binds values; Zod; sanitized rich text/Markdown; no runtime `child_process`; request size/type checks. Partial. | Independent SQL/NoSQL/command/template injection testing remains. SSRF DNS-resolution pinning should be strengthened as noted under A10. |
-| A04 Insecure Design | Deny-by-default role assignments, server-authoritative prices/CMS, ownership checks, audit records, abuse limits and documented IR/GDPR/DR templates. Partial. | MFA, short access/refresh session architecture, concurrent-session controls, threat-model reviews and approved RTO/RPO are incomplete. |
-| A05 Security Misconfiguration | Nonce CSP, anti-framing, MIME/referrer/permissions headers, production HSTS, disabled legacy XSS auditor, powered-by disabled, CI header tests. Partial. | Proxy HTTPS redirect, forwarded-header overwrite, global CDN/WAF limits, TLS and host/container hardening require deployment verification. HSTS `includeSubDomains` requires an all-subdomain HTTPS review before production enablement. |
-| A06 Vulnerable and Outdated Components | Exact lockfile, `npm ci`, full npm audit in CI, zero current audit findings. Partial. | Continuous advisory monitoring, supported-version upgrades, SBOM and action/dependency provenance need work. Zero audit findings is not a guarantee. |
-| A07 Identification and Authentication Failures | Stronger password policy and HIBP, dummy bcrypt comparison, blocked accounts, password-change revocation, layered limits/delay, generic credential errors. Partial. | No TOTP/WebAuthn/backup codes, risk-based CAPTCHA, device binding, 15-minute access tokens, rotating refresh tokens or three-session limit. |
-| A08 Software and Data Integrity Failures | Lockfile and CI, schema/build checks, transactional audit records, payment signature and amount/order/state validation. Partial. | GitHub Actions are version-tag pinned rather than commit-SHA pinned; no SBOM, artifact signing/provenance or independent integrity assessment. |
-| A09 Security Logging and Monitoring Failures | Activity records for mutations/login/logout, fixed-field auth security events, sanitized auth/admin errors, health check. Partial. | No verified central log collection, immutable off-site audit trail, retention enforcement, CSP report endpoint, Sentry equivalent, alerting or on-call process. |
-| A10 Server-Side Request Forgery | Protocol/port/credential restrictions, private/reserved IP and DNS checks, redirect revalidation, response caps and admin rate limit. Partial. | DNS validation and the subsequent fetch can use separate resolutions (rebinding/TOCTOU risk). Pin the validated address at connection time or enforce a dedicated egress proxy; verify with a live rebinding test. |
+| A01 Broken Access Control | Server-derived roles, DB/token effective roles, founder rules, manager scope, owned cart/order/support, staff MFA enforcement и regressions. Partial. | Нужны external horizontal/vertical tests и centralized permission-denied alerting. |
+| A02 Cryptographic Failures | bcrypt cost 12, encrypted TOTP, hashed backup/refresh secrets, secure production cookies и HSTS при правильном HTTPS deployment. Partial. | TLS/ciphers, certificate automation, Turso/storage/backups encryption, key rotation и managed secret store не проверены. |
+| A03 Injection | Prisma binding, reviewed raw SQL binds, Zod, sanitization, request caps/type checks и no runtime `child_process`. Partial. | Нужны independent SQL/command/template/fuzz tests. |
+| A04 Insecure Design | Deny-by-default roles, server-authoritative prices/CMS, MFA/session architecture, abuse limits, audit records и IR/GDPR/DR templates. Partial. | Нужны approved threat model, RTO/RPO, operational recovery и periodic design reviews. |
+| A05 Security Misconfiguration | Nonce CSP, anti-framing, nosniff/referrer/permissions, HSTS, production CSP enforcement и telemetry endpoint. Partial. | Proxy redirect/forwarded-header overwrite, CDN/WAF, TLS и host/container hardening требуют deployment verification. HSTS `includeSubDomains` требует all-subdomain review. |
+| A06 Vulnerable and Outdated Components | Exact lockfile, `npm ci`, full audit в CI, текущий zero finding. Partial. | Нужны continuous advisory monitoring, SBOM, supported Prisma/ESLint upgrades и dependency/action provenance. |
+| A07 Identification and Authentication Failures | Strong/HIBP passwords, generic errors, throttling, TOTP/WebAuthn/backup codes, pending challenge limits, 15-minute access, rotating seven-day refresh, device binding и three-session limit. Repository controls реализованы; overall Partial. | Нужны real staff enrollment, authenticator/browser tests, staging concurrency/revocation, risk-based signals и incident recovery. |
+| A08 Software and Data Integrity Failures | Lockfile/CI, schema/build checks, transactional audit, payment signature/amount/order/state validation. Partial. | Actions pinned by tags, не commit SHA; нет SBOM, artifact signing/provenance и independent integrity assessment. |
+| A09 Security Logging and Monitoring Failures | ActivityLog, fixed-field auth/refresh events, sanitized errors, health и redacted CSP telemetry; retention CLI. Partial. | Нет подтверждённого central immutable logging, alerting/on-call и approved automated retention schedule. |
+| A10 Server-Side Request Forgery | Public protocol/port/IP/DNS rules, connection-time validated-IP pinning, redirect revalidation, timeout/body cap и focused tests. Partial. | Нужны live rebinding/egress tests и при необходимости dedicated egress proxy; external network behavior не проверялся. |
 
-XML parsing was not identified as an application request path. No new XML parser or external-entity feature is introduced. CORS remains same-origin by default; no wildcard allowance is added. JSON media-type enforcement also prevents cross-origin “simple form” submission to the updated JSON endpoints, but it is not a universal CSRF design for every route. Auth.js/Next.js origin and SameSite protections must remain enabled, and state-changing GET routes should be removed in a follow-up review.
+XML parsing не обнаружен как application request path. CORS остаётся same-origin по умолчанию. JSON media-type checks и same-origin POST boundaries дополняют, но не заменяют Auth.js/Next.js Server Action protections и отдельную CSRF matrix для всех будущих routes.
 
-## 4. NIST CSF 2.0 — all six functions
+## 4. NIST CSF 2.0 — все шесть функций
 
-| Function | Current evidence | Status and next action |
+| Функция | Текущее evidence | Статус и следующее действие |
 | --- | --- | --- |
-| **Govern** | This assessment, remediation priorities, security reporting policy and IR/GDPR/DR templates. | **Partial.** Founder/security/privacy/deputy roles, risk acceptance, vendor ownership, policy approval and review cadence must be assigned. |
-| **Identify** | Prisma schema/data inventory, runtime source review, dependency inventory and audit, documented critical assets and threats. | **Partial.** Complete production asset/data-flow inventory, processor register, business impact analysis and externally validated attack surface. |
-| **Protect** | RBAC/ownership, password and breach controls, throttling, validation, headers, upload re-encoding, sanitization, SSRF checks, secret-handling rules and CI gates. | **Partial.** Add staff MFA, session redesign, verified TLS/IAM/encryption, secret manager, global WAF limits and retention enforcement. |
-| **Detect** | Health endpoint, activity/audit records, structured authentication events and CI anomaly gates. | **Partial.** Centralize tamper-resistant logs, alert on spikes/role changes/payment anomalies/audit failures, add CSP/error reporting and rehearse detection queries. |
-| **Respond** | [Incident-response runbook](incident-response.md), audit evidence sources and containment levers. | **Template only.** Assign on-call and legal contacts, preserve off-site evidence, test communication and perform a tabletop exercise. |
-| **Recover** | Existing backup commands and [DR runbook](disaster-recovery.md). | **Not proven.** Approve RTO/RPO, encrypt and separate backups, perform isolated database/upload restore drills and measure results. |
+| **Govern** | Эта оценка, reporting policy, IR/GDPR/DR и deployment runbooks | **Partial.** Назначить owners/deputies, risk acceptance, vendor ownership, approval и review cadence. |
+| **Identify** | Prisma data inventory, source/dependency review, documented assets/threats | **Partial.** Завершить production asset/data-flow inventory, processor register, BIA и external attack-surface validation. |
+| **Protect** | RBAC/ownership, MFA/session controls, passwords, throttling, validation, headers, uploads, SSRF pinning, secrets rules и CI | **Partial.** Применить reviewed schema, включить staff MFA, проверить TLS/IAM/encryption, secret manager, WAF и retention. |
+| **Detect** | Health, ActivityLog, structured auth/refresh/security events и redacted CSP endpoint | **Partial.** Centralize tamper-resistant logs, alert на spikes/role/payment/session anomalies и отрепетировать queries. |
+| **Respond** | [IR runbook](incident-response.md), containment/revocation/rotation levers | **Template only.** Назначить on-call/legal contacts, off-site evidence и tabletop exercise. |
+| **Recover** | Backup commands, session-revocation guidance и [DR runbook](disaster-recovery.md) | **Not proven.** Утвердить RTO/RPO, создать immutable off-site copies и выполнить isolated restore. |
 
-## 5. MITRE ATT&CK mapping
+## 5. MITRE ATT&CK defensive mapping
 
-This is a defensive coverage map, not a claim that ATT&CK certifies the application.
+Это defensive coverage map, а не заявление о certification ATT&CK.
 
-| Technique | Relevant controls | Gap / validation |
+| Technique | Релевантные controls | Gap / validation |
 | --- | --- | --- |
-| T1110.001 Password Guessing; T1110.004 Credential Stuffing | bcrypt, dummy comparison, 5/10-attempt limits, progressive delay, stronger/HIBP password checks, generic errors. | Shared production limiter, distributed-attack tests, alerting, MFA and risk-based CAPTCHA. |
-| T1078 Valid Accounts | Blocked users, effective DB roles, founder rules, staff opt-in, password-change JWT revocation. | MFA, stolen-session detection, device/risk signals and rapid global revocation. |
-| T1550.004 Web Session Cookie | Auth.js signed cookies, production Secure behavior over HTTPS, SameSite/HttpOnly defaults, server role checks. | Short access/rotating refresh design, three-session limit, binding/reuse detection and cookie inspection on the real deployment. |
-| T1136 Create Account | Registration always creates USER, input allowlist and registration limits. | Abuse monitoring and optional risk-based challenge; no self-service role assignment. |
-| T1098 Account Manipulation | Role changes restricted to admin/founder, founder immutability rules and audit events. | Alerts for role/password/block changes and periodic access recertification. |
-| T1190 Exploit Public-Facing Application | Validation, body caps, headers, sanitization, parameterized queries, dependency audit and tests. | Independent SAST/DAST/fuzzing and external penetration test. |
-| T1059 Command and Scripting Interpreter; T1059.007 JavaScript | No runtime command execution identified; repository policy blocks new dynamic execution; nonce CSP and HTML sanitizer. | Browser exploit testing, CSP violation telemetry and trusted-types evaluation where compatible. |
-| T1105 Ingress Tool Transfer | Raster-only allowlist, signature checks, Sharp re-encoding, metadata stripping, UUID names, no SVG, path confinement. | Aggregate multipart limits and optional malware scanning for any future non-image formats. |
-| T1580 Cloud Infrastructure Discovery | SSRF blocks loopback, private, link-local and metadata destinations; redirects and response sizes constrained. | DNS pinning/egress proxy and live rebinding tests. |
-| T1499 Endpoint Denial of Service | Bounded limiter map, optional atomic shared limiting, body/pixel limits, timeouts and capped SSRF reads. | CDN/WAF global 100 requests/IP/minute policy, load tests and distributed rate-limit availability decisions. |
-| T1070 Indicator Removal on Host | Application activity log is append-oriented and transaction-bound. | Database administrators can alter local rows; export to immutable off-site retention with access separation. |
-| T1485 Data Destruction; T1486 Data Encrypted for Impact | Backup guidance, no destructive schema change in this work, scoped permissions and DR runbook. | Immutable/offline copies, separate backup credentials, restore drills and ransomware tabletop. |
-| T1567 Exfiltration Over Web Service | CSP `connect-src 'self'`, restricted outbound import target and no arbitrary avatar URL fetching. | Egress allowlisting, DLP/ anomaly monitoring and vendor/data-transfer review. |
+| T1110.001 Password Guessing; T1110.004 Credential Stuffing | bcrypt, dummy comparison, 5/10-attempt limits, progressive delay, HIBP/password policy, generic errors и MFA | Shared production limiter, distributed-attack tests, alerting и при необходимости risk-based CAPTCHA |
+| T1078 Valid Accounts | Blocked users, effective roles, staff opt-in + MFA, pending limits, password/session revocation | Operational enrollment, stolen-session detection, device/risk signals и access recertification |
+| T1550.004 Web Session Cookie | Short access JWT, hashed rotating refresh, device binding, reuse/race revocation, three-session limit и Secure/HttpOnly cookies | Cookie inspection и replay/concurrency tests на реальном deployment |
+| T1136 Create Account | Registration всегда USER, input allowlist и registration limits | Abuse monitoring и optional risk-based challenge; self-service role assignment отсутствует |
+| T1098 Account Manipulation | Admin/founder role restrictions, founder rules, last-staff-factor protection и audit | Alerts на role/password/block/MFA changes и periodic recertification |
+| T1190 Exploit Public-Facing Application | Validation, caps, headers, sanitization, parameterized queries, dependency audit и tests | Independent SAST/DAST/fuzzing и external penetration test |
+| T1059 Command and Scripting Interpreter; T1059.007 JavaScript | No runtime command execution identified, policy checks, nonce CSP и sanitizer | Browser exploit testing, real CSP telemetry review и trusted-types evaluation |
+| T1105 Ingress Tool Transfer | Raster allowlist, signatures, Sharp re-encoding, UUID names, no SVG и path confinement | Aggregate multipart limits и malware scanning для будущих non-image formats |
+| T1580 Cloud Infrastructure Discovery | SSRF private/metadata blocking, DNS pinning, redirect revalidation и capped reads | Live rebinding и egress-proxy validation |
+| T1499 Endpoint Denial of Service | Bounded limiter map, optional shared limiting, body/pixel limits, timeout/capped SSRF reads | CDN/WAF global 100 requests/IP/minute policy, load tests и distributed availability decisions |
+| T1070 Indicator Removal on Host | Append-oriented transaction-bound ActivityLog и optional pseudonymization | DB admins могут изменять local rows; нужен immutable off-site export и legal-hold process |
+| T1485 Data Destruction; T1486 Data Encrypted for Impact | Backup/DR guidance, scoped permissions и session revocation after restore | Immutable/offline copies, separate backup credentials, restore drills и ransomware tabletop |
+| T1567 Exfiltration Over Web Service | CSP `connect-src 'self'`, restricted/pinned import target и no arbitrary avatar fetching | Egress allowlisting, anomaly monitoring и vendor/data-transfer review |
 
-## 6. Prioritized remediation plan
+## 6. Приоритетный оставшийся план
 
-### P0 — required before an Internet-facing production release
+### P0 — до Internet-facing production release
 
-1. **Verify deployment security on the real host:** HTTPS-only redirect, HSTS after reviewing every subdomain, secure `__Secure-` cookies, trusted proxy header overwrite, no direct public Node port, current TLS/ciphers and certificate renewal. Run external Security Headers and SSL Labs scans; do not infer their grades from source.
-2. **MFA for FOUNDER/ADMIN/MANAGER:** TOTP with encrypted secrets, single-use hashed backup codes, recovery workflow and throttled verification; then WebAuthn/passkeys. Require a warned, reviewed schema migration and test recovery/blocked/demoted users. Do not place TOTP secrets in JWTs or logs.
-3. **Session architecture:** design 15-minute access plus seven-day rotating refresh sessions, refresh-reuse detection, explicit global revocation, optional device/risk binding and a maximum of three concurrent sessions. This needs a reviewed persistence design and migration; shortening the existing JWT lifetime alone would not implement refresh-token security.
-4. **Production abuse controls:** configure and test Upstash or an equivalent atomic shared store; enforce the global 100 requests/IP/minute policy at CDN/WAF, tune NAT exceptions, add risk-based CAPTCHA only after abuse signals and alert on limiter fallback/outage.
-5. **Secrets and data protection:** move payment credentials from database settings to a managed secret store without removing the founder's approved configuration workflow; rotate exposed credentials, verify Turso/host/IAM/encryption and separate backup credentials. Never print secrets or personal data in logs.
-6. **Monitoring and response:** centralize logs off-site, protect audit integrity, configure alerts/on-call, add privacy-reviewed CSP violation and error reporting, approve the IR contact matrix and run a tabletop exercise.
-7. **Recoverability:** create encrypted off-site immutable backups for Turso/libSQL and `public/uploads`, then perform and document an isolated restore test. Backups that have not been restored are not proven backups.
-8. **Privacy:** approve legal bases, retention and processors; handle legacy audit titles containing email through a reviewed cleanup/pseudonymization job; implement access/export/deletion workflows and verify analytics-consent withdrawal retention behavior.
+1. **Схема и staging:** backup, reviewed additive `db:push`, `db:check`, health 17 и полный staging smoke на копии. Проверить MFA enrollment/login/recovery, passkeys в браузере, refresh rotation/reuse/race, logout/password revocation и четыре concurrent sessions.
+2. **Operational MFA:** включить второй фактор у каждого FOUNDER/ADMIN/MANAGER, сохранить backup codes в approved manager, назначить recovery owners и убедиться, что ordinary customer login сохранён.
+3. **Deployment security:** HTTPS-only redirect, trusted proxy headers, secure `__Secure-` cookies, `WEBAUTHN_*`, TLS/ciphers/certificate renewal и all-subdomain HSTS review. Выполнить external Security Headers/SSL Labs без выдумывания оценок.
+4. **Abuse controls:** настроить и проверить Upstash/equivalent, CDN/WAF global limits, NAT exceptions, limiter outage alerts и при необходимости risk-based CAPTCHA.
+5. **Secrets и payments:** managed secret store для payment/provider credentials, rotation drill, Turso/IAM/encryption review. Robokassa оставить без реальных платежей до manager/founder confirmation и successful live verification.
+6. **Monitoring/privacy:** central off-site logs, alerting/on-call, approved CSP/log retention, legal bases/processors и отдельный monitored schedule для retention CLI. Не запускать cleanup поверх incident/legal hold.
+7. **Recoverability:** encrypted immutable off-site backups БД/uploads и successful isolated restore, включая restored-session revocation и privacy reapplication.
+8. **Независимая проверка:** authenticated/unauthenticated penetration test с remediation/retest до любого заявления об успешном pentest.
 
-### P1 — next engineering iteration
+### P1 — следующая engineering-итерация
 
-- Pin SSRF connections to validated DNS results or route imports through a restricted egress proxy; add a live rebinding regression environment.
-- Review and remove state-changing GET behavior, then run a dedicated CSRF test matrix for custom API routes, Server Actions, authentication and payment creation/callbacks.
-- Add continuous advisory scanning, Dependabot/renovate review, SBOM generation, commit-SHA-pinned GitHub Actions and a supported ESLint/Prisma upgrade plan.
-- Add professional SAST/DAST and fuzzing for parsers, upload decoders, URL canonicalization, role/ownership matrices and payment callbacks.
-- Add aggregate multipart/streaming limits and central CSP/error telemetry with redaction and retention controls.
-- Conduct access recertification, least-privilege reviews, secret rotation drills and security training for administrators/developers.
+- Commit-SHA-pinned GitHub Actions, Dependabot/Renovate review, SBOM, artifact provenance и supported Prisma/ESLint upgrade plan.
+- Live DNS-rebinding/egress test environment и professional SAST/DAST/fuzzing для parsers, uploads, URL canonicalization, RBAC и payment callbacks.
+- Aggregate multipart/streaming limits, central error telemetry и rehearsed alert queries.
+- Browser-based UI/accessibility review по `docs/ui-ux-pro-max.md` с screenshots, keyboard, responsive, reduced motion и повторным review после fixes.
+- Access recertification, secret rotation drills и security training.
 
-### P2 — independent assurance and resilience
+### P2 — assurance и resilience
 
-- Commission an external authenticated/unauthenticated penetration test and remediate/retest findings before claiming success.
-- Consider a scoped private vulnerability-disclosure or bug-bounty program only after triage ownership and fix SLAs exist.
-- Exercise incident response, ransomware isolation and disaster recovery; measure actual RTO/RPO and improve runbooks.
-- If AI functionality is introduced, inventory models/vendors, keep secrets and unnecessary personal data out of prompts, use typed allowlisted tools, treat output as untrusted, validate generated payloads, add prompt-injection/data-exfiltration evaluations and apply the same RBAC/audit boundaries.
+- Повторные external pentest/retest после крупных изменений.
+- Private disclosure/bug bounty только после triage owners и fix SLA.
+- IR/ransomware/DR exercises с измеренными RTO/RPO.
+- Для будущего AI: inventory models/vendors, no unnecessary PII/secrets in prompts, typed allowlisted tools, untrusted output validation и prompt-injection/exfiltration evaluations.
 
 ## 7. Acceptance status
 
-| Requested outcome | Current status |
+| Запрошенный результат | Статус |
 | --- | --- |
-| No critical/high npm findings | **Met at the 2026-10-25 point-in-time audit; continuously gated in CI.** |
-| A+ Security Headers | **Not verified.** Header controls are implemented/tested; an external production scan is still required. |
-| A+ SSL Labs | **Not verified.** Depends on the actual TLS endpoint and certificate configuration. |
-| TOTP/WebAuthn/backup codes | **Not implemented; P0 with a reviewed migration.** |
-| 15-minute access + seven-day refresh rotation/device binding/three sessions | **Not implemented; P0 architecture work.** |
-| Successful independent penetration test | **Not performed.** |
-| Successful backup restore | **Not performed.** |
-| IR/GDPR/DR documents | **Templates added; ownership, legal approval and exercises remain.** |
+| Нет critical/high npm findings | **Выполнено на point-in-time audit 2026-10-26: 0 vulnerabilities; CI gate сохранён.** |
+| A+ Security Headers | **Не проверено.** Source controls есть, нужен external production scan. |
+| A+ SSL Labs | **Не проверено.** Зависит от реального TLS endpoint. |
+| TOTP/WebAuthn/backup codes | **Реализовано в репозитории; operational enrollment и live authenticator verification остаются.** |
+| 15-minute access + seven-day rotation/device binding/three sessions | **Реализовано в репозитории; staging/distributed verification остаётся.** |
+| SSRF DNS pinning/redirect/cap | **Реализовано и unit-tested; live rebinding/egress verification остаётся.** |
+| Same-origin POST payment/refresh | **Реализовано и regression-tested; live payment не выполнялась.** |
+| CSP telemetry и sanitized health logging | **Реализовано и regression-tested; central monitoring/alerts остаются.** |
+| Audit retention | **Dry-run/apply CLI реализован; approved schedule/legal policy/production execution отсутствуют.** |
+| Successful independent penetration test | **Не выполнялся.** |
+| Successful backup restore | **Не выполнялся.** |
+| IR/GDPR/DR документы | **Русские templates обновлены; ownership, legal approval и exercises остаются.** |
 
-Operational documents: [Incident response](incident-response.md), [GDPR/privacy checklist](gdpr.md), [Disaster recovery](disaster-recovery.md), and the repository-root `SECURITY.md`.
+Operational documents: [Incident Response](incident-response.md), [GDPR/privacy](gdpr.md), [Disaster Recovery](disaster-recovery.md) и корневой `SECURITY.md`.
