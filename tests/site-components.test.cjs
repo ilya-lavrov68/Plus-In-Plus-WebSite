@@ -120,6 +120,11 @@ Module._load = function (name, parent, isMain) {
       registerUser: async () => ({ ok: true }),
     };
   }
+  if (name === "@/app/actions/mfa") {
+    return {
+      getMfaPasskeyOptions: async () => ({ ok: false, error: "MFA is not configured in this component test." }),
+    };
+  }
   if (name === "@/app/actions/orders") {
     return {
       createOrder: async () => ({ orderNumber: "ПИП-000001" }),
@@ -948,11 +953,15 @@ test("a pending invoice without a stored URL still offers the authenticated rege
   act(() => {
     view = create(React.createElement(OrderCard, { order }));
   });
-  const paymentLinks = view.root.findAllByType("a").filter((link) =>
-    String(link.props.href).startsWith("/api/payment/create"));
-  assert.equal(paymentLinks.length, 1);
-  assert.equal(paymentLinks[0].props.href, "/api/payment/create?orderId=ord-7");
-  assert.match(textOf(paymentLinks[0]), /Pay/);
+  const paymentForms = view.root.findAllByType("form").filter((form) =>
+    form.props.action === "/api/payment/create");
+  assert.equal(paymentForms.length, 1);
+  assert.equal(paymentForms[0].props.method, "POST");
+  const orderInput = paymentForms[0].findByProps({ name: "orderId" });
+  assert.equal(orderInput.props.value, "ord-7");
+  assert.match(textOf(paymentForms[0]), /Pay/);
+  assert.equal(view.root.findAllByType("a").filter((link) =>
+    String(link.props.href).startsWith("/api/payment/create")).length, 0);
   act(() => view.unmount());
 });
 

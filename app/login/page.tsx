@@ -25,5 +25,9 @@ interface LoginPageProps {
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const query = await searchParams;
   const mode = Array.isArray(query.mode) ? query.mode[0] : query.mode;
-  return <Signup10 defaultMode="login" defaultAdminMode={mode === "admin"} />;
+  const rawCallback = Array.isArray(query.callbackUrl) ? query.callbackUrl[0] : query.callbackUrl;
+  const callbackUrl = rawCallback?.startsWith("/") && !rawCallback.startsWith("//") && !rawCallback.includes("\\")
+    ? rawCallback
+    : undefined;
+  return <Signup10 defaultMode="login" defaultAdminMode={mode === "admin"} callbackUrl={callbackUrl} />;
 }

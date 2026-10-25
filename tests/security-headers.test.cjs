@@ -37,6 +37,8 @@ test("the policy locks the site down to its own origin", () => {
   assert.deepEqual(policy["frame-src"], ["https://www.canva.com", "https://canva.com"]);
   assert.equal(policy["script-src"].some((source) => source.includes("canva")), false);
   assert.ok(policy["upgrade-insecure-requests"] !== undefined, "production upgrades http subresources");
+  assert.deepEqual(policy["report-uri"], ["/api/security/csp-report"]);
+  assert.deepEqual(policy["report-to"], ["csp-endpoint"]);
 });
 
 test("scripts need the per-request nonce and nothing else in production", () => {
@@ -98,6 +100,7 @@ test("the static headers are sent everywhere, framing denial only in production"
   assert.match(production["Permissions-Policy"], /camera=\(\)/);
   assert.equal(production["X-Frame-Options"], "DENY");
   assert.equal(production["X-XSS-Protection"], "0");
+  assert.equal(production["Reporting-Endpoints"], "csp-endpoint=\"/api/security/csp-report\"");
   assert.equal(production["Strict-Transport-Security"], "max-age=31536000; includeSubDomains");
   assert.equal(development["Strict-Transport-Security"], undefined);
   assert.equal(development["X-XSS-Protection"], "0");

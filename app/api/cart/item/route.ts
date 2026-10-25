@@ -12,6 +12,8 @@ import {
 } from "@/lib/cart-operations";
 import { prisma } from "@/lib/prisma";
 import { readJsonBody } from "@/lib/request-body";
+import { isSameOriginRequest } from "@/lib/request-origin";
+import { logServerError } from "@/lib/security-log";
 
 export const dynamic = "force-dynamic";
 
@@ -41,11 +43,12 @@ async function operationError(error: unknown, fallback: string) {
       { status },
     );
   }
-  console.error(fallback, error);
+  logServerError("cart.item_failed", error);
   return NextResponse.json({ error: fallback }, { status: 500 });
 }
 
 export async function POST(request: Request) {
+  if (!isSameOriginRequest(request)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const customer = await requireActiveCustomer();
   if (!customer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!prisma) return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
@@ -66,6 +69,7 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  if (!isSameOriginRequest(request)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const customer = await requireActiveCustomer();
   if (!customer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!prisma) return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
@@ -86,6 +90,7 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  if (!isSameOriginRequest(request)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const customer = await requireActiveCustomer();
   if (!customer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!prisma) return NextResponse.json({ error: "Database unavailable" }, { status: 503 });

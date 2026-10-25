@@ -353,6 +353,12 @@ const cartCheckoutRoute = require("../app/api/cart/checkout/route.ts");
 const cartCountRoute = require("../app/api/cart/count/route.ts");
 const { getCustomerOrders } = require("../lib/customer-orders.ts");
 
+function apiRequest(url, init = {}) {
+  const headers = new Headers(init.headers);
+  if (!headers.has("origin")) headers.set("origin", new URL(url).origin);
+  return new Request(url, { ...init, headers });
+}
+
 beforeEach(() => {
   resetStore();
   currentUser = { id: "usr-1", email: "client@example.com", role: "USER" };
@@ -389,7 +395,7 @@ test("unified cart stores both services and products in one Order (status='cart'
 
   // Add a service (5 000 ₽)
   const addSvcRes = await cartItemRoute.POST(
-    new Request("http://localhost/api/cart/item", {
+    apiRequest("http://localhost/api/cart/item", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -403,7 +409,7 @@ test("unified cart stores both services and products in one Order (status='cart'
 
   // Add a product (4 500 ₽ × 2)
   const addPrdRes = await cartItemRoute.POST(
-    new Request("http://localhost/api/cart/item", {
+    apiRequest("http://localhost/api/cart/item", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -454,7 +460,7 @@ test("unified cart stores both services and products in one Order (status='cart'
     .toISOString()
     .split("T")[0];
   const checkoutRes = await cartCheckoutRoute.POST(
-    new Request("http://localhost/api/cart/checkout", {
+    apiRequest("http://localhost/api/cart/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -488,12 +494,12 @@ test("unified cart stores both services and products in one Order (status='cart'
 
 test("concurrent first cart writes converge on one cart and checkout releases its unique key", async () => {
   const [serviceResponse, productResponse] = await Promise.all([
-    cartItemRoute.POST(new Request("http://localhost/api/cart/item", {
+    cartItemRoute.POST(apiRequest("http://localhost/api/cart/item", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ itemType: "service", itemId: "svc-sign", quantity: 1 }),
     })),
-    cartItemRoute.POST(new Request("http://localhost/api/cart/item", {
+    cartItemRoute.POST(apiRequest("http://localhost/api/cart/item", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ itemType: "product", itemId: "prd-hoodie", quantity: 1 }),
@@ -505,7 +511,7 @@ test("concurrent first cart writes converge on one cart and checkout releases it
   const firstCart = [...ordersMap.values()][0];
   assert.equal(firstCart.cartKey, "usr-1");
 
-  const checkout = await cartCheckoutRoute.POST(new Request("http://localhost/api/cart/checkout", {
+  const checkout = await cartCheckoutRoute.POST(apiRequest("http://localhost/api/cart/checkout", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({}),
@@ -535,7 +541,7 @@ test("configured service lines keep immutable identities for independent update 
     ],
   }];
   for (const optionIds of [["option-matte"], ["option-gloss"]]) {
-    const response = await cartItemRoute.POST(new Request("http://localhost/api/cart/item", {
+    const response = await cartItemRoute.POST(apiRequest("http://localhost/api/cart/item", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ itemType: "service", itemId: "svc-sign", optionIds }),
@@ -546,7 +552,7 @@ test("configured service lines keep immutable identities for independent update 
   const payload = await (await cartGetRoute.GET()).json();
   const [first, second] = payload.items;
   assert.notEqual(first.id, second.id);
-  const update = await cartItemRoute.PATCH(new Request("http://localhost/api/cart/item", {
+  const update = await cartItemRoute.PATCH(apiRequest("http://localhost/api/cart/item", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id: first.id, quantity: 3 }),
@@ -554,7 +560,7 @@ test("configured service lines keep immutable identities for independent update 
   assert.equal(update.status, 200);
   assert.equal(orderItemsMap.get(first.id).quantity, 3);
   assert.equal(orderItemsMap.get(second.id).quantity, 1);
-  const remove = await cartItemRoute.DELETE(new Request("http://localhost/api/cart/item", {
+  const remove = await cartItemRoute.DELETE(apiRequest("http://localhost/api/cart/item", {
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id: second.id }),
@@ -566,7 +572,7 @@ test("configured service lines keep immutable identities for independent update 
 
 test("direct cart mutations reject unavailable services and excess product stock", async () => {
   servicesMap.get("svc-sign").isPublished = false;
-  const unavailable = await cartItemRoute.POST(new Request("http://localhost/api/cart/item", {
+  const unavailable = await cartItemRoute.POST(apiRequest("http://localhost/api/cart/item", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ itemType: "service", itemId: "svc-sign" }),
@@ -574,13 +580,13 @@ test("direct cart mutations reject unavailable services and excess product stock
   assert.equal(unavailable.status, 400);
   servicesMap.get("svc-sign").isPublished = true;
   servicesMap.get("svc-sign").isOrderable = false;
-  const quoteOnly = await cartItemRoute.POST(new Request("http://localhost/api/cart/item", {
+  const quoteOnly = await cartItemRoute.POST(apiRequest("http://localhost/api/cart/item", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ itemType: "service", itemId: "svc-sign" }),
   }));
   assert.equal(quoteOnly.status, 400);
-  const excessStock = await cartItemRoute.POST(new Request("http://localhost/api/cart/item", {
+  const excessStock = await cartItemRoute.POST(apiRequest("http://localhost/api/cart/item", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ itemType: "product", itemId: "prd-hoodie", quantity: 16 }),
@@ -590,7 +596,7 @@ test("direct cart mutations reject unavailable services and excess product stock
 });
 
 test("existing cart lines expose stale catalog eligibility and cannot be checked out", async () => {
-  await cartItemRoute.POST(new Request("http://localhost/api/cart/item", {
+  await cartItemRoute.POST(apiRequest("http://localhost/api/cart/item", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ itemType: "service", itemId: "svc-sign" }),
@@ -598,7 +604,7 @@ test("existing cart lines expose stale catalog eligibility and cannot be checked
   servicesMap.get("svc-sign").isPublished = false;
   const payload = await (await cartGetRoute.GET()).json();
   assert.equal(payload.items[0].unavailable, true);
-  const checkout = await cartCheckoutRoute.POST(new Request("http://localhost/api/cart/checkout", {
+  const checkout = await cartCheckoutRoute.POST(apiRequest("http://localhost/api/cart/checkout", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({}),
@@ -609,7 +615,7 @@ test("existing cart lines expose stale catalog eligibility and cannot be checked
 
 test("DELETE /api/cart/item removes individual item and checkout rejects empty cart", async () => {
   await cartItemRoute.POST(
-    new Request("http://localhost/api/cart/item", {
+    apiRequest("http://localhost/api/cart/item", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ itemType: "service", itemId: "svc-sign" }),
@@ -620,7 +626,7 @@ test("DELETE /api/cart/item removes individual item and checkout rejects empty c
   const line = cartPayload.items.find((item) => item.itemId === "svc-sign");
   assert.ok(line?.id, "the API exposes the immutable order-item id");
   const delRes = await cartItemRoute.DELETE(
-    new Request("http://localhost/api/cart/item", {
+    apiRequest("http://localhost/api/cart/item", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: line.id }),
@@ -629,7 +635,7 @@ test("DELETE /api/cart/item removes individual item and checkout rejects empty c
   assert.equal(delRes.status, 200);
 
   const emptyCheckout = await cartCheckoutRoute.POST(
-    new Request("http://localhost/api/cart/checkout", {
+    apiRequest("http://localhost/api/cart/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({}),

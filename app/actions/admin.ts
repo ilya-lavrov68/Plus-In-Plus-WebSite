@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { getActionTranslator } from "@/lib/action-i18n";
 import { recordActivity } from "@/lib/activity-log";
 import { requireAdmin, requireFounder } from "@/lib/admin-session";
+import { revokeAllAuthSessions } from "@/lib/auth-sessions";
 import { prisma } from "@/lib/prisma";
 import { logServerError } from "@/lib/security-log";
 import { isSecretSiteSettingKey, isSiteSettingKey } from "@/lib/site-settings";
@@ -46,6 +47,7 @@ export async function updateUserRole(userId: string, role: AssignableRole): Prom
     if (target.role === "FOUNDER") return { ok: false, error: t("founderInvulnerable") };
 
     const user = await prisma.user.update({ where: { id: userId }, data: { role }, select: { id: true } });
+    await revokeAllAuthSessions(userId, "role_changed");
     await prisma.activityLog.create({ data: { action: `role changed to ${role}`, entityType: "user", entityId: user.id, title: "User account", actorId: admin.id } });
     revalidatePath("/admin/users");
     revalidatePath("/admin/dashboard");
@@ -70,6 +72,7 @@ export async function toggleUserBlocked(userId: string, blocked: boolean): Promi
     if (target.role === "FOUNDER") return { ok: false, error: t("founderInvulnerable") };
 
     const user = await prisma.user.update({ where: { id: userId }, data: { isBlocked: blocked }, select: { id: true } });
+    await revokeAllAuthSessions(userId, blocked ? "account_blocked" : "account_unblocked");
     await prisma.activityLog.create({ data: { action: blocked ? "blocked" : "unblocked", entityType: "user", entityId: user.id, title: "User account", actorId: admin.id } });
     revalidatePath("/admin/users");
     return { ok: true };
@@ -96,6 +99,7 @@ export async function resetUserPassword(userId: string): Promise<AdminActionResu
 
     const temporaryPassword = randomBytes(9).toString("base64url");
     const user = await prisma.user.update({ where: { id: userId }, data: { passwordHash: await bcrypt.hash(temporaryPassword, 12) }, select: { id: true } });
+    await revokeAllAuthSessions(userId, "password_reset");
     await prisma.activityLog.create({ data: { action: "password reset", entityType: "user", entityId: user.id, title: "User account", actorId: admin.id } });
     revalidatePath("/admin/users");
     return { ok: true, temporaryPassword };

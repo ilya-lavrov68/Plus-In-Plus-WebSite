@@ -63,7 +63,11 @@ const { getStaffUserDirectory } = require("../lib/admin-data.ts");
 function supportRequest(email = "form@example.com") {
   return new Request("http://localhost/api/support", {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-real-ip": `198.51.100.${addressSequence++}` },
+    headers: {
+      "Content-Type": "application/json",
+      "Origin": "http://localhost",
+      "x-real-ip": `198.51.100.${addressSequence++}`,
+    },
     body: JSON.stringify({
       firstName: "Form",
       lastName: "Sender",

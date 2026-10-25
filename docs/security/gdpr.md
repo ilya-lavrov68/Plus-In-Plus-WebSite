@@ -1,77 +1,107 @@
-# GDPR and privacy engineering checklist (template)
+# GDPR и инженерия приватности (шаблон)
 
-Status: engineering checklist, not legal advice and not a declaration of compliance. The controller/privacy owner must approve purposes, legal bases, retention, processors, international transfers and notification decisions before production.
+**Статус:** engineering checklist, не юридическая консультация и не декларация compliance. Controller/privacy owner обязан до production утвердить цели, legal bases, retention, processors, международные transfers и notification decisions.
 
-## 1. Repository-derived data inventory
+## 1. Инвентарь данных по репозиторию
 
-| Data | Where | Purpose seen in code | Main risk / required decision |
+| Данные | Где | Назначение в коде | Основной риск / решение |
 | --- | --- | --- | --- |
-| Email, first/last name, role, blocked status, password hash, avatar path | `users` | Account authentication, profile, authorization and order handling. | Define account/contract/legal-obligation bases, access/export/deletion and retention. Never log password hashes or credentials. |
-| Project descriptions, deadlines, prices, customer/manager notes and order identifiers | `orders`, `order_items`, `order_services` | Quotes, order processing and support. The support note can include submitted name/email. | Minimize free text, restrict staff scope, define financial/legal retention and deletion exceptions. |
-| Payment identifiers, amount/currency, status and limited callback payload | `payments` | Invoice and server-confirmed payment state. | Robokassa is not currently accepting payments; reassess before enabling. Define processor, reconciliation retention and access. |
-| Actor/entity IDs, actions, entity titles and timestamps | `activity_logs` | Security/administrative accountability. | Older rows may contain email in titles; new user events use `User account`. Approve legacy cleanup and retention. Export security logs off-site with restricted access. |
-| Path, pseudonymous visitor/session IDs, referrer, UTM source, optional user agent/device/duration | `page_views` | Product analytics after consent in the reviewed route. | Historical rows are not automatically deleted when browser consent is withdrawn. Define retention, deletion/pseudonymization and consent evidence. |
-| Avatar, service/blog images and album files | `public/uploads` | User/CMS-controlled images, re-encoded to WebP. | Images may themselves contain personal data. Back up, delete and fulfill rights consistently with database references. |
-| Founder-configured provider credentials | `site_settings` | Payment/integration configuration. | Not ordinary profile data, but highly restricted secrets. Move to a managed secret store and verify database encryption/access. |
+| Email, имя/фамилия, роль, blocked status, password hash, avatar path | `users` | Authentication, profile, RBAC и orders | Утвердить bases, access/export/deletion и retention. Не логировать hashes/credentials |
+| Encrypted TOTP secrets, pending secrets и MFA timestamps | `users` | Настройка и проверка второго фактора | Ограничить доступ; ротация `AUTH_SECRET` требует MFA recovery/re-enrollment |
+| WebAuthn credential IDs, public keys, counters, names | `webauthn_credentials` | Passkey authentication | Это security/account data; не считать публичный key разрешением на публикацию связи с пользователем |
+| Hashed backup codes и `usedAt` | `mfa_backup_codes` | Одноразовый recovery | Не хранить/логировать raw codes; определить retention после замены/использования |
+| Pending login ID, secret hash, role, attempts, challenge, expiry | `pending_logins` | Пятиминутный MFA challenge | Удалять expired/replayed records по approved retention; не превращать в долгий login history |
+| Session ID, refresh/device hashes, role, usage/expiry/revocation | `auth_sessions` | До трёх revocable refresh sessions | Защитить как security data; определить cleanup expired/revoked rows и доступ к device correlations |
+| Project descriptions, deadlines, prices, notes, order IDs | `orders`, `order_items`, `order_services` | Quotes, orders и support | Минимизировать free text, ограничить staff scope, учесть financial/legal holds |
+| Payment IDs, amount/currency, status, limited callback data | `payments` | Invoice и server-confirmed state | Реальные платежи сейчас не принимаются; перед включением пересмотреть processor и retention |
+| Actor/entity IDs, actions, titles, timestamps, actor pseudonym | `activity_logs` | Security/admin accountability | Старые titles могут содержать email; `actorPseudonym` остаётся псевдонимом, а не автоматической анонимностью |
+| Path, pseudonymous visitor/session IDs, referrer, UTM, user agent/device/duration | `page_views` | Analytics после consent | Withdrawal очищает browser identifiers, но не удаляет historical rows; нужен отдельный retention/deletion процесс |
+| Avatar, service/blog images, albums | `public/uploads` | User/CMS images в WebP | Видимое содержимое может быть PII; backup/delete/rights должны учитывать DB references |
+| Founder-configured provider credentials | `site_settings` | Payment/integration configuration | Не обычный profile data, а restricted secrets; нужен managed secret store |
 
-The HIBP password check sends only a five-character SHA-1 prefix and receives a range of suffixes. It does not send the password, email or full hash. Document this flow in the privacy review and verify network logs do not capture sensitive request material.
+HIBP получает только пятисимвольный SHA-1 prefix и возвращает suffix range. Пароль, email и полный hash не отправляются. Задокументировать flow в privacy review и убедиться, что network logs не записывают sensitive request material.
+
+CSP endpoint принимает browser reports, но structured event сохраняет только allowlisted directive. Document/blocked URLs, samples, cookies, IP и user agent в application event не копируются. Это minimization, а не основание хранить provider access logs без собственной политики.
 
 ## 2. Governance checklist
 
-- [ ] Name the controller, privacy owner, security owner and DPO if required after an official assessment.
-- [ ] Record each processing purpose and legal basis; do not assume consent is the correct basis for account/order processing.
-- [ ] Maintain processor/subprocessor and hosting region records for the deployment, Turso/libSQL, Upstash if configured, email/monitoring providers, Robokassa if enabled and embedded Canva usage.
-- [ ] Assess international transfer mechanisms and government-access risks where applicable.
-- [ ] Determine whether a DPIA is required; perform one for material monitoring, profiling or other high-risk changes.
-- [ ] Approve a record of processing activities and review it after schema, vendor or analytics changes.
-- [ ] Keep public privacy/cookie notices consistent with actual behavior and configured providers.
-- [ ] Review author-controlled Canva embeds and third-party content for browser-side data sharing; a CSP frame allowlist is not a privacy consent mechanism.
+- [ ] Назначить controller, privacy owner, security owner и DPO, если он требуется по официальной оценке.
+- [ ] Зафиксировать purposes и legal bases; не считать consent универсальным основанием для account/order processing.
+- [ ] Вести processor/subprocessor и hosting-region records для deployment, Turso/libSQL, Upstash, email/monitoring, Robokassa при включении и Canva embeds.
+- [ ] Оценить international transfer mechanisms и government-access risks.
+- [ ] Определить необходимость DPIA и пересматривать её при monitoring/profiling/high-risk изменениях.
+- [ ] Утвердить record of processing activities и обновлять после schema/vendor/analytics changes.
+- [ ] Синхронизировать public privacy/cookie notices с фактическими providers и поведением.
+- [ ] Проверять author-controlled Canva/third-party content на browser-side sharing; CSP frame allowlist не заменяет consent.
 
 ## 3. Data-subject rights workflow
 
-Implement and test a private, authenticated workflow rather than accepting sensitive requests through public issues:
+Нужен приватный authenticated процесс, а не sensitive requests через public issues:
 
-1. Receive and log the request reference without unnecessary personal data.
-2. Verify identity proportionately; do not rely solely on an emailed ID document or expose account data before verification.
-3. Search the approved inventory: account, orders/support notes, payments, activity, analytics identifiers and uploads/backups as applicable.
-4. For access/export, produce a secure, time-limited export with safe formatting and authorization checks. CSV export must defend against spreadsheet formula injection if introduced.
-5. For correction, use the existing profile path where appropriate and record the action without putting profile values in audit titles.
-6. For erasure/objection/restriction, assess legal holds and financial/security retention; document what was deleted, pseudonymized or retained and why.
-7. For consent withdrawal, stop future analytics writes and execute the approved historical-data retention/deletion rule. Clearing browser identifiers alone does not erase server rows.
-8. Propagate verified requests to relevant processors and backups according to the approved schedule.
-9. Respond within the applicable deadline (generally one month under GDPR, with only legally permitted extensions) and record the decision.
+1. Зарегистрировать request reference без лишних PII.
+2. Пропорционально проверить identity; не раскрывать account data до проверки.
+3. Поискать по approved inventory: account, MFA/sessions, orders/support, payments, activity, analytics, uploads/backups.
+4. Для access/export создать secure time-limited export с authorization и safe formatting. При будущем CSV защититься от spreadsheet formula injection.
+5. Для correction использовать profile path где уместно; не помещать profile values в audit titles.
+6. Для erasure/objection/restriction оценить legal holds и financial/security retention; записать, что удалено, псевдонимизировано или оставлено и почему.
+7. При consent withdrawal остановить future analytics writes и выполнить approved historical-data rule. Очистка browser IDs не удаляет server rows.
+8. Передать verified requests processors и в backup process по approved schedule.
+9. Ответить в применимый срок (обычно один месяц по GDPR, только с законными extensions) и сохранить решение.
 
-Self-service export/deletion and automated processor propagation are **not implemented** by this change.
+Self-service export/deletion и automated processor propagation **не реализованы** этим изменением.
 
-## 4. Candidate retention schedule — approval and enforcement required
+## 4. Retention: кандидаты и фактический CLI
 
-These are proposed starting points, not active policy:
+Сроки ниже — предложения, а не действующая политика:
 
-| Data class | Candidate | Open decision |
+| Data class | Кандидат | Открытое решение |
 | --- | --- | --- |
-| Operational security events | 30–90 days online, longer only for documented incidents | Balance investigation needs against minimization; centralize and restrict access. |
-| ActivityLog | Define by event class; review legacy email titles promptly | Some business/financial records may require longer legal retention; do not silently delete evidence during an incident. |
-| PageView raw pseudonymous events | Short rolling window, then aggregate or delete | Approve exact period and consent-withdrawal behavior. |
-| Accounts/profile/uploads | Active account duration plus approved closure period | Handle active orders, disputes and legal holds. |
-| Orders/payment records | Determined by applicable accounting, tax, contract and dispute requirements | Obtain jurisdiction-specific advice; do not invent a universal period. |
-| Backups | Short rolling protected window with delayed secure expiry | Restore process must not resurrect deleted data indefinitely; maintain a deletion-reapplication ledger where required. |
+| Operational security events | 30–90 дней online; дольше только для documented incidents | Minimization, restricted central storage, investigation needs |
+| ActivityLog | По event class; старые email/IP titles обработать после review | Legal/financial holds и incident evidence имеют приоритет над automatic cleanup |
+| PendingLogin / AuthSession | Короткий cleanup после expiry/revocation, если нет hold | Нужен отдельный approved schedule; текущий CLI их не удаляет |
+| PageView | Короткое rolling window, затем aggregate/delete | Точный срок и consent-withdrawal behavior |
+| Accounts/profile/MFA/uploads | Active account + approved closure period | Active orders, disputes, recovery и legal holds |
+| Orders/payments | По accounting, tax, contract и dispute requirements | Нужна jurisdiction-specific оценка, не универсальный срок |
+| Backups | Короткое protected rolling window с delayed secure expiry | Не воскрешать deleted data бессрочно; вести deletion-reapplication ledger где требуется |
 
-No automated retention enforcement is added in this change.
+### Что реализовано
 
-## 5. Privacy and security controls already relevant
+`npm run db:audit-retention` обрабатывает только старые `ActivityLog` и по умолчанию ничего не изменяет:
 
-- Authenticated support links the order to the session customer, not an arbitrary submitted account.
-- Managers retain customer/order scope; founder/admin settings remain restricted.
-- Analytics writes require `analyticsConsent: true`; browser consent withdrawal removes local pseudonymous identifiers.
-- New user-audit titles do not contain email, and auth/admin error logging omits provider messages/stacks.
-- Passwords are bcrypt-hashed and are not included in activity/security events or HIBP requests.
-- Uploaded raster images are re-encoded and metadata is stripped, but visible personal content remains the controller's responsibility.
+```bash
+npm run db:audit-retention -- --older-than-days=365
+```
+
+Dry-run выводит counts без record values. Для apply нужны backup, approved policy, отдельный стабильный ключ и явное подтверждение:
+
+```bash
+export AUDIT_PSEUDONYM_KEY="<отдельный-секрет-не-короче-32-символов>"
+npm run db:audit-retention -- --older-than-days=365 --apply --confirm=PSEUDONYMIZE
+```
+
+Apply:
+
+- устанавливает `actorId = null` и сохраняет HMAC-based `actorPseudonym` при наличии actor;
+- заменяет обнаруженные email и IPv4 в `title` псевдонимами;
+- сохраняет action/entity context и не удаляет всю запись;
+- не обрабатывает автоматически orders, payments, sessions, page views, uploads или backups.
+
+Это **псевдонимизирующий repository job**, не scheduled production retention, не universal anonymizer и не GDPR certification. Значение 365 дней — CLI default, а не утверждённый legal retention. Не запускать при incident/legal hold без approval. Смена ключа между запусками меняет будущую корреляцию и требует отдельного плана.
+
+## 5. Уже существующие privacy/security controls
+
+- Authenticated support связывает order с session customer, а не submitted account ID.
+- Managers сохраняют customer/order scope; founder/admin settings остаются restricted.
+- Analytics writes требуют `analyticsConsent: true`; withdrawal удаляет local pseudonymous identifiers.
+- Новые user-audit titles не содержат email; sanitized auth/admin/health logs опускают provider messages/stacks/connection strings.
+- Passwords bcrypt-hashed; refresh tokens и backup codes хранятся как hashes; TOTP secrets encrypted.
+- Raster uploads перекодируются и лишаются metadata, но видимая PII остаётся ответственностью controller.
 
 ## 6. Privacy incident checklist
 
-- [ ] Record what data, people, systems and time window are involved; avoid copying the exposed dataset into the incident channel.
-- [ ] Preserve evidence securely and contain access.
-- [ ] Assess likelihood and severity of risk to rights and freedoms with the privacy/legal owner.
-- [ ] Where GDPR applies, assess supervisory notification without undue delay and within 72 hours of awareness when required; document reasons even when not notifying.
-- [ ] Assess high-risk individual notification and processor/controller duties.
-- [ ] Complete remediation, retention/deletion decisions and a documented post-incident review.
+- [ ] Зафиксировать data, people, systems и time window; не копировать exposed dataset в incident channel.
+- [ ] Сохранить evidence безопасно и ограничить доступ.
+- [ ] Оценить likelihood/severity риска для rights and freedoms с privacy/legal owner.
+- [ ] При применимом GDPR оценить supervisory notification без undue delay и в течение 72 часов, когда требуется; задокументировать причины даже при отказе от уведомления.
+- [ ] Оценить high-risk individual notification и processor/controller duties.
+- [ ] Завершить remediation, retention/deletion decisions и post-incident review.

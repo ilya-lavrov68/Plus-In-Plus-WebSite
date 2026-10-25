@@ -1,81 +1,87 @@
-# Backup, disaster-recovery and ransomware runbook (template)
+# Runbook backup, Disaster Recovery и ransomware (шаблон)
 
-Status: no backup restoration, failover or recovery-time test was performed for this assessment. The targets below are proposals requiring founder/business approval; they are not achieved service levels.
+**Статус:** restore, failover и recovery-time test в рамках репозиторной работы не выполнялись. Цели ниже — предложения для founder/business approval, а не достигнутые SLA.
 
-## 1. Assets and proposed objectives
+## 1. Активы и предлагаемые цели
 
-| Asset | Required protection | Proposed starting objective |
+| Актив | Необходимая защита | Начальная цель до business impact analysis |
 | --- | --- | --- |
-| Turso/libSQL database | Provider backup plus independently exported, encrypted, access-separated copy | RPO 24 hours; RTO 4 hours until business impact analysis approves otherwise. |
-| `public/uploads` | Versioned/incremental encrypted copy with integrity checks and safe deletion handling | Same initial RPO/RTO as the database; reconcile references during restore. |
-| Environment/provider configuration | Managed secret store with separate backup/recovery procedure | Recover through named owners; never commit secrets or place them in the general backup archive. |
-| Application source/configuration | Git history, reviewed release artifact and dependency lockfile | Rebuild from a known-good reviewed commit; verify artifact provenance. |
-| DNS/TLS/proxy/CDN settings | Exportable restricted configuration and renewal/runbook documentation | Restore HTTPS-only routing and trusted-header behavior before reopening traffic. |
+| Turso/libSQL database | Provider backup + независимый encrypted access-separated export | RPO 24 часа; RTO 4 часа |
+| `public/uploads` | Versioned/incremental encrypted copy, integrity checks, safe deletion | Тот же начальный RPO/RTO; reconcile references |
+| Environment/provider configuration | Managed secret store и отдельная recovery procedure | Восстановление named owners; секреты не входят в общий archive |
+| Application source/config | Git history, reviewed release artifact, lockfile | Rebuild из known-good commit с provenance check |
+| DNS/TLS/proxy/CDN | Restricted exported config и renewal/runbook docs | До открытия трафика восстановить HTTPS-only и trusted headers |
 
-Recommended resilience classes: daily protected copies, a separate off-site/account copy, and an immutable or offline recovery point. Encryption keys and backup-delete permissions must be separated from the production application identity.
+Рекомендуемые классы: ежедневные protected copies, отдельная off-site/account copy и immutable/offline recovery point. Encryption keys и backup-delete permissions отделяются от production application identity.
 
-## 2. Backup job requirements
+`AUTH_SECRET` не помещается в общий backup archive. Его восстановление/ротация планируется отдельно: смена значения завершает sessions и требует повторной настройки TOTP, потому что MFA encryption key выводится из него через HKDF.
 
-The README contains example Turso dump and uploads archive commands. Before relying on them:
+## 2. Требования к backup jobs
 
-- [ ] Schedule and monitor both database and upload jobs; alert on failure, unusual size changes and missing recovery points.
-- [ ] Encrypt backups in transit and at rest; restrict read/delete/write roles separately.
-- [ ] Store at least one copy outside the production account/region failure domain where provider/legal policy permits.
-- [ ] Use immutable/object-lock or offline protection against ransomware and credential misuse.
-- [ ] Record backup start/end, source version, encryption/key reference, integrity result and retention expiry without including secrets or personal data in job logs.
-- [ ] Reconcile database and upload snapshots so restored image references and files are consistent.
-- [ ] Test retention and secure deletion; do not keep every copy forever.
-- [ ] Do not place backups under the public web root or Git workspace.
+Примеры команд находятся в `README.md` и `DEPLOYMENT.md`. До того как полагаться на них:
 
-## 3. Isolated restore drill
+- [ ] Настроить schedule и monitoring для БД и uploads; alert на failure, unusual size и missing recovery point.
+- [ ] Шифровать in transit/at rest; разделить read/delete/write roles.
+- [ ] Хранить минимум одну копию вне production account/region failure domain, где это разрешено provider/legal policy.
+- [ ] Использовать immutable/object-lock или offline protection от ransomware и credential misuse.
+- [ ] Записывать start/end, source version, key reference, integrity и expiry без secrets/PII в job logs.
+- [ ] Согласовать database/upload snapshots, чтобы restored references и files совпадали.
+- [ ] Проверить retention и secure deletion; не хранить все копии бесконечно.
+- [ ] Не размещать backups в public web root или Git workspace.
+- [ ] Учесть `ActivityLog` pseudonymization/deletion-reapplication после restore, чтобы старая копия не отменила approved privacy actions бессрочно.
 
-Never perform a first restore against the production database or production uploads directory.
+## 3. Изолированный restore drill
 
-1. **Authorize and record:** assign operator/reviewer, choose the recovery point, document expected UTC time and create an isolated restoration workspace/provider project.
-2. **Protect production:** use separate credentials with no production write/delete privilege. Confirm the target name verbally and in the record before every destructive command.
-3. **Restore database:** import into a newly created isolated libSQL/Turso database. Do not overwrite the source backup. Verify schema with the repository's Prisma generation/`db:check` approach using the isolated configuration.
-4. **Restore uploads:** extract into a new isolated directory with path traversal/symlink-safe archive handling. Compare manifest counts, sizes and cryptographic hashes with the recorded source manifest.
-5. **Check integrity:** compare row counts and selected non-sensitive invariants (roles, published slugs, order/payment state totals) against the backup record. Do not print customer records or secrets into the drill log.
-6. **Run an isolated application:** point only the test instance to the restored database/uploads. Require production-like security headers and non-production authentication secrets.
-7. **Smoke-test:** `/api/health`, public pages, representative login using test-only accounts, staff/customer role separation, owned orders, CMS rendering and image responses. Do not send real payments or messages to real users.
-8. **Measure:** actual data-loss window, elapsed database/upload/application recovery times, failures and manual dependencies. Compare with approved RPO/RTO.
-9. **Clean up:** revoke temporary credentials and securely destroy isolated personal-data copies after evidence/approval requirements are met.
-10. **Improve:** file corrective actions with owners/dates and repeat until the restore succeeds. Record the next drill date.
+Первый restore никогда не выполняется в production database или production uploads directory.
 
-Suggested cadence: automated backup checks daily, an isolated restore quarterly and after major database/storage changes. This cadence is a recommendation until formally approved.
+1. **Authorize и записать:** назначить operator/reviewer, выбрать recovery point, указать ожидаемое UTC time и создать isolated workspace/provider project.
+2. **Защитить production:** использовать separate credentials без production write/delete privilege. Перед каждой destructive command подтвердить target name.
+3. **Восстановить БД:** импортировать в новую isolated libSQL/Turso database, не перезаписывая source backup. Проверить схему через Prisma generation, `db:check` и health; текущая схема ожидает 17 таблиц.
+4. **Восстановить uploads:** извлечь в новую isolated directory с path traversal/symlink-safe handling. Сравнить manifest counts, sizes и cryptographic hashes.
+5. **Проверить integrity:** сравнить row counts и нечувствительные invariants: roles, published slugs, order/payment state totals. Не печатать customer records/secrets в drill log.
+6. **Обезопасить restored sessions:** до открытия приложения выполнить reviewed revocation restored `AuthSession` и очистку `PendingLogin`, чтобы старые browser tokens не получили доступ после cutover. Само наличие backup не должно воскрешать refresh access.
+7. **Запустить isolated app:** направить только test instance на restored DB/uploads, сохранить production-like headers и non-production auth config. Для MFA-сценариев создать test-only account и заново настроить факторы; не использовать реальные customer credentials и не ожидать, что старый TOTP заработает с другим `AUTH_SECRET`.
+8. **Smoke-test:** health, public pages, representative login, customer/staff separation, MFA enrollment/challenge, refresh revocation, owned orders, CMS и images. Не отправлять real payments/messages.
+9. **Измерить:** фактическое data-loss window, database/upload/application recovery times, failures и manual dependencies; сравнить с approved RPO/RTO.
+10. **Очистить:** отозвать temporary credentials и securely destroy isolated PII copies после evidence/approval requirements.
+11. **Улучшить:** назначить corrective owners/dates и повторять до успешного restore; записать следующий drill date.
+
+Рекомендуемый cadence: automated backup checks ежедневно, isolated restore ежеквартально и после крупных DB/storage changes. До formal approval это рекомендация, не действующая политика.
 
 ## 4. Disaster recovery sequence
 
-1. Declare the incident and freeze risky deployments/migrations.
-2. Preserve logs/evidence and determine whether source data is trustworthy. Do not restore over evidence.
-3. Select a known-clean recovery point before the compromise/corruption window.
-4. Rebuild known-clean infrastructure and rotate application, database, backup, payment and deployment secrets as required.
-5. Perform the isolated restore and validation above.
-6. Plan production cutover with explicit target identifiers, rollback decision and customer communication.
-7. Restore HTTPS-only proxy/CDN routing, trusted forwarded headers, shared rate limiting and monitoring before reopening.
-8. Reconcile writes that occurred after the recovery point only through a reviewed process; never replay unknown webhooks or payment callbacks blindly.
-9. Monitor integrity and security closely, then complete the post-incident review.
+1. Объявить incident и заморозить risky deployments/migrations.
+2. Сохранить logs/evidence и определить, заслуживает ли source data доверия. Не восстанавливать поверх evidence.
+3. Выбрать known-clean recovery point до compromise/corruption window.
+4. Rebuild known-clean infrastructure и ротировать application/database/backup/payment/deployment secrets по необходимости.
+5. Выполнить isolated restore и validation выше.
+6. Запланировать production cutover с explicit target IDs, rollback decision и customer communication.
+7. Перед reopening восстановить HTTPS-only routing, trusted forwarded headers, WebAuthn origin/RP ID, shared rate limiting и monitoring.
+8. Не открывать доступ со старыми restored sessions: выполнить revocation и потребовать новый вход. Не replay unknown webhooks/payment callbacks.
+9. Согласовать записи после recovery point только reviewed process; вести privacy deletion/pseudonymization reapplication ledger.
+10. Усилить monitoring, затем завершить post-incident review.
 
 ## 5. Ransomware-specific controls
 
-- Keep immutable/offline recovery copies beyond the reach of production and ordinary administrator credentials.
-- Separate backup read, write and delete privileges; require strong MFA for backup/control-plane accounts.
-- Alert on mass file changes, abnormal backup deletion, unusual database dumps and unexpected privilege changes.
-- Isolate affected hosts and pause synchronization that could propagate encrypted files to healthy versions.
-- Rebuild rather than trusting a compromised host, rotate exposed credentials and validate restored files before execution or public serving.
-- Do not claim ransomware resilience until both isolation and clean restoration have been exercised.
+- Держать immutable/offline recovery points вне досягаемости production и ordinary admin credentials.
+- Разделять backup read/write/delete privileges; требовать strong MFA для backup/control-plane accounts.
+- Alert на mass file changes, abnormal backup deletion, unusual DB dumps и privilege changes.
+- Изолировать affected hosts и остановить synchronization potentially encrypted files в healthy versions.
+- Rebuild вместо доверия compromised host, ротировать exposed credentials и проверять restored files до execution/public serving.
+- Не заявлять ransomware resilience, пока isolation и clean restoration не отрепетированы.
 
-## 6. Drill evidence template
+## 6. Шаблон evidence для drill
 
-Record this in restricted operational storage, not with personal data in Git:
+Хранить в restricted operational storage, не в Git с PII:
 
-- Drill date/time and operators/reviewer:
-- Source and target environments (non-sensitive identifiers):
-- Recovery point and reason selected:
+- Дата/время, operator и reviewer:
+- Source/target environments (нечувствительные IDs):
+- Recovery point и причина выбора:
 - Backup integrity/encryption/immutability checks:
-- Database schema/count/invariant result:
+- Schema (17 таблиц), counts и invariant results:
 - Upload manifest/hash/reference result:
-- Application/security smoke result:
-- Measured RPO and RTO:
-- Failures, corrective owners and due dates:
-- Temporary-data destruction and credential revocation confirmation:
+- Session revocation и privacy reapplication result:
+- Application/MFA/security smoke result:
+- Измеренные RPO и RTO:
+- Failures, corrective owners и due dates:
+- Temporary-data destruction и credential revocation:

@@ -14,6 +14,7 @@
  */
 import { lookup } from "node:dns/promises";
 import { BlockList, isIP } from "node:net";
+import { Agent, fetch as undiciFetch } from "undici";
 
 export class UnsafeTargetError extends Error {}
 
@@ -111,7 +112,14 @@ export function isBlockedHostname(hostname: string): boolean {
  * Validates one URL. Throws `UnsafeTargetError` when it must not be requested.
  * DNS answers are checked too: a public-looking name may point at 127.0.0.1.
  */
-export async function assertPublicUrl(raw: string): Promise<URL> {
+export interface PublicTarget {
+  url: URL;
+  hostname: string;
+  address: string;
+  family: 4 | 6;
+}
+
+export async function resolvePublicUrl(raw: string): Promise<PublicTarget> {
   let url: URL;
   try {
     url = new URL(raw.trim());
@@ -140,7 +148,7 @@ export async function assertPublicUrl(raw: string): Promise<URL> {
     if (isPrivateAddress(hostname)) {
       throw new UnsafeTargetError("Internal, loopback and service addresses are not allowed.");
     }
-    return url;
+    return { url, hostname, address: hostname, family: isIP(hostname) as 4 | 6 };
   }
 
   let records;
@@ -156,7 +164,17 @@ export async function assertPublicUrl(raw: string): Promise<URL> {
     }
   }
 
-  return url;
+  const selected = records[0];
+  return {
+    url,
+    hostname,
+    address: selected.address,
+    family: selected.family === 6 ? 6 : 4,
+  };
+}
+
+export async function assertPublicUrl(raw: string): Promise<URL> {
+  return (await resolvePublicUrl(raw)).url;
 }
 
 /** Reads at most `maxBytes`, so a hostile or huge page cannot exhaust memory. */
@@ -172,8 +190,11 @@ async function readBodyCapped(response: Response, maxBytes: number): Promise<str
       const { done, value } = await reader.read();
       if (done) break;
       if (!value) continue;
-      chunks.push(value);
-      total += value.byteLength;
+      const remaining = maxBytes - total;
+      const chunk = value.byteLength > remaining ? value.subarray(0, remaining) : value;
+      chunks.push(chunk);
+      total += chunk.byteLength;
+      if (chunk.byteLength < value.byteLength) break;
     }
   } finally {
     await reader.cancel().catch(() => undefined);
@@ -188,6 +209,25 @@ export interface SafeFetchOptions {
   timeoutMs?: number;
   maxRedirects?: number;
   userAgent?: string;
+  /** Test transport only; production callers use the DNS-pinned Undici fetch. */
+  fetchImpl?: typeof fetch;
+}
+
+function pinnedAgent(target: PublicTarget): Agent {
+  return new Agent({
+    connect: {
+      lookup: (hostname, _options, callback) => {
+        const normalized = hostname.toLowerCase().replace(/\.$/, "");
+        if (normalized !== target.hostname.toLowerCase()) {
+          callback(new UnsafeTargetError("Unexpected connection hostname."), "");
+          return;
+        }
+        // No second DNS answer is consulted: this connection must use the exact
+        // public address validated by resolvePublicUrl().
+        callback(null, target.address, target.family);
+      },
+    },
+  });
 }
 
 /**
@@ -199,24 +239,36 @@ export async function fetchPublicText(target: string, options: SafeFetchOptions 
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const maxRedirects = options.maxRedirects ?? DEFAULT_MAX_REDIRECTS;
 
-  let url = await assertPublicUrl(target);
+  let nextTarget = target;
+  const fetchImpl = options.fetchImpl ?? (undiciFetch as unknown as typeof fetch);
 
   for (let hop = 0; hop <= maxRedirects; hop += 1) {
-    const response = await fetch(url, {
-      redirect: "manual",
-      headers: { "user-agent": options.userAgent ?? "PlusInPlus import preview" },
-      signal: AbortSignal.timeout(timeoutMs),
-    });
+    const resolved = await resolvePublicUrl(nextTarget);
+    const dispatcher = pinnedAgent(resolved);
+    try {
+      const response = await fetchImpl(resolved.url, {
+        redirect: "manual",
+        headers: { "user-agent": options.userAgent ?? "PlusInPlus import preview" },
+        signal: AbortSignal.timeout(timeoutMs),
+        dispatcher,
+      } as RequestInit);
 
-    if (response.status >= 300 && response.status < 400) {
-      const location = response.headers.get("location");
-      if (!location) throw new UnsafeTargetError("The address redirected without a destination.");
-      url = await assertPublicUrl(new URL(location, url).toString());
-      continue;
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers.get("location");
+        await response.body?.cancel().catch(() => undefined);
+        if (!location) throw new UnsafeTargetError("The address redirected without a destination.");
+        nextTarget = new URL(location, resolved.url).toString();
+        continue;
+      }
+
+      if (!response.ok) {
+        await response.body?.cancel().catch(() => undefined);
+        throw new UnsafeTargetError(`The address answered ${response.status}.`);
+      }
+      return await readBodyCapped(response, maxBytes);
+    } finally {
+      await dispatcher.close().catch(() => undefined);
     }
-
-    if (!response.ok) throw new UnsafeTargetError(`The address answered ${response.status}.`);
-    return readBodyCapped(response, maxBytes);
   }
 
   throw new UnsafeTargetError("Too many redirects.");

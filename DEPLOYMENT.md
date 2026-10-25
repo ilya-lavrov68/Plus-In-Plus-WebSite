@@ -1,296 +1,266 @@
-# Deployment
+# Деплой Plus In Plus
 
-Everything needed to run this site on real infrastructure, in copy-paste order.
-Nothing here has to be stored in Git: **secrets live in the hosting panel and in
-your shell**, never in the repository.
+Документ описывает запуск на реальной инфраструктуре. Секреты хранятся в hosting/secret manager и shell, **не в Git**. Команды ниже являются инструкцией, а не evidence уже выполненного production deployment.
 
-| Step | What | Secrets involved |
-| --- | --- | --- |
-| [1](#1-create-the-turso-database-production) | Create the Turso database | no (Turso login) |
-| [2](#2-set-up-the-production-environment-variables) | Set the hosting environment variables | yes — hosting panel |
-| [3](#3-apply-the-schema-to-production) | Apply the schema to production | yes — your shell |
-| [4](#4-verify-the-deployment) | Verify the deployment | no |
-| [5](#5-create-the-administrator) | Promote your account to ADMIN | no |
-| [6](#6-optional-local-development-on-production-data) | Optional: pull production data locally | no |
-| [7](#7-backups) | Backups | no |
-| [8](#8-later-schema-changes) | Later schema changes | yes — your shell |
-| [9](#9-optional-apply-the-schema-from-github-actions) | Optional: schema push from CI | GitHub Secrets |
-| [10](#10-migrating-existing-postgresql-data-when-needed) | Migrate old PostgreSQL data (when needed) | yes |
+## 1. Что потребуется
 
-The runtime is stateless apart from `public/uploads/` (see
-[Local file storage](README.md#local-file-storage) in the README): the database is
-Turso, so no database server, no VPC and no connection pooler is required.
+- Node.js `20.19+` или `22 LTS`; CI использует Node 22.
+- Checkout репозитория и `npm ci`.
+- Turso Cloud или совместимый libSQL/sqld endpoint.
+- HTTPS reverse proxy, который перезаписывает `Host`, `X-Forwarded-Host`, `X-Forwarded-Proto`, `X-Real-IP` и `X-Forwarded-For` доверенными значениями.
+- Постоянное хранилище `public/uploads/`: файлы не входят в Git и могут исчезнуть на ephemeral filesystem.
+- Для нескольких инстансов — Upstash или эквивалентный общий rate-limit backend.
 
-## 1. Create the Turso database (production)
+Сборка: `npm run build`. Запуск: `npm start`. `postinstall` генерирует Prisma Client по схеме и не требует подключения к БД. Сама сборка не должна применять схему к production.
+
+## 2. Создание базы Turso
 
 ```bash
 curl -sSfL https://get.tur.so/install.sh | bash
-turso auth signup                                    # or: turso auth login
+turso auth login
 turso db create plus-in-plus
-turso db show plus-in-plus --url                     # → TURSO_DATABASE_URL
-turso db tokens create plus-in-plus                  # → TURSO_AUTH_TOKEN
+turso db show plus-in-plus --url
+turso db tokens create plus-in-plus
 ```
 
-Write both values down; the URL of a new database looks like
-`libsql://plus-in-plus-<your-org>.turso.io`.
-
-Windows: run these in WSL or Git Bash (the installer is a bash script).
-
-Optional hardening, if you want the production token to expire and be rotated:
+Сохраните URL вида `libsql://plus-in-plus-<org>.turso.io` и token в secret manager. Для планируемой ротации можно выдавать token со сроком действия:
 
 ```bash
 turso db tokens create plus-in-plus --expiration 90d
-turso db tokens invalidate plus-in-plus -y           # revokes every existing token
+# Отзывает ВСЕ существующие tokens — выполнять только по approved runbook:
+turso db tokens invalidate plus-in-plus -y
 ```
 
-## 2. Set up the production environment variables
+Windows: installer и shell-команды выполняйте в WSL или Git Bash.
 
-| Variable | Required | Value |
+## 3. Переменные окружения
+
+| Переменная | Обязательность | Назначение |
 | --- | --- | --- |
-| `TURSO_DATABASE_URL` | yes | `libsql://plus-in-plus-<org>.turso.io` |
-| `TURSO_AUTH_TOKEN` | yes | token from step 1 |
-| `AUTH_SECRET` | yes | ≥32 characters, unique per environment (see below) |
-| `AUTH_URL` | yes in production | the real HTTPS URL, e.g. `https://plusinplus.example` |
-| `NEXT_PUBLIC_SITE_URL` | recommended | same URL, used by SEO metadata and `sitemap.xml` |
+| `TURSO_DATABASE_URL` | Да | libSQL/SQLite target; в production обычно `libsql://…` |
+| `TURSO_AUTH_TOKEN` | Для Turso Cloud | Token доступа к БД |
+| `AUTH_SECRET` | Да | Уникальный секрет не короче 32 символов |
+| `AUTH_URL` | Да в production | Реальный HTTPS origin сайта |
+| `NEXT_PUBLIC_SITE_URL` | Рекомендуется | Тот же публичный origin для SEO/sitemap |
+| `WEBAUTHN_ORIGIN` | Для passkeys в production | Например, `https://www.example.com` |
+| `WEBAUTHN_RP_ID` | Для passkeys в production | Hostname или родительский домен, например `example.com` |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Обе вместе для shared limits | Атомарные ограничения между инстансами |
+| `PIP_CSP` | Нет | Пусто/`enforce` или `report-only`; production игнорирует `off` |
+| `PIP_HIBP_CHECK` / `PIP_HIBP_REQUIRED` | Нет | Политика проверки скомпрометированных паролей |
+| `ROBOKASSA_*` | Только для согласованной интеграции | Настройки платёжного provider |
 
-Generate the secret (do not reuse the local one):
+Генерация `AUTH_SECRET`:
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
 
-**Vercel dashboard:** Project → *Settings* → *Environment Variables* → add the five
-names above for *Production* (and *Preview*, if previews should have working
-sign-in). **Vercel CLI:**
+`WEBAUTHN_ORIGIN` обязан использовать HTTPS в production. `WEBAUTHN_RP_ID` должен совпадать с hostname origin или быть его родительским доменом. Неверная пара значений должна блокировать passkey-операцию, а не silently ослаблять проверку.
+
+`AUTH_SECRET` участвует и в Auth.js, и в выводе отдельного MFA encryption key через HKDF. Его ротация завершает существующие сессии и делает сохранённые TOTP secrets нечитаемыми: заранее подготовьте recovery и повторную настройку MFA.
+
+Access/refresh durations и concurrent-session limit не дублируются в env. Их единственный источник — `lib/session-policy.ts`.
+
+## 4. Предупреждение и применение схемы
+
+**Не запускайте эти команды против реальной БД без review, backup и согласования.** В текущем изменении добавлены таблицы `pending_logins`, `auth_sessions`, `mfa_backup_codes`, `webauthn_credentials`, а также nullable `activity_logs.actorPseudonym`. Это additive-изменение, но реальная миграция в ходе репозиторной работы не выполнялась.
+
+В проекте нет актуальных migration files: используется `prisma db push`. SQLite может потребовать пересоздания таблицы для некоторых изменений, поэтому нельзя считать любой `db push` автоматически безопасным. Всегда читайте план и предупреждения Prisma; не подтверждайте data loss ради быстрого deploy.
+
+Порядок:
+
+1. Сделать и проверить наличие backup БД и `public/uploads/`.
+2. Применить схему к отдельной non-production копии и выполнить smoke tests.
+3. Убедиться, что код и generated Prisma Client соответствуют одному commit.
+4. Только после approval применить к целевой БД:
 
 ```bash
-npx vercel env add TURSO_DATABASE_URL production
-npx vercel env add TURSO_AUTH_TOKEN production
-npx vercel env add AUTH_SECRET production
-npx vercel env add AUTH_URL production
-npx vercel env add NEXT_PUBLIC_SITE_URL production
-```
-
-Other hosts (Netlify, Fly.io, VPS, Docker): set the same five variables in the
-service's secret/environment settings. The build command stays the default
-`npm run build`; `postinstall` generates the Prisma client, which needs no database
-access. **Deployment never touches the schema** — that is step 3, on purpose.
-
-No `DATABASE_URL` is used anymore. If a leftover PostgreSQL `DATABASE_URL` exists in
-the environment, the app logs that it is ignored instead of connecting somewhere
-unexpected.
-
-## 3. Apply the schema to production
-
-Run once per schema change, from a checkout of this repository. bash / Git Bash /
-WSL / macOS / Linux:
-
-```bash
-TURSO_DATABASE_URL="libsql://plus-in-plus-<org>.turso.io" \
-TURSO_AUTH_TOKEN="<token>" \
+set -a; source .env; set +a
 npm run db:push
+npm run db:check
 ```
 
-Windows PowerShell:
+PowerShell:
 
 ```powershell
 $env:TURSO_DATABASE_URL="libsql://plus-in-plus-<org>.turso.io"
 $env:TURSO_AUTH_TOKEN="<token>"
 npm run db:push
+npm run db:check
 ```
 
-`prisma db push` is idempotent: it creates missing tables/columns and never drops
-data. Confirm the result:
+Health текущей схемы ожидает **17 таблиц**. `seed-demo` не запускать в production.
+
+При последующих изменениях схемы повторять тот же процесс. Старые PostgreSQL-миграции находятся только в архиве `prisma/legacy-postgresql-migrations/` и не описывают текущую libSQL-схему.
+
+## 5. Сборка, запуск и HTTPS
 
 ```bash
-TURSO_DATABASE_URL="libsql://…" TURSO_AUTH_TOKEN="…" npm run db:check
+npm ci
+npm run build
+pm2 start npm --name plus-in-plus -- start
+pm2 save
+pm2 startup
 ```
 
-## 4. Verify the deployment
+Node слушает только внутренний интерфейс за reverse proxy. Наружу открываются HTTP для redirect и HTTPS; порт Node не публикуется напрямую. Готовые примеры Nginx/Apache находятся в `README.md`.
 
-From any machine with the repository checked out:
+Перед включением HSTS `includeSubDomains` проверьте HTTPS на всех поддоменах. Preload не настраивается. Production должен перенаправлять HTTP на HTTPS, выставлять secure cookies и сохранять enforcing nonce CSP. Внешние Security Headers и SSL Labs проверки выполняются отдельно на реальном endpoint; их оценки нельзя вывести из исходников.
+
+## 6. Проверка deployment
 
 ```bash
 npm run deploy:verify -- https://your-domain.example
+curl -fsS https://your-domain.example/api/health
 ```
 
-Expected output:
+Ожидаемый health при актуальной схеме:
 
-```text
-[verify] /api/health → 200 {"status":"ok","database":{"driver":"libsql","remote":true,"tables":4}}
-[verify] /            → 200
-[verify] /shop        → 200
-[verify] /blog        → 200
-[verify] /sitemap.xml → 200
-[verify] All checks passed.
+```json
+{"status":"ok","database":{"driver":"libsql","remote":true,"tables":17}}
 ```
 
-Without a checkout, `curl https://your-domain.example/api/health` is enough. A
-`503` with `"status":"schema-out-of-date"` and `missingTables` means step 3 was not
-run against that database; `"status":"unavailable"` means the URL/token are wrong.
+- `503 schema-out-of-date` и `missingTables`: схема не применена к этой БД.
+- `503 unavailable`: endpoint/token/доступность БД требуют проверки; ответ не содержит connection string.
+- Health не доказывает корректность MFA, платежей, RBAC или restore — нужны отдельные сценарии.
 
-Manual checks after the first deployment:
+Ручной smoke после первого запуска:
 
-1. **Register** an account in the header dialog — you land back on the site, signed in.
-2. **Log in** with a wrong password — you get `Invalid email or password.`
-3. Try `/admin/dashboard` while signed out — you are redirected to `/`.
-4. Upload a service cover in `/admin/services/new` (after step 5).
+1. Регистрация создаёт только `USER`.
+2. Неверный пароль даёт generic credential error без раскрытия наличия аккаунта.
+3. Гость и обычный клиент не попадают в `/admin/dashboard` и `/manager/orders`.
+4. Upload перекодируется в WebP и доступен после restart при persistent storage.
+5. RU/EN, keyboard, responsive и основные client flows проверяются в браузере по `docs/ui-ux-pro-max.md`.
 
-## 5. Create the administrator
+## 7. Создание сотрудника и включение MFA
 
-Registration always creates a `USER`; administrators are promoted explicitly.
+Регистрация всегда создаёт `USER`. После создания личного аккаунта:
 
 ```bash
-# 1. register your real account in the site, then:
-TURSO_DATABASE_URL="libsql://…" TURSO_AUTH_TOKEN="…" npm run db:promote-admin            # list accounts
-TURSO_DATABASE_URL="libsql://…" TURSO_AUTH_TOKEN="…" npm run db:promote-admin -- you@example.com
+set -a; source .env; set +a
+npm run db:promote-admin -- you@example.com --founder
 ```
 
-Then log out, open **Log in**, switch **Admin mode** on and log in again — an
-existing session is never upgraded automatically. The equivalent raw SQL is
-`turso db shell plus-in-plus "update users set role = 'ADMIN' where email = '…';"`.
+Для `ADMIN` или `MANAGER` используйте соответствующий флаг скрипта. `FOUNDER` нельзя назначить через админку.
 
-## 6. Optional: local development on production data
+Далее:
 
-Work against a copy of the real content without touching production:
+1. Выйти и войти с включённым **«Режимом администратора»**.
+2. Если у staff-аккаунта ещё нет TOTP/passkey, он получает только customer-level session и направляется на `/profile?mfa=required`.
+3. В профиле настроить TOTP или passkey и сохранить новые backup codes в защищённом менеджере.
+4. Выйти и повторить staff login, подтвердив второй фактор.
+5. Проверить отдельно обычный customer login: он не исчезает и не даёт staff-доступ.
+
+TOTP secret хранится зашифрованным; backup codes — только как hashes и принимаются однократно. Pending login живёт пять минут и имеет пять попыток; setup challenges — десять минут. Staff не может удалить свой последний второй фактор. При регенерации backup codes старые коды заменяются после подтверждения владельца.
+
+Это поведение кода. Для operational MFA нужно реально включить факторы у каждого `FOUNDER`/`ADMIN`/`MANAGER`, проверить recovery и вести учёт; наличие колонок в БД не означает, что сотрудники уже защищены.
+
+## 8. Сессии и отзыв доступа
+
+Значения из `lib/session-policy.ts`:
+
+- access session — 15 минут;
+- refresh session — 7 дней с исходной absolute expiry;
+- максимум три активные сессии на аккаунт; более старые отзываются при создании новой.
+
+Refresh token хранится в БД только как hash, привязан к device hash и ротируется через same-origin `POST /api/auth/refresh`. Повторное использование старого token или race с уже изменённым hash отзывает активные сессии аккаунта. Неверное устройство не принимается. Production refresh/device cookies используют `__Secure-` prefix; marker `pip-refresh-present` не содержит секрета.
+
+Проверить на staging с тестовыми аккаунтами:
+
+- automatic refresh восстанавливает access session без недельного sliding JWT;
+- старый refresh token после ротации отклоняется;
+- logout отзывает текущую серверную сессию;
+- смена пароля отзывает все активные сессии и требует нового входа;
+- блокировка и понижение роли действуют без ожидания старого JWT expiry; понижение сохраняется в AuthSession, поэтому позднее повышение роли не восстанавливает staff mode без нового входа;
+- четвёртая сессия оставляет не более трёх активных;
+- cross-origin POST к refresh/payment получает `403`.
+
+Unit tests с in-memory doubles не заменяют этот staging test и не доказывают distributed concurrency на реальной БД.
+
+## 9. Платежи
+
+Сейчас Robokassa не используется проектом для приёма реальных платежей. Цены и включение provider требуют подтверждения manager/founder и отдельной live-проверки.
+
+Создание ссылки выполняется только через `POST /api/payment/create` с `application/x-www-form-urlencoded`, same-origin evidence, authenticated session и throttling. State-changing GET удалён. Клиент не назначает цену: заказ должен принадлежать ему (либо вызывающий имеет действующий staff session), иметь согласованную положительную сумму и статус `awaiting_payment`.
+
+Result callback остаётся `/api/payments/robokassa/result` (алиас `/api/payment/result`). Не включайте публичный demo merchant в production. Unit tests и mocked invoices не являются evidence live payment.
+
+## 10. Audit retention и приватность
+
+CLI `db:audit-retention` по умолчанию выполняет dry-run для записей старше 365 дней:
 
 ```bash
-turso db shell plus-in-plus .dump > dump.sql      # production dump
-npm run db:load-dump -- dump.sql --replace        # into the local prisma/dev.db
-npm run db:check
-npm run dev
+set -a; source .env; set +a
+npm run db:audit-retention -- --older-than-days=365
 ```
 
-`db:load-dump` refuses to overwrite a non-empty database without `--replace`, and
-refuses a **remote** target without `--yes-remote`. A dump contains real user rows:
-`dump.sql`, `backup-*.sql` and `*.dump` at the repository root are gitignored, and
-temporary dumps should be deleted when you are done with them.
+После утверждения политики, backup и проверки legal/incident holds apply требует отдельный ключ и явное подтверждение:
 
-Alternatively use a Turso branch: `turso db create plus-in-plus-dev --from-db plus-in-plus`
-and point your local `TURSO_DATABASE_URL` at it with a token from
-`turso db tokens create plus-in-plus-dev`.
+```bash
+set -a; source .env; set +a
+export AUDIT_PSEUDONYM_KEY="<отдельный-секрет-не-короче-32-символов>"
+npm run db:audit-retention -- --older-than-days=365 --apply --confirm=PSEUDONYMIZE
+```
 
-## 7. Backups
+Job снимает прямую `actorId`-связь, записывает HMAC-псевдоним и заменяет обнаруженные email/IPv4 в старых titles. Это псевдонимизация, а не гарантированная анонимизация или универсальное удаление по GDPR. Не меняйте ключ между запусками без отдельного плана: корреляция псевдонимов изменится. Не запускайте во время incident/legal hold без approval.
+
+Автоматический production schedule не настроен этим репозиторным изменением. Политика retention, мониторинг job и удаление/псевдонимизация других data classes остаются эксплуатационными задачами.
+
+## 11. Backup и восстановление
+
+Пример export:
 
 ```bash
 turso db shell plus-in-plus .dump > backup-$(date +%F).sql
+tar czf uploads-$(date +%F).tar.gz public/uploads
 ```
 
-Restore into a fresh database by creating it and loading the dump:
+Не храните archives в public web root или Git. Восстановление сначала выполняется в новой изолированной БД и директории:
 
 ```bash
 turso db create plus-in-plus-restore
-turso db shell plus-in-plus-restore < backup-2026-10-11.sql
+turso db shell plus-in-plus-restore < backup-YYYY-MM-DD.sql
 ```
 
-Turso also supports point-in-time restore within the plan's retention window
-(`turso db create new-db --from-db plus-in-plus --timestamp 2026-10-11T10:00:00Z`).
-Back up `public/uploads/` together with the database — images live on disk, not in
-SQLite. Runtime uploads are gitignored and are **not** part of a deployment build,
-so they need their own copy (rsync, object storage, snapshot).
+Полная процедура, RPO/RTO и ransomware controls: `docs/security/disaster-recovery.md`. Наличие dump не доказывает восстановление; нужен изолированный restore drill.
 
-## 8. Later schema changes
+## 12. CI и обновления
 
-1. Edit `prisma/schema.prisma`.
-2. Locally: `npm run db:push && npm run db:check && npm test`.
-3. Commit, deploy, then repeat [step 3](#3-apply-the-schema-to-production) against
-   production and [step 4](#4-verify-the-deployment).
+Существующий `.github/workflows/ci.yml` уже выполняет без реальных секретов:
 
-There are no migration files by design (the old PostgreSQL ones are archived in
-`prisma/legacy-postgresql-migrations/`). `db push` on SQLite may recreate a table to
-change a column; make a backup (step 7) before a destructive change.
+1. `npm ci` и `npm run doctor`;
+2. repository security audit и полный `npm audit`;
+3. ESLint и TypeScript;
+4. полный `npm test`;
+5. `db:push`/`db:check` на disposable SQLite;
+6. production build;
+7. HTTP smoke с health и ключевыми страницами.
 
-## 9. Optional: apply the schema from GitHub Actions
+CI не подключается к staging/production и не применяет там схему. Не создавайте второй дублирующий workflow для тех же проверок.
 
-Add the two values as **repository secrets** (`Settings → Secrets and variables →
-Actions`): `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`. Then this workflow pushes the
-schema when you trigger it manually:
-
-```yaml
-name: Push schema to production
-
-on:
-  workflow_dispatch:
-
-jobs:
-  push:
-    runs-on: ubuntu-latest
-    environment: production
-    env:
-      TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
-      TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: "22", cache: npm }
-      - run: npm ci
-      - run: npm run db:push
-      - run: npm run db:check
-```
-
-The checked-in `.github/workflows/ci.yml` deliberately uses a throwaway SQLite file
-and no secrets, so forks and pull requests can run it safely.
-
-## 10. Migrating existing PostgreSQL data (when needed)
+Обновление VPS:
 
 ```bash
-npm i -D pg
-POSTGRES_URL="postgresql://user:pass@host:5432/plus_in_plus" \
-TURSO_DATABASE_URL="libsql://…" TURSO_AUTH_TOKEN="…" \
-npm run db:migrate-from-postgres -- --replace
+cd /opt/plus-in-plus
+git pull --ff-only
+npm ci
+npm run build
+# Если схема изменилась — сначала отдельный approved шаг из раздела 4.
+pm2 restart plus-in-plus
+npm run deploy:verify -- https://your-domain.example
 ```
 
-IDs are preserved, `Json` columns become JSON strings, dates use the format the
-libSQL adapter expects and services without a slug get one. `public/uploads/` is
-already compatible. Afterwards `npm uninstall pg` (the app itself no longer needs
-it). Details: [README → Database](README.md#database).
+Перед commit убедитесь, что `.env*`, dumps, `prisma/dev.db`, `public/uploads/` и generated client не попали в Git. При утечке token сначала отзовите/ротируйте его у provider; удаление строки из Git не отзывает секрет.
 
-## Troubleshooting
+## Диагностика
 
-| Symptom | Cause / fix |
+| Симптом | Проверка |
 | --- | --- |
-| `/api/health` → `503 schema-out-of-date` with `missingTables` | Step 3 was not run against this database. Run `npm run db:push` with the production variables. |
-| `/api/health` → `503 unavailable`, logs mention the token | `TURSO_AUTH_TOKEN` is missing/invalid or the database was deleted. Recreate the token (`turso db tokens create <db>`) and redeploy. |
-| Pages render, but sign-in says "unavailable" | `TURSO_DATABASE_URL` or a ≥32-character `AUTH_SECRET` is missing in the hosting panel; both are required at runtime. |
-| `table does not exist` in the logs | The deployed code expects a schema the database does not have: run step 3 (and step 4) — the exact missing names are printed. |
-| Admin mode returns the generic credential error | Verify the credentials and that the account has an `ADMIN`/`FOUNDER` role (step 5). The response intentionally does not reveal which check failed. |
-| A stale `DATABASE_URL` is logged as ignored | Remove it from the hosting panel; only `TURSO_DATABASE_URL` is read. |
-| New uploads disappear after a deploy | The host filesystem is ephemeral; mount a persistent disk for `public/uploads/` (see the README). |
-| First page load after a deploy is slow | The instance is cold-starting; the free Turso tier plus a small instance is enough for this site. |
-
-## Security checklist
-
-- `AUTH_SECRET` is unique per environment, ≥32 characters, and never committed;
-  `AUTH_SECRET` set incorrectly makes auth fail closed (no sessions issued).
-- `.env*` files, the local `prisma/dev.db`, `dump.sql` backups and
-  `lib/generated/` are gitignored — verify with `git status` before committing.
-- Rotate a leaked token immediately: `turso db tokens invalidate <db> -y`, create a
-  new one and update the hosting panel.
-- `/api/health` reports booleans only (reachability, driver, `remote`) — no URL,
-  token, table contents or user data. It is safe to expose publicly.
-- Production sends `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`,
-  `Permissions-Policy` and `X-XSS-Protection: 0`. HSTS uses
-  `max-age=31536000; includeSubDomains`; before exposing the site, verify HTTPS on every
-  subdomain and configure the proxy to redirect HTTP to HTTPS. No HSTS preload submission
-  is implied. Run external Security Headers and SSL Labs checks on the real endpoint.
-- `Content-Security-Policy` is built per request in `middleware.ts` with a fresh nonce
-  (Next.js copies it onto its inline scripts). Production: `frame-ancestors 'none'`,
-  no `unsafe-inline`/`unsafe-eval` for scripts. If a future integration needs an external
-  script, add its origin to `lib/security-headers.ts` — do not weaken the policy ad hoc.
-  `PIP_CSP=report-only` observes violations without blocking. `PIP_CSP=off` is honored only
-  in local development; production ignores that value and keeps enforcing CSP.
-- `npm run doctor` checks the install, the Prisma client, the database target, `AUTH_SECRET`
-  and `engines.node`; it never prints secret values.
-- Public write endpoints (`/api/support`, `/api/page-view`), authentication, password/profile
-  changes, and staff uploads/imports use fixed-window rate limits. Configure both
-  `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` for atomic shared limits across
-  serverless instances. Without them a bounded process-local fallback remains; a CDN/WAF is
-  still recommended as the first line of defence. Shared-backend outages fall back locally
-  without logging credentials. The admin import preview only fetches public http(s) pages
-  (`lib/ssrf-guard.ts`): loopback, private, link-local and cloud-metadata addresses are refused.
-- Registration and password changes use HIBP k-anonymity by default. Production rejects the
-  new password safely if the service is unavailable (`PIP_HIBP_REQUIRED=1`, also the production
-  default); test provider connectivity before launch. `PIP_HIBP_REQUIRED=0` is an explicit
-  availability exception, not a recommendation. Existing logins do not call HIBP.
-- Complete the operational assessment and launch gaps in [`docs/security/README.md`](docs/security/README.md),
-  including staff MFA, session architecture, centralized alerting and an isolated restore drill.
+| `502 Bad Gateway` | `pm2 status`, `pm2 logs plus-in-plus`, внутренний `/api/health` |
+| Staff получает `/profile?mfa=required` | Это ожидаемый enforcement: настроить MFA, затем повторить staff login |
+| Passkeys не работают в production | Проверить HTTPS, `WEBAUTHN_ORIGIN`, `WEBAUTHN_RP_ID` и соответствие hostname |
+| Сессии исчезают после смены пароля | Ожидаемый глобальный отзыв; войти заново |
+| Refresh возвращает `401` | Проверить refresh/device cookies, absolute expiry и revocation; не логировать tokens |
+| POST payment/refresh возвращает `403` | Проверить same-origin origin и корректную перезапись forwarded headers proxy |
+| Таблица отсутствует | Применить согласованную схему к нужной БД и повторить `db:check` |
+| Uploads исчезают после deploy | Подключить persistent storage и отдельный backup |

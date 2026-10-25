@@ -12,6 +12,7 @@ import {
   staticSecurityHeaders,
 } from "@/lib/security-headers";
 import { defaultLocale, isLocale, locales } from "@/i18n";
+import { REFRESH_PRESENT_COOKIE } from "@/lib/session-policy";
 
 const production = process.env.NODE_ENV === "production";
 
@@ -112,9 +113,13 @@ const authMiddleware = NextAuth(authConfig).auth((request) => {
   const signedIn = Boolean(isAuthConfigured() && request.auth?.user?.id);
 
   if (!signedIn) {
-    return NextResponse.redirect(
-      new URL(isOrdersArea ? "/login" : "/", request.url)
-    );
+    const mayRefresh = request.cookies?.get(REFRESH_PRESENT_COOKIE)?.value === "1";
+    const target = new URL(isOrdersArea || mayRefresh ? "/login" : "/", request.url);
+    if (mayRefresh) {
+      const requestedPath = `${pathname}${request.nextUrl?.search ?? ""}`;
+      target.searchParams.set("callbackUrl", requestedPath);
+    }
+    return NextResponse.redirect(target);
   }
   if (isOrdersArea) return NextResponse.next();
   if (role !== "FOUNDER" && role !== "ADMIN" && role !== "MANAGER") {

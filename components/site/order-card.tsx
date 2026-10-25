@@ -129,9 +129,8 @@ export function OrderCard({ order }: OrderCardProps) {
     latestInvoice.amount === agreedKopecks
     ? latestInvoice
     : null;
-  const paymentHref = payable
-    ? payable.paymentUrl ?? `/api/payment/create?orderId=${encodeURIComponent(order.id)}`
-    : null;
+  const paymentHref = payable?.paymentUrl ?? null;
+  const createPayment = Boolean(payable && !payable.paymentUrl);
   const invoiceWaiting =
     !unpriced &&
     !paid &&
@@ -284,15 +283,25 @@ export function OrderCard({ order }: OrderCardProps) {
 
         {order.status === "awaiting_payment" || order.status === "priced" ? (
           <>
-            {payable ? (
+            {payable && paymentHref ? (
               <Button
                 asChild
                 className="w-fit border border-primary-foreground/20 bg-white px-4 py-2 text-primary-foreground hover:bg-white/90 hover:text-primary-foreground"
               >
-                <a href={paymentHref ?? undefined}>
+                <a href={paymentHref}>
                   {t("pay")} {formatKopecks(payable.amount, currency, locale)}
                 </a>
               </Button>
+            ) : payable && createPayment ? (
+              <form method="POST" action="/api/payment/create">
+                <input type="hidden" name="orderId" value={order.id} />
+                <Button
+                  type="submit"
+                  className="w-fit border border-primary-foreground/20 bg-white px-4 py-2 text-primary-foreground hover:bg-white/90 hover:text-primary-foreground"
+                >
+                  {t("pay")} {formatKopecks(payable.amount, currency, locale)}
+                </Button>
+              </form>
             ) : null}
             {invoiceWaiting ? (
               <p className="text-sm text-muted-foreground">

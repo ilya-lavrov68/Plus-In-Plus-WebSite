@@ -7,6 +7,8 @@ import { requireActiveCustomer } from "@/lib/cart";
 import { CartOperationError, checkoutOwnedCart } from "@/lib/cart-operations";
 import { prisma } from "@/lib/prisma";
 import { readJsonBody } from "@/lib/request-body";
+import { isSameOriginRequest } from "@/lib/request-origin";
+import { logServerError } from "@/lib/security-log";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +18,7 @@ const checkoutSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  if (!isSameOriginRequest(request)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const customer = await requireActiveCustomer();
   if (!customer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!prisma) return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
@@ -47,7 +50,7 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
-    console.error("Failed to checkout cart:", error);
+    logServerError("cart.checkout_failed", error);
     return NextResponse.json({ error: "Failed to checkout cart" }, { status: 500 });
   }
 }

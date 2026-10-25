@@ -1,6 +1,7 @@
 import type { NextAuthConfig } from "next-auth";
 
 import { getAuthSecret } from "@/lib/auth-secret";
+import { ACCESS_SESSION_SECONDS } from "@/lib/session-policy";
 import { localAvatarPath } from "@/lib/upload-policy";
 import { profileName } from "@/lib/user-profile";
 
@@ -9,7 +10,9 @@ export const authConfig = {
   secret: getAuthSecret(),
   // Next.js runs behind our trusted reverse proxy (which must overwrite forwarded headers).
   trustHost: true,
-  session: { strategy: "jwt", maxAge: 7 * 24 * 60 * 60 },
+  // Short access JWT only. The separate server-side refresh cookie rotates via
+  // /api/auth/refresh; Auth.js must not silently slide this access token for days.
+  session: { strategy: "jwt", maxAge: ACCESS_SESSION_SECONDS },
   pages: { signIn: "/?auth=login", error: "/?auth=login" },
   providers: [],
   callbacks: {

@@ -10,6 +10,7 @@ import { getActionTranslator } from "@/lib/action-i18n";
 import { recordActivity } from "@/lib/activity-log";
 import { isAuthConfigured } from "@/lib/auth-secret";
 import { assertPasswordNotCompromised, CompromisedPasswordError } from "@/lib/password-breach";
+import { readPendingLogin } from "@/lib/pending-login";
 import { prisma } from "@/lib/prisma";
 import { getClientAddress, checkRateLimitAsync, hashRateLimitIdentifier } from "@/lib/rate-limit";
 import { logSecurityEvent, logServerError } from "@/lib/security-log";
@@ -17,12 +18,17 @@ import { cleanupUpload, saveImageUpload, UploadValidationError } from "@/lib/upl
 import { firstIssueMessage, loginSchema, profileSchema, registerSchema } from "@/lib/validators";
 
 export interface LoginInput {
-  email: string;
-  password: string;
+  email?: string;
+  password?: string;
   /** Boolean form used by the typed client components. */
   adminMode?: boolean;
   /** String form ("true" / "false") used by plain FormData submissions. */
   isAdminMode?: string;
+  /** Second step: password was already verified and only this challenge remains. */
+  pendingLoginId?: string;
+  pendingLoginSecret?: string;
+  mfaCode?: string;
+  webAuthnResponse?: unknown;
 }
 
 export interface RegisterInput {
@@ -40,10 +46,16 @@ export interface AuthActionResult {
   ok: boolean;
   error?: string;
   /** Служебный дом после входа: админка или рабочее место менеджера. */
-  redirectTo?: "/admin/dashboard" | "/manager/orders";
+  redirectTo?: "/admin/dashboard" | "/manager/orders" | "/profile?mfa=required";
   accountCreated?: boolean;
   /** Effective privilege of the created session: ADMIN row + admin mode requested. */
   isAdmin?: boolean;
+  mfaRequired?: boolean;
+  mfaSetupRequired?: boolean;
+  pendingLoginId?: string;
+  pendingLoginSecret?: string;
+  hasTotp?: boolean;
+  hasPasskeys?: boolean;
 }
 
 export type RegisterResult = AuthActionResult;
@@ -63,12 +75,23 @@ function isFormData(value: unknown): value is FormData {
 function readLoginSubmission(input: LoginSubmission): LoginInput {
   if (isFormData(input)) {
     const flag = readString(input.get("isAdminMode")) || readString(input.get("adminMode"));
-    return { email: readString(input.get("email")), password: readString(input.get("password")), adminMode: flag === "true" };
+    return {
+      email: readString(input.get("email")),
+      password: readString(input.get("password")),
+      adminMode: flag === "true",
+      pendingLoginId: readString(input.get("pendingLoginId")),
+      pendingLoginSecret: readString(input.get("pendingLoginSecret")),
+      mfaCode: readString(input.get("mfaCode")),
+    };
   }
   return {
     email: readString(input?.email),
     password: readString(input?.password),
     adminMode: input?.adminMode === true || input?.isAdminMode === "true",
+    pendingLoginId: readString(input?.pendingLoginId),
+    pendingLoginSecret: readString(input?.pendingLoginSecret),
+    mfaCode: readString(input?.mfaCode),
+    webAuthnResponse: input?.webAuthnResponse,
   };
 }
 
@@ -116,37 +139,62 @@ export async function loginUser(input: LoginSubmission): Promise<AuthActionResul
     return { ok: false, success: false, error: t("loginUnavailable") };
   }
   const submission = readLoginSubmission(input);
-  const credentials = loginSchema.safeParse({ email: submission.email, password: submission.password });
-  if (!credentials.success) {
-    // Never confirm which part of a credential pair was wrong or log its values.
-    logSecurityEvent("auth.login.malformed", { staffMode: submission.adminMode === true });
-    return { ok: false, success: false, error: t("invalidCredentials") };
-  }
-  const { email, password } = credentials.data;
   const adminMode = submission.adminMode === true;
+  const pendingStep = Boolean(submission.pendingLoginId || submission.pendingLoginSecret);
+  let pending: Awaited<ReturnType<typeof readPendingLogin>> = null;
+  let account: {
+    id: string;
+    role: string;
+    mfaSecret?: string | null;
+    webAuthnCredentials?: { id: string }[];
+  } | null = null;
+  let email = "";
+  let password = "";
 
-  // Admin mode is a privilege opt-in, not a role mutation: it passes only for an
-  // existing staff row (FOUNDER, ADMIN or MANAGER — registration always
-  // creates USER accounts).
-  let account: { id: string; role: string } | null;
   try {
-    account = await prisma.user.findUnique({ where: { email }, select: { id: true, role: true } });
+    if (pendingStep) {
+      pending = await readPendingLogin(submission.pendingLoginId, submission.pendingLoginSecret);
+      if (!pending) return { ok: false, success: false, error: t("invalidCredentials") };
+      account = pending.user;
+    } else {
+      const credentials = loginSchema.safeParse({ email: submission.email, password: submission.password });
+      if (!credentials.success) {
+        logSecurityEvent("auth.login.malformed", { staffMode: adminMode });
+        return { ok: false, success: false, error: t("invalidCredentials") };
+      }
+      email = credentials.data.email;
+      password = credentials.data.password;
+      // This lookup only selects a destination and never replaces Auth.js verification.
+      account = await prisma.user.findUnique({
+        where: { email },
+        select: {
+          id: true,
+          role: true,
+          mfaSecret: true,
+          webAuthnCredentials: { select: { id: true }, take: 1 },
+        },
+      });
+    }
   } catch (error) {
     logServerError("auth.login.lookup_failed", error);
     return { ok: false, success: false, error: t("unableToLogIn") };
   }
+
   const staffRole =
     account?.role === "FOUNDER" || account?.role === "ADMIN" || account?.role === "MANAGER"
       ? account.role
       : null;
-  // The lookup only chooses a post-success destination. It must never short-circuit
-  // Admin mode: Auth.js performs the same password and staff checks for every account.
-  // Куда вести сотрудника после служебного входа: менеджеру — в его заявки,
-  // администратору и основателю — в админку.
   const staffHome = staffRole === "MANAGER" ? "/manager/orders" : "/admin/dashboard";
 
   try {
-    await signIn("credentials", {
+    await signIn("credentials", pendingStep ? {
+      pendingLoginId: submission.pendingLoginId,
+      pendingLoginSecret: submission.pendingLoginSecret,
+      mfaCode: submission.mfaCode,
+      webAuthnResponse: submission.webAuthnResponse,
+      redirect: false,
+      redirectTo: staffRole && pending?.role !== "USER" ? staffHome : "/",
+    } : {
       email,
       password,
       adminMode: String(adminMode),
@@ -159,6 +207,37 @@ export async function loginUser(input: LoginSubmission): Promise<AuthActionResul
         logSecurityEvent("auth.login.rate_limited", { staffMode: adminMode });
         return { ok: false, success: false, error: t("tooManyLoginAttempts") };
       }
+      if (error.code === "mfa_required") {
+        const challenge = error as CredentialsSignin & {
+          pendingLoginId?: unknown;
+          pendingLoginSecret?: unknown;
+          hasTotp?: unknown;
+          hasPasskeys?: unknown;
+        };
+        if (typeof challenge.pendingLoginId === "string" && typeof challenge.pendingLoginSecret === "string") {
+          return {
+            ok: false,
+            success: false,
+            mfaRequired: true,
+            pendingLoginId: challenge.pendingLoginId,
+            pendingLoginSecret: challenge.pendingLoginSecret,
+            hasTotp: challenge.hasTotp === true,
+            hasPasskeys: challenge.hasPasskeys === true,
+          };
+        }
+      }
+      if (error.code === "mfa_invalid" && pending) {
+        return {
+          ok: false,
+          success: false,
+          error: t("invalidMfaCode"),
+          mfaRequired: true,
+          pendingLoginId: submission.pendingLoginId,
+          pendingLoginSecret: submission.pendingLoginSecret,
+          hasTotp: Boolean(pending.user.mfaSecret),
+          hasPasskeys: pending.user.webAuthnCredentials.length > 0,
+        };
+      }
       logSecurityEvent("auth.login.failed", { staffMode: adminMode });
       return { ok: false, success: false, error: t("invalidCredentials") };
     }
@@ -167,9 +246,18 @@ export async function loginUser(input: LoginSubmission): Promise<AuthActionResul
     return { ok: false, success: false, error: t("unableToLogIn") };
   }
 
-  if (account) await recordAuthActivity(adminMode ? "staff login" : "login", account.id);
-  const isAdmin = adminMode && (staffRole === "FOUNDER" || staffRole === "ADMIN");
-  return adminMode && staffRole
+  if (!account) return { ok: false, success: false, error: t("unableToLogIn") };
+  const hasMfa = Boolean(account.mfaSecret || account.webAuthnCredentials?.length);
+  const mfaSetupRequired = !pendingStep && adminMode && Boolean(staffRole) && !hasMfa;
+  const effectiveStaffRole = pendingStep
+    ? pending?.role !== "USER" && pending?.role === account.role ? staffRole : null
+    : !mfaSetupRequired && adminMode ? staffRole : null;
+  await recordAuthActivity(effectiveStaffRole ? "staff login" : "login", account.id);
+  const isAdmin = effectiveStaffRole === "FOUNDER" || effectiveStaffRole === "ADMIN";
+  if (mfaSetupRequired) {
+    return { ok: true, success: true, isAdmin: false, mfaSetupRequired: true, redirectTo: "/profile?mfa=required" };
+  }
+  return effectiveStaffRole
     ? { ok: true, success: true, isAdmin, redirectTo: staffHome }
     : { ok: true, success: true, isAdmin: false };
 }

@@ -10,6 +10,10 @@ declare module "next-auth" {
   interface User extends UserProfile {
     id: string;
     email: string;
+    /** Set only by the trusted refresh authorize branch, never by the browser form. */
+    sessionId?: string;
+    deviceHash?: string;
+    refreshEstablished?: boolean;
   }
 }
 
@@ -24,5 +28,8 @@ declare module "@auth/core/jwt" {
     role: UserRole;
     /** SHA-256 marker of the bcrypt hash; never the hash or password itself. */
     passwordStamp?: string;
+    /** Server-side refresh-session binding; never serialized into Session.user. */
+    sessionId?: string;
+    deviceHash?: string;
   }
 }

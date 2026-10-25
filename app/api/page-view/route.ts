@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimitAsync, getClientAddress, hashRateLimitIdentifier, retryAfterHeaders } from "@/lib/rate-limit";
 import { isJsonObject, readJsonBody } from "@/lib/request-body";
+import { isSameOriginRequest } from "@/lib/request-origin";
 
 const DEVICES = new Set(["desktop", "mobile", "tablet"]);
 const WINDOW_MS = 10 * 60 * 1000;
@@ -32,6 +33,7 @@ function clean(value: unknown, max: number): string | null {
  * доверять нельзя: обрезаем длину, проверяем путь и перечисления.
  */
 export async function POST(request: Request) {
+  if (!isSameOriginRequest(request)) return NextResponse.json({ ok: false }, { status: 403 });
   if (!prisma) return NextResponse.json({ ok: false }, { status: 503 });
   const limit = await pageViewRateLimit(request, "post");
   if (!limit.allowed) return NextResponse.json({ ok: false }, { status: 429, headers: retryAfterHeaders(limit.retryAfterSeconds) });
@@ -76,6 +78,7 @@ export async function POST(request: Request) {
  * когда он с неё уходит.
  */
 export async function PATCH(request: Request) {
+  if (!isSameOriginRequest(request)) return NextResponse.json({ ok: false }, { status: 403 });
   if (!prisma) return NextResponse.json({ ok: false }, { status: 503 });
   const limit = await pageViewRateLimit(request, "patch");
   if (!limit.allowed) return NextResponse.json({ ok: false }, { status: 429, headers: retryAfterHeaders(limit.retryAfterSeconds) });

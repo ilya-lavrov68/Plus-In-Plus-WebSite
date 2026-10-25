@@ -55,6 +55,9 @@ const prisma = {
   activityLog: {
     create: async ({ data }) => { logs.push(structuredClone(data)); return data; },
   },
+  authSession: {
+    updateMany: async () => ({ count: 0 }),
+  },
   $transaction: async (callback) => {
     const snapshot = structuredClone({ settings, posts, logs });
     try { return await callback(prisma); }

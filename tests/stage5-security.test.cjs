@@ -5,6 +5,8 @@ const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
 const sharp = require("sharp");
+const { createHash } = require("node:crypto");
+const { TOTP } = require("otpauth");
 
 require.extensions[".ts"] = (module, filename) => {
   module._compile(ts.transpileModule(fs.readFileSync(filename, "utf8"), {
@@ -13,11 +15,45 @@ require.extensions[".ts"] = (module, filename) => {
 };
 
 // Test doubles only. These tests never connect to a database or create real accounts.
-let account, session, options, compareCalls, lookupFails;
+let account, session, options, compareCalls, lookupFails, pendingLogin, backupCode;
 let addressSequence = 1;
 class CredentialsSignin extends Error { code = "credentials"; }
 function nextAuth(config) { options = config; return {}; }
 nextAuth.CredentialsSignin = CredentialsSignin;
+
+const prisma = {
+  user: { findUnique: async () => {
+    if (lookupFails) throw new Error("simulated DB outage");
+    return account;
+  } },
+  pendingLogin: {
+    findUnique: async ({ where }) => pendingLogin?.id === where.id
+      ? { ...structuredClone(pendingLogin), user: structuredClone(account) }
+      : null,
+    deleteMany: async ({ where }) => {
+      if (!pendingLogin || pendingLogin.id !== where.id || (where.secretHash && pendingLogin.secretHash !== where.secretHash)) return { count: 0 };
+      pendingLogin = null;
+      return { count: 1 };
+    },
+    updateMany: async ({ where, data }) => {
+      if (!pendingLogin || pendingLogin.id !== where.id || pendingLogin.attempts >= (where.attempts?.lt ?? Infinity)) return { count: 0 };
+      if (data.attempts?.increment) pendingLogin.attempts += data.attempts.increment;
+      return { count: 1 };
+    },
+  },
+  mfaBackupCode: {
+    findFirst: async ({ where }) => backupCode && backupCode.userId === where.userId &&
+      backupCode.codeHash === where.codeHash && backupCode.usedAt === null
+      ? { id: backupCode.id }
+      : null,
+    updateMany: async ({ where, data }) => {
+      if (!backupCode || backupCode.id !== where.id || backupCode.usedAt !== null) return { count: 0 };
+      backupCode.usedAt = data.usedAt;
+      return { count: 1 };
+    },
+  },
+};
+
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
   if (name === "bcryptjs") return { compare: async (password, hash) => {
@@ -27,10 +63,14 @@ Module._load = function (name, parent, isMain) {
   if (name === "next-auth/providers/credentials") return (config) => config;
   if (name === "next-auth") return nextAuth;
   if (name === "@/auth") return { auth: async () => session };
-  if (name === "@/lib/prisma") return { prisma: { user: { findUnique: async () => {
-    if (lookupFails) throw new Error("simulated DB outage");
-    return account;
-  } } } };
+  if (name === "@/lib/auth-sessions") return {
+    createAuthSession: async () => ({ sessionId: "s".repeat(32), deviceHash: "d".repeat(64) }),
+    authSessionIsActive: async () => true,
+    clearRefreshCookies: async () => {},
+    downgradeAuthSession: async () => {},
+    rotateAuthSession: async () => null,
+  };
+  if (name === "@/lib/prisma") return { prisma };
   if (name.startsWith("@/")) name = path.resolve(__dirname, "..", name.slice(2));
   return originalLoad.call(this, name, parent, isMain);
 };
@@ -43,6 +83,7 @@ const { sanitizePostContent } = require("../lib/sanitize-post-content.ts");
 const { checkRateLimit, checkRateLimitAsync, getClientAddress, hashRateLimitIdentifier, progressiveLoginDelayMs, retryAfterHeaders } = require("../lib/rate-limit.ts");
 const { GET: readUpload } = require("../app/uploads/[kind]/[filename]/route.ts");
 require("../auth.ts");
+const { createTotpSecret, encryptMfaSecret, hashBackupCode } = require("../lib/mfa.ts");
 
 const request = () => new Request("http://example.test/api/auth/callback/credentials", { headers: { "x-real-ip": `198.51.100.${addressSequence++}` } });
 const credentials = (adminMode = "false") => ({ email: " ADMIN@example.com ", password: "valid-passphrase", adminMode });
@@ -51,18 +92,36 @@ beforeEach(() => {
   process.env.AUTH_SECRET = "test-secret-with-at-least-32-characters";
   delete process.env.UPSTASH_REDIS_REST_URL;
   delete process.env.UPSTASH_REDIS_REST_TOKEN;
-  account = { id: "mock-admin-id", email: "admin@example.com", role: "ADMIN", firstName: "Test", lastName: "Double", avatar: null, passwordHash: "mock-password-hash" };
+  account = { id: "mock-admin-id", email: "admin@example.com", role: "ADMIN", firstName: "Test", lastName: "Double", avatar: null, passwordHash: "mock-password-hash", mfaSecret: null, webAuthnCredentials: [] };
   session = { user: { ...account } };
   compareCalls = 0;
   lookupFails = false;
+  pendingLogin = null;
+  backupCode = null;
 });
+
+function seedPendingLogin(role = "ADMIN") {
+  const id = "p".repeat(32);
+  const secret = "q".repeat(32);
+  pendingLogin = {
+    id,
+    userId: account.id,
+    role,
+    secretHash: createHash("sha256").update(secret, "utf8").digest("hex"),
+    webAuthnChallenge: null,
+    attempts: 0,
+    createdAt: new Date(),
+    expiresAt: new Date(Date.now() + 60_000),
+  };
+  return { pendingLoginId: id, pendingLoginSecret: secret };
+}
 
 test("Credentials validates the password and includes the profile, but not the hash", async () => {
   const user = await authorizeCredentials(credentials("true"), request());
   assert.equal(user.id, account.id);
   assert.equal(user.firstName, "Test");
   assert.equal(user.lastName, "Double");
-  assert.equal(user.role, "ADMIN");
+  assert.equal(user.role, "USER", "staff without a second factor receives only a customer session for enrollment");
   assert.equal(user.passwordHash, undefined);
   assert.equal(await authorizeCredentials({ ...credentials("true"), password: "wrong" }, request()), null);
 });
@@ -79,6 +138,48 @@ test("Admin mode returns the same credential failure for USER and unknown accoun
   account = null;
   assert.equal(await authorizeCredentials(credentials("true"), request()), null);
   assert.equal(compareCalls, 2, "unknown accounts must still run the password comparison");
+});
+
+test("TOTP completes a pending staff login exactly once without elevating a changed role", async () => {
+  const secret = createTotpSecret();
+  account.mfaSecret = encryptMfaSecret(secret);
+  const pending = seedPendingLogin("ADMIN");
+  const mfaCode = new TOTP({ secret, algorithm: "SHA1", digits: 6, period: 30 }).generate();
+
+  const user = await authorizeCredentials({ ...pending, mfaCode }, request());
+  assert.equal(user.role, "ADMIN");
+  assert.equal(pendingLogin, null, "a successful challenge is consumed");
+  assert.equal(await authorizeCredentials({ ...pending, mfaCode }, request()), null, "challenge replay fails");
+
+  const demotedPending = seedPendingLogin("ADMIN");
+  account.role = "USER";
+  const demoted = await authorizeCredentials({ ...demotedPending, mfaCode }, request());
+  assert.equal(demoted.role, "USER", "a role change during MFA never auto-elevates the session");
+});
+
+test("backup codes are single-use and a failed replay does not consume the pending login", async () => {
+  account.webAuthnCredentials = [{ id: "mock-passkey" }];
+  const rawCode = "ABCD-EFGH-JKLM";
+  backupCode = { id: "backup-code-1", userId: account.id, codeHash: hashBackupCode(rawCode), usedAt: null };
+  const pending = seedPendingLogin("USER");
+
+  const user = await authorizeCredentials({ ...pending, mfaCode: rawCode }, request());
+  assert.equal(user.role, "USER");
+  assert.ok(backupCode.usedAt instanceof Date);
+
+  const replay = seedPendingLogin("USER");
+  const originalWarn = console.warn;
+  console.warn = () => {};
+  try {
+    await assert.rejects(
+      authorizeCredentials({ ...replay, mfaCode: rawCode }, request()),
+      { code: "mfa_invalid" },
+    );
+  } finally {
+    console.warn = originalWarn;
+  }
+  assert.equal(pendingLogin.attempts, 1);
+  assert.equal(pendingLogin.id, replay.pendingLoginId);
 });
 
 test("invalid emails, overlong bcrypt passwords and weak configuration are rejected", async () => {

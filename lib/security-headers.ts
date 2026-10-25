@@ -71,6 +71,8 @@ export function buildContentSecurityPolicy({
     "object-src 'none'",
     "frame-src https://www.canva.com https://canva.com",
     `frame-ancestors ${ancestors.join(" ")}`,
+    "report-uri /api/security/csp-report",
+    "report-to csp-endpoint",
   ];
 
   if (production) {
@@ -87,6 +89,7 @@ export function staticSecurityHeaders(production: boolean): Record<string, strin
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    "Reporting-Endpoints": "csp-endpoint=\"/api/security/csp-report\"",
     // Disable the removed/legacy browser XSS auditor; nonce CSP is the real boundary.
     "X-XSS-Protection": "0",
     // Legacy browsers without CSP support; `frame-ancestors` covers the rest.
