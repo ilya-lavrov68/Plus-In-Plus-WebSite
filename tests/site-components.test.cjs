@@ -788,7 +788,8 @@ test("public UI uses neutral media slots and keeps ambient glow only in the hero
     path.resolve(__dirname, "../components/blocks/hero138.tsx"),
     "utf8",
   );
-  assert.match(heroSource, /glass-surface/);
+  assert.match(heroSource, /hero-media-frame/);
+  assert.doesNotMatch(heroSource, /glass-surface/);
   assert.match(heroSource, /hero-pillar-1/);
   assert.match(heroSource, /blur-3xl/);
 
@@ -802,6 +803,8 @@ test("public UI uses neutral media slots and keeps ambient glow only in the hero
 
   const styles = fs.readFileSync(path.resolve(__dirname, "../styles/globals.css"), "utf8");
   assert.match(styles, /\.glass-surface\s*\{[^}]*border:\s*0;[^}]*backdrop-filter:/s);
+  assert.match(styles, /\.hero-media-frame\s*\{[^}]*box-shadow:/s);
+  assert.doesNotMatch(styles, /\.hero-media-frame\s*\{[^}]*backdrop-filter:/s);
 
   const placeholders = require("../lib/content-placeholders.ts");
   assert.equal(

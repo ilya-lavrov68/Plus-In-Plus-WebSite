@@ -447,6 +447,14 @@
     box-shadow: 0 24px 80px -32px hsl(0 0% 0% / 0.55);
   }
 
+  /* The hero's large media frame keeps the translucent rim and shadow without
+   * a full-width backdrop blur. That blur forced expensive offscreen rendering
+   * on every scroll frame, especially while crossing the ambient pillars. */
+  .hero-media-frame {
+    border: 0;
+    box-shadow: 0 24px 80px -32px hsl(0 0% 0% / 0.55);
+  }
+
   /* Timeline cards keep the glass treatment without stacking expensive 24px
    * blurs and large shadows on every milestone during scrolling. */
   .story-card {
@@ -455,8 +463,20 @@
     backdrop-filter: blur(12px);
   }
 
-  /* Markers animate once when the existing reveal observer activates their
-   * card. The pending-only selector keeps SSR/no-JS content fully visible. */
+  /* The spine turns into each card, then traces its rounded perimeter. These
+   * are one-shot transitions driven by the existing reveal observer, not
+   * additional scroll timelines. Pending-only states keep SSR/no-JS visible. */
+  .story-moment-connector {
+    transform: scaleX(1);
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1) 80ms;
+  }
+
+  .story-moment-outline-rect {
+    stroke-dasharray: 1 0;
+    stroke-dashoffset: 0.13;
+    transition: stroke-dasharray 960ms cubic-bezier(0.65, 0, 0.35, 1) 260ms;
+  }
+
   .story-timeline-dot {
     opacity: 1;
     transform: scale(1);
@@ -465,9 +485,27 @@
       transform 180ms ease-out;
   }
 
-  [data-reveal="pending"] + .story-timeline-marker .story-timeline-dot {
+  [data-reveal="pending"] ~ .story-moment-connector {
+    transform: scaleX(0);
+  }
+
+  [data-reveal="pending"] ~ .story-moment-outline .story-moment-outline-rect {
+    stroke-dasharray: 0 1;
+  }
+
+  [data-reveal="pending"] ~ .story-timeline-marker .story-timeline-dot {
     opacity: 0.35;
     transform: scale(0.7);
+  }
+
+  @media (width >= 768px) {
+    .story-moment-outline-rect {
+      stroke-dashoffset: 0.08;
+    }
+
+    .story-moment-outline--from-right .story-moment-outline-rect {
+      stroke-dashoffset: 0.58;
+    }
   }
 
   /* Keep one continuous scroll animation, measured against the stable track
@@ -605,6 +643,16 @@
     opacity: 1 !important;
     transform: none !important;
     animation: none !important;
+    transition: none !important;
+  }
+
+  .story-moment-connector {
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .story-moment-outline-rect {
+    stroke-dasharray: 1 0 !important;
     transition: none !important;
   }
 }

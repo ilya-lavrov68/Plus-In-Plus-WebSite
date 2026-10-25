@@ -123,7 +123,7 @@ test("landing story renders author content without a second JavaScript scroll dr
   act(() => view.unmount());
 });
 
-test("timeline keeps one native line animation with event-driven markers and readable fallbacks", () => {
+test("timeline keeps one native spine animation with one-shot connectors and rounded card traces", () => {
   let view;
   act(() => {
     view = create(React.createElement(StoryTimeline, timelineProps({ events: [events[0]] })));
@@ -135,7 +135,11 @@ test("timeline keeps one native line animation with event-driven markers and rea
   assert.equal(view.root.findByProps({ "data-story-dot": 0 }).props.style, undefined);
   const momentChildren = view.root.findAllByType("li")[0].children;
   assert.equal(momentChildren[0].type, "article");
-  assert.match(momentChildren[1].props.className, /story-timeline-marker/);
+  assert.equal(momentChildren[1].type, "svg");
+  assert.match(momentChildren[1].props.className, /story-moment-outline/);
+  assert.equal(momentChildren[1].findByType("rect").props.pathLength, 1);
+  assert.match(momentChildren[2].props.className, /story-moment-connector/);
+  assert.match(momentChildren[3].props.className, /story-timeline-marker/);
 
   const source = fs.readFileSync(
     path.resolve(__dirname, "../components/site/story-timeline.tsx"),
@@ -154,8 +158,12 @@ test("timeline keeps one native line animation with event-driven markers and rea
   assert.match(globals, /animation-range: entry 8% exit 55%/);
   assert.equal((globals.match(/^\s*animation-timeline:/gm) || []).length, 1);
   assert.doesNotMatch(globals, /story-dot-activate/);
-  assert.match(globals, /\[data-reveal="pending"\] \+ \.story-timeline-marker \.story-timeline-dot/);
+  assert.match(globals, /\.story-moment-outline-rect \{[^}]*stroke-dasharray: 1 0;/);
+  assert.match(globals, /\[data-reveal="pending"\] ~ \.story-moment-outline \.story-moment-outline-rect \{[^}]*stroke-dasharray: 0 1;/);
+  assert.match(globals, /\[data-reveal="pending"\] ~ \.story-moment-connector \{[^}]*transform: scaleX\(0\);/);
+  assert.match(globals, /\[data-reveal="pending"\] ~ \.story-timeline-marker \.story-timeline-dot/);
   assert.match(globals, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.story-timeline-progress,[\s\S]*?animation: none !important;[\s\S]*?transition: none !important;/);
+  assert.match(globals, /\.story-moment-outline-rect \{[^}]*stroke-dasharray: 1 0 !important;[^}]*transition: none !important;/);
   assert.match(globals, /\.story-card \{[^}]*backdrop-filter: blur\(12px\);[^}]*\}/);
   assert.doesNotMatch(globals, /\.story-card \{[^}]*box-shadow:[^}]*\}/);
   act(() => view.unmount());
