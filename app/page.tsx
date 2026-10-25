@@ -3,6 +3,7 @@ import { Community } from "@/components/site/community";
 import { CtaSection } from "@/components/site/cta-section";
 import { Features } from "@/components/site/features";
 import { Hero } from "@/components/site/hero";
+import { Story } from "@/components/site/story";
 import { localizeBlogPosts } from "@/lib/blog-localization";
 import { getPublishedPosts } from "@/lib/data";
 import { getRequestLocale } from "@/lib/request-locale";
@@ -23,6 +24,7 @@ export default async function HomePage() {
   return (
     <>
       <Hero />
+      <Story />
       <Features />
       <Community />
       <BlogSection
