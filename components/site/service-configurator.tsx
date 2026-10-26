@@ -132,7 +132,7 @@ export function ServiceConfigurator({
       <section
         aria-live="polite"
         className={cn(
-          "rounded-2xl border border-border bg-card p-6 sm:p-8",
+          "glass-panel rounded-2xl border border-border bg-white/[0.035] p-6 shadow-glass sm:p-8",
           className
         )}
       >
@@ -157,7 +157,7 @@ export function ServiceConfigurator({
     <form
       onSubmit={handleSubmit}
       className={cn(
-        "rounded-2xl border border-border bg-card p-6 sm:p-8",
+        "glass-panel rounded-2xl border border-border bg-white/[0.035] p-6 shadow-glass sm:p-8",
         className
       )}
     >

@@ -136,9 +136,7 @@ const ProductDetail1 = ({
                 </dd>
               </div>
 
-              <Separator />
-
-              <div>
+              <div className="relative before:absolute before:-top-10 before:right-0 before:left-0 before:border-t before:border-border before:content-['']">
                 <dt className="text-xl font-semibold text-foreground">
                   {labels?.shapesTitle ?? "Any shape, any idea"}
                 </dt>
@@ -161,9 +159,7 @@ const ProductDetail1 = ({
                 </dd>
               </div>
 
-              <Separator />
-
-              <div className="rounded-xl border border-border bg-card p-6">
+              <div className="relative rounded-xl border border-border bg-card p-6 before:absolute before:-top-10 before:right-0 before:left-0 before:border-t before:border-border before:content-['']">
                 <dt className="text-xl font-semibold text-foreground">
                   {labels?.resultTitle ?? "The result"}
                 </dt>

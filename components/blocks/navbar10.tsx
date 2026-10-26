@@ -830,6 +830,10 @@ const MobileNavigationMenu = ({
       <SheetContent
         id="mobile-navigation-dialog"
         aria-describedby={undefined}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          document.getElementById("mobile-menu-trigger")?.focus({ preventScroll: true });
+        }}
         side="top"
         className="inset-0 z-[70] h-dvh w-full overflow-y-auto bg-background p-0 shadow-none [&>button]:hidden"
       >

@@ -149,7 +149,7 @@ export function ContactOrderForm({
           />
 
           {selectedServices.length === 0 ? (
-            <p className="mt-2 text-sm text-destructive">
+            <p className="mt-2 text-sm text-destructive-text">
               {t("selectServicesError")}
             </p>
           ) : null}
@@ -205,7 +205,7 @@ export function ContactOrderForm({
           {error ? (
             <p
               role="alert"
-              className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+              className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive-text"
             >
               {error}
             </p>
