@@ -191,3 +191,50 @@ Docs-only commit `f24f867` не изменил source hash и запустил w
 Regression contract запрещает расширить cache path на весь `.next` или удалить обязательные verification commands. Локальный полный suite после добавления contract — **385/385 passed**; security policy audit — 334 source files, dependency audit — **0 vulnerabilities**. Cold и warm CI также успешно выполнили полный набор проверок и production smoke.
 
 Цена — примерно 30 MB cache на source/ref entry (первые push и pull_request runs создали независимые entries); GitHub управляет eviction по своей политике. Runtime сайта этот cache не меняет. Rollback — удалить только restore step из CI; приложение и схема БД не затрагиваются.
+
+## 11. Пятый пакет: production-mode Web Vitals и preload критичных шрифтов
+
+Baseline — commit `2a1ff28bcf4ea784ac5c0d5d5230241420e9545a`. Для этой серии использовался обычный `next start` на HTTP `0.0.0.0:3444` и отдельный TLS reverse proxy на `0.0.0.0:3443`, который перезаписывал `Host`, `X-Forwarded-Host` и `X-Forwarded-Proto`. Предварительная серия через custom Next HTTPS server исключена: она смешивала bind/public origins и создавала не относящиеся к изменению ошибки. В приведённых ниже сериях все document responses — HTTP 200.
+
+Fixture — изолированная throwaway SQLite после существующих `db:push` и `seed-demo`: 8 services, 4 posts, 5 users и 3 orders. Это не production и не сетевой Turso. Browser — Playwright `1.64.1` и `@sparticuz/chromium` `153.0.0`, production build, warm route code, новый browser context на каждый прогон, `serviceWorkers: block`, без artificial throttling. Desktop — `1440 × 900`, mobile — `390 × 844` с touch/mobile mode. Для каждого из десяти EN/RU route-viewport сценариев выполнено по три прогона до и после. Снимались Navigation Timing, LCP element, CLS session window и его sources, CDP encoded bytes, long tasks, console/request failures и screenshots; после `load` ожидались `document.fonts.ready` и ещё 2,5 секунды.
+
+### 11.1. Доказанная причина и изменение
+
+На EN desktop `/` три baseline CLS session scores составили `0.1403752`, `0.1694989`, `0.1694989`; на RU desktop `/` — три раза `0.0495205`. Sources указывали на изменение текстовых line boxes и размеров header/hero после загрузки local fonts. Mobile home в обеих локалях имел CLS `0`; тяжёлые raster LCP-ресурсы в fixture отсутствовали.
+
+Добавлены только ранние preload links для уже используемых шрифтов:
+
+- `geist-variable.woff2` и `google-sans-flex-latin.woff2` — для обеих локалей;
+- `inter-cyrillic-wght-normal.woff2` — только для RU;
+- каждый link имеет `as="font"`, `type="font/woff2"` и `crossOrigin="anonymous"`, поэтому preload переиспользуется CSS font request, а не создаёт второй ответ под другим mode.
+
+Начертания, `unicode-range`, пять `font-display: swap`, контент и анимации не менялись. Cyrillic Ext и Latin Ext специально не preloaded: они не нужны каждому первому экрану. Regression contract закрепляет locale-aware набор и запрещает случайно вернуть preload всех subsets.
+
+### 11.2. Сопоставимые результаты до/после
+
+LCP ниже — медиана трёх прогонов в ms; в скобках дан полный диапазон. CLS приведён как три session-window scores, а не выбранный лучший прогон. Таблица описывает именно локальный warm-route lab experiment; различия LCP не являются статистически доказанным ускорением.
+
+| Сценарий | LCP до → после, ms | CLS до → после |
+| --- | ---: | --- |
+| EN `/`, desktop | 268 (260–292) → 268 (268–296) | 0.1403752 / 0.1694989 / 0.1694989 → 0 / 0 / 0 |
+| EN `/`, mobile | 232 (228–236) → 232 (212–236) | 0 / 0 / 0 → 0 / 0 / 0 |
+| RU `/`, desktop | 256 (252–320) → 260 (240–304) | 0.0495205 / 0.0495205 / 0.0495205 → 0 / 0 / 0 |
+| RU `/`, mobile | 228 (228–280) → 224 (196–236) | 0 / 0 / 0 → 0 / 0 / 0 |
+| EN `/blog`, desktop | 224 (192–248) → 184 (176–196) | 0.0002367 / 0.0002367 / 0.0153673 → 0 / 0 / 0.0143673 |
+| EN `/blog`, mobile | 200 (176–200) → 168 (160–196) | 0 / 0 / 0 → 0 / 0 / 0 |
+| EN article, desktop | 200 (192–268) → 200 (184–276) | 0.0155429 / 0.0179843 / 0.0179843 → 0 / 0 / 0 |
+| EN article, mobile | 200 (188–220) → 196 (176–200) | 0 / 0 / 0 → 0 / 0 / 0 |
+| EN `/services`, desktop | 204 (200–216) → 180 (176–208) | 0.0016357 / 0.0016357 / 0.0016357 → 0 / 0 / 0 |
+| EN `/services`, mobile | 212 (200–248) → 188 (184–212) | 0 / 0 / 0 → 0 / 0 / 0 |
+
+Подтверждённый результат пакета — устранение наблюдавшихся font-related shifts на home, article и services в этих повторах, а не обещание CLS `0` на любом устройстве. Оставшийся intermittent `/blog` desktop shift `0.0143673` имеет другой source: видимая нижняя часть footer уходит за viewport при расширении async content над ним. Его нельзя приписать шрифтам или считать решённым этим diff; резервирование async layout — отдельный кандидат.
+
+Font CDP encoded bytes не выросли: EN home — `121555` bytes до и после, RU home — `140838` до и после. В каждом EN home run осталось ровно два font responses для двух уникальных URL, в RU — три для трёх; повторной загрузки preloaded resource нет. Screenshots EN/RU desktop/mobile визуально совпали: header, hero, cookie banner и messenger-like mobile bottom panel сохранены. Horizontal overflow не появился.
+
+Responsive-raster pipeline в этот пакет не включён. Approved runtime uploads в fixture отсутствуют, старые covers преобразуются в локальные SVG-placeholders, а retired JPEG запрещено возвращать. Поэтому текущие SVG LCP не доказывают выгоду `srcset`/AVIF/WebP; создавать искусственные raster covers ради измерения не допускается. Этот пункт остаётся до появления реальных author-controlled local materials.
+
+### 11.3. Проверки, цена и rollback
+
+Для font-only diff выполнены `npx tsc --noEmit`, `npm run lint`, focused performance contracts и обычный production `npm run build`. Contract suite на этом этапе — 10/10. Полный repository suite и security audits выполняются после всего пакета и фиксируются в итоговом PR summary.
+
+Цена — более ранняя загрузка двух общих и одного RU-specific WOFF2, которые уже нужны глобальным heading/body stacks. Это сознательный приоритет критичным ресурсам, а не увеличение набора font files или bytes. Preload не гарантирует отсутствие fallback shift при произвольно медленной сети; для field/staging p75 по-прежнему нужны реальные RUM/remote-data замеры. Rollback — удалить три conditional/unconditional link и их contract; схема БД, dependencies и runtime configuration не менялись.

@@ -196,6 +196,27 @@ test("client messages omit server actions but preserve every staff fallback", ()
   }
 });
 
+test("critical font preloads are locale-aware and reuse CSS font requests", () => {
+  const layout = source("app/layout.tsx");
+  const head = layout.split("<head>")[1].split("</head>")[0];
+
+  for (const href of [
+    "/assets/fonts/geist-variable.woff2",
+    "/assets/fonts/google-sans-flex-latin.woff2",
+    "/assets/fonts/inter-cyrillic-wght-normal.woff2",
+  ]) {
+    assert.ok(head.includes(`href="${href}"`), `Missing ${href}`);
+  }
+  assert.equal((head.match(/as="font"/g) || []).length, 3);
+  assert.equal((head.match(/type="font\/woff2"/g) || []).length, 3);
+  assert.equal((head.match(/crossOrigin="anonymous"/g) || []).length, 3);
+  assert.match(head, /locale === "ru" \? \(/);
+  assert.doesNotMatch(head, /cyrillic-ext|latin-ext/);
+
+  const styles = source("styles/globals.css");
+  assert.equal((styles.match(/font-display: swap/g) || []).length, 5);
+});
+
 test("CI restores only Next incremental cache and never skips verification", () => {
   const workflow = source(".github/workflows/ci.yml");
   assert.match(workflow, /uses: actions\/cache@v4/);
