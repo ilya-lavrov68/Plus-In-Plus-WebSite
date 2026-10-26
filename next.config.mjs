@@ -31,5 +31,12 @@ const nextConfig = {
 };
 
 const withNextIntl = createNextIntlPlugin("./i18n-request.ts");
+let config = withNextIntl(nextConfig);
 
-export default withNextIntl(nextConfig);
+// Обычный production runtime не разрешает dev-only analyzer dependency.
+if (process.env.ANALYZE === "true") {
+  const { default: withBundleAnalyzer } = await import("@next/bundle-analyzer");
+  config = withBundleAnalyzer({ enabled: true, openAnalyzer: false })(config);
+}
+
+export default config;

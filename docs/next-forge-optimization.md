@@ -20,6 +20,8 @@
 
 **Фактически выполнено в изменении, создавшем этот документ:** исправление геометрии timeline и введение обязательного agent workflow. Миграции, смена зависимостей, кэширование, monitoring и оптимизация других страниц не выполнялись.
 
+**Последующий реализованный пакет:** настроен opt-in bundle analyzer, сужены blog card DTO и публичные queries, полные словари вынесены за server-only boundary, AccountModal и WebAuthn SDK загружаются по взаимодействию. Окружение, измерения и непроверенные сценарии зафиксированы в [`performance-baseline.md`](performance-baseline.md); вся программа оптимизации этим не завершена.
+
 ## 2. Почему next-forge нельзя копировать как готовый шаблон
 
 | Область | next-forge на зафиксированном commit | Текущий PIP | Вывод |
@@ -50,7 +52,7 @@
 
 **Что уже есть в PIP.** `StoryTimeline` server-rendered; admin rich-text editor и data table уже имеют dynamic imports; независимые reads местами объединены через `Promise.all`.
 
-**Решение PIP.** Принцип закреплён в `docs/agent-workflow.md`. Массовое добавление `dynamic`, `memo` или новых client islands сейчас не выполняется: сначала нужен route bundle/runtime baseline.
+**Решение PIP.** Принцип закреплён в `docs/agent-workflow.md`. Массовое добавление `dynamic`, `memo` или новых client islands не выполнялось. После bundle baseline отложены только AccountModal и WebAuthn SDK; browser flow подтвердил loading, focus return и сохранение обычной авторизации.
 
 ### 3.2. Выборочные данные и CMS queries
 
@@ -64,7 +66,9 @@
 
 **Что уже есть в PIP.** `lib/prisma.ts` использует существующий singleton; `lib/story.ts` выбирает только `value`; `getServicePricing` отдельно загружает дерево опций, чтобы список услуг не тащил его; admin lists имеют pagination.
 
-**Будущие кандидаты.** Проверить публичные queries, которые сейчас читают полные posts/services, сформировать узкие view models и измерить payload/query time. `generateStaticParams` нельзя механически добавить к страницам с `force-dynamic`, per-request locale/CSP и database-authoritative updates.
+**Реализовано в первом пакете.** Для карточек введён узкий `BlogCardData`; latest posts ограничены на уровне Prisma, blog metadata читает один slug, featured navigation использует narrow `select`, shop metadata — `count`. Измерены HTML/RSC diagnostic и encoded browser payload; query duration на сетевом Turso ещё не измерена.
+
+**Будущие кандидаты.** Продолжить проверку оставшихся полных reads и server waterfall по фактическим traces. `generateStaticParams` нельзя механически добавить к страницам с `force-dynamic`, per-request locale/CSP и database-authoritative updates.
 
 ### 3.3. Независимые операции и server waterfall
 
@@ -100,9 +104,9 @@
 
 **Принцип для PIP.** Сначала получить карту фактического client/server bundle, затем удалять или откладывать конкретный тяжёлый модуль. Название dependency и размер в `node_modules` не равны вкладу в браузерный bundle.
 
-**Решение PIP.** Bundle analysis признан обязательным инструментом будущего этапа, но новый analyzer dependency/config в текущий diff не добавлен.
+**Решение PIP.** Добавлены exact dev-only `@next/bundle-analyzer` версии текущего Next.js и команда `npm run analyze`. Analyzer включается только при `ANALYZE=true`; reports сохраняются в `.next/analyze/` и не попадают в Git. Baseline и after сравнивались на production builds, а не по размеру исходников в `node_modules`.
 
-**Будущий кандидат.** Для совместимой с текущим Next.js версии analyzer настроить отдельный `analyze` workflow, сохранить baseline по маршрутам и сравнивать только одинаковый production build. Нельзя выдавать approximate source size за точный transferred bytes.
+**Будущий кандидат.** Повторять analyzer при изменении client boundaries и сопоставлять его с transferred bytes/browser behavior. Approximate source size по-прежнему нельзя выдавать за точный transferred bytes, а уменьшение chunk — за автоматическое улучшение Web Vitals.
 
 ### 3.6. Конфигурация и optional integrations
 
@@ -166,7 +170,7 @@
 
 ## 5. Исходные факты PIP для программы оптимизации
 
-На момент создания документа:
+Архитектурные ограничения остаются прежними; статус измерений обновлён после первого пакета:
 
 - ключевые публичные и personalized pages в большом количестве используют `force-dynamic`;
 - middleware создаёт per-request CSP nonce, обрабатывает locale и protected routes;
@@ -175,8 +179,8 @@
 - пользовательские заказы, auth sessions, MFA и staff views нельзя помещать в общий кэш;
 - Prisma работает через libSQL/Turso adapter, поэтому сетевая близость БД и количество round trips могут быть важнее микрооптимизации React;
 - существуют server-first компоненты, локальные fonts, WebP pipeline, dynamic admin editor/table, pagination и `Promise.all` для части независимых reads;
-- общепроектный задокументированный baseline Web Vitals, browser transferred JS, SQL timings и cache hit ratio пока отсутствует;
-- настроенной non-production БД для полноценных внешних измерений в текущей задаче не было.
+- первый local production-build baseline browser payload и bundle graph зафиксирован в `docs/performance-baseline.md`; распределения field/staging Web Vitals, SQL timings и cache hit ratio по-прежнему отсутствуют;
+- внешняя non-production БД не настроена; для сравнения использовалась только изолированная throwaway SQLite, которую нельзя выдавать за staging/Turso evidence.
 
 Следовательно, нельзя заранее назвать главную причину медленного отклика и нельзя обещать результат от кэша, monorepo или нового SDK.
 

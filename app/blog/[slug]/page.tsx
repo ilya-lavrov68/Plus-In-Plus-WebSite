@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { localizeBlogPosts } from "@/lib/blog-localization";
-import { getPublishedPosts } from "@/lib/data";
+import { getPublishedPost } from "@/lib/data";
 import { getRequestLocale } from "@/lib/request-locale";
 import { createPageMetadata } from "@/lib/seo";
 import { getRequestTranslations } from "@/lib/server-i18n";
@@ -19,13 +19,14 @@ export async function generateMetadata({
   params,
 }: BlogPostPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const [dbPosts, locale, t] = await Promise.all([
-    getPublishedPosts(),
+  const [dbPost, locale, t] = await Promise.all([
+    getPublishedPost(slug),
     getRequestLocale(),
     getRequestTranslations("blog"),
   ]);
-  const allPosts = localizeBlogPosts(mergeCatalogPosts(dbPosts), t, locale);
-  const post = allPosts.find((item) => item.slug === slug);
+  const post = dbPost
+    ? localizeBlogPosts(mergeCatalogPosts([dbPost]), t, locale)[0]
+    : null;
   if (!post) notFound();
 
   return createPageMetadata({

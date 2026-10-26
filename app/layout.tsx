@@ -9,7 +9,7 @@ import { SITE_NAME, SITE_URL, absoluteUrl } from "@/lib/seo";
 import { getPublicSiteSettings } from "@/lib/public-site-settings";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getRequestTranslations } from "@/lib/server-i18n";
-import { messages } from "@/i18n";
+import { messages } from "@/i18n-catalog";
 
 import "@/styles/globals.css";
 

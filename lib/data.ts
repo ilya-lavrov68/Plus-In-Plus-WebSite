@@ -326,17 +326,19 @@ export async function getServicePricing(slugOrId: string): Promise<ServicePricin
   }
 }
 
-export async function getPublishedPosts(): Promise<PostView[]> {
+export async function getPublishedPosts(limit?: number): Promise<PostView[]> {
   if (!prisma) return [];
 
   try {
     const now = new Date();
+    const take = limit === undefined ? undefined : Math.max(1, Math.floor(limit));
     const posts = await prisma.post.findMany({
       where: {
         isPublished: true,
         OR: [{ publishedAt: null }, { publishedAt: { lte: now } }],
       },
       orderBy: [{ publishedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
+      ...(take === undefined ? {} : { take }),
     });
     return posts.map(toPostView);
   } catch (error) {
@@ -363,21 +365,32 @@ export async function getPublishedPost(slug: string): Promise<PostView | null> {
   }
 }
 
-export async function getFeaturedPost(): Promise<PostView | null> {
+export interface FeaturedPostView {
+  title: string;
+  slug: string;
+  coverImage: string;
+}
+
+const featuredPostSelect = { title: true, slug: true, coverImage: true } as const;
+
+/** Навигации нужны только поля ссылки и обложки, не HTML всей featured-статьи. */
+export async function getFeaturedPost(): Promise<FeaturedPostView | null> {
   if (!prisma) return null;
 
   try {
     let post = await prisma.post.findFirst({
       where: { isPublished: true, isFeatured: true, OR: [{ publishedAt: null }, { publishedAt: { lte: new Date() } }] },
       orderBy: [{ publishedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
+      select: featuredPostSelect,
     });
     if (!post) {
       post = await prisma.post.findFirst({
         where: { isPublished: true, OR: [{ publishedAt: null }, { publishedAt: { lte: new Date() } }] },
         orderBy: [{ publishedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
+        select: featuredPostSelect,
       });
     }
-    return post ? toPostView(post) : null;
+    return post ? { ...post, coverImage: postCover(post.coverImage) } : null;
   } catch (error) {
     console.error("Failed to load featured post from the database:", error);
     return null;

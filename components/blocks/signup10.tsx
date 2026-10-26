@@ -6,7 +6,6 @@ import { useSession } from "next-auth/react";
 import { type FormEvent, useState } from "react";
 import { motion } from "motion/react";
 import { useTranslations } from "next-intl";
-import { startAuthentication } from "@simplewebauthn/browser";
 
 import { loginUser, registerUser } from "@/app/actions/auth";
 import type { AuthActionResult } from "@/app/actions/auth";
@@ -150,6 +149,7 @@ const Signup10 = ({
         setLoading(false);
         return;
       }
+      const { startAuthentication } = await import("@simplewebauthn/browser");
       const assertion = await startAuthentication({ optionsJSON: options.options });
       const result = await loginUser({
         pendingLoginId: mfaChallenge.id,

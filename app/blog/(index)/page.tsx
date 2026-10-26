@@ -7,6 +7,7 @@ import { getRequestLocale } from "@/lib/request-locale";
 import { mergeCatalogPosts } from "@/lib/studio-catalog";
 import { getRequestTranslations } from "@/lib/server-i18n";
 import { localizeBlogPosts } from "@/lib/blog-localization";
+import { toBlogCardData } from "@/lib/blog-card";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,7 @@ export default async function BlogPage() {
       id="blog-page"
       heading={t("title")}
       description={t("listDescription")}
-      posts={posts}
+      posts={posts.map(toBlogCardData)}
       allCategoryLabel={t("allCategory")}
       categoryLabels={{ Design: t("categoryDesign"), Studio: t("categoryStudio"), Outdoor: t("categoryOutdoor") }}
       emptyTitle={t("empty.title")}

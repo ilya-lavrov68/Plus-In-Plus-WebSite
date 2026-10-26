@@ -1,6 +1,4 @@
 import { localizedPath as computeLocalizedPath } from "@/i18n/routing";
-import en from "@/messages/en.json";
-import ru from "@/messages/ru.json";
 
 export const locales = ["en", "ru"] as const;
 export type Locale = (typeof locales)[number];
@@ -59,5 +57,3 @@ export function formatPublishedDate(value: Date | string, locale: Locale): strin
   }).format(date);
   return `${day}${locale === "ru" ? " в " : " at "}${time}`;
 }
-
-export const messages = { en, ru } as const;

@@ -1,5 +1,6 @@
 import { Blog11 } from "@/components/blocks/blog11";
-import type { CatalogBlogPost } from "@/lib/studio-catalog";
+import { toBlogCardData } from "@/lib/blog-card";
+import { STUDIO_BLOG_POSTS, type CatalogBlogPost } from "@/lib/studio-catalog";
 
 interface BlogSectionProps {
   heading?: string;
@@ -16,7 +17,7 @@ interface BlogSectionProps {
 export function BlogSection({
   heading = "News from Plus In Plus",
   description,
-  posts,
+  posts = STUDIO_BLOG_POSTS,
   allCategoryLabel,
   categoryLabels,
   emptyTitle,
@@ -29,7 +30,7 @@ export function BlogSection({
       id={id}
       heading={heading}
       description={description}
-      posts={posts}
+      posts={posts.map(toBlogCardData)}
       allCategoryLabel={allCategoryLabel}
       categoryLabels={categoryLabels}
       emptyTitle={emptyTitle}

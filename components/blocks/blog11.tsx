@@ -8,16 +8,16 @@ import { Newspaper } from "lucide-react";
 import { EmptyState } from "@/components/site/empty-state";
 import { DecryptText } from "@/components/site/motion/decrypt-text";
 import { Separator } from "@/components/ui/separator";
-import { STUDIO_BLOG_POSTS, type CatalogBlogPost } from "@/lib/studio-catalog";
+import type { BlogCardData } from "@/lib/blog-card";
 
 export interface Blog11Props {
   id?: string;
   heading?: string;
   description?: string;
-  posts?: CatalogBlogPost[];
+  posts?: BlogCardData[];
   asPageHeading?: boolean;
   allCategoryLabel?: string;
-  categoryLabels?: Partial<Record<CatalogBlogPost["category"], string>>;
+  categoryLabels?: Partial<Record<BlogCardData["category"], string>>;
   emptyTitle?: string;
   emptyDescription?: string;
 }
@@ -26,7 +26,7 @@ const Blog11 = ({
   id,
   heading = "Blog",
   description = "Latest news, studio updates, and design stories from Plus In Plus.",
-  posts = STUDIO_BLOG_POSTS,
+  posts = [],
   asPageHeading = false,
   allCategoryLabel = "All",
   categoryLabels = {},
@@ -89,7 +89,7 @@ const Blog11 = ({
                     >
                       {category === "All"
                         ? allCategoryLabel
-                        : categoryLabels[category as CatalogBlogPost["category"]] ?? category}
+                        : categoryLabels[category as BlogCardData["category"]] ?? category}
                       {isActive && (
                         <motion.span
                           layoutId={`blog11-category-${layoutScope}`}

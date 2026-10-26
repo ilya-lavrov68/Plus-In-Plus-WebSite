@@ -29,7 +29,10 @@ import {
   useState,
 } from "react";
 
-import { AccountModal } from "@/components/site/account-modal";
+import {
+  LazyAccountModal,
+  preloadAccountModal,
+} from "@/components/site/lazy-account-modal";
 import { CartIcon, useCartCount } from "@/components/site/cart-icon";
 import { MediaPlaceholder } from "@/components/site/media-placeholder";
 import { LanguageSwitcher } from "@/components/site/language-switcher";
@@ -401,6 +404,8 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
                       aria-label={t("openAccount")}
                       aria-haspopup="dialog"
                       aria-expanded={accountOpen}
+                      onPointerEnter={preloadAccountModal}
+                      onFocus={preloadAccountModal}
                       onClick={() => {
                         setAccountReturnFocusId("account-trigger");
                         setAccountOpen(true);
@@ -456,7 +461,7 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
         menuLabel={tc("mobileMainNavigation")}
         closeLabel={tc("closeMenu")}
       />
-      <AccountModal
+      <LazyAccountModal
         open={accountOpen}
         onOpenChange={setAccountOpen}
         returnFocusId={accountReturnFocusId}
