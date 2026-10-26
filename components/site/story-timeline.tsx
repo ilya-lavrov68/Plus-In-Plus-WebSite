@@ -54,10 +54,10 @@ function StoryMoment({ event, index }: { event: StoryEvent; index: number }) {
       >
         <rect
           className="story-moment-outline-rect"
-          x="1%"
-          y="1%"
-          width="98%"
-          height="98%"
+          x="0"
+          y="0"
+          width="100%"
+          height="100%"
           rx="24"
           pathLength={1}
           fill="none"
