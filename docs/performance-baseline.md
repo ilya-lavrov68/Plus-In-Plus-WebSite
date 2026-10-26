@@ -1,8 +1,8 @@
-# Baseline и первый пакет глобальной оптимизации
+# Baseline и измеренные пакеты глобальной оптимизации
 
-Дата: 2026-10-26. Базовый commit: `e399ce3d695d3ae6ad424e4e255db65320ea02b6`. Результат относится к diff, в котором добавлен этот отчёт.
+Дата: 2026-10-26. Базовый commit первого сравнения: `e399ce3d695d3ae6ad424e4e255db65320ea02b6`.
 
-Это первый измеренный пакет этапов 0–2 из [`next-forge-optimization.md`](next-forge-optimization.md), а не завершение всей программы производительности. Архитектура, схема БД, runtime dependencies, Next.js/React major versions, Auth.js, Prisma и Turso не менялись.
+Документ фиксирует последовательные измеренные пакеты этапов 0–2 из [`next-forge-optimization.md`](next-forge-optimization.md), а не завершение всей программы производительности. Архитектура, схема БД, runtime dependencies, Next.js/React major versions, Auth.js, Prisma и Turso не менялись.
 
 ## 1. Что было измерено до изменений
 
@@ -100,3 +100,45 @@ Registration через реальную форму не завершён в san
 Rollback — обычный revert этого diff. Миграций и runtime configuration changes нет. Единственная новая dependency — точная dev-only версия `@next/bundle-analyzer`, совпадающая с Next.js; production runtime не получает новый сервис или vendor.
 
 Цена изменений — дополнительный lazy boundary, явные DTO mapping calls и необходимость поддерживать query projections при изменении карточек. Взамен уменьшены initial client layout, скрытый RSC/HTML article payload и лишние database reads. Freshness и существующие `revalidatePath` не менялись, общий кэш не добавлялся.
+
+## 8. Второй пакет: server-action messages вне client payload
+
+Baseline второго сравнения — commit `f559526ddc17ab886fd04e849e8e5875b6cc4203`. Использовались тот же Node/Next/React, production build/start, локальный HTTPS и throwaway SQLite с тремя статьями по 260 абзацев.
+
+### 8.1. Отклонённая гипотеза
+
+Сначала проверялся `/blog/[slug]`: previous/next типизированы как полные `CatalogBlogPost`, но фактический response содержал только тело текущей статьи. `Blogpost11` является Server Component и превращает соседние записи в обычные ссылки до клиентской сериализации. Поэтому сужение этих props не было оформлено как оптимизация и не вошло в diff.
+
+### 8.2. Подтверждённый bottleneck и изменение
+
+Во всех шести baseline responses присутствовали маркеры полного `actions` catalog, включая server validation messages. При этом браузерные компоненты использовали из этого namespace только `genericError`, `updateServiceFailed` и `invalidAmount` в трёх staff-формах.
+
+- Эти три строки с идентичным RU/EN текстом добавлены в уже необходимый им `admin` namespace; компоненты продолжают показывать те же fallbacks через существующий translator.
+- `getClientMessages()` исключает только `actions` из `NextIntlClientProvider`. Все остальные namespaces остаются доступными, поэтому client navigation не зависит от pathname и не теряет route messages.
+- `messages` и `i18n-request.ts` сохраняют полный `actions`; серверный `getActionTranslator()`, validation errors и security behavior не изменены.
+
+### 8.3. Результат до/после
+
+HTML здесь — фактический `Buffer.byteLength` decoded response. Повторный browser run сравнивает CDP encoded Document; остальные session/consent requests в общий показатель не включены из-за их вариативности.
+
+| Маршрут | HTML bytes до → после | Изменение | Encoded Document до → after/повтор |
+| --- | ---: | ---: | ---: |
+| `/` | 172587 → 164288 | −8299 (−4,81%) | 44582 → 42450 / 42452 |
+| `/blog` | 120512 → 112213 | −8299 (−6,89%) | 35661 → 33552 / 33552 |
+| `/blog/performance-article-2` | 197336 → 189037 | −8299 (−4,21%) | 40317 → 38245 / 38159 |
+| `/login` | 116618 → 108319 | −8299 (−7,12%) | 34538 → 32387 / 32438 |
+| `/services` | 113856 → 105557 | −8299 (−7,29%) | 34357 → 32233 / 32225 |
+| `/ru/blog` | 156669 → 144002 | −12667 (−8,09%) | 42630 → 39963 / 39997 |
+
+После изменения server-action маркеры отсутствуют в HTML, необходимые staff fallback остаются. Все browser routes вернули HTTP 200 без console errors, unexpected failed requests и horizontal overflow. Мобильные `/blog`, `/login`, `/ru/blog`, статья, client navigation на login и reduced-motion mobile menu проверены отдельно.
+
+Это доказанное уменьшение response/document payload, а не новый LCP claim. Локальная SQLite по-прежнему не заменяет staging/Turso/field measurements.
+
+### 8.4. Проверки второго пакета
+
+- `npx tsc --noEmit`, `npm run lint` и обычный `npm run build` — успешны.
+- `npm test` — **382/382 passed**: добавлен performance contract для client messages и три behavior tests с реальным `NextIntlClientProvider`, где `actions` отсутствует.
+- Behavior tests подтверждают прежние `genericError`, `updateServiceFailed` и `invalidAmount` при rejected/thrown service update и invalid order amount.
+- `npm run security:audit` — 334 source files без high-confidence findings; `npm run security:dependencies -- --audit-level=high` — **0 vulnerabilities**.
+
+Rollback второго пакета также не требует миграций: восстановить `actions` в client provider и три прежних translator imports. Цена изменения — три коротких fallback-сообщения дублируются в `admin`, зато весь server-action catalog больше не отправляется браузеру на каждом маршруте.

@@ -32,7 +32,6 @@ export function InlinePriceEditor({
   emptyLabel,
 }: InlinePriceEditorProps) {
   const t = useTranslations("admin");
-  const ta = useTranslations("actions");
 
   const [editing, setEditing] = React.useState(false);
   const [draft, setDraft] = React.useState("");
@@ -69,10 +68,10 @@ export function InlinePriceEditor({
       if (result.ok) {
         setEditing(false);
       } else {
-        setError(result.error ?? ta("updateServiceFailed"));
+        setError(result.error ?? t("updateServiceFailed"));
       }
     } catch {
-      setError(ta("genericError"));
+      setError(t("genericError"));
     } finally {
       setPending(false);
     }

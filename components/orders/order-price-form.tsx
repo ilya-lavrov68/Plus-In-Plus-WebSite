@@ -39,7 +39,6 @@ export function OrderPriceForm({
   canEditLocked = false,
 }: OrderPriceFormProps) {
   const t = useTranslations("admin");
-  const ta = useTranslations("actions");
   const locale = useLocale();
 
   // Заблокированный заказ для не-основателя — только чтение. Сервер всё
@@ -65,7 +64,7 @@ export function OrderPriceForm({
     event.preventDefault();
     setError(null);
     if (!valid) {
-      setError(ta("invalidAmount"));
+      setError(t("invalidAmount"));
       return;
     }
     setPending(true);
@@ -85,10 +84,10 @@ export function OrderPriceForm({
         }
         setSaved(true);
       } else {
-        setError(result.error ?? ta("genericError"));
+        setError(result.error ?? t("genericError"));
       }
     } catch {
-      setError(ta("genericError"));
+      setError(t("genericError"));
     } finally {
       setPending(false);
     }
@@ -103,9 +102,9 @@ export function OrderPriceForm({
         window.location.reload();
         return;
       }
-      setError(result.error ?? ta("genericError"));
+      setError(result.error ?? t("genericError"));
     } catch {
-      setError(ta("genericError"));
+      setError(t("genericError"));
     } finally {
       setUnlockPending(false);
     }

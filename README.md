@@ -437,7 +437,7 @@ ROBOKASSA_HASH_ALGO="md5"
 
 Перед любой разработкой или проверкой применяйте [`docs/agent-workflow.md`](docs/agent-workflow.md): он требует завершать не только UI, но и связанные server/data/auth/mutation/error/revalidation слои с end-to-end доказательствами. Для оптимизации дополнительно используйте [`docs/next-forge-optimization.md`](docs/next-forge-optimization.md): там отделены изученные практики `vercel/next-forge` от решений PIP и обозначены будущие измеримые этапы без автоматической смены архитектуры.
 
-Первый воспроизводимый baseline, результаты и границы доказанности находятся в [`docs/performance-baseline.md`](docs/performance-baseline.md). Для новой bundle-карты выполните `npm run analyze`: это отдельная production-сборка с reports в `.next/analyze/`; analyzer не включается в обычный runtime.
+Воспроизводимые baselines, результаты последовательных пакетов и границы доказанности находятся в [`docs/performance-baseline.md`](docs/performance-baseline.md). Для новой bundle-карты выполните `npm run analyze`: это отдельная production-сборка с reports в `.next/analyze/`; analyzer не включается в обычный runtime.
 
 ## Что внутри текущей версии сайта
 

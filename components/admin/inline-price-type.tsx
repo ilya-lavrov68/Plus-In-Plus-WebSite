@@ -30,7 +30,6 @@ export interface InlinePriceTypeProps {
  */
 export function InlinePriceType({ serviceId, priceType, isOrderable, disabled = false }: InlinePriceTypeProps) {
   const t = useTranslations("admin");
-  const ta = useTranslations("actions");
   const [value, setValue] = React.useState<string>(
     (PRICE_TYPES as readonly string[]).includes(priceType) ? priceType : "quote",
   );
@@ -51,11 +50,11 @@ export function InlinePriceType({ serviceId, priceType, isOrderable, disabled = 
       });
       if (!result.ok) {
         setValue(previous);
-        setError(result.error ?? ta("updateServiceFailed"));
+        setError(result.error ?? t("updateServiceFailed"));
       }
     } catch {
       setValue(previous);
-      setError(ta("genericError"));
+      setError(t("genericError"));
     } finally {
       setPending(false);
     }

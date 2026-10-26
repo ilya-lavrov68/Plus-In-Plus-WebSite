@@ -49,6 +49,7 @@ Module._load = function (name, parent, isMain) {
 
 const { toBlogCardData } = require("../lib/blog-card.ts");
 const { getFeaturedPost, getPublishedPosts } = require("../lib/data.ts");
+const { getClientMessages, messages } = require("../i18n-catalog.ts");
 
 beforeEach(() => {
   postRows = [];
@@ -133,6 +134,27 @@ test("full locale catalogs are separated from browser-safe locale helpers", () =
   assert.match(catalogs, /@\/messages\/ru\.json/);
   for (const file of ["app/layout.tsx", "i18n-request.ts"]) {
     assert.match(source(file), /@\/i18n-catalog/);
+  }
+});
+
+test("client messages omit server actions but preserve every staff fallback", () => {
+  for (const locale of ["en", "ru"]) {
+    const client = getClientMessages(locale);
+    assert.equal(Object.hasOwn(client, "actions"), false);
+    assert.equal(typeof messages[locale].actions.validation, "object");
+    assert.equal(client.common, messages[locale].common);
+    for (const key of ["genericError", "updateServiceFailed", "invalidAmount"]) {
+      assert.equal(client.admin[key], messages[locale].actions[key]);
+    }
+  }
+
+  assert.match(source("app/layout.tsx"), /messages=\{getClientMessages\(locale\)\}/);
+  for (const file of [
+    "components/admin/inline-price-editor.tsx",
+    "components/admin/inline-price-type.tsx",
+    "components/orders/order-price-form.tsx",
+  ]) {
+    assert.doesNotMatch(source(file), /useTranslations\("actions"\)/);
   }
 });
 
