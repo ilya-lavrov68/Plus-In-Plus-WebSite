@@ -184,7 +184,9 @@ Docs-only commit `f24f867` не изменил source hash и запустил w
 | Весь CI job | 163s | 128s | −35s (−21,5%) |
 | Production build | 61s | 36s | −25s (−41,0%) |
 
-Это один hosted-runner experiment, а не устойчивое среднее или гарантия для каждого commit. Tests в этих runs заняли 31s и 26s, но Next.js cache не должен влиять на tests, поэтому такая разница отражает обычную вариативность runner и не засчитывается как эффект оптимизации. При изменении исходников restore prefix может вернуть предыдущий cache, после чего build обязан сам проверить инвалидацию; готовый output по-прежнему не переиспользуется.
+Это одна hosted-runner cold/warm пара, а не устойчивое среднее или гарантия для каждого commit. Tests в этих runs заняли 31s и 26s, но Next.js cache не должен влиять на tests, поэтому такая разница отражает обычную вариативность runner и не засчитывается как эффект оптимизации.
+
+Контрольный последующий warm PR run [`40363954285`](https://github.com/ilya-lavrov68/Plus-In-Plus-WebSite/actions/runs/40363954285) на `b4bed03` подтвердил эту осторожность: cache был восстановлен, production build занял 53s, а весь job — 179s из-за более медленных остальных steps. Следовательно, первые −35s не являются обещанным экономным результатом; для budget нужна серия повторов. Практический результат пакета — работающий narrow cache с сохранением полной верификации, а не фиксированное время CI. При изменении исходников restore prefix может вернуть предыдущий cache, после чего build обязан сам проверить инвалидацию; готовый output по-прежнему не переиспользуется.
 
 Regression contract запрещает расширить cache path на весь `.next` или удалить обязательные verification commands. Локальный полный suite после добавления contract — **385/385 passed**; security policy audit — 334 source files, dependency audit — **0 vulnerabilities**. Cold и warm CI также успешно выполнили полный набор проверок и production smoke.
 
