@@ -175,4 +175,17 @@ Baseline CI — успешный push run [`40353990905`](https://github.com/ily
 
 В `.github/workflows/ci.yml` добавлен `actions/cache@v4` только для `.next/cache`. Restore выполняется до `npm ci`, поэтому source hash не захватывает `node_modules` или восстановленные artifacts. Ключ включает `package-lock.json` и исходники; restore prefix дополнительно ограничен тем же lockfile hash. `.next/server`, `.next/static` и остальной готовый build output не кэшируются. Lint, typecheck, полный tests, оба security audit, schema checks, production build и HTTP smoke выполняются на каждом run без условий cache hit.
 
-Первый push run [`40362654749`](https://github.com/ilya-lavrov68/Plus-In-Plus-WebSite/actions/runs/40362654749), attempt 1, на `cbc19ce` прошёл за 2m43s; production build занял 61s, tests — 31s. Cache miss был ожидаем: до этого пакета Next.js cache не существовал. Post-step успешно сохранил новый entry размером **30508679 bytes**. Сам по себе этот холодный run не доказывает ускорение; сравнение делается с последующим exact-hit run того же source key. Regression contract дополнительно запрещает расширить cache path на весь `.next` или удалить обязательные verification commands.
+Первый push run [`40362654749`](https://github.com/ilya-lavrov68/Plus-In-Plus-WebSite/actions/runs/40362654749), attempt 1, на `cbc19ce` прошёл за 2m43s; production build занял 61s, tests — 31s. Cache miss был ожидаем: до этого пакета Next.js cache не существовал. Post-step успешно сохранил новый entry размером **30508679 bytes**. Сам по себе этот холодный run не доказывал ускорение.
+
+Docs-only commit `f24f867` не изменил source hash и запустил warm push run [`40363394774`](https://github.com/ilya-lavrov68/Plus-In-Plus-WebSite/actions/runs/40363394774). Cache API подтвердил обращение к исходному branch entry с тем же key во время restore. Сравнение одной cold/warm пары:
+
+| Показатель | Cold, `cbc19ce` | Warm, `f24f867` | Изменение |
+| --- | ---: | ---: | ---: |
+| Весь CI job | 163s | 128s | −35s (−21,5%) |
+| Production build | 61s | 36s | −25s (−41,0%) |
+
+Это один hosted-runner experiment, а не устойчивое среднее или гарантия для каждого commit. Tests в этих runs заняли 31s и 26s, но Next.js cache не должен влиять на tests, поэтому такая разница отражает обычную вариативность runner и не засчитывается как эффект оптимизации. При изменении исходников restore prefix может вернуть предыдущий cache, после чего build обязан сам проверить инвалидацию; готовый output по-прежнему не переиспользуется.
+
+Regression contract запрещает расширить cache path на весь `.next` или удалить обязательные verification commands. Локальный полный suite после добавления contract — **385/385 passed**; security policy audit — 334 source files, dependency audit — **0 vulnerabilities**. Cold и warm CI также успешно выполнили полный набор проверок и production smoke.
+
+Цена — примерно 30 MB cache на source/ref entry (первые push и pull_request runs создали независимые entries); GitHub управляет eviction по своей политике. Runtime сайта этот cache не меняет. Rollback — удалить только restore step из CI; приложение и схема БД не затрагиваются.
