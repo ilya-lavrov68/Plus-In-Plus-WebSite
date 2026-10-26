@@ -145,7 +145,7 @@ export function ProfileForm({ initialUser, sessionRole, security }: ProfileFormP
         <p className="mt-2 text-muted-foreground">{t("subtitle")}</p>
       </div>
 
-      <Card className="border-border bg-card">
+      <Card className="glass-panel border-border bg-background/65">
         <CardHeader className="border-b border-border/60 pb-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
@@ -274,7 +274,7 @@ export function ProfileForm({ initialUser, sessionRole, security }: ProfileFormP
         </CardContent>
       </Card>
 
-      <Card className="mt-6 border-border bg-card">
+      <Card className="glass-panel mt-6 border-border bg-background/65">
         <CardHeader>
           <CardTitle>{t("passwordTitle")}</CardTitle>
           <p className="text-sm leading-relaxed text-muted-foreground">

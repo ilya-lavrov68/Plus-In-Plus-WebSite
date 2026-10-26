@@ -210,7 +210,7 @@ export function CartPanel() {
 
   if (items.length === 0) {
     return (
-      <Card className="border-border bg-card px-6 py-10 text-center">
+      <Card className="glass-panel border-border bg-background/65 px-6 py-10 text-center">
         <ShoppingCart
           aria-hidden="true"
           className="mx-auto mb-4 h-10 w-10 text-muted-foreground"
@@ -240,7 +240,7 @@ export function CartPanel() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-border bg-card p-6">
+      <Card className="glass-panel border-border bg-background/65 p-6">
         <div className="space-y-4">
           {items.map((item) => (
             <div
@@ -323,7 +323,7 @@ export function CartPanel() {
         <p className="mt-3 text-sm text-muted-foreground">{t("managerNote")}</p>
       </Card>
 
-      <Card className="border-border bg-card p-6">
+      <Card className="glass-panel border-border bg-background/65 p-6">
         <h3 className="mb-4 text-xl font-semibold">{t("orderDetails")}</h3>
         <div className="space-y-4">
           <div>

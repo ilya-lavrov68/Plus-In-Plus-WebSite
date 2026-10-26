@@ -130,7 +130,7 @@ export function ServicesCatalogView({
       </section>
 
       {selectedIds.length > 0 ? (
-        <div className="sticky bottom-[var(--mobile-bottom-nav-clearance)] z-30 mt-12 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur-md sm:px-6 lg:bottom-6">
+        <div className="glass-panel sticky bottom-[var(--mobile-bottom-nav-clearance)] z-30 mt-12 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-background/65 p-4 shadow-xl sm:px-6 lg:bottom-6">
           <div className="flex flex-wrap items-center gap-4">
             <span className="text-sm font-semibold text-foreground">
               {t("selectedSummary", { count: selectedIds.length })}

@@ -155,7 +155,7 @@ export function ContactOrderForm({
           ) : null}
         </div>
 
-        <div className="grid gap-6 rounded-2xl border border-border bg-card p-6 sm:p-8">
+        <div className="glass-panel grid gap-6 rounded-2xl border border-border bg-background/65 p-6 sm:p-8">
           <div className="space-y-2">
             <Label htmlFor="deadline" className="inline-flex items-center gap-2">
               <Calendar aria-hidden="true" className="h-4 w-4 text-muted-foreground" />

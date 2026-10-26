@@ -16,6 +16,7 @@ import { revokeOtherAuthSessions } from "@/lib/auth-sessions";
 import { parseJsonArray } from "@/lib/db-helpers";
 import {
   createTotpSecret,
+  decryptMfaSecret,
   encryptMfaSecret,
   generateBackupCodes,
   totpUri,
@@ -33,6 +34,8 @@ import { webAuthnConfigFromAction } from "@/lib/webauthn-config";
 
 class AuthenticationRequired extends Error {}
 class RateLimited extends Error {}
+
+const TOTP_SETUP_TTL_MS = 10 * 60 * 1000;
 
 export interface MfaActionResult {
   ok: boolean;
@@ -82,13 +85,56 @@ export async function beginTotpSetup(): Promise<MfaActionResult & { secret?: str
     const account = await requireAccount();
     await mfaRateLimit(account.id, "setup");
     if (account.mfaSecret) return { ok: false, error: t("mfaAlreadyEnabled") };
-    const secret = createTotpSecret();
-    const encrypted = encryptMfaSecret(secret);
-    await prisma!.user.update({
-      where: { id: account.id },
-      data: { mfaPendingSecret: encrypted, mfaPendingCreatedAt: new Date() },
-      select: { id: true },
-    });
+
+    const cutoff = Date.now() - TOTP_SETUP_TTL_MS;
+    let secret: string | null = null;
+    if (account.mfaPendingSecret && account.mfaPendingCreatedAt && account.mfaPendingCreatedAt.getTime() >= cutoff) {
+      try {
+        // Reopening the setup must not invalidate a QR already scanned in another tab.
+        secret = decryptMfaSecret(account.mfaPendingSecret);
+      } catch {
+        // An unreadable pending enrollment can be replaced; an enabled factor cannot.
+        secret = null;
+      }
+    }
+
+    if (!secret) {
+      const candidate = createTotpSecret();
+      const encrypted = encryptMfaSecret(candidate);
+      const stored = await prisma!.user.updateMany({
+        where: {
+          id: account.id,
+          mfaSecret: null,
+          OR: [
+            { mfaPendingSecret: null },
+            { mfaPendingCreatedAt: null },
+            { mfaPendingCreatedAt: { lt: new Date(cutoff) } },
+            ...(account.mfaPendingSecret && account.mfaPendingCreatedAt ? [{
+              mfaPendingSecret: account.mfaPendingSecret,
+              mfaPendingCreatedAt: account.mfaPendingCreatedAt,
+            }] : []),
+          ],
+        },
+        data: { mfaPendingSecret: encrypted, mfaPendingCreatedAt: new Date() },
+      });
+
+      if (stored.count === 1) {
+        secret = candidate;
+      } else {
+        // A parallel request won the atomic write. Return its enrollment instead
+        // of showing a QR whose secret is no longer stored for this account.
+        const current = await prisma!.user.findUnique({
+          where: { id: account.id },
+          select: { mfaSecret: true, mfaPendingSecret: true, mfaPendingCreatedAt: true },
+        });
+        if (current?.mfaSecret) return { ok: false, error: t("mfaAlreadyEnabled") };
+        if (!current?.mfaPendingSecret || !current.mfaPendingCreatedAt || current.mfaPendingCreatedAt.getTime() < cutoff) {
+          throw new Error("TOTP enrollment changed concurrently.");
+        }
+        secret = decryptMfaSecret(current.mfaPendingSecret);
+      }
+    }
+
     const otpauthUri = totpUri(secret, account.email);
     const qrCode = await QRCode.toDataURL(otpauthUri, { width: 256, margin: 1, errorCorrectionLevel: "M" });
     return { ok: true, secret, qrCode, otpauthUri };
@@ -105,7 +151,7 @@ export async function enableTotp(code: string): Promise<MfaActionResult> {
   try {
     const account = await requireAccount();
     await mfaRateLimit(account.id, "verify", 5);
-    if (!account.mfaPendingSecret || !account.mfaPendingCreatedAt || account.mfaPendingCreatedAt.getTime() < Date.now() - 10 * 60 * 1000) {
+    if (!account.mfaPendingSecret || !account.mfaPendingCreatedAt || account.mfaPendingCreatedAt.getTime() < Date.now() - TOTP_SETUP_TTL_MS) {
       return { ok: false, error: t("mfaSetupExpired") };
     }
     if (!verifyTotp(account.mfaPendingSecret, code)) return { ok: false, error: t("invalidMfaCode") };
