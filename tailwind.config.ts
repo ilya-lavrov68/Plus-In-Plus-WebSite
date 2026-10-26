@@ -56,6 +56,7 @@ const config: Config = {
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
+          text: "hsl(var(--destructive-text))",
         },
         muted: {
           DEFAULT: "hsl(var(--muted))",
@@ -73,6 +74,10 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+      },
+      boxShadow: {
+        glass:
+          "0 24px 70px -42px rgb(0 0 0 / 0.85), inset 0 1px 0 rgb(255 255 255 / 0.05)",
       },
       borderRadius: {
         lg: "var(--radius)",

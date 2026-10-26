@@ -400,6 +400,31 @@ test("Navbar10 opens the account dialog from desktop and mobile navigation", asy
       .some((node) => node.props["aria-label"] === "Close menu"),
     "The full-screen mobile menu must have its own visible close control",
   );
+
+  const mobileSheet = view.root.findByProps({ id: "mobile-navigation-dialog" });
+  let preventedDefault = false;
+  let focusedId = null;
+  let focusOptions = null;
+  const originalGetElementById = global.document.getElementById;
+  global.document.getElementById = (id) => ({
+    focus(options) {
+      focusedId = id;
+      focusOptions = options;
+    },
+  });
+  try {
+    mobileSheet.props.onCloseAutoFocus({
+      preventDefault() {
+        preventedDefault = true;
+      },
+    });
+  } finally {
+    global.document.getElementById = originalGetElementById;
+  }
+  assert.equal(preventedDefault, true);
+  assert.equal(focusedId, "mobile-menu-trigger");
+  assert.deepEqual(focusOptions, { preventScroll: true });
+
   const mobileAccount = view.root
     .findAllByType("button")
     .find((node) => textOf(node) === "Account");
@@ -1202,6 +1227,9 @@ test("Services11Catalog, ProductDetail1, and Contact29 render all required field
   assert.ok(detailText.includes("Our service includes"));
   assert.ok(detailText.includes("Any shape, any idea"));
   assert.ok(detailText.includes("The result"));
+  const definitionList = detailView.root.findByType("dl");
+  assert.equal(definitionList.children.length, 3);
+  assert.ok(definitionList.children.every((child) => child.type === "div"));
 
   const step1Text = textOf(contactView.root);
   assert.ok(step1Text.includes("Contact us"));

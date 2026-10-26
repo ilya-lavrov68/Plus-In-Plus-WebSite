@@ -79,7 +79,7 @@ export function CookieBanner() {
       aria-label={t("title")}
       className="fixed inset-x-0 bottom-[var(--mobile-bottom-nav-clearance)] z-50 p-4 animate-in fade-in slide-in-from-bottom-6 duration-300 lg:bottom-0"
     >
-      <div className="mx-auto max-w-4xl overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
+      <div className="glass-panel mx-auto max-w-4xl overflow-hidden rounded-xl border border-border bg-background/80 shadow-glass">
         {/* Основная часть */}
         <div className="p-6">
           <div className="flex items-start justify-between gap-4">
