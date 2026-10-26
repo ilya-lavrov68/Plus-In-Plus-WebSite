@@ -6,7 +6,7 @@ const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
 const bcrypt = require("bcryptjs");
-const { TOTP } = require("otpauth");
+const { TOTP, URI } = require("otpauth");
 const { applyOfflineSqliteDdl } = require("../scripts/lib/prisma-cli.cjs");
 const { createSoftwareAuthenticator } = require("./helpers/software-webauthn.cjs");
 
@@ -240,4 +240,33 @@ test("real passkey and TOTP ceremonies survive Auth.js serialization and remain 
     mfaCode: totpCode(setup.secret),
   });
   assert.deepEqual(totpLogin, { ok: true, success: true, isAdmin: false });
+});
+
+test("parallel authenticator setup keeps one stable secret and accepts the scanned URI code", async () => {
+  const account = await createAccount("parallel-totp-ceremony@example.test");
+  const setups = await Promise.all(Array.from({ length: 4 }, () => mfaActions.beginTotpSetup()));
+
+  for (const setup of setups) assert.equal(setup.ok, true, setup.error);
+  assert.equal(new Set(setups.map((setup) => setup.secret)).size, 1, "every tab must show the currently stored enrollment");
+  const reopened = await mfaActions.beginTotpSetup();
+  assert.equal(reopened.ok, true, reopened.error);
+  assert.ok(reopened.secret === setups[0].secret, "reopening setup must keep the scanned QR valid");
+
+  // Parse the exact URI encoded into the QR instead of bypassing it with the raw secret.
+  const authenticator = URI.parse(setups[0].otpauthUri);
+  assert.ok(authenticator.secret.base32 === setups[0].secret, "QR URI must contain the pending secret");
+  assert.equal(authenticator.algorithm, "SHA1");
+  assert.equal(authenticator.digits, 6);
+  assert.equal(authenticator.period, 30);
+
+  const enabled = await mfaActions.enableTotp(authenticator.generate());
+  assert.equal(enabled.ok, true, enabled.error);
+  assert.equal(enabled.backupCodes.length, 10);
+
+  const enabledAccount = await prisma.user.findUnique({
+    where: { id: account.id },
+    select: { mfaSecret: true, mfaPendingSecret: true },
+  });
+  assert.ok(enabledAccount.mfaSecret);
+  assert.equal(enabledAccount.mfaPendingSecret, null);
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 
 import {
@@ -35,11 +35,15 @@ export function SecuritySettings({ required, initialTotpEnabled, initialPasskeys
   const [confirmationCode, setConfirmationCode] = useState("");
   const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
   const [pending, setPending] = useState(false);
+  const pendingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   async function run(action: () => Promise<void>) {
-    if (pending) return;
+    // State disables the controls after render; the ref also closes the same-tick
+    // double-click gap before React has committed that disabled state.
+    if (pendingRef.current) return;
+    pendingRef.current = true;
     setPending(true);
     setError(null);
     setNotice(null);
@@ -48,6 +52,7 @@ export function SecuritySettings({ required, initialTotpEnabled, initialPasskeys
     } catch {
       setError(t("operationFailed"));
     } finally {
+      pendingRef.current = false;
       setPending(false);
     }
   }
@@ -57,7 +62,7 @@ export function SecuritySettings({ required, initialTotpEnabled, initialPasskeys
   }
 
   return (
-    <Card className="mt-6 border-border bg-card">
+    <Card className="glass-panel mt-6 border-border bg-background/65">
       <CardHeader>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <CardTitle>{t("title")}</CardTitle>

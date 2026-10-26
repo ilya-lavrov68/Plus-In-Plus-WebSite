@@ -437,6 +437,14 @@
     }
   }
 
+  /* Primary account and checkout panels share the header's optical treatment.
+   * Their bg-background/65 utility owns the tint, so Card's default background
+   * is still merged predictably; borders and nested controls remain unchanged. */
+  .glass-panel {
+    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px);
+  }
+
   /* Borderless glass for selected surfaces. The translucent background is
    * supplied by a Tailwind bg-white/* utility so Card's default bg-card is
    * still merged predictably; this class only owns the optical effect. */

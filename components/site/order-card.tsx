@@ -159,7 +159,7 @@ export function OrderCard({ order }: OrderCardProps) {
   const clientDescription = order.description || order.customerNote;
 
   return (
-    <Card className="border-border bg-card">
+    <Card className="glass-panel border-border bg-background/65">
       <CardHeader className="flex-row flex-wrap items-center justify-between gap-3 space-y-0">
         <div className="flex flex-wrap items-center gap-2.5">
           <CardTitle className="text-lg">{displayOrderNumber}</CardTitle>
