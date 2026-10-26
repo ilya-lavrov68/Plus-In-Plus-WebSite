@@ -246,11 +246,17 @@ test("parallel authenticator setup keeps one stable secret and accepts the scann
   const account = await createAccount("parallel-totp-ceremony@example.test");
   const setups = await Promise.all(Array.from({ length: 4 }, () => mfaActions.beginTotpSetup()));
 
-  for (const setup of setups) assert.equal(setup.ok, true, setup.error);
+  for (const setup of setups) {
+    assert.equal(setup.ok, true, setup.error);
+    assert.ok(Number.isSafeInteger(setup.setupId));
+    assert.ok(setup.setupExpiresIn > 0 && setup.setupExpiresIn <= 10 * 60 * 1000);
+  }
   assert.equal(new Set(setups.map((setup) => setup.secret)).size, 1, "every tab must show the currently stored enrollment");
+  assert.equal(new Set(setups.map((setup) => setup.setupId)).size, 1, "every tab must confirm the same enrollment");
   const reopened = await mfaActions.beginTotpSetup();
   assert.equal(reopened.ok, true, reopened.error);
   assert.ok(reopened.secret === setups[0].secret, "reopening setup must keep the scanned QR valid");
+  assert.equal(reopened.setupId, setups[0].setupId);
 
   // Parse the exact URI encoded into the QR instead of bypassing it with the raw secret.
   const authenticator = URI.parse(setups[0].otpauthUri);
@@ -259,7 +265,11 @@ test("parallel authenticator setup keeps one stable secret and accepts the scann
   assert.equal(authenticator.digits, 6);
   assert.equal(authenticator.period, 30);
 
-  const enabled = await mfaActions.enableTotp(authenticator.generate());
+  const stale = await mfaActions.enableTotp(authenticator.generate(), setups[0].setupId + 1);
+  assert.equal(stale.ok, false);
+  assert.equal(stale.failureReason, "stale-setup", "a QR from another enrollment must not be treated as a code mismatch");
+
+  const enabled = await mfaActions.enableTotp(authenticator.generate(), setups[0].setupId);
   assert.equal(enabled.ok, true, enabled.error);
   assert.equal(enabled.backupCodes.length, 10);
 
@@ -269,4 +279,25 @@ test("parallel authenticator setup keeps one stable secret and accepts the scann
   });
   assert.ok(enabledAccount.mfaSecret);
   assert.equal(enabledAccount.mfaPendingSecret, null);
+});
+
+test("expired authenticator setup has an explicit stale state and can be renewed", async () => {
+  const account = await createAccount("expired-totp-ceremony@example.test");
+  const setup = await mfaActions.beginTotpSetup();
+  assert.equal(setup.ok, true, setup.error);
+
+  await prisma.user.update({
+    where: { id: account.id },
+    data: { mfaPendingCreatedAt: new Date(Date.now() - 11 * 60 * 1000) },
+  });
+  const expired = await mfaActions.enableTotp(URI.parse(setup.otpauthUri).generate(), setup.setupId);
+  assert.equal(expired.ok, false);
+  assert.equal(expired.failureReason, "stale-setup");
+
+  const renewed = await mfaActions.beginTotpSetup();
+  assert.equal(renewed.ok, true, renewed.error);
+  assert.ok(renewed.secret !== setup.secret, "an expired enrollment must rotate");
+  assert.ok(renewed.setupId !== setup.setupId, "renewal must bind the form to the new enrollment");
+  const enabled = await mfaActions.enableTotp(URI.parse(renewed.otpauthUri).generate(), renewed.setupId);
+  assert.equal(enabled.ok, true, enabled.error);
 });

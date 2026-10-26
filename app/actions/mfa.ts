@@ -43,6 +43,18 @@ export interface MfaActionResult {
   backupCodes?: string[];
 }
 
+export interface TotpSetupResult extends MfaActionResult {
+  secret?: string;
+  qrCode?: string;
+  otpauthUri?: string;
+  setupId?: number;
+  setupExpiresIn?: number;
+}
+
+export interface TotpEnableResult extends MfaActionResult {
+  failureReason?: "invalid-code" | "stale-setup";
+}
+
 async function requireAccount() {
   const session = await auth();
   if (!session?.user?.id || !prisma) throw new AuthenticationRequired();
@@ -79,7 +91,7 @@ async function verifyOwner(
   return null;
 }
 
-export async function beginTotpSetup(): Promise<MfaActionResult & { secret?: string; qrCode?: string; otpauthUri?: string }> {
+export async function beginTotpSetup(): Promise<TotpSetupResult> {
   const t = await getActionTranslator();
   try {
     const account = await requireAccount();
@@ -88,19 +100,23 @@ export async function beginTotpSetup(): Promise<MfaActionResult & { secret?: str
 
     const cutoff = Date.now() - TOTP_SETUP_TTL_MS;
     let secret: string | null = null;
+    let setupId: number | undefined;
     if (account.mfaPendingSecret && account.mfaPendingCreatedAt && account.mfaPendingCreatedAt.getTime() >= cutoff) {
+      setupId = account.mfaPendingCreatedAt.getTime();
       try {
         // Reopening the setup must not invalidate a QR already scanned in another tab.
         secret = decryptMfaSecret(account.mfaPendingSecret);
       } catch {
         // An unreadable pending enrollment can be replaced; an enabled factor cannot.
         secret = null;
+        setupId = undefined;
       }
     }
 
     if (!secret) {
       const candidate = createTotpSecret();
       const encrypted = encryptMfaSecret(candidate);
+      const createdAt = new Date();
       const stored = await prisma!.user.updateMany({
         where: {
           id: account.id,
@@ -115,11 +131,12 @@ export async function beginTotpSetup(): Promise<MfaActionResult & { secret?: str
             }] : []),
           ],
         },
-        data: { mfaPendingSecret: encrypted, mfaPendingCreatedAt: new Date() },
+        data: { mfaPendingSecret: encrypted, mfaPendingCreatedAt: createdAt },
       });
 
       if (stored.count === 1) {
         secret = candidate;
+        setupId = createdAt.getTime();
       } else {
         // A parallel request won the atomic write. Return its enrollment instead
         // of showing a QR whose secret is no longer stored for this account.
@@ -131,13 +148,22 @@ export async function beginTotpSetup(): Promise<MfaActionResult & { secret?: str
         if (!current?.mfaPendingSecret || !current.mfaPendingCreatedAt || current.mfaPendingCreatedAt.getTime() < cutoff) {
           throw new Error("TOTP enrollment changed concurrently.");
         }
+        setupId = current.mfaPendingCreatedAt.getTime();
         secret = decryptMfaSecret(current.mfaPendingSecret);
       }
     }
 
+    if (setupId === undefined) throw new Error("TOTP enrollment has no creation timestamp.");
     const otpauthUri = totpUri(secret, account.email);
     const qrCode = await QRCode.toDataURL(otpauthUri, { width: 256, margin: 1, errorCorrectionLevel: "M" });
-    return { ok: true, secret, qrCode, otpauthUri };
+    return {
+      ok: true,
+      secret,
+      qrCode,
+      otpauthUri,
+      setupId,
+      setupExpiresIn: Math.max(0, setupId + TOTP_SETUP_TTL_MS - Date.now()),
+    };
   } catch (error) {
     if (error instanceof AuthenticationRequired) return { ok: false, error: t("unauthorized") };
     if (error instanceof RateLimited) return { ok: false, error: t("tooManyMfaAttempts") };
@@ -146,15 +172,22 @@ export async function beginTotpSetup(): Promise<MfaActionResult & { secret?: str
   }
 }
 
-export async function enableTotp(code: string): Promise<MfaActionResult> {
+export async function enableTotp(code: string, setupId?: number): Promise<TotpEnableResult> {
   const t = await getActionTranslator();
   try {
     const account = await requireAccount();
     await mfaRateLimit(account.id, "verify", 5);
     if (!account.mfaPendingSecret || !account.mfaPendingCreatedAt || account.mfaPendingCreatedAt.getTime() < Date.now() - TOTP_SETUP_TTL_MS) {
-      return { ok: false, error: t("mfaSetupExpired") };
+      return { ok: false, error: t("mfaSetupExpired"), failureReason: "stale-setup" };
     }
-    if (!verifyTotp(account.mfaPendingSecret, code)) return { ok: false, error: t("invalidMfaCode") };
+    if (setupId !== undefined && (!Number.isSafeInteger(setupId) || account.mfaPendingCreatedAt.getTime() !== setupId)) {
+      return { ok: false, error: t("mfaSetupExpired"), failureReason: "stale-setup" };
+    }
+    if (!verifyTotp(account.mfaPendingSecret, code)) {
+      // Fixed redacted event: no account, secret, submitted code or expected code.
+      logSecurityEvent("auth.mfa.failed");
+      return { ok: false, error: t("invalidMfaCode"), failureReason: "invalid-code" };
+    }
     const firstFactor = !account.mfaSecret && account.webAuthnCredentials.length === 0;
     const backup = firstFactor ? generateBackupCodes() : null;
     await prisma!.$transaction(async (tx) => {
