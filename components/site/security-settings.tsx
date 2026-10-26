@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 
 import {
@@ -24,11 +24,20 @@ export interface SecuritySettingsProps {
   initialPasskeys: { id: string; name: string }[];
 }
 
+interface TotpSetupState {
+  secret: string;
+  qrCode: string;
+  id: number;
+  expiresAt: number;
+}
+
 export function SecuritySettings({ required, initialTotpEnabled, initialPasskeys }: SecuritySettingsProps) {
   const t = useTranslations("security");
   const [totpEnabled, setTotpEnabled] = useState(initialTotpEnabled);
   const [passkeys, setPasskeys] = useState(initialPasskeys);
-  const [setup, setSetup] = useState<{ secret: string; qrCode: string } | null>(null);
+  const [setup, setSetup] = useState<TotpSetupState | null>(null);
+  const [setupExpired, setSetupExpired] = useState(false);
+  const [showInvalidTotpHelp, setShowInvalidTotpHelp] = useState(false);
   const [code, setCode] = useState("");
   const [passkeyName, setPasskeyName] = useState("My passkey");
   const [password, setPassword] = useState("");
@@ -38,6 +47,15 @@ export function SecuritySettings({ required, initialTotpEnabled, initialPasskeys
   const pendingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!setup) return;
+    const timer = window.setTimeout(
+      () => setSetupExpired(true),
+      Math.max(0, setup.expiresAt - Date.now()),
+    );
+    return () => window.clearTimeout(timer);
+  }, [setup]);
 
   async function run(action: () => Promise<void>) {
     // State disables the controls after render; the ref also closes the same-tick
@@ -59,6 +77,25 @@ export function SecuritySettings({ required, initialTotpEnabled, initialPasskeys
 
   function showBackupCodes(codes: string[] | undefined) {
     if (codes?.length) setBackupCodes(codes);
+  }
+
+  function startTotpSetup() {
+    void run(async () => {
+      setShowInvalidTotpHelp(false);
+      const result = await beginTotpSetup();
+      if (!result.ok || !result.secret || !result.qrCode || typeof result.setupId !== "number" || typeof result.setupExpiresIn !== "number") {
+        setError(result.error ?? t("operationFailed"));
+        return;
+      }
+      setCode("");
+      setSetupExpired(false);
+      setSetup({
+        secret: result.secret,
+        qrCode: result.qrCode,
+        id: result.setupId,
+        expiresAt: Date.now() + result.setupExpiresIn,
+      });
+    });
   }
 
   return (
@@ -86,14 +123,22 @@ export function SecuritySettings({ required, initialTotpEnabled, initialPasskeys
           </div>
           {totpEnabled ? (
             <Badge variant="secondary">{t("totpEnabled")}</Badge>
-          ) : setup ? (
+          ) : setup && !setupExpired ? (
             <form
               className="space-y-4"
               onSubmit={(event: FormEvent) => {
                 event.preventDefault();
                 void run(async () => {
-                  const result = await enableTotp(code);
+                  setShowInvalidTotpHelp(false);
+                  const result = await enableTotp(code, setup.id);
                   if (!result.ok) {
+                    if (result.failureReason === "stale-setup") {
+                      setSetup(null);
+                      setSetupExpired(false);
+                      setCode("");
+                    } else if (result.failureReason === "invalid-code") {
+                      setShowInvalidTotpHelp(true);
+                    }
                     setError(result.error ?? t("operationFailed"));
                     return;
                   }
@@ -123,26 +168,32 @@ export function SecuritySettings({ required, initialTotpEnabled, initialPasskeys
                   onChange={(event) => setCode(event.target.value)}
                   required
                   maxLength={10}
+                  aria-describedby={showInvalidTotpHelp ? "totp-confirm-help" : undefined}
                 />
+                {showInvalidTotpHelp ? (
+                  <p id="totp-confirm-help" className="text-sm leading-relaxed text-muted-foreground">
+                    {t("invalidTotpHelp")}
+                  </p>
+                ) : null}
               </div>
               <Button type="submit" disabled={pending}>{t("confirmTotp")}</Button>
             </form>
           ) : (
-            <Button
-              type="button"
-              variant="outline"
-              disabled={pending}
-              onClick={() => void run(async () => {
-                const result = await beginTotpSetup();
-                if (!result.ok || !result.secret || !result.qrCode) {
-                  setError(result.error ?? t("operationFailed"));
-                  return;
-                }
-                setSetup({ secret: result.secret, qrCode: result.qrCode });
-              })}
-            >
-              {t("setupTotp")}
-            </Button>
+            <div className="space-y-3">
+              {setupExpired ? (
+                <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                  {t("setupExpired")}
+                </p>
+              ) : null}
+              <Button
+                type="button"
+                variant="outline"
+                disabled={pending}
+                onClick={startTotpSetup}
+              >
+                {setupExpired ? t("restartTotp") : t("setupTotp")}
+              </Button>
+            </div>
           )}
         </section>
 

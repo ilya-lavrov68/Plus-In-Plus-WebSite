@@ -152,7 +152,16 @@ npm run db:promote-admin -- you@example.com --founder
 5. Проверить отдельно обычный customer login: он не исчезает и не даёт staff-доступ.
 6. На тестовом аккаунте дополнительно проверить совмещённый сценарий: зарегистрировать passkey, затем добавить TOTP, выйти и войти каждым фактором по очереди. Повторное использование уже завершённого pending login должно отклоняться.
 
+TOTP setup переиспользует действующий pending enrollment между вкладками и атомарно выбирает один секрет. Форма подтверждения привязана к timestamp этого enrollment. Истёкший или заменённый QR возвращает отдельное `stale-setup` recovery: создать текущий QR и отсканировать его заново. Такой отказ не следует принимать за неверный код и не следует «исправлять» расширением TOTP window.
+
 Если TOTP setup не начинается на реальной площадке, сначала выполнить `npm run db:check` и проверить redacted server event `auth.mfa.setup_failed`. Для нескольких инстансов `AUTH_SECRET` обязан быть одинаковым и не меняться между созданием QR и подтверждением кода: иначе pending/enabled secret невозможно расшифровать. Не отправлять в лог или тикет сам `AUTH_SECRET`, QR, otpauth URI, secret или введённый код. Passkey error после этого deploy не следует «исправлять» отключением origin/RP ID/challenge/UV/replay checks.
+
+Если текущий QR успешно отсканирован, но Google Authenticator или другое совместимое приложение выдаёт неподходящий код:
+
+1. Удалить прежние записи Plus In Plus для этого аккаунта в authenticator, ещё раз отсканировать именно текущий QR и ввести новый 6-значный код.
+2. Включить автоматические дату и время на устройстве с authenticator.
+3. На сервере проверить `date -u` и состояние NTP (`timedatectl` при наличии systemd): расхождение больше допустимого соседнего 30-секундного шага требует исправления времени, а не расширения `window: 1`.
+4. Сопоставить время отказа только с redacted event `auth.mfa.failed`. Не добавлять в диагностику аккаунт, secret, QR или коды.
 
 TOTP secret хранится зашифрованным; backup codes — только как hashes и принимаются однократно. Pending login живёт пять минут и имеет пять попыток; setup challenges — десять минут. Staff не может удалить свой последний второй фактор. При регенерации backup codes старые коды заменяются после подтверждения владельца.
 
@@ -261,6 +270,7 @@ npm run deploy:verify -- https://your-domain.example
 | --- | --- |
 | `502 Bad Gateway` | `pm2 status`, `pm2 logs plus-in-plus`, внутренний `/api/health` |
 | Staff получает `/profile?mfa=required` | Это ожидаемый enforcement: настроить MFA, затем повторить staff login |
+| Привязка TOTP отклоняет код | Использовать текущий QR, удалить старую запись authenticator, включить автоматическое время; проверить `date -u`, NTP и redacted `auth.mfa.failed`. Не расширять TOTP window |
 | Passkeys не работают в production | Проверить HTTPS, `WEBAUTHN_ORIGIN`, `WEBAUTHN_RP_ID` и соответствие hostname |
 | Сессии исчезают после смены пароля | Ожидаемый глобальный отзыв; войти заново |
 | Refresh возвращает `401` | Проверить refresh/device cookies, absolute expiry и revocation; не логировать tokens |
