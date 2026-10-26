@@ -238,3 +238,23 @@ Responsive-raster pipeline в этот пакет не включён. Approved 
 Для font-only diff выполнены `npx tsc --noEmit`, `npm run lint`, focused performance contracts и обычный production `npm run build`. Contract suite на этом этапе — 10/10. Полный repository suite и security audits выполняются после всего пакета и фиксируются в итоговом PR summary.
 
 Цена — более ранняя загрузка двух общих и одного RU-specific WOFF2, которые уже нужны глобальным heading/body stacks. Это сознательный приоритет критичным ресурсам, а не увеличение набора font files или bytes. Preload не гарантирует отсутствие fallback shift при произвольно медленной сети; для field/staging p75 по-прежнему нужны реальные RUM/remote-data замеры. Rollback — удалить три conditional/unconditional link и их contract; схема БД, dependencies и runtime configuration не менялись.
+
+## 12. Шестой пакет: публичный origin в protected redirects
+
+Browser baseline независимо от шрифтов выявил functional defect: guest prefetch `/cart` через корректный TLS reverse proxy получал `Location: https://localhost:3443/login`, хотя публичный origin был `https://127.0.0.1:3443`. Прямой HTTP request к `next start` воспроизводил тот же bind-host redirect. В Auth.js route уже существовал `authRequest()` с проверкой forwarded host/protocol, но middleware строил protected redirects из исходного `request.url`.
+
+Общая pure-функция `publicRequestUrl()` теперь использует тот же доверенный `X-Forwarded-Host`/`X-Forwarded-Proto`, Host fallback и прежнюю allowlist-валидацию. `authRequest()` сохраняет прежнее поведение для Auth.js, включая тело POST. Middleware применяет public URL только к guest/role redirects и locale-prefixed protected redirects. Public rewrites, session rules, refresh cookie, ordinary customer login, Staff mode, RBAC и FOUNDER-only settings не изменены. Deployment requirement не ослаблен: доверенный proxy обязан перезаписывать forwarded headers; malformed origins по-прежнему отклоняются.
+
+После production rebuild `HEAD /cart` возвращает `307` с `Location: https://127.0.0.1:3443/login`, а `HEAD /ru/admin/settings` — `307` на том же публичном origin в `/admin/settings`. Regression test покрывает пять путей: guest cart, USER в admin, MANAGER в admin, ADMIN в founder settings и locale-prefixed protected path. Реальный ordinary login через форму затем повторно проверен в EN и RU: обе сессии остались `USER`, `/cart` вернул HTTP 200, console errors не появились.
+
+Контрольная 30-run browser серия после font + origin changes снова вернула HTTP 200 для всех documents и **0 console errors**; прежние CSP/failed-RSC messages исчезли. В `requestfailed` остались только `net::ERR_ABORTED` у отменяемых prefetch/document requests при закрытии свежих contexts; других failure types нет. Эта серия не используется для приписывания origin fix улучшения LCP/CLS.
+
+Итоговые проверки двух пакетов:
+
+- `npx tsc --noEmit`, `npm run lint`, production `npm run build` — успешно;
+- `npm test` — **387/387 passed**;
+- `npm run db:check` с той же изолированной fixture — все таблицы и колонки существуют;
+- `npm run security:audit` — 334 source files без high-confidence findings;
+- `npm run security:dependencies -- --audit-level=high` — **0 vulnerabilities**.
+
+Rollback шестого пакета — вернуть прежние redirect bases и inline auth-request normalization, удалив новый regression test. Миграций, dependencies и configuration changes нет.

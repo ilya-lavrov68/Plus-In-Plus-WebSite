@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 
 import { authConfig } from "@/auth.config";
+import { publicRequestUrl } from "@/lib/auth-request";
 import { isAuthConfigured } from "@/lib/auth-secret";
 import {
   buildContentSecurityPolicy,
@@ -111,10 +112,11 @@ const authMiddleware = NextAuth(authConfig).auth((request) => {
 
   const role = request.auth?.user?.role;
   const signedIn = Boolean(isAuthConfigured() && request.auth?.user?.id);
+  const publicUrl = publicRequestUrl(request);
 
   if (!signedIn) {
     const mayRefresh = request.cookies?.get(REFRESH_PRESENT_COOKIE)?.value === "1";
-    const target = new URL(isOrdersArea || mayRefresh ? "/login" : "/", request.url);
+    const target = new URL(isOrdersArea || mayRefresh ? "/login" : "/", publicUrl);
     if (mayRefresh) {
       const requestedPath = `${pathname}${request.nextUrl?.search ?? ""}`;
       target.searchParams.set("callbackUrl", requestedPath);
@@ -123,15 +125,15 @@ const authMiddleware = NextAuth(authConfig).auth((request) => {
   }
   if (isOrdersArea) return NextResponse.next();
   if (role !== "FOUNDER" && role !== "ADMIN" && role !== "MANAGER") {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL("/", publicUrl));
   }
   // Админка — администратору и основателю; менеджера ведём в его заявки.
   if (isAdminArea && role !== "FOUNDER" && role !== "ADMIN") {
-    return NextResponse.redirect(new URL("/manager/orders", request.url));
+    return NextResponse.redirect(new URL("/manager/orders", publicUrl));
   }
   // ЖЁСТКОЕ ОГРАНИЧЕНИЕ: /admin/settings доступен ТОЛЬКО для FOUNDER.
   if (isFounderSettings && role !== "FOUNDER") {
-    return NextResponse.redirect(new URL("/admin/dashboard", request.url));
+    return NextResponse.redirect(new URL("/admin/dashboard", publicUrl));
   }
   return NextResponse.next();
 });
@@ -154,9 +156,7 @@ export async function middleware(
       strippedGuards.isManagerArea ||
       strippedGuards.isOrdersArea
     ) {
-      const targetUrl = request.nextUrl
-        ? request.nextUrl.clone()
-        : new URL(request.url);
+      const targetUrl = publicRequestUrl(request);
       targetUrl.pathname = stripped;
       const redirectResponse = secure(
         NextResponse.redirect(targetUrl),
