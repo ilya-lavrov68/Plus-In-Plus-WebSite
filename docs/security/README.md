@@ -13,6 +13,7 @@
 - **Additive MFA/session schema:** `pending_logins`, `auth_sessions`, `mfa_backup_codes`, `webauthn_credentials` и nullable `activity_logs.actorPseudonym`. Health проверяет 17 таблиц. **Предупреждение:** реальная схема не применялась; нужны backup, reviewed `db:push` и staging verification.
 - **TOTP:** secrets шифруются AES-256-GCM с отдельным HKDF-derived key из `AUTH_SECRET`; pending setup действует десять минут; verification throttled.
 - **WebAuthn/passkeys:** registration/authentication через SimpleWebAuthn 14, user verification required, алгоритмы `-7` и `-257`; production требует HTTPS, `WEBAUTHN_ORIGIN` и `WEBAUTHN_RP_ID` с hostname/parent-domain validation.
+- **Исправление MFA serialization:** `AuthenticationResponseJSON` явно кодируется в JSON перед URL-encoded Auth.js credentials boundary и строго декодируется с size/shape checks в `authorize`. Отсутствующее passkey-поле больше не превращается в строку `"undefined"`; malformed passkey payload не проваливается в TOTP/backup branch. Challenge/origin/RP ID/UV/replay/rate-limit проверки не ослаблены.
 - **Backup codes:** десять одноразовых кодов, только SHA-256 hashes в БД, atomic `usedAt` consumption и regeneration после owner verification. Staff не может удалить последний second factor.
 - **MFA login boundary:** пятиминутный pending login, пять попыток, одноразовое consumption. Staff без фактора получает только `USER` session и `/profile?mfa=required`; ordinary customer login сохранён. Role change во время challenge не повышает сессию автоматически.
 - **Access/refresh sessions:** 15-минутный access, семидневный refresh с исходной absolute expiry и максимум три активные sessions. Единый источник чисел — `lib/session-policy.ts`. Refresh/device hashes, rotation, device binding, reuse/race revocation, logout/password revocation и persisted role downgrade реализованы в коде: позднее повышение не восстанавливает staff mode без нового входа.
@@ -30,13 +31,15 @@
 
 | Проверка | Результат на 2026-10-26 | Что это доказывает / чего не доказывает |
 | --- | --- | --- |
-| Полный `npm test` | **370/370 passed** | Включает прежние RBAC/payment/CMS/upload regressions и новые MFA/session/CSP/SSRF/health/origin tests. Это не staging или external test. |
+| Полный `npm test` | **372/372 passed** | Включает прежние RBAC/payment/CMS/upload regressions и новые MFA/session/CSP/SSRF/health/origin tests. Это не staging или external test. |
 | Focused MFA/session regressions | Passed внутри полного suite | TOTP challenge consumption, backup-code single use, role-demotion/re-promotion semantics, refresh rotation/reuse/device binding, three-session limit и selective revocation на in-memory doubles. Не доказывает live authenticator или distributed DB race. |
+| Реальная MFA ceremony integration | **2/2 passed** | `tests/mfa-ceremony-integration.test.cjs`: настоящие action functions, URL-encoded `@auth/core` parser, Credentials provider, SimpleWebAuthn, QR/TOTP, bcrypt и Prisma на disposable SQLite. Программный ES256 authenticator проверяет registration → совмещённый TOTP setup → password step → wrong-origin/malformed rejection → passkey login → counter update/consume/replay → отдельный TOTP login. Это не физический/platform authenticator и не staging. |
+| Локальный Next.js HTTP MFA smoke | **Passed** | До fix реальный `next dev` воспроизвёл `The verification code is invalid or expired.` для валидной signed assertion; после fix тот же flow завершился успешно. `beginTotpSetup` → QR → `enableTotp` также прошёл на HTTP в development и в собранном `next start`; pending secret очищен. Не доказывает чужой deployment, HTTPS-домен или браузерный authenticator. |
 | Focused SSRF/CSP/health/origin | Passed внутри полного suite | Body-cap read stop/cancellation, redirect revalidation, modern CSP fields/redaction, health log redaction и cross-origin rejection до side effects. Не live DNS rebinding или browser CSP verification. |
 | Focused WebAuthn config / audit retention | Passed внутри полного suite | Production origin/RP ID/HTTPS validation, deterministic pseudonyms, repeated regex safety и clean-record no-op. Не live authenticator или production retention job. |
-| `npm run security:audit` | Passed: **328 source files**, no high-confidence findings | Focused policy checks выбранных secrets/CORS/raw-SQL/HTML/dynamic-execution patterns. Не полный SAST и не гарантия отсутствия секретов. |
+| `npm run security:audit` | Passed: **330 source files**, no high-confidence findings | Focused policy checks выбранных secrets/CORS/raw-SQL/HTML/dynamic-execution patterns. Не полный SAST и не гарантия отсутствия секретов. |
 | `npm run security:dependencies` | **0 vulnerabilities** | Point-in-time full npm audit. Не гарантия будущего отсутствия advisories или поддержки всех версий. |
-| ESLint / TypeScript / production build | **Passed** | `next lint` без warnings/errors, `tsc --noEmit` и `next build` успешны. Build предупредил только об отсутствующей постоянной БД для data sections. |
+| ESLint / TypeScript / production build | **Passed** | `next lint` без warnings/errors, `tsc --noEmit` и `next build` успешны. Сохраняются non-blocking warnings о next-intl cache dependency, Edge-совместимости optional jose compression APIs и отсутствующей постоянной БД во время build; они не скрываются под successful verdict. |
 | Disposable SQLite schema + local production smoke | **Passed** | `db:push`/`db:check`: 17 таблиц; health `ok`, `/`, `/shop`, `/blog`, `/sitemap.xml` — 200; payment GET — 405; cross-origin POST — 403; пустой refresh — 401; CSP reporting headers есть. Это не staging/Turso/production. |
 | Реальная БД / миграция / Turso concurrency | **Не выполнялись** | `TURSO_DATABASE_URL` для такой среды не был настроен. Нужен reviewed staging run. |
 | Operational MFA у всех staff | **Не подтверждено** | Код enforcement есть; реальные пользователи должны настроить факторы и пройти recovery drill. |
@@ -46,6 +49,8 @@
 | Security Headers / SSL Labs | **Не выполнялись** | A/A+ нельзя вывести из source headers; нужен реальный HTTPS endpoint. |
 | External penetration test | **Не выполнялся** | Source review и unit tests не заменяют независимую проверку. |
 | Backup restoration / IR/GDPR certification | **Не выполнялись** | Runbooks и CLI не доказывают recoverability, compliance или incident readiness. |
+
+Сообщённый отказ TOTP на недоступной агенту площадке **не воспроизвёлся** ни в development, ни в локальном production runtime: оба раза secret/QR создались, код принят, pending secret очищен. Поэтому локальный success не закрывает production-инцидент. Если отказ сохраняется после deploy этого fix, нужны конкретный UI result и redacted server event `auth.mfa.setup_failed`; также проверить `npm run db:check`, одинаковый `AUTH_SECRET` на всех инстансах и отсутствие его ротации между setup и enable. Секреты, QR, TOTP codes и содержимое БД в тикет не включать.
 
 Полный CI в `.github/workflows/ci.yml` дополнительно запускает install/doctor, audits, lint, TypeScript, tests, disposable SQLite schema push/check, production build и HTTP smoke. Он не имеет production secrets и не применяет реальную схему.
 
