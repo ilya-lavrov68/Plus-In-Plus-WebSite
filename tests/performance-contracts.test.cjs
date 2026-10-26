@@ -24,10 +24,18 @@ const root = path.resolve(__dirname, "..");
 const source = (file) => fs.readFileSync(path.join(root, file), "utf8");
 let postRows = [];
 let featuredRows = [];
+let serviceRows = [];
 let postQueries = [];
 let featuredQueries = [];
+let serviceQueries = [];
 
 const prisma = {
+  service: {
+    findMany: async (query) => {
+      serviceQueries.push(structuredClone(query));
+      return structuredClone(serviceRows);
+    },
+  },
   post: {
     findMany: async (query) => {
       postQueries.push(structuredClone(query));
@@ -48,14 +56,21 @@ Module._load = function (name, parent, isMain) {
 };
 
 const { toBlogCardData } = require("../lib/blog-card.ts");
-const { getFeaturedPost, getPublishedPosts } = require("../lib/data.ts");
+const {
+  getFeaturedPost,
+  getPublishedPosts,
+  getSitemapPosts,
+  getSitemapServices,
+} = require("../lib/data.ts");
 const { getClientMessages, messages } = require("../i18n-catalog.ts");
 
 beforeEach(() => {
   postRows = [];
   featuredRows = [];
+  serviceRows = [];
   postQueries = [];
   featuredQueries = [];
+  serviceQueries = [];
 });
 
 test("blog cards exclude article bodies, sections, excerpts and navigation-only fields", () => {
@@ -107,6 +122,29 @@ test("latest-post readers apply the database limit before mapping card content",
   assert.equal(postQueries[0].where.isPublished, true);
   assert.match(source("app/page.tsx"), /getPublishedPosts\(3\)/);
   assert.match(source("app/shop/[slug]/content.tsx"), /getPublishedPosts\(3\)/);
+});
+
+test("sitemap keeps both unbounded reads but selects only URL and date fields", async () => {
+  const publishedAt = new Date("2026-10-20T12:00:00.000Z");
+  postRows = [{ slug: "studio-news", publishedAt }];
+  serviceRows = [{ id: "service-1", slug: "sign-design" }];
+
+  const [posts, services] = await Promise.all([getSitemapPosts(), getSitemapServices()]);
+  assert.deepEqual(posts, [{ slug: "studio-news", publishedAt }]);
+  assert.deepEqual(services, [{ id: "service-1", slug: "sign-design" }]);
+  assert.equal(postQueries.length, 1);
+  assert.equal(serviceQueries.length, 1);
+  assert.deepEqual(postQueries[0].select, { slug: true, publishedAt: true });
+  assert.deepEqual(serviceQueries[0].select, { id: true, slug: true });
+  assert.equal(postQueries[0].where.isPublished, true);
+  assert.equal(postQueries[0].take, undefined);
+  assert.deepEqual(serviceQueries[0].where, { isPublished: true, isActive: true });
+  assert.deepEqual(serviceQueries[0].orderBy, { createdAt: "asc" });
+
+  const sitemapSource = source("app/sitemap.ts");
+  assert.match(sitemapSource, /getSitemapPosts\(\)/);
+  assert.match(sitemapSource, /getSitemapServices\(\)/);
+  assert.doesNotMatch(sitemapSource, /getPublishedPosts|getPublishedServices/);
 });
 
 test("featured navigation reads only title, slug and cover, including the latest-post fallback", async () => {

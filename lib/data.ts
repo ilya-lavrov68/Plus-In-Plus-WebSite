@@ -197,6 +197,22 @@ export async function getPublishedServices(): Promise<ServiceView[]> {
   }
 }
 
+/** Sitemap links need no service descriptions, pricing or presentation assets. */
+export async function getSitemapServices(): Promise<Array<Pick<ServiceView, "id" | "slug">>> {
+  if (!prisma) return [];
+
+  try {
+    return await prisma.service.findMany({
+      where: { isPublished: true, isActive: true },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, slug: true },
+    });
+  } catch (error) {
+    console.error("Failed to load sitemap services from the database:", error);
+    return [];
+  }
+}
+
 const SERVICE_SLUG_ALIASES: Record<string, string[]> = {
   "large-billboard": ["large-billboard", "large-billboard-building"],
   "large-billboard-building": ["large-billboard-building", "large-billboard"],
@@ -343,6 +359,25 @@ export async function getPublishedPosts(limit?: number): Promise<PostView[]> {
     return posts.map(toPostView);
   } catch (error) {
     console.error("Failed to load posts from the database:", error);
+    return [];
+  }
+}
+
+/** Sitemap entries retain publication dates but never read author-controlled bodies. */
+export async function getSitemapPosts(): Promise<Array<Pick<PostView, "slug" | "publishedAt">>> {
+  if (!prisma) return [];
+
+  try {
+    return await prisma.post.findMany({
+      where: {
+        isPublished: true,
+        OR: [{ publishedAt: null }, { publishedAt: { lte: new Date() } }],
+      },
+      orderBy: [{ publishedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
+      select: { slug: true, publishedAt: true },
+    });
+  } catch (error) {
+    console.error("Failed to load sitemap posts from the database:", error);
     return [];
   }
 }

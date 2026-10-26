@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-import { getPublishedPosts, getPublishedServices, serviceHref } from "@/lib/data";
+import { getSitemapPosts, getSitemapServices, serviceHref } from "@/lib/data";
 import { prisma } from "@/lib/prisma";
 import { absoluteUrl } from "@/lib/seo";
 
@@ -8,8 +8,8 @@ export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [services, posts, activeProductCount] = await Promise.all([
-    getPublishedServices(),
-    getPublishedPosts(),
+    getSitemapServices(),
+    getSitemapPosts(),
     prisma
       ? prisma.product
           .count({ where: { isActive: true } })

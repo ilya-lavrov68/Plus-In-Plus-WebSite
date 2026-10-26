@@ -142,3 +142,29 @@ HTML здесь — фактический `Buffer.byteLength` decoded response.
 - `npm run security:audit` — 334 source files без high-confidence findings; `npm run security:dependencies -- --audit-level=high` — **0 vulnerabilities**.
 
 Rollback второго пакета также не требует миграций: восстановить `actions` в client provider и три прежних translator imports. Цена изменения — три коротких fallback-сообщения дублируются в `admin`, зато весь server-action catalog больше не отправляется браузеру на каждом маршруте.
+
+## 9. Третий пакет: узкие database reads для sitemap
+
+Baseline третьего сравнения — commit `c75623fb4eb54572db66b69a5544587e98043dc6`. В `app/sitemap.ts` три независимых чтения уже выполнялись параллельно, но services и posts загружались целиком: вместе с описаниями, ценами, assets, excerpt и полным author-controlled HTML. Для XML нужны только `id`/`slug` услуги, `slug`/`publishedAt` статьи и отдельный count активных продуктов.
+
+Добавлены `getSitemapServices()` и `getSitemapPosts()` с Prisma `select`. Фильтры публикации, сортировка, отсутствие лимита, `serviceHref()` fallback на `id`, URL encoding и условное появление `/shop` сохранены. Число запросов не изменилось: два narrow `findMany` и один `count` по-прежнему выполняются в одном `Promise.all`; дополнительный round trip и общий cache не добавлялись.
+
+### 9.1. Измерение на одной throwaway БД
+
+Fixture содержала три опубликованные статьи с телами по 120000 символов и две услуги с длинными описаниями. Ниже — UTF-8 размер `JSON.stringify` фактически возвращённых приложению DTO. Это диагностический размер объектов после Prisma mapping, а не число bytes в libSQL wire response и не замер сетевого Turso.
+
+| Данные | До, bytes | После, bytes |
+| --- | ---: | ---: |
+| Три posts DTO | 372837 | 165 |
+| Два services DTO | 170405 | 77 |
+| Сумма | 543242 | 242 |
+
+До изменения тот же script отдельно вычислил required projections: 165 bytes для posts и 77 для services. После изменения реальные narrow queries вернули ровно эти наборы. Сериализованный `MetadataRoute.Sitemap` на неизменной БД совпал побайтно: SHA-256 до и после `bce411d67fca0383af7174b5ff6f039bb24b1d4f6e82aef12eeb841f0be6547e`, 12 entries. Production `next build`/`next start` также вернул HTTP 200 для `/api/health`, `/`, `/blog` и `/sitemap.xml`; фактический XML содержал 12 URL и ожидаемые encoded slugs/`lastmod`.
+
+### 9.2. Проверки и граница пакета
+
+- `npx tsc --noEmit`, `npm run lint`, `npm run build` — успешно.
+- `npm test` — **384/384 passed**: добавлены query-projection contract и sitemap behavior regression для encoded slugs, legacy `id` и optional `lastModified`.
+- `npm run security:audit` — 334 source files без high-confidence findings; `npm run security:dependencies -- --audit-level=high` — **0 vulnerabilities**.
+
+Полный `/blog` сознательно не включён в этот diff. `mergeCatalogPosts()` использует точные title/excerpt/content для untouched-launch preset; body-only CMS edit обязан немедленно отключать preset. Убрать `content` из этого запроса без дополнительного чтения нельзя без изменения semantics, а raw SQL или второй round trip не признаются улучшением без отдельного обоснования и сетевого Turso baseline. Rollback sitemap-пакета — вернуть два прежних data loaders; схема БД и runtime dependencies не менялись.

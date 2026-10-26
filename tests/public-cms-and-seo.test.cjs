@@ -65,9 +65,9 @@ Module._load = function (name, parent, isMain) {
   }
   if (name === "@/lib/data") {
     return {
-      getPublishedServices: async () => publishedServices,
-      getPublishedPosts: async () => publishedPosts,
-      serviceHref: (service) => `/shop/${service.slug || service.id}`,
+      getSitemapServices: async () => publishedServices,
+      getSitemapPosts: async () => publishedPosts,
+      serviceHref: (service) => `/shop/${encodeURIComponent(service.slug || service.id)}`,
     };
   }
   if (name === "@/components/site/shop-catalog-view") {
@@ -152,6 +152,27 @@ test("active products switch shop to catalog metadata and add only the catalog r
   const urls = (await sitemap()).map((entry) => entry.url);
   assert.equal(urls.filter((url) => url === "https://example.test/shop").length, 1);
   assert.ok(!urls.some((url) => url.includes("hidden-product")));
+});
+
+test("sitemap keeps encoded slugs, legacy service ids and optional publication dates", async () => {
+  publishedServices = [
+    { id: "legacy service", slug: "" },
+    { id: "service-2", slug: "design/sign" },
+  ];
+  const publishedAt = new Date("2026-10-20T12:00:00.000Z");
+  publishedPosts = [
+    { slug: "news/today", publishedAt },
+    { slug: "unscheduled", publishedAt: null },
+  ];
+
+  const entries = await sitemap();
+  assert.ok(entries.some((entry) => entry.url === "https://example.test/shop/legacy%20service"));
+  assert.ok(entries.some((entry) => entry.url === "https://example.test/shop/design%2Fsign"));
+
+  const datedPost = entries.find((entry) => entry.url === "https://example.test/blog/news%2Ftoday");
+  assert.equal(datedPost.lastModified, publishedAt);
+  const unscheduledPost = entries.find((entry) => entry.url === "https://example.test/blog/unscheduled");
+  assert.equal(Object.hasOwn(unscheduledPost, "lastModified"), false);
 });
 
 test("public site settings apply only validated non-secret values", async () => {
