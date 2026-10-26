@@ -137,7 +137,19 @@ test("timeline keeps one native spine animation with one-shot connectors and rou
   assert.equal(momentChildren[0].type, "article");
   assert.equal(momentChildren[1].type, "svg");
   assert.match(momentChildren[1].props.className, /story-moment-outline/);
-  assert.equal(momentChildren[1].findByType("rect").props.pathLength, 1);
+  assert.match(momentChildren[1].props.className, /overflow-visible/);
+  const outlineRect = momentChildren[1].findByType("rect");
+  assert.equal(outlineRect.props.pathLength, 1);
+  assert.deepEqual(
+    {
+      x: outlineRect.props.x,
+      y: outlineRect.props.y,
+      width: outlineRect.props.width,
+      height: outlineRect.props.height,
+    },
+    { x: "0", y: "0", width: "100%", height: "100%" },
+    "the trace follows the card boundary instead of leaving the glass surface outside an inset outline",
+  );
   assert.match(momentChildren[2].props.className, /story-moment-connector/);
   assert.match(momentChildren[3].props.className, /story-timeline-marker/);
 
