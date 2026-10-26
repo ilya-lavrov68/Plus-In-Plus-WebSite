@@ -168,3 +168,11 @@ Fixture содержала три опубликованные статьи с �
 - `npm run security:audit` — 334 source files без high-confidence findings; `npm run security:dependencies -- --audit-level=high` — **0 vulnerabilities**.
 
 Полный `/blog` сознательно не включён в этот diff. `mergeCatalogPosts()` использует точные title/excerpt/content для untouched-launch preset; body-only CMS edit обязан немедленно отключать preset. Убрать `content` из этого запроса без дополнительного чтения нельзя без изменения semantics, а raw SQL или второй round trip не признаются улучшением без отдельного обоснования и сетевого Turso baseline. Rollback sitemap-пакета — вернуть два прежних data loaders; схема БД и runtime dependencies не менялись.
+
+## 10. Четвёртый пакет: безопасный Next.js cache в CI
+
+Baseline CI — успешный push run [`40353990905`](https://github.com/ilya-lavrov68/Plus-In-Plus-WebSite/actions/runs/40353990905) на `c75623f`: job занял 2m51s, production build — 68s. Эти значения являются ориентиром, но не чистым A/B: другой commit и другой запуск hosted runner могут отличаться по нагрузке.
+
+В `.github/workflows/ci.yml` добавлен `actions/cache@v4` только для `.next/cache`. Restore выполняется до `npm ci`, поэтому source hash не захватывает `node_modules` или восстановленные artifacts. Ключ включает `package-lock.json` и исходники; restore prefix дополнительно ограничен тем же lockfile hash. `.next/server`, `.next/static` и остальной готовый build output не кэшируются. Lint, typecheck, полный tests, оба security audit, schema checks, production build и HTTP smoke выполняются на каждом run без условий cache hit.
+
+Первый push run [`40362654749`](https://github.com/ilya-lavrov68/Plus-In-Plus-WebSite/actions/runs/40362654749), attempt 1, на `cbc19ce` прошёл за 2m43s; production build занял 61s, tests — 31s. Cache miss был ожидаем: до этого пакета Next.js cache не существовал. Post-step успешно сохранил новый entry размером **30508679 bytes**. Сам по себе этот холодный run не доказывает ускорение; сравнение делается с последующим exact-hit run того же source key. Regression contract дополнительно запрещает расширить cache path на весь `.next` или удалить обязательные verification commands.

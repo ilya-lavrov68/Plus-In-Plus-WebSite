@@ -20,7 +20,7 @@
 
 **Фактически выполнено в изменении, создавшем этот документ:** исправление геометрии timeline и введение обязательного agent workflow. Миграции, смена зависимостей, кэширование, monitoring и оптимизация других страниц не выполнялись.
 
-**Последующие реализованные пакеты:** настроен opt-in bundle analyzer, сужены blog card DTO и публичные queries, полные словари вынесены за server-only boundary, AccountModal и WebAuthn SDK загружаются по взаимодействию. Затем server-only `actions` catalog исключён из client provider с сохранением трёх необходимых staff fallbacks; отклонённая гипотеза о previous/next article payload также задокументирована. Окружение, измерения и непроверенные сценарии находятся в [`performance-baseline.md`](performance-baseline.md); вся программа оптимизации этим не завершена.
+**Последующие реализованные пакеты:** настроен opt-in bundle analyzer, сужены blog card DTO и публичные queries, полные словари вынесены за server-only boundary, AccountModal и WebAuthn SDK загружаются по взаимодействию. Затем server-only `actions` catalog исключён из client provider с сохранением трёх необходимых staff fallbacks; отклонённая гипотеза о previous/next article payload также задокументирована. Sitemap получил узкие projections без дополнительных database round trips, а CI — cache только для incremental Next.js artifacts с обязательным полным build/tests. Окружение, измерения и непроверенные сценарии находятся в [`performance-baseline.md`](performance-baseline.md); вся программа оптимизации этим не завершена.
 
 ## 2. Почему next-forge нельзя копировать как готовый шаблон
 
