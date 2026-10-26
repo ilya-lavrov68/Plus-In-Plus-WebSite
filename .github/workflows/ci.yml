@@ -32,6 +32,17 @@ jobs:
           node-version: "22"
           cache: npm
 
+      # Restore only Next's incremental artifacts, before npm ci creates node_modules.
+      # The application, server bundles and static output are always rebuilt;
+      # lint, types, tests, audits and production smoke checks are never skipped.
+      - name: Restore Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.tsx', '**/*.js', '**/*.cjs', '**/*.mjs', '**/*.json', 'prisma/schema.prisma') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-
+
       # postinstall runs `prisma generate` (schema only, no database connection).
       - name: Install dependencies
         run: npm ci

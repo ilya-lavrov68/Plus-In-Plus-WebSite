@@ -196,6 +196,26 @@ test("client messages omit server actions but preserve every staff fallback", ()
   }
 });
 
+test("CI restores only Next incremental cache and never skips verification", () => {
+  const workflow = source(".github/workflows/ci.yml");
+  assert.match(workflow, /uses: actions\/cache@v4/);
+  assert.match(workflow, /path: \.next\/cache/);
+  assert.doesNotMatch(workflow, /path: \.next\s*$/m);
+  assert.match(workflow, /hashFiles\('package-lock\.json'\)/);
+  assert.match(workflow, /restore-keys:/);
+
+  for (const command of [
+    "npm run security:audit",
+    "npm run security:dependencies",
+    "npm run lint",
+    "npx tsc --noEmit",
+    "npm test",
+    "npm run build",
+  ]) {
+    assert.ok(workflow.includes(command), `CI must still run ${command}`);
+  }
+});
+
 test("bundle analyzer is exact, opt-in and absent from the ordinary config path", () => {
   const config = source("next.config.mjs");
   assert.doesNotMatch(config, /import withBundleAnalyzer from "@next\/bundle-analyzer"/);
