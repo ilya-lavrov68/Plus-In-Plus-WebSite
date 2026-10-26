@@ -50,7 +50,7 @@ const Community3 = ({
             <Card
               data-reveal=""
               data-reveal-delay={100}
-              className="glass-surface group rounded-2xl border-white/[0.08] bg-white/[0.05] p-8 shadow-glass transition-[background-color] duration-200 ease-out hover:bg-white/[0.08]"
+              className="glass-surface group rounded-2xl border-0 bg-white/[0.05] p-8 transition-[background-color] duration-200 ease-out hover:bg-white/[0.08]"
             >
               <Link
                 href="/"
@@ -68,7 +68,7 @@ const Community3 = ({
             <Card
               data-reveal=""
               data-reveal-delay={150}
-              className="glass-surface group rounded-2xl border-white/[0.08] bg-white/[0.05] p-8 shadow-glass transition-[background-color] duration-200 ease-out hover:bg-white/[0.08]"
+              className="glass-surface group rounded-2xl border-0 bg-white/[0.05] p-8 transition-[background-color] duration-200 ease-out hover:bg-white/[0.08]"
             >
               <a
                 href="https://tsconnect.ru"

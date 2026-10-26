@@ -33,7 +33,7 @@ const Cta13 = ({
       <div className="container">
         <div
           data-reveal=""
-          className="glass-surface rounded-[1.75rem] border border-white/[0.08] bg-white/[0.055] p-8 shadow-glass md:p-16"
+          className="glass-surface rounded-[1.75rem] border-0 bg-white/[0.055] p-8 md:p-16"
         >
           <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-center">
             <div className="max-w-2xl">

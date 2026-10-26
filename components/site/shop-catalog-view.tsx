@@ -63,7 +63,7 @@ export function ShopCatalogView({
         {products.map((product) => (
           <Card
             key={product.id}
-            className="glass-panel flex h-full flex-col justify-between overflow-hidden border-border bg-white/[0.035] shadow-glass"
+            className="flex h-full flex-col justify-between overflow-hidden border-border bg-card"
           >
             <div>
               {product.coverImage ? (
