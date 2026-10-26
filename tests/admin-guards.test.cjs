@@ -60,6 +60,32 @@ test("middleware redirects every non-admin or missing session to /", async () =>
   assert.equal(unconfigured.status, 307);
 });
 
+test("protected redirects use the trusted public origin instead of the bind address", async () => {
+  process.env.AUTH_SECRET = "test-secret-with-at-least-32-characters";
+  const cases = [
+    ["/cart", null, "/login"],
+    ["/admin/services", { user: { id: "user-1", role: "USER" } }, "/"],
+    ["/admin/services", { user: { id: "manager-1", role: "MANAGER" } }, "/manager/orders"],
+    ["/admin/settings", { user: { id: "admin-1", role: "ADMIN" } }, "/admin/dashboard"],
+    ["/ru/admin/settings", null, "/admin/settings"],
+  ];
+
+  for (const [pathname, auth, expectedPath] of cases) {
+    const response = await middleware({
+      url: `http://0.0.0.0:3444${pathname}`,
+      headers: {
+        host: "0.0.0.0:3444",
+        "x-forwarded-host": "preview.example",
+        "x-forwarded-proto": "https",
+      },
+      nextUrl: { pathname, search: "", host: "0.0.0.0:3444", protocol: "http:" },
+      auth,
+    });
+    assert.equal(response.status, 307);
+    assert.equal(response.headers.get("location"), `https://preview.example${expectedPath}`);
+  }
+});
+
 test("admin data queries have their own guard; layouts alone are not trusted", async () => {
   for (const getter of Object.values(data)) await assert.rejects(getter("id"), /redirect:\//);
   assert.equal(queries.length, 0);

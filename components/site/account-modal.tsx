@@ -14,7 +14,6 @@ import {
   User,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { startAuthentication } from "@simplewebauthn/browser";
 
 import {
   loginUser,
@@ -412,6 +411,7 @@ export function AccountModal({
         setError(options.error ?? t("passkeyUnavailable"));
         return;
       }
+      const { startAuthentication } = await import("@simplewebauthn/browser");
       const assertion = await startAuthentication({ optionsJSON: options.options });
       const result = await loginUser({
         pendingLoginId: mfaChallenge.id,

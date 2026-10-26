@@ -35,13 +35,23 @@ async function getActiveShopProducts(): Promise<ShopProductCardData[]> {
   }
 }
 
+async function hasActiveShopProducts(): Promise<boolean> {
+  if (!prisma) return false;
+
+  try {
+    return (await prisma.product.count({ where: { isActive: true } })) > 0;
+  } catch (error) {
+    console.error("Failed to count shop products for metadata:", error);
+    return false;
+  }
+}
+
 export async function generateMetadata(): Promise<Metadata> {
-  const [locale, t, products] = await Promise.all([
+  const [locale, t, hasProducts] = await Promise.all([
     getRequestLocale(),
     getRequestTranslations("shop"),
-    getActiveShopProducts(),
+    hasActiveShopProducts(),
   ]);
-  const hasProducts = products.length > 0;
 
   return {
     ...createPageMetadata({

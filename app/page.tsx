@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const [dbPosts, locale, t, tBlog] = await Promise.all([
-    getPublishedPosts(),
+    getPublishedPosts(3),
     getRequestLocale(),
     getRequestTranslations("news"),
     getRequestTranslations("blog"),

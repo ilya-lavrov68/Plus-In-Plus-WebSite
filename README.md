@@ -437,6 +437,8 @@ ROBOKASSA_HASH_ALGO="md5"
 
 Перед любой разработкой или проверкой применяйте [`docs/agent-workflow.md`](docs/agent-workflow.md): он требует завершать не только UI, но и связанные server/data/auth/mutation/error/revalidation слои с end-to-end доказательствами. Для оптимизации дополнительно используйте [`docs/next-forge-optimization.md`](docs/next-forge-optimization.md): там отделены изученные практики `vercel/next-forge` от решений PIP и обозначены будущие измеримые этапы без автоматической смены архитектуры.
 
+Воспроизводимые baselines, результаты последовательных пакетов и границы доказанности находятся в [`docs/performance-baseline.md`](docs/performance-baseline.md). Для новой bundle-карты выполните `npm run analyze`: это отдельная production-сборка с reports в `.next/analyze/`; analyzer не включается в обычный runtime.
+
 ## Что внутри текущей версии сайта
 
 | Маршрут | Блок UI / Модуль | Назначение |
@@ -476,6 +478,7 @@ ROBOKASSA_HASH_ALGO="md5"
 | --- | --- |
 | `npm run dev` | Запуск локального сервера разработки с автопроверкой схемы БД |
 | `npm run build` / `npm start` | Production-сборка и запуск сервера (`next start`) |
+| `npm run analyze` | Opt-in production bundle analysis с HTML reports в `.next/analyze/`; не заменяет обычную проверку `npm run build` |
 | `npm run lint` / `npx tsc --noEmit` | Проверка ESLint и строгой типизации TypeScript |
 | `npm test` | Запуск полного набора автотестов (`tests/*.test.cjs`) |
 | `npm run security:audit` / `npm run security:dependencies` | Проверка security-политик исходников и полный аудит зависимостей |

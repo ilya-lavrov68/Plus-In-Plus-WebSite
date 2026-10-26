@@ -134,9 +134,10 @@ Module._load = function (name, parent, isMain) {
       },
     };
   }
-  if (name === "@/components/site/account-modal") {
+  if (name === "@/components/site/lazy-account-modal") {
     return {
-      AccountModal: ({ open, returnFocusId }) =>
+      preloadAccountModal() {},
+      LazyAccountModal: ({ open, returnFocusId }) =>
         open
           ? React.createElement(
               "div",
@@ -199,6 +200,7 @@ const {
   isMobileNavigationActive,
 } = require("../components/site/mobile-bottom-nav.tsx");
 const { STUDIO_SERVICES, STUDIO_BLOG_POSTS } = require("../lib/studio-catalog.ts");
+const { toBlogCardData } = require("../lib/blog-card.ts");
 const { COVER_IMAGE_GUIDES } = require("../lib/upload-policy.ts");
 const { DecryptText } = require("../components/site/motion/decrypt-text.tsx");
 const { ScrollExperience } = require("../components/site/motion/scroll-experience.tsx");
@@ -829,7 +831,10 @@ test("public UI uses neutral media slots and keeps ambient glow only in the hero
 test("Blog11 and Blogpost11 render We're Up and Running with all 4 verbatim sections and post navigation", () => {
   let listView, postView;
   act(() => {
-    listView = create(React.createElement(Blog11, { heading: "News from Plus In Plus" }));
+    listView = create(React.createElement(Blog11, {
+      heading: "News from Plus In Plus",
+      posts: STUDIO_BLOG_POSTS.map(toBlogCardData),
+    }));
     postView = create(
       React.createElement(Blogpost11, {
         post: STUDIO_BLOG_POSTS[0],

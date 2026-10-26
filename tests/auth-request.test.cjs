@@ -25,8 +25,10 @@ test("direct local requests preserve the host, path and scheme", () => {
 });
 
 test("invalid forwarding origins are refused instead of generating unsafe redirects", () => {
-  for (const host of ["evil.test/path", "user@evil.test", "evil.test#fragment"]) {
+  for (const host of ["evil.test/path", "user@evil.test", "evil.test#fragment", ""]) {
     assert.throws(() => authRequest(new NextRequest("http://0.0.0.0:3000/api/auth/session", { headers: { "x-forwarded-host": host } })), /Invalid authentication origin/);
   }
-  assert.throws(() => authRequest(new NextRequest("http://0.0.0.0:3000/api/auth/session", { headers: { host: "public.test", "x-forwarded-proto": "javascript" } })), /Invalid authentication origin/);
+  for (const protocol of ["javascript", ""]) {
+    assert.throws(() => authRequest(new NextRequest("http://0.0.0.0:3000/api/auth/session", { headers: { host: "public.test", "x-forwarded-proto": protocol } })), /Invalid authentication origin/);
+  }
 });

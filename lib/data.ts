@@ -197,6 +197,22 @@ export async function getPublishedServices(): Promise<ServiceView[]> {
   }
 }
 
+/** Sitemap links need no service descriptions, pricing or presentation assets. */
+export async function getSitemapServices(): Promise<Array<Pick<ServiceView, "id" | "slug">>> {
+  if (!prisma) return [];
+
+  try {
+    return await prisma.service.findMany({
+      where: { isPublished: true, isActive: true },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, slug: true },
+    });
+  } catch (error) {
+    console.error("Failed to load sitemap services from the database:", error);
+    return [];
+  }
+}
+
 const SERVICE_SLUG_ALIASES: Record<string, string[]> = {
   "large-billboard": ["large-billboard", "large-billboard-building"],
   "large-billboard-building": ["large-billboard-building", "large-billboard"],
@@ -326,21 +342,42 @@ export async function getServicePricing(slugOrId: string): Promise<ServicePricin
   }
 }
 
-export async function getPublishedPosts(): Promise<PostView[]> {
+export async function getPublishedPosts(limit?: number): Promise<PostView[]> {
   if (!prisma) return [];
 
   try {
     const now = new Date();
+    const take = limit === undefined ? undefined : Math.max(1, Math.floor(limit));
     const posts = await prisma.post.findMany({
       where: {
         isPublished: true,
         OR: [{ publishedAt: null }, { publishedAt: { lte: now } }],
       },
       orderBy: [{ publishedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
+      ...(take === undefined ? {} : { take }),
     });
     return posts.map(toPostView);
   } catch (error) {
     console.error("Failed to load posts from the database:", error);
+    return [];
+  }
+}
+
+/** Sitemap entries retain publication dates but never read author-controlled bodies. */
+export async function getSitemapPosts(): Promise<Array<Pick<PostView, "slug" | "publishedAt">>> {
+  if (!prisma) return [];
+
+  try {
+    return await prisma.post.findMany({
+      where: {
+        isPublished: true,
+        OR: [{ publishedAt: null }, { publishedAt: { lte: new Date() } }],
+      },
+      orderBy: [{ publishedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
+      select: { slug: true, publishedAt: true },
+    });
+  } catch (error) {
+    console.error("Failed to load sitemap posts from the database:", error);
     return [];
   }
 }
@@ -363,21 +400,32 @@ export async function getPublishedPost(slug: string): Promise<PostView | null> {
   }
 }
 
-export async function getFeaturedPost(): Promise<PostView | null> {
+export interface FeaturedPostView {
+  title: string;
+  slug: string;
+  coverImage: string;
+}
+
+const featuredPostSelect = { title: true, slug: true, coverImage: true } as const;
+
+/** Навигации нужны только поля ссылки и обложки, не HTML всей featured-статьи. */
+export async function getFeaturedPost(): Promise<FeaturedPostView | null> {
   if (!prisma) return null;
 
   try {
     let post = await prisma.post.findFirst({
       where: { isPublished: true, isFeatured: true, OR: [{ publishedAt: null }, { publishedAt: { lte: new Date() } }] },
       orderBy: [{ publishedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
+      select: featuredPostSelect,
     });
     if (!post) {
       post = await prisma.post.findFirst({
         where: { isPublished: true, OR: [{ publishedAt: null }, { publishedAt: { lte: new Date() } }] },
         orderBy: [{ publishedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
+        select: featuredPostSelect,
       });
     }
-    return post ? toPostView(post) : null;
+    return post ? { ...post, coverImage: postCover(post.coverImage) } : null;
   } catch (error) {
     console.error("Failed to load featured post from the database:", error);
     return null;

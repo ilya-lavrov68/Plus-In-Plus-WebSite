@@ -1,6 +1,7 @@
 import { getRequestConfig } from "next-intl/server";
 
-import { defaultLocale, isLocale, messages } from "@/i18n";
+import { defaultLocale, isLocale } from "@/i18n";
+import { messages } from "@/i18n-catalog";
 import { getRequestLocale } from "@/lib/request-locale";
 
 /**

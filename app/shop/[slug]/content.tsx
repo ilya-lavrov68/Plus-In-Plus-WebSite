@@ -6,6 +6,7 @@ import { Blog11 } from "@/components/blocks/blog11";
 import { ProductDetail1 } from "@/components/blocks/product-detail1";
 import { ServiceConfigurator } from "@/components/site/service-configurator";
 import { localizeBlogPosts } from "@/lib/blog-localization";
+import { toBlogCardData } from "@/lib/blog-card";
 import {
   getPublishedPosts,
   getPublishedService,
@@ -24,7 +25,7 @@ export default async function ServiceContent({ slug }: { slug: string }) {
     await Promise.all([
       getPublishedService(slug),
       getServicePricing(slug),
-      getPublishedPosts(),
+      getPublishedPosts(3),
       getRequestLocale(),
       getRequestTranslations("blog"),
       getRequestTranslations("services"),
@@ -94,7 +95,7 @@ export default async function ServiceContent({ slug }: { slug: string }) {
         id="service-other-news"
         heading={tBlog("otherNews")}
         description={tBlog("otherNewsDescription")}
-        posts={posts.slice(0, 3)}
+        posts={posts.slice(0, 3).map(toBlogCardData)}
         allCategoryLabel={tBlog("allCategory")}
         categoryLabels={{
           Design: tBlog("categoryDesign"),

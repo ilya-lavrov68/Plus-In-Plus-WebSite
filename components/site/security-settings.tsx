@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { useState, type FormEvent } from "react";
-import { startRegistration } from "@simplewebauthn/browser";
 import { useTranslations } from "next-intl";
 
 import {
@@ -193,6 +192,7 @@ export function SecuritySettings({ required, initialTotpEnabled, initialPasskeys
                   setError(options.error ?? t("operationFailed"));
                   return;
                 }
+                const { startRegistration } = await import("@simplewebauthn/browser");
                 const response = await startRegistration({ optionsJSON: options.options });
                 const result = await finishPasskeyRegistration(response, passkeyName);
                 if (!result.ok) {

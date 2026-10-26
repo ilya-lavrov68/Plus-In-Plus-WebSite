@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "build": "next build",
+    "analyze": "ANALYZE=true next build",
     "db:check": "node scripts/db-check.cjs",
     "db:cleanup": "node scripts/run-ts.cjs scripts/cleanup-database.ts",
     "db:load-dump": "node scripts/load-dump.cjs",
@@ -71,6 +72,7 @@
   },
   "devDependencies": {
     "@auth/core": "0.41.3",
+    "@next/bundle-analyzer": "15.5.28",
     "@tailwindcss/postcss": "4.3.3",
     "@types/markdown-it": "^14.2.0",
     "@types/markdown-it-footnote": "^3.0.4",
