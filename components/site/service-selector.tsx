@@ -81,10 +81,10 @@ export function ServiceSelector({
                 key={service.id}
                 onClick={() => toggleService(service.id)}
                 className={cn(
-                  "glass-panel cursor-pointer p-4 shadow-glass transition-colors duration-200",
+                  "cursor-pointer p-4 transition-colors duration-200",
                   isSelected
                     ? "border-primary bg-secondary/60"
-                    : "border-border bg-white/[0.035] hover:border-foreground/25 hover:bg-white/[0.055]"
+                    : "border-border bg-card/60 hover:border-foreground/25 hover:bg-white/[0.04]"
                 )}
               >
                 <div className="flex items-start gap-3">

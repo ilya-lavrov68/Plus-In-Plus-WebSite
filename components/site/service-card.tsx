@@ -56,10 +56,8 @@ export function ServiceCard({
   return (
     <Card
       className={cn(
-        "glass-panel flex h-full flex-col justify-between overflow-hidden shadow-glass transition-colors duration-200 hover:border-foreground/30",
-        selected
-          ? "border-primary bg-secondary/50"
-          : "border-border bg-white/[0.035]"
+        "flex h-full flex-col justify-between overflow-hidden transition-colors duration-200 hover:border-foreground/30",
+        selected ? "border-primary bg-secondary/50" : "border-border bg-card"
       )}
     >
       <div>

@@ -100,7 +100,7 @@ const Feature314 = ({
                 key={card.title}
                 data-reveal=""
                 data-reveal-delay={index * 70}
-                className="glass-surface group col-span-1 rounded-[1.5rem] border-white/[0.08] bg-white/[0.065] p-4 shadow-glass transition-[background-color] duration-200 ease-out hover:bg-white/[0.09]"
+                className="glass-surface group col-span-1 rounded-[1.5rem] border-0 bg-white/[0.065] p-4 transition-[background-color] duration-200 ease-out hover:bg-white/[0.09]"
               >
                 <Link
                   href={card.url}
@@ -140,7 +140,7 @@ const Feature314 = ({
             <Card
               data-reveal=""
               data-reveal-delay={120}
-              className="glass-surface group min-h-[30rem] rounded-[1.75rem] border-white/[0.08] bg-white/[0.065] p-2 shadow-glass md:col-span-2"
+              className="glass-surface group min-h-[30rem] rounded-[1.75rem] border-0 bg-white/[0.065] p-2 md:col-span-2"
             >
               <Link href={bigCard.url} className="flex h-full flex-col">
                 <div className="relative min-h-[24rem] flex-1 overflow-hidden rounded-[1.35rem]">
