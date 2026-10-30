@@ -13,7 +13,7 @@ export async function Footer() {
   ]);
   const services = mergeCatalogServices(dbServices);
   const keys = [
-    "largeDesigns", "services", "about", "resources", "legal", "company", "aboutLinks.howWeWork",
+    "ai", "largeDesigns", "services", "about", "resources", "legal", "company", "aboutLinks.howWeWork",
     "aboutLinks.ourPartners", "aboutLinks.studioNews", "aboutLinks.blog", "companyLinks.account", "companyLinks.contactUs",
     "legalLinks.privacyPolicy", "legalLinks.termsOfUse", "orderDesign", "description", "privacyPolicy",
     "servicesLinks.signDesign", "servicesLinks.bagDesign", "servicesLinks.websiteDesign", "servicesLinks.badgeDesign",

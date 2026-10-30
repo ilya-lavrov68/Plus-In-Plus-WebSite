@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const SITE_NAME = "Plus In Plus";
 /** English fallback description; the translated copy lives in `messages/*.json`. */
 export const DEFAULT_SITE_DESCRIPTION =
-  "Plus In Plus — a graphic and digital design studio.";
+  "Plus In Plus — AI technology and graphic, digital, and brand design.";
 
 function resolveSiteUrl(): URL {
   const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.AUTH_URL ?? process.env.NEXTAUTH_URL;

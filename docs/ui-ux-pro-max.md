@@ -41,6 +41,10 @@
 - glass surfaces остаются полупрозрачными и blurred, без chamfered styling;
 - animated timeline outline и его branch-and-trace behavior сохраняются;
 - background glows ниже hero не возвращаются;
+- фирменный акцент — точный `#FFFF01`; он применяется к primary actions, фокусу и отдельным пиксельным сигналам с тёмным текстом на жёлтом, а не заливает все нейтральные поверхности;
+- главная представляет два равноправных направления — ИИ и дизайн; `/ai` отделяет анонсируемые концепции Lumi Q1 и Kairo от действующей дизайн-практики и не имитирует рабочий чат;
+- компьютеризация и пиксели выражаются детерминированными квадратными сетками, кодовыми сигналами и shader-кадрами без случайных внешних изображений;
+- agent shaders используют свободную Illos Streaming tokens как явно выбранный пользователем reference: MODEL → travelling ribbon → RESPONSE, исходный конечный цикл 4,2 секунды, pause/resume/replay, остановка вне экрана и статичный fallback при reduced motion/отсутствии WebGL; hover-loop и бесконечный ambient loop не переносятся;
 - hero не получает прежние `will-change`/`translateZ`, старые trace offsets или тяжёлые per-card continuous scroll timelines;
 - интерфейс не использует emojis как иконки; применяются существующие SVG/Lucide-решения;
 - случайные внешние product images и fabricated interfaces не добавляются;
