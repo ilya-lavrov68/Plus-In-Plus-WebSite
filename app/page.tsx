@@ -1,4 +1,5 @@
 import { BlogSection } from "@/components/site/blog-section";
+import { BrandDirections } from "@/components/site/brand-directions";
 import { Community } from "@/components/site/community";
 import { CtaSection } from "@/components/site/cta-section";
 import { Features } from "@/components/site/features";
@@ -24,6 +25,7 @@ export default async function HomePage() {
   return (
     <>
       <Hero />
+      <BrandDirections />
       <Story />
       <Features />
       <Community />

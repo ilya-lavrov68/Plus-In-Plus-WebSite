@@ -131,6 +131,11 @@ export function buildNavigation(featuredPost?: Navbar10Props["featuredPost"]): M
 
   return [
     {
+      title: "AI",
+      id: 4,
+      url: "/ai",
+    },
+    {
       title: "FOR PLAY",
       id: 1,
       links: [
@@ -310,7 +315,7 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
     });
     return buildNavigation(featuredPost).map((item) => ({
       ...item,
-      title: item.id === 1 ? t("forPlay") : item.id === 3 ? t("about") : t("socnet"),
+      title: item.id === 4 ? tn("ai") : item.id === 1 ? t("forPlay") : item.id === 3 ? t("about") : t("socnet"),
       links: item.links?.map(localizeLink),
       featuredLinks: item.featuredLinks?.map(localizeLink),
       imageLink: item.imageLink ? localizeLink(item.imageLink) : undefined,

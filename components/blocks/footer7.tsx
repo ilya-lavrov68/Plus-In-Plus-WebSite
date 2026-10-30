@@ -25,7 +25,7 @@ export interface Footer7Props {
 }
 
 const DEFAULT_LABELS: Record<string, string> = {
-  "largeDesigns": "Large designs", "services": "Services", "about": "About", "resources": "Resources", "legal": "Legal", "company": "Company",
+  "ai": "AI", "largeDesigns": "Large designs", "services": "Services", "about": "About", "resources": "Resources", "legal": "Legal", "company": "Company",
   "aboutLinks.howWeWork": "How we work", "aboutLinks.ourPartners": "Our partners", "aboutLinks.studioNews": "Studio news", "aboutLinks.blog": "Blog",
   "companyLinks.account": "Account", "companyLinks.contactUs": "Contact us", "legalLinks.privacyPolicy": "Privacy Policy", "legalLinks.termsOfUse": "Terms of use",
   "orderDesign": "Order a design", "description": "A next-generation design studio packaging ideas into clear, memorable design—from website mockups to signage and outdoor collateral.", "privacyPolicy": "Privacy Policy",
@@ -83,6 +83,7 @@ const Footer7 = ({
     {
       title: t("resources"),
       links: [
+        { name: t("ai"), href: "/ai" },
         { name: t("aboutLinks.blog"), href: "/blog" },
         { name: t("aboutLinks.studioNews"), href: "/blog" },
         { name: t("companyLinks.account"), href: "/login" },

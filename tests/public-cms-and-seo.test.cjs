@@ -73,6 +73,9 @@ Module._load = function (name, parent, isMain) {
   if (name === "@/components/site/shop-catalog-view") {
     return { ShopCatalogView: () => null };
   }
+  if (name === "@/components/ai/ai-page-view") {
+    return { AiPageView: () => null };
+  }
   if (name.startsWith("@/")) {
     name = path.resolve(__dirname, "..", name.slice(2));
   }
@@ -80,6 +83,7 @@ Module._load = function (name, parent, isMain) {
 };
 
 const shopPage = require("../app/shop/(index)/page.tsx");
+const aiPage = require("../app/ai/page.tsx");
 const sitemap = require("../app/sitemap.ts").default;
 const { getPublicSiteSettings } = require("../lib/public-site-settings.ts");
 const {
@@ -106,10 +110,17 @@ test("empty shop keeps coming-soon metadata and stays out of sitemap while publi
   const entries = await sitemap();
   const urls = entries.map((entry) => entry.url);
   assert.ok(urls.includes("https://example.test/services"));
+  assert.ok(urls.includes("https://example.test/ai"));
   assert.ok(urls.includes("https://example.test/contact"));
   assert.ok(urls.includes("https://example.test/shop/sign-design"));
   assert.ok(urls.includes("https://example.test/blog/studio-news"));
   assert.ok(!urls.includes("https://example.test/shop"));
+});
+
+test("AI direction exposes localised announcement metadata", async () => {
+  const metadata = await aiPage.generateMetadata();
+  assert.equal(metadata.title, messages.metadata.ai);
+  assert.equal(metadata.description, messages.metadata.aiDescription);
 });
 
 test("active products switch shop to catalog metadata and add only the catalog route to sitemap", async () => {

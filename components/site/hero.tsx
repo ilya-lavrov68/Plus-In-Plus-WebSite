@@ -10,8 +10,8 @@ export async function Hero() {
       headingPrimary={t("heroPrimary")}
       descriptionLead={t("heroDescriptionLead")}
       descriptionStrong={t("heroDescriptionStrong")}
-      primaryCta={{ label: hero("order"), href: "/services" }}
-      secondaryCta={{ label: hero("contactUs"), href: "/contact" }}
+      primaryCta={{ label: hero("orderDesign"), href: "/services" }}
+      secondaryCta={{ label: hero("exploreAi"), href: "/ai" }}
       footnote={t("heroFootnote")}
     />
   );

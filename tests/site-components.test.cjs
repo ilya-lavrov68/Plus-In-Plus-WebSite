@@ -134,6 +134,12 @@ Module._load = function (name, parent, isMain) {
       },
     };
   }
+  if (name === "@/components/ai/agent-shader-player") {
+    return {
+      AgentShaderPlayer: ({ agent }) =>
+        React.createElement("div", { "data-agent-shader": agent }),
+    };
+  }
   if (name === "@/components/site/lazy-account-modal") {
     return {
       preloadAccountModal() {},
@@ -204,6 +210,12 @@ const { toBlogCardData } = require("../lib/blog-card.ts");
 const { COVER_IMAGE_GUIDES } = require("../lib/upload-policy.ts");
 const { DecryptText } = require("../components/site/motion/decrypt-text.tsx");
 const { ScrollExperience } = require("../components/site/motion/scroll-experience.tsx");
+const { AiPageView } = require("../components/ai/ai-page-view.tsx");
+const { BrandDirections } = require("../components/site/brand-directions.tsx");
+const {
+  AGENT_SHADER_DURATION_MS,
+  AGENT_FRAGMENT_SHADER,
+} = require("../lib/agent-shaders.ts");
 
 beforeEach(() => {
   sessionStatus = "unauthenticated";
@@ -257,6 +269,69 @@ test("Hero138 renders exact title, subtitle, Order & Contact us actions, and sho
   act(() => view.unmount());
 });
 
+test("Home directions and AI page present two announced agents without a fabricated integration", async () => {
+  const directionsElement = await BrandDirections();
+  const aiElement = await AiPageView();
+  let directionsView;
+  let aiView;
+  act(() => {
+    directionsView = create(directionsElement);
+    aiView = create(aiElement);
+  });
+  const directionLinks = directionsView.root.findAllByType("a").map((link) => link.props.href);
+  assert.deepEqual(directionLinks.sort(), ["/ai", "/services"]);
+  const directionText = textOf(directionsView.root);
+  assert.match(directionText, /AI technology and design/);
+  assert.match(directionText, /Announcement · soon/);
+  assert.match(directionText, /Available now/);
+
+  const aiText = textOf(aiView.root);
+  assert.match(aiText, /Lumi Q1/);
+  assert.match(aiText, /Kairo/);
+  assert.match(aiText, /The working integration is being prepared/);
+  assert.match(aiText, /not a lawyer/);
+  assert.match(aiText, /Russian law/);
+  assert.equal(aiView.root.findAllByType("input").length, 0);
+  assert.equal(aiView.root.findAllByType("textarea").length, 0);
+  const shaderSlots = aiView.root
+    .findAll((node) => Boolean(node.props?.["data-agent-shader"]))
+    .map((node) => node.props["data-agent-shader"])
+    .sort();
+  assert.deepEqual(shaderSlots, ["kairo", "lumi"]);
+  act(() => {
+    directionsView.unmount();
+    aiView.unmount();
+  });
+});
+
+test("Brand accent and shader implementation keep the approved visual and motion contract", () => {
+  const globals = fs.readFileSync(path.resolve(__dirname, "../styles/globals.css"), "utf8");
+  const tailwind = fs.readFileSync(path.resolve(__dirname, "../tailwind.config.ts"), "utf8");
+  const player = fs.readFileSync(
+    path.resolve(__dirname, "../components/ai/agent-shader-player.tsx"),
+    "utf8"
+  );
+  assert.match(globals, /--primary:\s*#FFFF01;/);
+  assert.match(tailwind, /DEFAULT:\s*"var\(--primary\)"/);
+  assert.equal(AGENT_SHADER_DURATION_MS, 8400);
+  assert.match(AGENT_FRAGMENT_SHADER, /uniform float u_agent;/);
+  assert.match(AGENT_FRAGMENT_SHADER, /uniform float u_progress;/);
+  assert.match(AGENT_FRAGMENT_SHADER, /gl_FragColor/);
+  assert.match(player, /prefers-reduced-motion: reduce/);
+  assert.match(player, /IntersectionObserver/);
+  assert.match(player, /webglcontextlost/);
+  assert.match(player, /cancelAnimationFrame/);
+  assert.doesNotMatch(player, /setInterval/);
+
+  for (const locale of ["ru", "en"]) {
+    const catalog = require(`../messages/${locale}.json`);
+    assert.equal(catalog.ai.lumi.steps.length, 3);
+    assert.equal(catalog.ai.kairo.steps.length, 3);
+    assert.ok(catalog.directions.ai.status.length > 0);
+    assert.ok(catalog.ai.kairo.note.length > 80);
+  }
+});
+
 test("Navbar10 and Footer7 render all required navigation items and footer columns", () => {
   let navView, footerView;
   act(() => {
@@ -289,6 +364,11 @@ test("Navbar10 and Footer7 render all required navigation items and footer colum
     label: "Newest featured story",
   });
   const navigationWithoutPosts = buildNavigation();
+  assert.deepEqual(
+    navigationWithoutPosts.find((item) => item.id === 4),
+    { title: "AI", id: 4, url: "/ai" },
+    "AI must be a direct desktop and mobile navigation item"
+  );
   const aboutWithoutPosts = navigationWithoutPosts.find((item) => item.id === 3);
   assert.equal(aboutWithoutPosts?.imageLink?.url, "/blog");
   assert.equal(aboutWithoutPosts?.imageLink?.label, "Blog");
@@ -338,6 +418,8 @@ test("Navbar10 and Footer7 render all required navigation items and footer colum
 
   const termsLink = footerView.root.findAllByType("a").find((link) => textOf(link) === "Terms of use");
   assert.equal(termsLink?.props.href, "/terms");
+  const aiLink = footerView.root.findAllByType("a").find((link) => link.props.href === "/ai");
+  assert.ok(aiLink, "Footer must link to the AI direction");
   const studioNewsLinks = footerView.root.findAllByType("a").filter((link) => textOf(link) === "Studio news");
   assert.ok(studioNewsLinks.some((link) => link.props.href === "/blog"));
   assert.ok(studioNewsLinks.every((link) => link.props.href !== "/blog/we-re-up-and-running"));

@@ -108,9 +108,11 @@
     "dismiss": "Dismiss announcement"
   },
   "hero": {
-    "title": "A next-generation design studio",
+    "title": "AI and design for the next generation",
     "order": "Order",
-    "contactUs": "Contact us"
+    "contactUs": "Contact us",
+    "orderDesign": "Order a design",
+    "exploreAi": "AI agents"
   },
   "categories": {
     "title": "Order a design you won't regret",
@@ -135,10 +137,10 @@
       "description": "We take an individualized approach with each person"
     },
     "support": {
-      "title": "Ongoing tech support",
-      "description": "We're always here to help if the design isn't quite right"
+      "title": "Digital support",
+      "description": "We are here when a design needs refinement or a digital workflow needs a clear explanation"
     },
-    "heading": "Explore our creative studio.",
+    "heading": "Pixels, code, and human meaning.",
     "button": "Contact us"
   },
   "story": {
@@ -443,7 +445,8 @@
     "news": "Plus In Plus news",
     "insights": "Design insights",
     "largeDesigns": "Large designs",
-    "description": "A next-generation design studio packaging ideas into clear, memorable design—from website mockups to signage and outdoor collateral."
+    "description": "Plus In Plus combines AI technology and design: specialised agents, visual systems, mockups, signage, and outdoor media.",
+    "ai": "AI"
   },
   "auth": {
     "login": "Log in",
@@ -1142,8 +1145,8 @@
     "backHome": "Back to the home page"
   },
   "metadata": {
-    "home": "Plus In Plus — design studio",
-    "homeDescription": "A next-generation design studio for digital, event, and brand design—from website mockups to posters and event collateral.",
+    "home": "Plus In Plus — AI and design",
+    "homeDescription": "Plus In Plus combines brand design with specialised AI agents: visual systems, code, and clear digital workflows.",
     "login": "Log in — Plus In Plus",
     "loginDescription": "Sign in to your Plus In Plus account or staff dashboard.",
     "register": "Register — Plus In Plus",
@@ -1157,13 +1160,15 @@
     "contact": "Contact us — Plus In Plus",
     "contactDescription": "Have an idea for signage, web mockups, or outdoor media? Send a message to Plus In Plus.",
     "admin": "Admin — Plus In Plus",
-    "siteDescription": "Plus In Plus — a graphic and digital design studio.",
-    "siteTitle": "Plus In Plus — design studio",
+    "siteDescription": "Plus In Plus — AI technology and design: Lumi Q1 and Kairo agents, graphic and digital design.",
+    "siteTitle": "Plus In Plus — AI and design",
     "manager": "Manager — orders",
     "users": "Users — Plus In Plus",
     "services": "Services — Plus In Plus",
     "servicesDescription": "Browse small and large format design services from Plus In Plus studio.",
-    "profile": "Profile — Plus In Plus"
+    "profile": "Profile — Plus In Plus",
+    "ai": "Lumi Q1 and Kairo AI agents — Plus In Plus",
+    "aiDescription": "Introducing the Plus In Plus AI direction: Lumi Q1 coding agent and Kairo, an informational legal assistant focused on Russian law."
   },
   "actions": {
     "accountCreatedPleaseLogIn": "Your account was created. Please log in.",
@@ -1389,19 +1394,19 @@
     "priceOnRequest": "Price on request"
   },
   "home": {
-    "newsDescription": "Updates from our design studio, product ecosystems, and client projects.",
-    "heroMuted": "A next-generation",
-    "heroPrimary": "design studio",
-    "heroDescriptionLead": "Have an idea but don't know how to showcase it? ",
-    "heroDescriptionStrong": "We'll package it in a stylish, clear design—from website mockups to posters and event collateral.",
-    "heroFootnote": "Plus In Plus Design Studio",
+    "newsDescription": "Studio news, digital initiatives, and client project updates.",
+    "heroMuted": "AI and design",
+    "heroPrimary": "for the next generation",
+    "heroDescriptionLead": "We create visual systems and develop specialised AI agents. ",
+    "heroDescriptionStrong": "Two Plus In Plus directions: design for brands and digital assistants for coding and legal information.",
+    "heroFootnote": "Plus In Plus · AI + Design",
     "heroAlt": "Plus In Plus studio showcase",
-    "ctaTitle": "Order a design",
-    "ctaDescription": "Tell us about your idea and we will package it in a clear, memorable visual system—from storefront signage to large-format outdoor media.",
+    "ctaTitle": "Two directions. One digital environment.",
+    "ctaDescription": "Order design for your idea or explore the concepts behind Lumi Q1 and Kairo, the specialised AI agents from Plus In Plus.",
     "communityBadge": "Partners & Neighbors",
     "communityHeading": "Our partners and neighbors",
     "communityDescription": "We closely collaborate with TS Connect, an IT firm in Tambov, delivering reliable design and digital infrastructure for brands and organizations.",
-    "pipDescription": "Next-generation studio for brand systems, mockups, signage, and event collateral.",
+    "pipDescription": "AI and design studio: agents, identity, mockups, signage, and event collateral.",
     "tsConnectDescription": "Regional IT engineering and digital infrastructure partner in Tambov."
   },
   "navigation": {
@@ -1434,7 +1439,8 @@
     "youtube": "YouTube",
     "youtubeDescription": "Watch design breakdowns and studio reels",
     "contactStudio": "Contact Studio",
-    "contactStudioDescription": "Send a message directly to our team"
+    "contactStudioDescription": "Send a message directly to our team",
+    "ai": "AI"
   },
   "services": {
     "title": "Our Services",
@@ -1529,5 +1535,73 @@
     "copied": "Backup codes copied.",
     "codesSaved": "I saved the codes",
     "operationFailed": "The operation failed. Check the details and try again."
+  },
+  "directions": {
+    "eyebrow": "Two directions · one digital environment",
+    "heading": "AI technology and design",
+    "description": "Plus In Plus develops specialised AI agents and continues to create visual solutions for brands. Both directions share a focus on clarity, code, and every pixel.",
+    "ai": {
+      "index": "01 / AI",
+      "title": "AI agents",
+      "status": "Announcement · soon",
+      "description": "Lumi Q1 for development tasks and Kairo for clear legal information focused on Russian law.",
+      "meta": "Lumi Q1 · Kairo",
+      "link": "Meet the agents"
+    },
+    "design": {
+      "index": "02 / DESIGN",
+      "title": "Design",
+      "status": "Available now",
+      "description": "Identity, digital mockups, signage, and outdoor media — the established design practice of Plus In Plus.",
+      "meta": "Branding · Web · Outdoor media",
+      "link": "Explore design services"
+    }
+  },
+  "ai": {
+    "eyebrow": "Plus In Plus / AI",
+    "announcement": "Announcement · soon",
+    "title": "AI agents with a clear specialisation",
+    "intro": "Lumi Q1 and Kairo are being developed for different contexts: software development and clear legal information. This page presents their purpose and intended workflow before the full integration is connected.",
+    "integrationNoticeTitle": "The working integration is being prepared",
+    "integrationNotice": "This page does not provide a working chat, code execution, or legal request submission. Those capabilities will appear only after a separate integration is connected and verified.",
+    "lumi": {
+      "index": "01 / CODE",
+      "role": "Coding agent",
+      "status": "Coming soon",
+      "description": "Lumi Q1 is intended as a development assistant: from framing a task and analysing context to explaining a proposed solution in clear language.",
+      "processTitle": "Intended workflow",
+      "steps": [
+        "Define the development task and the expected result.",
+        "Provide the agent with the necessary context and no unnecessary data.",
+        "Review the proposed solution and its explanation before applying it."
+      ],
+      "note": "Exact capabilities, data sources, and limitations will be published with the working launch.",
+      "visualLabel": "Conceptual Lumi Q1 diagram: task, context, and a solution with an explanation."
+    },
+    "kairo": {
+      "index": "02 / LEGAL",
+      "role": "Informational legal assistant · Russian law",
+      "status": "Coming soon",
+      "description": "Kairo is intended for people without legal experience. It will explain legal concepts and questions related to Russian law in plain language.",
+      "processTitle": "Intended workflow",
+      "steps": [
+        "Describe the situation in your own words, without specialised terminology.",
+        "Receive informational guidance related to Russian legal norms.",
+        "Prepare questions for a specialist and identify the next step."
+      ],
+      "note": "Kairo is not a lawyer and does not replace individual legal advice. Responses are informational; the current law and the circumstances of each case must be checked separately.",
+      "visualLabel": "Conceptual Kairo diagram: situation, Russian legal norms, and a clear explanation."
+    },
+    "designBridge": {
+      "title": "Design remains our second direction",
+      "description": "We continue to create visual systems, digital mockups, signage, and outdoor media. The AI direction complements this practice rather than replacing it.",
+      "cta": "Explore design services"
+    },
+    "animation": {
+      "play": "Play visualisation",
+      "pause": "Pause",
+      "resume": "Resume",
+      "replay": "Replay visualisation"
+    }
   }
 }
