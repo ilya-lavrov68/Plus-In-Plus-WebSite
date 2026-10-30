@@ -14,8 +14,9 @@ interface AgentSectionProps {
   role: string;
   status: string;
   description: string;
-  processTitle: string;
-  steps: string[];
+  benefitsTitle: string;
+  benefits: string[];
+  detailsLink: string;
   note: string;
   visualLabel: string;
   shaderLabels: {
@@ -35,8 +36,9 @@ function AgentSection({
   role,
   status,
   description,
-  processTitle,
-  steps,
+  benefitsTitle,
+  benefits,
+  detailsLink,
   note,
   visualLabel,
   shaderLabels,
@@ -44,52 +46,49 @@ function AgentSection({
   reverse = false,
 }: AgentSectionProps) {
   return (
-    <section id={id} className="border-t border-border py-20 md:py-28">
-      <div className="container grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-16">
+    <section id={id} className="border-t border-border py-24 md:py-36">
+      <div className="container grid gap-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-24 xl:gap-32">
         <figure
           data-reveal=""
-          className={cn(
-            "overflow-hidden rounded-2xl border border-border bg-card",
-            reverse && "lg:order-2"
-          )}
+          className={cn("min-w-0", reverse && "lg:order-2")}
         >
-          <div className="flex items-center justify-between gap-4 border-b border-border px-5 py-4 text-xs sm:px-6">
-            <span className="font-medium tracking-[0.16em] text-muted-foreground uppercase">{index}</span>
-            <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 font-medium text-primary">
-              {status}
-            </span>
+          <div className="flex items-center justify-between gap-4 border-t border-border pt-5 text-xs">
+            <span className="font-mono text-primary">{index}</span>
+            <span className="font-medium text-muted-foreground">{status}</span>
           </div>
-          <div className="aspect-[36/23] w-full bg-background text-foreground">
+          <div className="mt-6 aspect-[36/23] w-full border-y border-border bg-background text-foreground">
             <AgentShaderPlayer agent={agent} labels={shaderLabels} />
           </div>
           <figcaption className="sr-only">{visualLabel}</figcaption>
         </figure>
 
         <div data-reveal="" data-reveal-delay={100} className="min-w-0">
-          <div className="flex size-12 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 text-primary">
-            <Icon aria-hidden="true" className="size-5" strokeWidth={1.7} />
-          </div>
-          <p className="mt-6 text-sm font-medium text-primary">{role}</p>
-          <h2 className="mt-2 text-4xl font-medium tracking-tight sm:text-5xl">{name}</h2>
-          <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+          <Icon aria-hidden="true" className="size-7 text-primary" strokeWidth={1.5} />
+          <p className="mt-8 text-sm font-medium text-primary">{role}</p>
+          <h2 className="mt-3 text-4xl font-medium tracking-tight sm:text-5xl">{name}</h2>
+          <p className="mt-7 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
             {description}
           </p>
 
-          <h3 className="mt-8 text-sm font-semibold text-foreground">{processTitle}</h3>
-          <ol className="mt-4 space-y-4">
-            {steps.map((step, index) => (
-              <li key={step} className="flex items-start gap-3">
-                <span
-                  aria-hidden="true"
-                  className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border border-primary/25 bg-primary/5 font-mono text-xs text-primary"
-                >
-                  {index + 1}
+          <h3 className="mt-12 text-sm font-semibold text-foreground">{benefitsTitle}</h3>
+          <ol className="mt-6 space-y-6">
+            {benefits.map((benefit, benefitIndex) => (
+              <li key={benefit} className="flex items-start gap-5 border-t border-border pt-5">
+                <span aria-hidden="true" className="mt-1 shrink-0 font-mono text-xs text-primary">
+                  {String(benefitIndex + 1).padStart(2, "0")}
                 </span>
-                <span className="min-w-0 text-sm leading-relaxed text-foreground/85 sm:text-base">{step}</span>
+                <span className="min-w-0 text-sm leading-relaxed text-foreground/85 sm:text-base">{benefit}</span>
               </li>
             ))}
           </ol>
-          <p className="mt-7 max-w-xl border-l-2 border-primary/50 pl-4 text-sm leading-relaxed text-muted-foreground">
+          <Link
+            href={`/ai/${agent}`}
+            className="group mt-9 inline-flex items-center gap-3 text-sm font-medium text-foreground transition-colors hover:text-primary"
+          >
+            {detailsLink}
+            <ArrowRight aria-hidden="true" className="size-4 text-primary transition-transform group-hover:translate-x-1" />
+          </Link>
+          <p className="mt-9 max-w-xl border-t border-border pt-5 text-sm leading-relaxed text-muted-foreground">
             {note}
           </p>
         </div>
@@ -100,8 +99,8 @@ function AgentSection({
 
 export async function AiPageView() {
   const t = await getRequestTranslations("ai");
-  const lumiSteps = t.raw("lumi.steps") as string[];
-  const kairoSteps = t.raw("kairo.steps") as string[];
+  const lumiBenefits = t.raw("lumi.benefits") as string[];
+  const kairoBenefits = t.raw("kairo.benefits") as string[];
   const shaderLabels = {
     play: t("animation.play"),
     pause: t("animation.pause"),
@@ -110,17 +109,15 @@ export async function AiPageView() {
 
   return (
     <>
-      <section className="relative overflow-hidden bg-background pt-16 pb-20 md:pt-24 md:pb-28">
+      <section className="relative overflow-hidden bg-background pb-24 pt-20 md:pb-32 md:pt-28">
         <div className="container">
-          <div className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
+          <div className="grid gap-12 lg:grid-cols-[1.15fr_0.85fr] lg:items-end lg:gap-20">
             <div>
-              <div className="flex flex-wrap items-center gap-3">
-                <p className="text-xs font-medium tracking-[0.18em] text-primary uppercase">{t("eyebrow")}</p>
-                <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                  {t("announcement")}
-                </span>
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">{t("eyebrow")}</p>
+                <span className="text-xs text-muted-foreground">{t("announcement")}</span>
               </div>
-              <h1 className="mt-6 max-w-4xl text-4xl font-medium tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+              <h1 className="mt-8 max-w-4xl text-4xl font-medium tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
                 {t("title")}
               </h1>
             </div>
@@ -129,24 +126,24 @@ export async function AiPageView() {
             </p>
           </div>
 
-          <div className="mt-10 flex flex-wrap gap-3">
+          <div className="mt-12 flex flex-wrap gap-3">
             <Button asChild>
-              <a href="#lumi-q1">Lumi Q1</a>
+              <Link href="/ai/lumi">Lumi Q1</Link>
             </Button>
             <Button variant="outline" asChild>
-              <a href="#kairo">Kairo</a>
+              <Link href="/ai/kairo">Kairo</Link>
             </Button>
           </div>
 
           <aside
             data-reveal=""
-            className="mt-12 flex max-w-4xl items-start gap-4 rounded-2xl border border-border bg-card p-5 sm:p-6"
+            className="mt-16 flex max-w-4xl items-start gap-5 border-t border-border pt-7"
             aria-label={t("integrationNoticeTitle")}
           >
-            <CircuitBoard aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-primary" strokeWidth={1.7} />
+            <CircuitBoard aria-hidden="true" className="mt-0.5 size-6 shrink-0 text-primary" strokeWidth={1.5} />
             <div>
               <h2 className="text-sm font-semibold text-foreground">{t("integrationNoticeTitle")}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t("integrationNotice")}</p>
+              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">{t("integrationNotice")}</p>
             </div>
           </aside>
         </div>
@@ -160,8 +157,9 @@ export async function AiPageView() {
         role={t("lumi.role")}
         status={t("lumi.status")}
         description={t("lumi.description")}
-        processTitle={t("lumi.processTitle")}
-        steps={lumiSteps}
+        benefitsTitle={t("lumi.benefitsTitle")}
+        benefits={lumiBenefits}
+        detailsLink={t("lumi.detailsLink")}
         note={t("lumi.note")}
         visualLabel={t("lumi.visualLabel")}
         shaderLabels={shaderLabels}
@@ -176,8 +174,9 @@ export async function AiPageView() {
         role={t("kairo.role")}
         status={t("kairo.status")}
         description={t("kairo.description")}
-        processTitle={t("kairo.processTitle")}
-        steps={kairoSteps}
+        benefitsTitle={t("kairo.benefitsTitle")}
+        benefits={kairoBenefits}
+        detailsLink={t("kairo.detailsLink")}
         note={t("kairo.note")}
         visualLabel={t("kairo.visualLabel")}
         shaderLabels={shaderLabels}
@@ -185,16 +184,16 @@ export async function AiPageView() {
         reverse
       />
 
-      <section className="border-t border-border py-20 md:py-24">
+      <section className="border-t border-border py-24 md:py-32">
         <div className="container">
           <div
             data-reveal=""
-            className="flex flex-col justify-between gap-8 rounded-2xl border border-border bg-card p-6 sm:p-10 lg:flex-row lg:items-center"
+            className="flex flex-col justify-between gap-12 lg:flex-row lg:items-end lg:gap-20"
           >
             <div className="max-w-2xl">
-              <PenTool aria-hidden="true" className="size-5 text-primary" strokeWidth={1.7} />
-              <h2 className="mt-5 text-3xl font-medium tracking-tight sm:text-4xl">{t("designBridge.title")}</h2>
-              <p className="mt-4 text-base leading-relaxed text-muted-foreground">{t("designBridge.description")}</p>
+              <PenTool aria-hidden="true" className="size-7 text-primary" strokeWidth={1.5} />
+              <h2 className="mt-8 text-3xl font-medium tracking-tight sm:text-4xl">{t("designBridge.title")}</h2>
+              <p className="mt-6 text-base leading-relaxed text-muted-foreground sm:text-lg">{t("designBridge.description")}</p>
             </div>
             <Button size="lg" asChild className="w-fit shrink-0">
               <Link href="/services" className="group">
