@@ -437,9 +437,9 @@ ROBOKASSA_HASH_ALGO="md5"
 ### ИИ-направление и shader-визуализации
 
 - `/ai` — презентация анонса, а не запущенный AI-сервис. До отдельной интеграции на странице нет чата, выполнения кода или отправки юридических запросов. Lumi Q1 позиционируется как кодирующий агент; Kairo — как информационный помощник по праву РФ, не заменяющий юриста.
-- GLSL shaders находятся в `lib/agent-shaders.ts`, управление воспроизведением — в `components/ai/agent-shader-player.tsx`, статичный fallback — в `components/ai/agent-diagram.tsx`. За основу взята бесплатная [`Streaming tokens`](https://illos.dev/library/shader/streaming-tokens): оригинальные MODEL → travelling ribbon → RESPONSE, field/cell sampling и двухпроходный bar renderer. Палитра адаптирована к `#FFFF01`; внешние текстуры, новые runtime-зависимости и сетевые запросы не используются.
-- Исходная последовательность длится 4,2 секунды и завершается. Есть pause/resume/replay, остановка вне viewport/скрытой вкладки, reduced-motion и no-WebGL fallback с той же композицией. Правила и browser-чек-лист зафиксированы в `AGENTS.md`.
-- Иллюстрация используется по [`Illos free license`](https://illos.dev/license), разрешающей коммерческое использование и изменения. Установщик `illos@0.1.1` и Pro-toolkit по-прежнему не используются, `ILLOS_KEY` не требуется и не должен сохраняться в репозитории.
+- Оригинальные GLSL fields находятся в `lib/agent-fields.ts`, общий renderer — в `lib/agent-shaders.ts`, управление воспроизведением — в `components/ai/agent-shader-player.tsx`, статичные кадры — в `lib/agent-static-frames.ts` и `components/ai/agent-diagram.tsx`. Lumi Q1 использует бесплатную [`Tool calls`](https://illos.dev/library/shader/tool-calls): задача, агент, search/code runner/calendar и возврат результатов. Kairo использует [`RAG answer`](https://illos.dev/library/shader/rag): вопрос, три ближайшие страницы и ответ с citations. Палитра адаптирована к `#FFFF01`; внешние текстуры, новые runtime-зависимости и сетевые запросы не используются.
+- Обе последовательности автоматически повторяются каждые 4,5 секунды через modulo shader clock. Есть только компактные icon-only pause/resume без replay; resume не сбрасывает фазу. Сохранены остановка вне viewport/скрытой вкладки и разные reduced-motion/no-WebGL кадры из тех же fields. Правила и browser-чек-лист зафиксированы в `AGENTS.md`.
+- Иллюстрации используются по [`Illos free license`](https://illos.dev/license), разрешающей коммерческое использование и изменения. Установщик `illos@0.1.1` и Pro-toolkit по-прежнему не используются, `ILLOS_KEY` не требуется и не должен сохраняться в репозитории.
 
 ### Комплексная разработка и оптимизация
 
@@ -452,7 +452,7 @@ ROBOKASSA_HASH_ALGO="md5"
 | Маршрут | Блок UI / Модуль | Назначение |
 | --- | --- | --- |
 | `/` (`/[locale]`) | `Navbar 10` · `Hero 138` · `BrandDirections` · `Feature 314` · `Community 3` · `Blog 11` · `CTA 13` · `Footer 7` | Главная в тёмной палитре с фирменным акцентом `#FFFF01`: два равноправных направления — ИИ и дизайн, партнёры, статьи блога и призыв к действию |
-| `/ai` | `AiPageView` · `AgentShaderPlayer` · `AgentDiagram` | Анонс Lumi Q1 и Kairo с текстовыми сценариями и конечными WebGL-визуализациями; рабочие чат, код и юридические запросы не имитируются |
+| `/ai` | `AiPageView` · `AgentShaderPlayer` · `AgentDiagram` | Анонс Lumi Q1 и Kairo с текстовыми сценариями и разными зацикленными WebGL-визуализациями Tool calls/RAG; рабочие чат, код и юридические запросы не имитируются |
 | `/services` | `ServicesCatalogView` · `ServiceCard` | Каталог активных опубликованных услуг из БД с переходом к конфигуратору и добавлением в корзину |
 | `/shop` | `ShopCatalogView` | Каталог активных товаров; пока товаров нет, показывает локализованную заглушку и остаётся `noindex` |
 | `/shop/[slug]` | `Product Detail 1` + конфигуратор | Карточка услуги из БД с расчётом опций, добавлением в корзину и быстрой заявкой |

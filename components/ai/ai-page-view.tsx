@@ -22,7 +22,6 @@ interface AgentSectionProps {
     play: string;
     pause: string;
     resume: string;
-    replay: string;
   };
   icon: LucideIcon;
   reverse?: boolean;
@@ -107,7 +106,6 @@ export async function AiPageView() {
     play: t("animation.play"),
     pause: t("animation.pause"),
     resume: t("animation.resume"),
-    replay: t("animation.replay"),
   };
 
   return (
