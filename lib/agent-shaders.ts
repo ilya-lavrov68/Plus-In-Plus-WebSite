@@ -1,14 +1,18 @@
+import { RAG_ANSWER_FIELD, TOOL_CALLS_FIELD } from "./agent-fields";
+
+export type AgentKind = "lumi" | "kairo";
+
 /**
- * Streaming tokens: field и two-pass bar renderer из бесплатной иллюстрации
- * Illos.dev, адаптированные к жёлтой палитре Plus In Plus и нашему player lifecycle.
+ * Оригинальные field-сцены бесплатных иллюстраций Illos.dev в существующем
+ * two-pass renderer Plus In Plus: Lumi — Tool calls, Kairo — RAG answer.
  *
- * Source: https://illos.dev/library/shader/streaming-tokens
- * Registry: https://illos.dev/r/shader/streaming-tokens.json
+ * Sources: https://illos.dev/library/shader/tool-calls
+ *          https://illos.dev/library/shader/rag
  * License: https://illos.dev/license (Illos free license)
  * Pro toolkit, Illos skill и ILLOS_KEY не используются.
  */
 
-export const AGENT_SHADER_CYCLE_SECONDS = 4.2;
+export const AGENT_SHADER_CYCLE_SECONDS = 4.5;
 export const AGENT_SHADER_DURATION_MS = AGENT_SHADER_CYCLE_SECONDS * 1000;
 export const AGENT_SHADER_WIDTH = 720;
 export const AGENT_SHADER_HEIGHT = 460;
@@ -40,38 +44,27 @@ float blob(vec2 p, vec2 c, float r, float k) {
 float sm(float a, float b, float t) {
   return smoothstep(a, b, t);
 }
-`;
 
-/** Оригинальный field Streaming tokens: MODEL → ribbon → четыре строки RESPONSE. */
-const STREAMING_TOKENS_FIELD = `
-float field(vec2 p, float t) {
-  float ph = TAU * t / T;
-  float v = blob(p, vec2(88.0, 230.0), 30.0, 1.05);
+float ease(float x) {
+  return x * x * x * (x * (x * 6.0 - 15.0) + 10.0);
+}
 
-  // Лента: бегущая волна и шесть импульсов за цикл.
-  if (p.x > 116.0 && p.x < 356.0) {
-    float env = sin(3.14159 * (p.x - 116.0) / 240.0);
-    float y = 230.0 + 30.0 * env * sin(p.x * 0.035 - ph * 2.0);
-    float pulse = pow(0.5 + 0.5 * sin(p.x * 0.08 - ph * 6.0), 4.0);
-    v += exp(-pow(p.y - y, 2.0) / 64.0) * (0.3 + 0.75 * pulse);
-  }
+float seg(vec2 p, vec2 a, vec2 b, float w, float amp) {
+  vec2 pa = p - a;
+  vec2 ba = b - a;
+  float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+  return amp * exp(-pow(length(pa - ba * h) / w, 2.0));
+}
 
-  // RESPONSE: курсор пишет четвёртую строку, затем текст сдвигается вверх.
-  if (p.x > 376.0 && p.x < 654.0 && p.y > 130.0 && p.y < 322.0) {
-    float yy = p.y + 46.0 * sm(3.2, 3.8, t);
-    float idx = floor((yy - 160.0 + 23.0) / 46.0);
-    float ly = 160.0 + 46.0 * idx;
-    float on = step(0.32, hash(vec2(floor(p.x / 7.0), 1.0)));
-    float front = t < 0.3 ? 380.0 : t < 3.0 ? mix(380.0, 650.0, (t - 0.3) / 2.7) : 650.0;
-    float filled = idx < 3.0 ? 1.0 : idx < 4.0 ? (t > 3.0 ? 1.0 : 1.0 - sm(front - 6.0, front + 4.0, p.x)) : 0.0;
-    float band = exp(-pow(yy - ly, 2.0) / 49.0);
-    v += band * (on * (0.55 + 0.35 * hash(vec2(floor(p.x / 7.0), 2.0))) * filled + 0.13 * (1.0 - filled) * on);
-    float cx = t < 3.0 ? front : 380.0;
-    float cyy = t < 3.0 ? 298.0 : 298.0 - 46.0 * sm(3.2, 3.8, t) + 46.0 * step(3.8, t);
-    v += blob(p, vec2(cx + 3.0, cyy), 8.0, 1.2 * (t < 3.0 || t > 3.8 ? 1.0 : 0.0));
-  }
-
-  return v;
+float noise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(
+    mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
+    mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x),
+    f.y
+  );
 }
 `;
 
@@ -88,12 +81,19 @@ void main() {
 }
 `;
 
-/** Первый проход вычисляет field только для сетки 103 × 49, а не для каждого пикселя. */
-export const AGENT_FIELD_FRAGMENT_SHADER = `${PRELUDE}
+function fieldShader(field: string): string {
+  return `${PRELUDE}
 const float T = ${AGENT_SHADER_CYCLE_SECONDS.toFixed(3)};
-${STREAMING_TOKENS_FIELD}
+${field}
 ${CELL}
 ${FIELD_MAIN}`;
+}
+
+/** Первый проход вычисляет разный field для каждого агента в сетке 103 × 49. */
+export const AGENT_FIELD_FRAGMENT_SHADERS: Record<AgentKind, string> = {
+  lumi: fieldShader(TOOL_CALLS_FIELD),
+  kairo: fieldShader(RAG_ANSWER_FIELD),
+};
 
 /**
  * Второй проход: оригинальные thin bars четырёх плотностей, grain, screen lines,

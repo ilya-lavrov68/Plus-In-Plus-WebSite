@@ -44,7 +44,7 @@
 - фирменный акцент — точный `#FFFF01`; он применяется к primary actions, фокусу и отдельным пиксельным сигналам с тёмным текстом на жёлтом, а не заливает все нейтральные поверхности;
 - главная представляет два равноправных направления — ИИ и дизайн; `/ai` отделяет анонсируемые концепции Lumi Q1 и Kairo от действующей дизайн-практики и не имитирует рабочий чат;
 - компьютеризация и пиксели выражаются детерминированными квадратными сетками, кодовыми сигналами и shader-кадрами без случайных внешних изображений;
-- agent shaders используют свободную Illos Streaming tokens как явно выбранный пользователем reference: MODEL → travelling ribbon → RESPONSE, исходный конечный цикл 4,2 секунды, pause/resume/replay, остановка вне экрана и статичный fallback при reduced motion/отсутствии WebGL; hover-loop и бесконечный ambient loop не переносятся;
+- agent shaders используют свободные Illos Tool calls для Lumi и RAG answer для Kairo: сюжеты различаются и соответствуют coding/agent workflow и retrieval-augmented generation; обе сцены автоматически повторяют исходный цикл 4,5 секунды, имеют компактные icon-only pause/resume без replay, остановку вне экрана и разные статичные fallback-кадры при reduced motion/отсутствии WebGL; это решение не переносит hover-loop или бесконечный ambient loop на другие блоки;
 - hero не получает прежние `will-change`/`translateZ`, старые trace offsets или тяжёлые per-card continuous scroll timelines;
 - интерфейс не использует emojis как иконки; применяются существующие SVG/Lucide-решения;
 - случайные внешние product images и fabricated interfaces не добавляются;

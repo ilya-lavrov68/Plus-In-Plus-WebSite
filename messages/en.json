@@ -1600,8 +1600,7 @@
     "animation": {
       "play": "Play visualisation",
       "pause": "Pause",
-      "resume": "Resume",
-      "replay": "Replay visualisation"
+      "resume": "Resume"
     }
   }
 }

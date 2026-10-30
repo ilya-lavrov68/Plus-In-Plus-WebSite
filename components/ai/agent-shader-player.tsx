@@ -1,37 +1,38 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Pause, Play, RotateCcw } from "lucide-react";
+import { Pause, Play } from "lucide-react";
 
 import { AgentDiagram } from "@/components/ai/agent-diagram";
 import { Button } from "@/components/ui/button";
 import {
   AGENT_BARS_FRAGMENT_SHADER,
-  AGENT_FIELD_FRAGMENT_SHADER,
+  AGENT_FIELD_FRAGMENT_SHADERS,
   AGENT_SHADER_CELLS,
   AGENT_SHADER_COLS,
+  AGENT_SHADER_CYCLE_SECONDS,
   AGENT_SHADER_DURATION_MS,
   AGENT_SHADER_HEIGHT,
   AGENT_SHADER_WIDTH,
   AGENT_VERTEX_SHADER,
+  type AgentKind,
 } from "@/lib/agent-shaders";
 import { cn } from "@/lib/utils";
 
-type PlaybackState = "idle" | "playing" | "paused" | "complete";
+type PlaybackState = "idle" | "playing" | "paused";
 type RGB = [number, number, number];
 
 interface AgentShaderPlayerProps {
-  agent: "lumi" | "kairo";
+  agent: AgentKind;
   labels: {
     play: string;
     pause: string;
     resume: string;
-    replay: string;
   };
 }
 
 interface PlayerController {
-  play: (restart?: boolean) => void;
+  play: () => void;
   pause: () => void;
 }
 
@@ -93,7 +94,7 @@ function createProgram(
   return program;
 }
 
-/** Конечный двухпроходный Streaming tokens player со статичным SVG-fallback. */
+/** Зацикленный двухпроходный player с отдельной сценой и SVG-fallback для каждого агента. */
 export function AgentShaderPlayer({ agent, labels }: AgentShaderPlayerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -125,7 +126,7 @@ export function AgentShaderPlayer({ agent, labels }: AgentShaderPlayerProps) {
     });
     if (!gl) return;
 
-    const fieldProgram = createProgram(gl, AGENT_FIELD_FRAGMENT_SHADER);
+    const fieldProgram = createProgram(gl, AGENT_FIELD_FRAGMENT_SHADERS[agent]);
     const barsProgram = createProgram(gl, AGENT_BARS_FRAGMENT_SHADER);
     if (!fieldProgram || !barsProgram) {
       if (fieldProgram) gl.deleteProgram(fieldProgram);
@@ -264,15 +265,11 @@ export function AgentShaderPlayer({ agent, labels }: AgentShaderPlayerProps) {
         previousFrame = 0;
         return;
       }
-      if (previousFrame) elapsed += Math.min(now - previousFrame, 64);
-      previousFrame = now;
-      elapsed = Math.min(elapsed, AGENT_SHADER_DURATION_MS);
-      draw();
-      if (elapsed >= AGENT_SHADER_DURATION_MS) {
-        updateState("complete");
-        previousFrame = 0;
-        return;
+      if (previousFrame) {
+        elapsed = (elapsed + Math.min(now - previousFrame, 64)) % AGENT_SHADER_DURATION_MS;
       }
+      previousFrame = now;
+      draw();
       animationFrame = window.requestAnimationFrame(tick);
     };
 
@@ -283,9 +280,8 @@ export function AgentShaderPlayer({ agent, labels }: AgentShaderPlayerProps) {
       }
     };
 
-    const play = (restart = false) => {
+    const play = () => {
       if (disposed || contextLost) return;
-      if (restart || elapsed >= AGENT_SHADER_DURATION_MS) elapsed = 0;
       updateState("playing");
       draw();
       schedule();
@@ -311,7 +307,7 @@ export function AgentShaderPlayer({ agent, labels }: AgentShaderPlayerProps) {
         }
         if (!autoPlayed) {
           autoPlayed = true;
-          if (state === "idle") play(true);
+          if (state === "idle") play();
         }
         schedule();
       },
@@ -357,23 +353,19 @@ export function AgentShaderPlayer({ agent, labels }: AgentShaderPlayerProps) {
       gl.deleteProgram(fieldProgram);
       gl.deleteProgram(barsProgram);
     };
-  }, [reducedMotion]);
+  }, [agent, reducedMotion]);
 
   const enhanced = ready && reducedMotion === false;
   const label =
-    playback === "playing"
-      ? labels.pause
-      : playback === "paused"
-        ? labels.resume
-        : playback === "complete"
-          ? labels.replay
-          : labels.play;
-  const Icon = playback === "playing" ? Pause : playback === "complete" ? RotateCcw : Play;
+    playback === "playing" ? labels.pause : playback === "paused" ? labels.resume : labels.play;
+  const Icon = playback === "playing" ? Pause : Play;
 
   return (
     <div
       ref={frameRef}
       data-agent={agent}
+      data-playback={playback}
+      data-shader-loop={AGENT_SHADER_CYCLE_SECONDS}
       className="relative size-full overflow-hidden bg-background"
     >
       <canvas
@@ -391,15 +383,17 @@ export function AgentShaderPlayer({ agent, labels }: AgentShaderPlayerProps) {
         <Button
           type="button"
           variant="outline"
-          size="sm"
+          size="icon"
           onClick={() => {
             if (playback === "playing") controllerRef.current?.pause();
-            else controllerRef.current?.play(playback === "complete");
+            else controllerRef.current?.play();
           }}
-          className="absolute right-4 bottom-4 gap-2 border-border bg-background/90 text-foreground shadow-sm backdrop-blur-sm hover:bg-card"
+          aria-label={label}
+          title={label}
+          data-shader-control={agent}
+          className="absolute right-3 bottom-3 size-8 border-border bg-background/90 text-foreground shadow-sm backdrop-blur-sm hover:bg-card [&_svg]:size-3.5"
         >
-          <Icon aria-hidden="true" className="size-3.5 text-primary" />
-          {label}
+          <Icon aria-hidden="true" className="text-primary" />
         </Button>
       ) : null}
     </div>

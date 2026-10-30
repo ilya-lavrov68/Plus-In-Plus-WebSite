@@ -211,12 +211,15 @@ const { COVER_IMAGE_GUIDES } = require("../lib/upload-policy.ts");
 const { DecryptText } = require("../components/site/motion/decrypt-text.tsx");
 const { ScrollExperience } = require("../components/site/motion/scroll-experience.tsx");
 const { AiPageView } = require("../components/ai/ai-page-view.tsx");
+const { AgentDiagram } = require("../components/ai/agent-diagram.tsx");
 const { BrandDirections } = require("../components/site/brand-directions.tsx");
+const { AGENT_STATIC_FRAMES } = require("../lib/agent-static-frames.ts");
 const {
   AGENT_BARS_FRAGMENT_SHADER,
-  AGENT_FIELD_FRAGMENT_SHADER,
+  AGENT_FIELD_FRAGMENT_SHADERS,
   AGENT_SHADER_CELLS,
   AGENT_SHADER_COLS,
+  AGENT_SHADER_CYCLE_SECONDS,
   AGENT_SHADER_DURATION_MS,
 } = require("../lib/agent-shaders.ts");
 
@@ -320,20 +323,35 @@ test("Brand accent and shader implementation keep the approved visual and motion
   );
   assert.match(globals, /--primary:\s*#FFFF01;/);
   assert.match(tailwind, /DEFAULT:\s*"var\(--primary\)"/);
-  assert.equal(AGENT_SHADER_DURATION_MS, 4200);
+  assert.equal(AGENT_SHADER_CYCLE_SECONDS, 4.5);
+  assert.equal(AGENT_SHADER_DURATION_MS, 4500);
   assert.equal(AGENT_SHADER_COLS, 103);
   assert.equal(AGENT_SHADER_CELLS, 49);
-  assert.match(AGENT_FIELD_FRAGMENT_SHADER, /uniform float uT;/);
-  assert.match(AGENT_FIELD_FRAGMENT_SHADER, /float field\(vec2 p, float t\)/);
-  assert.match(AGENT_FIELD_FRAGMENT_SHADER, /p\.x > 116\.0 && p\.x < 356\.0/);
-  assert.match(AGENT_FIELD_FRAGMENT_SHADER, /46\.0 \* sm\(3\.2, 3\.8, t\)/);
+  assert.notEqual(AGENT_FIELD_FRAGMENT_SHADERS.lumi, AGENT_FIELD_FRAGMENT_SHADERS.kairo);
+  for (const field of Object.values(AGENT_FIELD_FRAGMENT_SHADERS)) {
+    assert.match(field, /uniform float uT;/);
+    assert.match(field, /float field\(vec2 p, float t\)/);
+    assert.doesNotMatch(field, /STREAMING_TOKENS_FIELD/);
+  }
+  assert.match(AGENT_FIELD_FRAGMENT_SHADERS.lumi, /vec2\(282\.0, 229\.100\)/);
+  assert.match(AGENT_FIELD_FRAGMENT_SHADERS.lumi, /float work1 = sm\(2\.080, 2\.130, t\)/);
+  assert.match(AGENT_FIELD_FRAGMENT_SHADERS.kairo, /float page\(vec2 p, vec2 c, float s, float lit, float hot, float ph\)/);
+  assert.match(AGENT_FIELD_FRAGMENT_SHADERS.kairo, /vec2\(556\.0, 177\.0\)/);
+  assert.match(AGENT_FIELD_FRAGMENT_SHADERS.kairo, /t - 3\.150/);
   assert.match(AGENT_BARS_FRAGMENT_SHADER, /uniform sampler2D uField;/);
   assert.match(AGENT_BARS_FRAGMENT_SHADER, /w = 3\.6/);
   assert.match(AGENT_BARS_FRAGMENT_SHADER, /mod\(px\.y, 9\.4\)/);
   assert.match(diagram, /viewBox="0 0 720 460"/);
-  assert.match(diagram, />MODEL<\/text>/);
-  assert.match(diagram, />RESPONSE<\/text>/);
-  assert.match(diagram, /createStaticBars/);
+  assert.match(diagram, /AGENT_STATIC_FRAMES\[agent\]/);
+  assert.match(diagram, /tool-calls/);
+  assert.match(diagram, /rag-answer/);
+  assert.doesNotMatch(diagram, />MODEL<\/text>|>RESPONSE<\/text>|streamingField/);
+  assert.match(player, /AGENT_FIELD_FRAGMENT_SHADERS\[agent\]/);
+  assert.match(player, /% AGENT_SHADER_DURATION_MS/);
+  assert.match(player, /size="icon"/);
+  assert.match(player, /aria-label=\{label\}/);
+  assert.match(player, /\[agent, reducedMotion\]/);
+  assert.doesNotMatch(player, /"complete"|RotateCcw|restart|play\(true\)/);
   assert.match(player, /prefers-reduced-motion: reduce/);
   assert.match(player, /IntersectionObserver/);
   assert.match(player, /webglcontextlost/);
@@ -347,7 +365,39 @@ test("Brand accent and shader implementation keep the approved visual and motion
     assert.equal(catalog.ai.kairo.steps.length, 3);
     assert.ok(catalog.directions.ai.status.length > 0);
     assert.ok(catalog.ai.kairo.note.length > 80);
+    assert.equal(catalog.ai.animation.replay, undefined);
   }
+});
+
+test("Agent shader fallbacks render distinct Tool calls and RAG final frames", () => {
+  assert.ok(AGENT_STATIC_FRAMES.lumi.length > 400);
+  assert.ok(AGENT_STATIC_FRAMES.kairo.length > 400);
+  assert.notDeepEqual(AGENT_STATIC_FRAMES.lumi, AGENT_STATIC_FRAMES.kairo);
+
+  let lumiView;
+  let kairoView;
+  let enhancedView;
+  act(() => {
+    lumiView = create(React.createElement(AgentDiagram, { agent: "lumi" }));
+    kairoView = create(React.createElement(AgentDiagram, { agent: "kairo" }));
+    enhancedView = create(React.createElement(AgentDiagram, { agent: "lumi", enhanced: true }));
+  });
+
+  for (const [agent, view] of [["lumi", lumiView], ["kairo", kairoView]]) {
+    const expectedRects = AGENT_STATIC_FRAMES[agent].reduce(
+      (count, bar) => count + 1 + (bar[4] ? 1 : 0),
+      0
+    );
+    assert.equal(view.root.findAllByType("rect").length, expectedRects);
+    assert.equal(view.root.findByType("svg").props["data-scene"], agent === "lumi" ? "tool-calls" : "rag-answer");
+  }
+  assert.equal(enhancedView.root.findAllByType("rect").length, 0);
+
+  act(() => {
+    lumiView.unmount();
+    kairoView.unmount();
+    enhancedView.unmount();
+  });
 });
 
 test("Navbar10 and Footer7 render all required navigation items and footer columns", () => {
