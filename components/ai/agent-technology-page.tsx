@@ -16,7 +16,6 @@ type TechnologySection = {
   points: string[];
   mechanism: AgentMechanismKind;
   visualLabel: string;
-  visualLabels: string[];
 };
 type AgentTechnologyContent = {
   name: string;
@@ -146,7 +145,7 @@ export async function AgentTechnologyPage({ agent }: { agent: AgentKind }) {
               <AgentMechanism
                 kind={section.mechanism}
                 description={section.visualLabel}
-                labels={section.visualLabels}
+                labels={shaderLabels}
               />
             </div>
           </div>

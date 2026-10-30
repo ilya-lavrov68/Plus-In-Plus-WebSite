@@ -136,8 +136,8 @@ Module._load = function (name, parent, isMain) {
   }
   if (name === "@/components/ai/agent-shader-player") {
     return {
-      AgentShaderPlayer: ({ agent }) =>
-        React.createElement("div", { "data-agent-shader": agent }),
+      AgentShaderPlayer: ({ agent, scene }) =>
+        React.createElement("div", { "data-agent-shader": scene ?? agent }),
     };
   }
   if (name === "@/components/site/lazy-account-modal") {
@@ -222,6 +222,7 @@ const {
   AGENT_SHADER_COLS,
   AGENT_SHADER_CYCLE_SECONDS,
   AGENT_SHADER_DURATION_MS,
+  AGENT_SHADER_SCENE_NAMES,
 } = require("../lib/agent-shaders.ts");
 
 beforeEach(() => {
@@ -316,10 +317,14 @@ test("Home directions and AI page present two announced agents without a fabrica
   });
 });
 
-test("Dedicated agent pages explain distinct technologies with finite meaningful scenes", async () => {
+test("Dedicated agent pages use four distinct Illos shader processes per agent", async () => {
   const expectedMechanisms = {
     lumi: ["permissions", "sandbox", "runtime"],
     kairo: ["graph", "verification", "brief"],
+  };
+  const expectedShaders = {
+    lumi: ["lumi", "lumi-permissions", "lumi-sandbox", "lumi-runtime"],
+    kairo: ["kairo", "kairo-graph", "kairo-verification", "kairo-brief"],
   };
 
   for (const agent of ["lumi", "kairo"]) {
@@ -333,31 +338,28 @@ test("Dedicated agent pages explain distinct technologies with finite meaningful
     const mechanisms = view.root
       .findAll((node) => Boolean(node.props?.["data-agent-mechanism"]))
       .map((node) => node.props["data-agent-mechanism"]);
+    const shaders = view.root
+      .findAll((node) => Boolean(node.props?.["data-agent-shader"]))
+      .map((node) => node.props["data-agent-shader"]);
 
     assert.ok(links.includes("/ai"));
     assert.ok(links.includes(`/ai/${agent === "lumi" ? "kairo" : "lumi"}`));
     assert.deepEqual(mechanisms, expectedMechanisms[agent]);
+    assert.deepEqual(shaders, expectedShaders[agent]);
     assert.equal(view.root.findAllByType("input").length, 0);
     assert.equal(view.root.findAllByType("textarea").length, 0);
-    assert.equal(view.root.findAll((node) => Boolean(node.props?.["data-agent-shader"])).length, 1);
+    assert.equal(view.root.findAll((node) => node.props?.["data-motion"] === "shader").length, 3);
     assert.match(text, /working integration with this website is being prepared/);
     assert.match(text, agent === "lumi" ? /Qwen2\.5-Coder 7B/ : /LangGraph/);
     assert.match(text, agent === "lumi" ? /repository copy/ : /not a lawyer/);
-
-    for (const node of view.root.findAll((item) => item.props?.["data-motion"] === "finite")) {
-      assert.equal(node.props["data-active"], false);
-    }
     act(() => view.unmount());
   }
 
   const mechanism = fs.readFileSync(path.resolve(__dirname, "../components/ai/agent-mechanism.tsx"), "utf8");
-  const globals = fs.readFileSync(path.resolve(__dirname, "../styles/globals.css"), "utf8");
   const sitemap = fs.readFileSync(path.resolve(__dirname, "../app/sitemap.ts"), "utf8");
-  assert.match(mechanism, /IntersectionObserver/);
-  assert.match(mechanism, /visibilitychange/);
-  assert.doesNotMatch(mechanism, /requestAnimationFrame|setInterval/);
-  assert.match(globals, /animation-iteration-count:\s*1;/);
-  assert.match(globals, /\[data-agent-mechanism\] \.agent-motion\s*\{\s*animation: none !important;/);
+  assert.match(mechanism, /AgentShaderPlayer/);
+  assert.match(mechanism, /MECHANISM_SCENES/);
+  assert.doesNotMatch(mechanism, /PermissionsScene|SandboxScene|agent-motion|setInterval/);
   assert.ok(sitemap.includes('absoluteUrl("/ai/lumi")'));
   assert.ok(sitemap.includes('absoluteUrl("/ai/kairo")'));
 });
@@ -390,19 +392,37 @@ test("Brand accent and shader implementation keep the approved visual and motion
   assert.match(AGENT_FIELD_FRAGMENT_SHADERS.kairo, /float page\(vec2 p, vec2 c, float s, float lit, float hot, float ph\)/);
   assert.match(AGENT_FIELD_FRAGMENT_SHADERS.kairo, /vec2\(556\.0, 177\.0\)/);
   assert.match(AGENT_FIELD_FRAGMENT_SHADERS.kairo, /t - 3\.150/);
+  assert.equal(Object.keys(AGENT_FIELD_FRAGMENT_SHADERS).length, 8);
+  assert.match(AGENT_FIELD_FRAGMENT_SHADERS["lumi-permissions"], /taskCard\(p/);
+  assert.match(AGENT_FIELD_FRAGMENT_SHADERS["lumi-permissions"], /float approval =/);
+  assert.match(AGENT_FIELD_FRAGMENT_SHADERS["lumi-sandbox"], /copyCenter/);
+  assert.match(AGENT_FIELD_FRAGMENT_SHADERS["lumi-sandbox"], /published/);
+  assert.match(AGENT_FIELD_FRAGMENT_SHADERS["lumi-runtime"], /localWork/);
+  assert.match(AGENT_FIELD_FRAGMENT_SHADERS["lumi-runtime"], /vpsWork/);
+  assert.match(AGENT_FIELD_FRAGMENT_SHADERS["lumi-runtime"], /cloudWork/);
+  assert.match(AGENT_FIELD_FRAGMENT_SHADERS["kairo-graph"], /research/);
+  assert.match(AGENT_FIELD_FRAGMENT_SHADERS["kairo-graph"], /calculate/);
+  assert.match(AGENT_FIELD_FRAGMENT_SHADERS["kairo-verification"], /check0/);
+  assert.match(AGENT_FIELD_FRAGMENT_SHADERS["kairo-verification"], /check1/);
+  assert.match(AGENT_FIELD_FRAGMENT_SHADERS["kairo-verification"], /check2/);
+  assert.match(AGENT_FIELD_FRAGMENT_SHADERS["kairo-brief"], /3\.20, t, 0\.82/);
+  for (const scene of Object.keys(AGENT_FIELD_FRAGMENT_SHADERS).filter((name) => name.includes("-"))) {
+    assert.match(AGENT_FIELD_FRAGMENT_SHADERS[scene], /float page\(vec2 p/);
+    assert.match(AGENT_FIELD_FRAGMENT_SHADERS[scene], /float travel\(vec2 p/);
+  }
   assert.match(AGENT_BARS_FRAGMENT_SHADER, /uniform sampler2D uField;/);
   assert.match(AGENT_BARS_FRAGMENT_SHADER, /w = 3\.6/);
   assert.match(AGENT_BARS_FRAGMENT_SHADER, /mod\(px\.y, 9\.4\)/);
   assert.match(diagram, /viewBox="0 0 720 460"/);
-  assert.match(diagram, /AGENT_STATIC_FRAMES\[agent\]/);
-  assert.match(diagram, /tool-calls/);
-  assert.match(diagram, /rag-answer/);
+  assert.match(diagram, /AGENT_STATIC_FRAMES\[resolvedScene\]/);
+  assert.equal(AGENT_SHADER_SCENE_NAMES.lumi, "tool-calls");
+  assert.equal(AGENT_SHADER_SCENE_NAMES.kairo, "rag-answer");
   assert.doesNotMatch(diagram, />MODEL<\/text>|>RESPONSE<\/text>|streamingField/);
-  assert.match(player, /AGENT_FIELD_FRAGMENT_SHADERS\[agent\]/);
+  assert.match(player, /AGENT_FIELD_FRAGMENT_SHADERS\[resolvedScene\]/);
   assert.match(player, /% AGENT_SHADER_DURATION_MS/);
   assert.match(player, /size="icon"/);
   assert.match(player, /aria-label=\{label\}/);
-  assert.match(player, /\[agent, reducedMotion\]/);
+  assert.match(player, /\[resolvedScene, reducedMotion\]/);
   assert.doesNotMatch(player, /"complete"|RotateCcw|restart|play\(true\)/);
   assert.match(player, /prefers-reduced-motion: reduce/);
   assert.match(player, /IntersectionObserver/);
@@ -420,7 +440,7 @@ test("Brand accent and shader implementation keep the approved visual and motion
       assert.equal(catalog.agentPages[agent].sections.length, 3);
       for (const section of catalog.agentPages[agent].sections) {
         assert.equal(section.points.length, 3);
-        assert.ok(section.visualLabels.length >= 6);
+        assert.ok(section.visualLabel.length > 60);
       }
     }
     assert.ok(catalog.directions.ai.status.length > 0);
@@ -429,33 +449,35 @@ test("Brand accent and shader implementation keep the approved visual and motion
   }
 });
 
-test("Agent shader fallbacks render distinct Tool calls and RAG final frames", () => {
-  assert.ok(AGENT_STATIC_FRAMES.lumi.length > 400);
-  assert.ok(AGENT_STATIC_FRAMES.kairo.length > 400);
-  assert.notDeepEqual(AGENT_STATIC_FRAMES.lumi, AGENT_STATIC_FRAMES.kairo);
-
-  let lumiView;
-  let kairoView;
+test("All eight agent shader fallbacks render their own exact final field", () => {
+  const scenes = Object.keys(AGENT_FIELD_FRAGMENT_SHADERS);
+  assert.equal(new Set(Object.values(AGENT_STATIC_FRAMES).map((frame) => JSON.stringify(frame))).size, 8);
+  const views = {};
   let enhancedView;
   act(() => {
-    lumiView = create(React.createElement(AgentDiagram, { agent: "lumi" }));
-    kairoView = create(React.createElement(AgentDiagram, { agent: "kairo" }));
+    for (const scene of scenes) {
+      assert.ok(AGENT_STATIC_FRAMES[scene].length > 150, `${scene} fallback is too sparse`);
+      views[scene] = create(React.createElement(AgentDiagram, {
+        agent: scene.startsWith("kairo") ? "kairo" : "lumi",
+        scene,
+      }));
+    }
     enhancedView = create(React.createElement(AgentDiagram, { agent: "lumi", enhanced: true }));
   });
 
-  for (const [agent, view] of [["lumi", lumiView], ["kairo", kairoView]]) {
-    const expectedRects = AGENT_STATIC_FRAMES[agent].reduce(
+  for (const [scene, view] of Object.entries(views)) {
+    const expectedRects = AGENT_STATIC_FRAMES[scene].reduce(
       (count, bar) => count + 1 + (bar[4] ? 1 : 0),
       0
     );
     assert.equal(view.root.findAllByType("rect").length, expectedRects);
-    assert.equal(view.root.findByType("svg").props["data-scene"], agent === "lumi" ? "tool-calls" : "rag-answer");
+    assert.equal(view.root.findByType("svg").props["data-scene"], AGENT_SHADER_SCENE_NAMES[scene]);
+    assert.equal(view.root.findAllByType("g")[0].props["data-static-field"], scene);
   }
   assert.equal(enhancedView.root.findAllByType("rect").length, 0);
 
   act(() => {
-    lumiView.unmount();
-    kairoView.unmount();
+    Object.values(views).forEach((view) => view.unmount());
     enhancedView.unmount();
   });
 });

@@ -1,6 +1,33 @@
 import { RAG_ANSWER_FIELD, TOOL_CALLS_FIELD } from "./agent-fields";
+import {
+  KAIRO_BRIEF_FIELD,
+  KAIRO_GRAPH_FIELD,
+  KAIRO_VERIFICATION_FIELD,
+  LUMI_PERMISSIONS_FIELD,
+  LUMI_RUNTIME_FIELD,
+  LUMI_SANDBOX_FIELD,
+} from "./agent-mechanism-fields";
 
 export type AgentKind = "lumi" | "kairo";
+export type AgentMechanismScene =
+  | "lumi-permissions"
+  | "lumi-sandbox"
+  | "lumi-runtime"
+  | "kairo-graph"
+  | "kairo-verification"
+  | "kairo-brief";
+export type AgentScene = AgentKind | AgentMechanismScene;
+
+export const AGENT_SHADER_SCENE_NAMES: Record<AgentScene, string> = {
+  lumi: "tool-calls",
+  kairo: "rag-answer",
+  "lumi-permissions": "permissions-tools",
+  "lumi-sandbox": "repository-sandbox",
+  "lumi-runtime": "runtime-fallback",
+  "kairo-graph": "langgraph-flow",
+  "kairo-verification": "deterministic-verification",
+  "kairo-brief": "two-layer-answer",
+};
 
 /**
  * Оригинальные field-сцены бесплатных иллюстраций Illos.dev в существующем
@@ -89,10 +116,16 @@ ${CELL}
 ${FIELD_MAIN}`;
 }
 
-/** Первый проход вычисляет разный field для каждого агента в сетке 103 × 49. */
-export const AGENT_FIELD_FRAGMENT_SHADERS: Record<AgentKind, string> = {
+/** Первый проход вычисляет field каждой сцены в сетке 103 × 49. */
+export const AGENT_FIELD_FRAGMENT_SHADERS: Record<AgentScene, string> = {
   lumi: fieldShader(TOOL_CALLS_FIELD),
   kairo: fieldShader(RAG_ANSWER_FIELD),
+  "lumi-permissions": fieldShader(LUMI_PERMISSIONS_FIELD),
+  "lumi-sandbox": fieldShader(LUMI_SANDBOX_FIELD),
+  "lumi-runtime": fieldShader(LUMI_RUNTIME_FIELD),
+  "kairo-graph": fieldShader(KAIRO_GRAPH_FIELD),
+  "kairo-verification": fieldShader(KAIRO_VERIFICATION_FIELD),
+  "kairo-brief": fieldShader(KAIRO_BRIEF_FIELD),
 };
 
 /**

@@ -1655,15 +1655,7 @@
             "The local CLI supports lumi undo through its change journal; the web version cannot see the developer’s disk."
           ],
           "mechanism": "permissions",
-          "visualLabel": "Lumi boundary diagram: files and search on the left, access policy in the centre, writes and commands behind human approval on the right.",
-          "visualLabels": [
-            "CONTEXT",
-            "POLICY",
-            "ACTION",
-            "off / read / all",
-            "read and search",
-            "after approval"
-          ]
+          "visualLabel": "Lumi boundary diagram: files and search on the left, access policy in the centre, writes and commands behind human approval on the right."
         },
         {
           "id": "repository",
@@ -1675,15 +1667,7 @@
             "The copy is removed after publishing, rollback, or TTL expiry; the token is not stored in Git configuration."
           ],
           "mechanism": "sandbox",
-          "visualLabel": "Lumi repository sandbox diagram: the main branch stays above, work follows a separate branch, a person chooses publishing or rollback, and the copy is cleaned up.",
-          "visualLabels": [
-            "MAIN BRANCH",
-            "TEMPORARY COPY",
-            "lumi/…",
-            "publish by decision",
-            "roll back",
-            "clean up copy"
-          ]
+          "visualLabel": "Lumi repository sandbox diagram: the main branch stays above, work follows a separate branch, a person chooses publishing or rollback, and the copy is cleaned up."
         },
         {
           "id": "runtime",
@@ -1695,15 +1679,7 @@
             "Web and CLI are separate entry points: the local process works with your folder, while the server only accesses its permitted environment."
           ],
           "mechanism": "runtime",
-          "visualLabel": "Lumi runtime diagram: local Ollama, VPS, and cloud API are distinct routes with a visible active status.",
-          "visualLabels": [
-            "LUMI / 7B",
-            "LOCAL",
-            "VPS",
-            "CLOUD",
-            "visible active status",
-            "fallback order"
-          ]
+          "visualLabel": "Lumi runtime diagram: local Ollama, VPS, and cloud API are distinct routes with a visible active status."
         }
       ],
       "closingTitle": "The result still needs verification",
@@ -1756,15 +1732,7 @@
             "Document drafting can include a human-in-the-loop pause before the final response."
           ],
           "mechanism": "graph",
-          "visualLabel": "Kairo graph diagram: facts and planning lead to research, calculation, and verification before the answer is formed.",
-          "visualLabels": [
-            "FACTS",
-            "PLAN",
-            "RAG",
-            "CALCULATE",
-            "VERIFY",
-            "ANSWER"
-          ]
+          "visualLabel": "Kairo graph diagram: facts and planning lead to research, calculation, and verification before the answer is formed."
         },
         {
           "id": "verification",
@@ -1776,15 +1744,7 @@
             "Verification distinguishes ok, warn, and block; the verdict exposes risk, but a lawyer makes the decision."
           ],
           "mechanism": "verification",
-          "visualLabel": "Kairo verification diagram: sources pass through the model and deterministic code, with separate checks for citations, amounts, and formulas.",
-          "visualLabels": [
-            "SOURCES",
-            "MODEL",
-            "CODE",
-            "citations",
-            "amounts",
-            "formulas"
-          ]
+          "visualLabel": "Kairo verification diagram: sources pass through the model and deterministic code, with separate checks for citations, amounts, and formulas."
         },
         {
           "id": "answer",
@@ -1796,16 +1756,7 @@
             "Documents remain drafts; when HITL is enabled, release requires a lawyer’s approval."
           ],
           "mechanism": "brief",
-          "visualLabel": "Kairo two-layer answer diagram: detailed norms, risks, and calculations on the left become a short conclusion, actions, and a separate detailed analysis on the right.",
-          "visualLabels": [
-            "DETAIL",
-            "norms + risks + calculations",
-            "ANSWER",
-            "in short",
-            "what to do",
-            "detailed analysis",
-            "up to two questions"
-          ]
+          "visualLabel": "Kairo two-layer answer diagram: detailed norms, risks, and calculations on the left become a short conclusion, actions, and a separate detailed analysis on the right."
         }
       ],
       "closingTitle": "A local environment for sensitive materials",
