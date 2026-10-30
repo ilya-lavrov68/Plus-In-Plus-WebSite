@@ -1561,36 +1561,38 @@
     "eyebrow": "Plus In Plus / AI",
     "announcement": "Announcement · soon",
     "title": "AI agents with a clear specialisation",
-    "intro": "Lumi Q1 and Kairo are being developed for different contexts: software development and clear legal information. This page presents their purpose and intended workflow before the full integration is connected.",
+    "intro": "Lumi Q1 and Kairo solve different problems: software development and clear legal information about Russian law. This overview highlights their main advantages, while dedicated pages explain each agent’s architecture in detail.",
     "integrationNoticeTitle": "The working integration is being prepared",
-    "integrationNotice": "This page does not provide a working chat, code execution, or legal request submission. Those capabilities will appear only after a separate integration is connected and verified.",
+    "integrationNotice": "These pages explain Lumina technology, but do not launch a chat, execute code, or submit a legal request. Working capabilities will appear only after a separate integration is connected and verified.",
     "lumi": {
       "index": "01 / CODE",
       "role": "Coding agent",
       "status": "Coming soon",
-      "description": "Lumi Q1 is intended as a development assistant: from framing a task and analysing context to explaining a proposed solution in clear language.",
-      "processTitle": "Intended workflow",
-      "steps": [
-        "Define the development task and the expected result.",
-        "Provide the agent with the necessary context and no unnecessary data.",
-        "Review the proposed solution and its explanation before applying it."
+      "description": "Lumi Q1 combines a model based on Qwen2.5-Coder 7B with fixed tools for analysing and changing code. Access, approvals, and repository isolation are defined by architecture, not just a prompt.",
+      "note": "This description is based on the Lumina architecture. The working launch, available tools, and provider will be confirmed separately.",
+      "visualLabel": "Conceptual Lumi Q1 diagram: a task, tool calls, and an answer with returned results.",
+      "benefitsTitle": "Key advantages",
+      "benefits": [
+        "Off / read / all access levels with confirmation before file writes or commands.",
+        "A separate repository copy, a lumi/… branch, and publishing only by human decision.",
+        "Local, VPS, and cloud runtimes with a clear active mode."
       ],
-      "note": "Exact capabilities, data sources, and limitations will be published with the working launch.",
-      "visualLabel": "Conceptual Lumi Q1 diagram: task, context, and a solution with an explanation."
+      "detailsLink": "How Lumi works"
     },
     "kairo": {
       "index": "02 / LEGAL",
       "role": "Informational legal assistant · Russian law",
       "status": "Coming soon",
-      "description": "Kairo is intended for people without legal experience. It will explain legal concepts and questions related to Russian law in plain language.",
-      "processTitle": "Intended workflow",
-      "steps": [
-        "Describe the situation in your own words, without specialised terminology.",
-        "Receive informational guidance related to Russian legal norms.",
-        "Prepare questions for a specialist and identify the next step."
-      ],
+      "description": "Kairo explains Russian law in plain language. LangGraph connects knowledge-base research, deterministic calculations, citation checks, and a clear two-layer answer.",
       "note": "Kairo is not a lawyer and does not replace individual legal advice. Responses are informational; the current law and the circumstances of each case must be checked separately.",
-      "visualLabel": "Conceptual Kairo diagram: situation, Russian legal norms, and a clear explanation."
+      "visualLabel": "Conceptual Kairo diagram: a question, retrieval of the closest sources, and an answer with citation marks.",
+      "benefitsTitle": "Key advantages",
+      "benefits": [
+        "BM25 RAG with sources, references, and links for verification.",
+        "Code-based calculations with formulas and legal grounds, not model arithmetic.",
+        "A short practical answer separate from risks, norms, and detailed analysis."
+      ],
+      "detailsLink": "How Kairo works"
     },
     "designBridge": {
       "title": "Design remains our second direction",
@@ -1601,6 +1603,221 @@
       "play": "Play visualisation",
       "pause": "Pause",
       "resume": "Resume"
+    }
+  },
+  "agentPages": {
+    "back": "All AI agents",
+    "switcherLabel": "AI agent pages",
+    "advantages": "advantages",
+    "boundaries": "data and boundaries",
+    "nextAgent": "Next agent",
+    "animation": {
+      "play": "Play visualisation",
+      "pause": "Pause",
+      "resume": "Resume"
+    },
+    "lumi": {
+      "metaTitle": "Lumi Q1 — coding AI agent | Plus In Plus",
+      "metaDescription": "Lumi Q1 technology: Qwen2.5-Coder 7B, controlled tools, an isolated repository copy, and local or cloud runtimes.",
+      "name": "Lumi Q1",
+      "title": "Code, tools, and boundaries in one clear system",
+      "intro": "Lumi Q1 is built on Qwen2.5-Coder 7B and Ollama. The architecture separates model output from actions on a project: the model proposes a solution, while fixed code controls files, search, patches, and tests.",
+      "status": "This page describes the Lumina architecture. The working integration with this website is being prepared; there is no code execution form here.",
+      "visualCaption": "Tool calls / process",
+      "visualLabel": "Animated illustration of Lumi tool calls: a task reaches the agent, tools return results, and an answer is written.",
+      "benefitsTitle": "Why this architecture helps",
+      "benefits": [
+        {
+          "title": "Access has explicit levels",
+          "description": "The off, read, and permitted all modes separate reading from actions. File writes and commands require human confirmation."
+        },
+        {
+          "title": "Changes stay isolated",
+          "description": "Work happens in a separate repository copy and a lumi/… branch. The main branch is never changed automatically."
+        },
+        {
+          "title": "Commands are not chosen freely",
+          "description": "Fixed tools handle files, search, patches, and tests. Commands are governed by an allowlist and an audit log."
+        },
+        {
+          "title": "The model runtime is visible",
+          "description": "Local, VPS, and cloud modes remain distinguishable. The active provider and any fallback are shown to the user."
+        }
+      ],
+      "sections": [
+        {
+          "id": "tools",
+          "title": "Tools instead of unrestricted access",
+          "description": "Lumi does not receive arbitrary control over a computer. The access level determines the available tools, and code—not a promise in a prompt—controls execution.",
+          "points": [
+            "The off mode disables tools, read leaves reading and search, and all enables writes and commands under defined rules.",
+            "Changing a file or running a command requires explicit confirmation; silence means refusal.",
+            "The local CLI supports lumi undo through its change journal; the web version cannot see the developer’s disk."
+          ],
+          "mechanism": "permissions",
+          "visualLabel": "Lumi boundary diagram: files and search on the left, access policy in the centre, writes and commands behind human approval on the right.",
+          "visualLabels": [
+            "CONTEXT",
+            "POLICY",
+            "ACTION",
+            "off / read / all",
+            "read and search",
+            "after approval"
+          ]
+        },
+        {
+          "id": "repository",
+          "title": "A separate repository copy",
+          "description": "The project workflow uses a temporary copy and a lumi/… branch. The main branch is not used for writes, and the decision to publish remains with a person.",
+          "points": [
+            "Paths that look like secrets are filtered before a commit and surfaced in the skipped list.",
+            "Only the separate branch can be published, without force-push or an automatic pull request.",
+            "The copy is removed after publishing, rollback, or TTL expiry; the token is not stored in Git configuration."
+          ],
+          "mechanism": "sandbox",
+          "visualLabel": "Lumi repository sandbox diagram: the main branch stays above, work follows a separate branch, a person chooses publishing or rollback, and the copy is cleaned up.",
+          "visualLabels": [
+            "MAIN BRANCH",
+            "TEMPORARY COPY",
+            "lumi/…",
+            "publish by decision",
+            "roll back",
+            "clean up copy"
+          ]
+        },
+        {
+          "id": "runtime",
+          "title": "Local, VPS, or cloud runtime",
+          "description": "Lumi’s primary runtime is local Ollama with a model based on Qwen2.5-Coder 7B. A fallback chain can improve availability, but the active endpoint and the reason for switching must remain visible.",
+          "points": [
+            "Local mode keeps materials within the operator’s environment; cloud mode sends the request to an external provider.",
+            "The fallback order is local Ollama → VPS → a compatible cloud API.",
+            "Web and CLI are separate entry points: the local process works with your folder, while the server only accesses its permitted environment."
+          ],
+          "mechanism": "runtime",
+          "visualLabel": "Lumi runtime diagram: local Ollama, VPS, and cloud API are distinct routes with a visible active status.",
+          "visualLabels": [
+            "LUMI / 7B",
+            "LOCAL",
+            "VPS",
+            "CLOUD",
+            "visible active status",
+            "fallback order"
+          ]
+        }
+      ],
+      "closingTitle": "The result still needs verification",
+      "closingDescription": "Code-level boundaries reduce risk, but they do not turn a proposed patch into a production-ready solution.",
+      "closingPoints": [
+        "The model can miss the project architecture or propose code that does not compile.",
+        "Tests run only from the permitted command set; their results still need to be read and understood.",
+        "Keys, passwords, and protected files must not enter the working context."
+      ],
+      "cautionTitle": "What is described—and what is not connected yet",
+      "cautionText": "The Lumina documents describe the agent and its CLI/web environments. On this website, the page is a technology presentation, not a working terminal or repository sandbox.",
+      "nextTitle": "Russian law, sources, and verifiable calculations"
+    },
+    "kairo": {
+      "metaTitle": "Kairo — AI assistant for Russian law | Plus In Plus",
+      "metaDescription": "Kairo technology: LangGraph, BM25 RAG with sources, deterministic calculations, citation checks, and a two-layer answer.",
+      "name": "Kairo",
+      "title": "Legal information shaped into a clear next step",
+      "intro": "Kairo is an informational assistant focused on Russian law. A LangGraph workflow separates facts, legal research, calculations, contract review, and answer preparation so the model does not replace verifiable tools.",
+      "status": "This page describes the Lumina architecture. The working integration with this website is being prepared; there is no legal consultation form here.",
+      "visualCaption": "RAG answer / process",
+      "visualLabel": "Animated illustration of Kairo RAG: a question enters a document field, the closest sources are highlighted, and an answer is assembled with citation marks.",
+      "benefitsTitle": "What makes an answer more useful",
+      "benefits": [
+        {
+          "title": "Research is grounded in sources",
+          "description": "BM25 matches everyday wording to knowledge cards and returns references, excerpts, and links for verification."
+        },
+        {
+          "title": "Code calculates the numbers",
+          "description": "Separate functions calculate duties, interest, penalties, and deadlines with a formula, legal basis, and warnings."
+        },
+        {
+          "title": "Citations and amounts are checked",
+          "description": "Verification compares norms with the knowledge base and looks for amounts without a calculation or source data. Risks receive an explicit status."
+        },
+        {
+          "title": "The next step stays visible",
+          "description": "A short practical answer is separate from norms, risks, and calculations. Detail remains available without obscuring what to do next."
+        }
+      ],
+      "sections": [
+        {
+          "id": "graph",
+          "title": "LangGraph controls the order of work",
+          "description": "A request becomes a state containing facts, a plan, and artefacts. The planner selects the required nodes, while code normalises the order: research and calculations are prepared before assessment and document drafting.",
+          "points": [
+            "The state can be serialised into a SQLite checkpoint; the workflow is more than one long prompt.",
+            "Research, calculator, contract review, and drafting are separate stages, not a single opaque model response.",
+            "Document drafting can include a human-in-the-loop pause before the final response."
+          ],
+          "mechanism": "graph",
+          "visualLabel": "Kairo graph diagram: facts and planning lead to research, calculation, and verification before the answer is formed.",
+          "visualLabels": [
+            "FACTS",
+            "PLAN",
+            "RAG",
+            "CALCULATE",
+            "VERIFY",
+            "ANSWER"
+          ]
+        },
+        {
+          "id": "verification",
+          "title": "Research, calculations, and citations are checked separately",
+          "description": "BM25 searches knowledge cards using tokens, Russian stems, and synonyms. Calculators and citation checks are invoked by code: the model is not expected to remember a formula or invent an amount.",
+          "points": [
+            "A source includes a title, reference, excerpt, score, and URL when the card provides one.",
+            "A calculation returns a formula, legal basis, and warnings; it is the authoritative source of numbers.",
+            "Verification distinguishes ok, warn, and block; the verdict exposes risk, but a lawyer makes the decision."
+          ],
+          "mechanism": "verification",
+          "visualLabel": "Kairo verification diagram: sources pass through the model and deterministic code, with separate checks for citations, amounts, and formulas.",
+          "visualLabels": [
+            "SOURCES",
+            "MODEL",
+            "CODE",
+            "citations",
+            "amounts",
+            "formulas"
+          ]
+        },
+        {
+          "id": "answer",
+          "title": "A short answer and a detailed analysis",
+          "description": "Two layers are assembled from verified artefacts: first a practical conclusion and three to five actions, then norms, risks, calculations, sources, and quality control.",
+          "points": [
+            "The short layer contains deadlines and money, required evidence, and no more than two clarifying questions.",
+            "An overly long answer is replaced by a deterministic assembly, so detail cannot hide the next step.",
+            "Documents remain drafts; when HITL is enabled, release requires a lawyer’s approval."
+          ],
+          "mechanism": "brief",
+          "visualLabel": "Kairo two-layer answer diagram: detailed norms, risks, and calculations on the left become a short conclusion, actions, and a separate detailed analysis on the right.",
+          "visualLabels": [
+            "DETAIL",
+            "norms + risks + calculations",
+            "ANSWER",
+            "in short",
+            "what to do",
+            "detailed analysis",
+            "up to two questions"
+          ]
+        }
+      ],
+      "closingTitle": "A local environment for sensitive materials",
+      "closingDescription": "Kairo can run on local Qwen2.5-14B or through a configured cloud provider. For real case materials, the architecture provides a local model and disables external transfer through server configuration.",
+      "closingPoints": [
+        "The active model and mode must be visible in the interface; a cloud answer is never presented as local.",
+        "The knowledge base and versions of legal norms have a date; completeness and currency are not guaranteed.",
+        "Long documents can be truncated, and citations and practice still require professional verification."
+      ],
+      "cautionTitle": "Kairo is not a lawyer",
+      "cautionText": "Responses are informational and do not replace a lawyer or individual legal advice. Current law and the circumstances of each case must be checked separately.",
+      "nextTitle": "Code, tools, and safer repository work"
     }
   }
 }

@@ -211,6 +211,7 @@ const { COVER_IMAGE_GUIDES } = require("../lib/upload-policy.ts");
 const { DecryptText } = require("../components/site/motion/decrypt-text.tsx");
 const { ScrollExperience } = require("../components/site/motion/scroll-experience.tsx");
 const { AiPageView } = require("../components/ai/ai-page-view.tsx");
+const { AgentTechnologyPage } = require("../components/ai/agent-technology-page.tsx");
 const { AgentDiagram } = require("../components/ai/agent-diagram.tsx");
 const { BrandDirections } = require("../components/site/brand-directions.tsx");
 const { AGENT_STATIC_FRAMES } = require("../lib/agent-static-frames.ts");
@@ -299,6 +300,11 @@ test("Home directions and AI page present two announced agents without a fabrica
   assert.match(aiText, /Russian law/);
   assert.equal(aiView.root.findAllByType("input").length, 0);
   assert.equal(aiView.root.findAllByType("textarea").length, 0);
+  const aiLinks = aiView.root.findAllByType("a").map((link) => link.props.href);
+  assert.ok(aiLinks.includes("/ai/lumi"));
+  assert.ok(aiLinks.includes("/ai/kairo"));
+  assert.ok(!aiLinks.includes("#lumi-q1"));
+  assert.ok(!aiLinks.includes("#kairo"));
   const shaderSlots = aiView.root
     .findAll((node) => Boolean(node.props?.["data-agent-shader"]))
     .map((node) => node.props["data-agent-shader"])
@@ -308,6 +314,52 @@ test("Home directions and AI page present two announced agents without a fabrica
     directionsView.unmount();
     aiView.unmount();
   });
+});
+
+test("Dedicated agent pages explain distinct technologies with finite meaningful scenes", async () => {
+  const expectedMechanisms = {
+    lumi: ["permissions", "sandbox", "runtime"],
+    kairo: ["graph", "verification", "brief"],
+  };
+
+  for (const agent of ["lumi", "kairo"]) {
+    const element = await AgentTechnologyPage({ agent });
+    let view;
+    act(() => {
+      view = create(element);
+    });
+    const text = textOf(view.root);
+    const links = view.root.findAllByType("a").map((link) => link.props.href);
+    const mechanisms = view.root
+      .findAll((node) => Boolean(node.props?.["data-agent-mechanism"]))
+      .map((node) => node.props["data-agent-mechanism"]);
+
+    assert.ok(links.includes("/ai"));
+    assert.ok(links.includes(`/ai/${agent === "lumi" ? "kairo" : "lumi"}`));
+    assert.deepEqual(mechanisms, expectedMechanisms[agent]);
+    assert.equal(view.root.findAllByType("input").length, 0);
+    assert.equal(view.root.findAllByType("textarea").length, 0);
+    assert.equal(view.root.findAll((node) => Boolean(node.props?.["data-agent-shader"])).length, 1);
+    assert.match(text, /working integration with this website is being prepared/);
+    assert.match(text, agent === "lumi" ? /Qwen2\.5-Coder 7B/ : /LangGraph/);
+    assert.match(text, agent === "lumi" ? /repository copy/ : /not a lawyer/);
+
+    for (const node of view.root.findAll((item) => item.props?.["data-motion"] === "finite")) {
+      assert.equal(node.props["data-active"], false);
+    }
+    act(() => view.unmount());
+  }
+
+  const mechanism = fs.readFileSync(path.resolve(__dirname, "../components/ai/agent-mechanism.tsx"), "utf8");
+  const globals = fs.readFileSync(path.resolve(__dirname, "../styles/globals.css"), "utf8");
+  const sitemap = fs.readFileSync(path.resolve(__dirname, "../app/sitemap.ts"), "utf8");
+  assert.match(mechanism, /IntersectionObserver/);
+  assert.match(mechanism, /visibilitychange/);
+  assert.doesNotMatch(mechanism, /requestAnimationFrame|setInterval/);
+  assert.match(globals, /animation-iteration-count:\s*1;/);
+  assert.match(globals, /\[data-agent-mechanism\] \.agent-motion\s*\{\s*animation: none !important;/);
+  assert.ok(sitemap.includes('absoluteUrl("/ai/lumi")'));
+  assert.ok(sitemap.includes('absoluteUrl("/ai/kairo")'));
 });
 
 test("Brand accent and shader implementation keep the approved visual and motion contract", () => {
@@ -361,8 +413,16 @@ test("Brand accent and shader implementation keep the approved visual and motion
 
   for (const locale of ["ru", "en"]) {
     const catalog = require(`../messages/${locale}.json`);
-    assert.equal(catalog.ai.lumi.steps.length, 3);
-    assert.equal(catalog.ai.kairo.steps.length, 3);
+    assert.equal(catalog.ai.lumi.benefits.length, 3);
+    assert.equal(catalog.ai.kairo.benefits.length, 3);
+    for (const agent of ["lumi", "kairo"]) {
+      assert.equal(catalog.agentPages[agent].benefits.length, 4);
+      assert.equal(catalog.agentPages[agent].sections.length, 3);
+      for (const section of catalog.agentPages[agent].sections) {
+        assert.equal(section.points.length, 3);
+        assert.ok(section.visualLabels.length >= 6);
+      }
+    }
     assert.ok(catalog.directions.ai.status.length > 0);
     assert.ok(catalog.ai.kairo.note.length > 80);
     assert.equal(catalog.ai.animation.replay, undefined);
