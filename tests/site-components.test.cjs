@@ -213,8 +213,11 @@ const { ScrollExperience } = require("../components/site/motion/scroll-experienc
 const { AiPageView } = require("../components/ai/ai-page-view.tsx");
 const { BrandDirections } = require("../components/site/brand-directions.tsx");
 const {
+  AGENT_BARS_FRAGMENT_SHADER,
+  AGENT_FIELD_FRAGMENT_SHADER,
+  AGENT_SHADER_CELLS,
+  AGENT_SHADER_COLS,
   AGENT_SHADER_DURATION_MS,
-  AGENT_FRAGMENT_SHADER,
 } = require("../lib/agent-shaders.ts");
 
 beforeEach(() => {
@@ -311,16 +314,31 @@ test("Brand accent and shader implementation keep the approved visual and motion
     path.resolve(__dirname, "../components/ai/agent-shader-player.tsx"),
     "utf8"
   );
+  const diagram = fs.readFileSync(
+    path.resolve(__dirname, "../components/ai/agent-diagram.tsx"),
+    "utf8"
+  );
   assert.match(globals, /--primary:\s*#FFFF01;/);
   assert.match(tailwind, /DEFAULT:\s*"var\(--primary\)"/);
-  assert.equal(AGENT_SHADER_DURATION_MS, 8400);
-  assert.match(AGENT_FRAGMENT_SHADER, /uniform float u_agent;/);
-  assert.match(AGENT_FRAGMENT_SHADER, /uniform float u_progress;/);
-  assert.match(AGENT_FRAGMENT_SHADER, /gl_FragColor/);
+  assert.equal(AGENT_SHADER_DURATION_MS, 4200);
+  assert.equal(AGENT_SHADER_COLS, 103);
+  assert.equal(AGENT_SHADER_CELLS, 49);
+  assert.match(AGENT_FIELD_FRAGMENT_SHADER, /uniform float uT;/);
+  assert.match(AGENT_FIELD_FRAGMENT_SHADER, /float field\(vec2 p, float t\)/);
+  assert.match(AGENT_FIELD_FRAGMENT_SHADER, /p\.x > 116\.0 && p\.x < 356\.0/);
+  assert.match(AGENT_FIELD_FRAGMENT_SHADER, /46\.0 \* sm\(3\.2, 3\.8, t\)/);
+  assert.match(AGENT_BARS_FRAGMENT_SHADER, /uniform sampler2D uField;/);
+  assert.match(AGENT_BARS_FRAGMENT_SHADER, /w = 3\.6/);
+  assert.match(AGENT_BARS_FRAGMENT_SHADER, /mod\(px\.y, 9\.4\)/);
+  assert.match(diagram, /viewBox="0 0 720 460"/);
+  assert.match(diagram, />MODEL<\/text>/);
+  assert.match(diagram, />RESPONSE<\/text>/);
+  assert.match(diagram, /createStaticBars/);
   assert.match(player, /prefers-reduced-motion: reduce/);
   assert.match(player, /IntersectionObserver/);
   assert.match(player, /webglcontextlost/);
   assert.match(player, /cancelAnimationFrame/);
+  assert.match(player, /framebufferTexture2D/);
   assert.doesNotMatch(player, /setInterval/);
 
   for (const locale of ["ru", "en"]) {

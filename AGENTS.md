@@ -32,16 +32,16 @@
 ### Источники и статус Illos
 
 1. Общие UI/UX-решения по-прежнему опираются только на зафиксированный `nextlevelbuilder/ui-ux-pro-max-skill` и [`docs/ui-ux-pro-max.md`](docs/ui-ux-pro-max.md). Другие библиотеки и генераторы не становятся самостоятельным источником дизайн-системы.
-2. Изучен установщик `illos@0.1.1`: команда `npx -y illos setup` связывает машину с лицензией Illos Pro и загружает signed toolkit. Для неинтерактивной установки требуется `ILLOS_KEY`; этот ключ нельзя запрашивать в чате, записывать в репозиторий, логи, screenshots или PR.
-3. В текущей реализации Illos **не установлен и не использован**: пользователь явно разрешил собственный WebGL shader после того, как выяснилось требование отдельной лицензии. Нельзя утверждать, что текущие анимации созданы Illos.
+2. Изучен установщик `illos@0.1.1`: команда `npx -y illos setup` связывает машину с лицензией Illos Pro и загружает signed toolkit. Для неинтерактивной установки требуется `ILLOS_KEY`; этот ключ нельзя запрашивать в чате, записывать в репозиторий, логи, screenshots или PR. Pro-toolkit в проекте не установлен и не используется.
+3. По явному reference пользователя использована бесплатная иллюстрация [`Streaming tokens`](https://illos.dev/library/shader/streaming-tokens) и её публичный [`registry source`](https://illos.dev/r/shader/streaming-tokens.json). [`Illos free license`](https://illos.dev/license) разрешает использовать и изменять её в коммерческих проектах. В `lib/agent-shaders.ts` перенесены оригинальные field, cell sampling и двухпроходный bar renderer; палитра и player lifecycle адаптированы для PIP. Это не означает установку Illos skill, Pro-toolkit или наличие `ILLOS_KEY`.
 4. Если позднее официальный Illos skill будет установлен, сначала прочитай фактически установленный `SKILL.md`, зафиксируй версию и правила в этом разделе и только затем используй его. Не выдумывай содержимое skill по названию пакета.
 
 ### Текущая реализация PIP shader
 
-- `lib/agent-shaders.ts` содержит собственные WebGL1/GLSL vertex и fragment shaders; внешних текстур, сетевых запросов и новых runtime-зависимостей нет.
-- `components/ai/agent-shader-player.tsx` управляет воспроизведением; `components/ai/agent-diagram.tsx` является статичным fallback, а не скрытым вторым интерфейсом агента.
-- Фирменный акцент — точный `#FFFF01` в `--primary`, с тёмным `--primary-foreground`. Пиксельные узоры детерминированы; random external imagery и fabricated interfaces запрещены.
-- Анимация конечная: `AGENT_SHADER_DURATION_MS = 8400`, без бесконечного декоративного цикла. Автозапуск выполняется один раз при видимости и только без `prefers-reduced-motion`.
+- `lib/agent-shaders.ts` содержит WebGL1/GLSL field и bar shaders на основе свободной Streaming tokens: MODEL слева, travelling ribbon, четыре строки RESPONSE и cursor. Первый проход вычисляет field для ячеек 7 × 9,4 px в texture 103 × 49, второй рисует тонкие бары четырёх плотностей, grid, grain и spark-пиксели. Внешних текстур, сетевых запросов и новых runtime-зависимостей нет.
+- `components/ai/agent-shader-player.tsx` управляет воспроизведением; `components/ai/agent-diagram.tsx` повторяет композицию MODEL → RESPONSE и является статичным fallback, а не скрытым вторым интерфейсом агента.
+- Фирменный акцент — точный `#FFFF01` в `--primary`, с тёмным `--primary-foreground`. Исходная teal-рампа заменена на жёлтую без изменения thresholds, геометрии и timing; пиксельные узоры детерминированы, random external imagery и fabricated interfaces запрещены.
+- Анимация конечная: исходный цикл `AGENT_SHADER_DURATION_MS = 4200`, без бесконечного декоративного цикла и без перенесённого hover-loop. Автозапуск выполняется один раз при видимости и только без `prefers-reduced-motion`.
 - Обязательны pause/resume/replay, остановка `requestAnimationFrame` вне viewport и в скрытой вкладке, обработка потери WebGL context и статичный fallback при reduced motion или отсутствии WebGL.
 - Семантика, доступность действий и содержательное объяснение не зависят от `animationend`, WebGL или воспроизведения. Рядом остаётся текстовый сценарий, а canvas скрыт от screen reader как дублирующая визуализация.
 - Для каждого изменения shader повторяй реальный browser review: компиляция GLSL, console errors, завершение последовательности, неподвижность paused-кадра, replay, mobile layout, reduced motion и отключённый WebGL. Static tests этого не заменяют.

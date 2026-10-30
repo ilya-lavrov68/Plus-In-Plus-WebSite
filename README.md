@@ -437,9 +437,9 @@ ROBOKASSA_HASH_ALGO="md5"
 ### ИИ-направление и shader-визуализации
 
 - `/ai` — презентация анонса, а не запущенный AI-сервис. До отдельной интеграции на странице нет чата, выполнения кода или отправки юридических запросов. Lumi Q1 позиционируется как кодирующий агент; Kairo — как информационный помощник по праву РФ, не заменяющий юриста.
-- Собственные GLSL shaders находятся в `lib/agent-shaders.ts`, управление воспроизведением — в `components/ai/agent-shader-player.tsx`, статичный fallback — в `components/ai/agent-diagram.tsx`. Внешние текстуры, новые runtime-зависимости и сетевые запросы не используются.
-- Одна последовательность длится 8,4 секунды и завершается. Есть pause/resume/replay, остановка вне viewport/скрытой вкладки, reduced-motion и no-WebGL fallback. Правила и browser-чек-лист зафиксированы в `AGENTS.md`.
-- Установщик `illos@0.1.1` требует отдельную лицензию Illos Pro и `ILLOS_KEY`; текущая реализация создана без Illos с явного разрешения пользователя. Не выдавайте её за результат Illos и не сохраняйте лицензионный ключ в репозитории.
+- GLSL shaders находятся в `lib/agent-shaders.ts`, управление воспроизведением — в `components/ai/agent-shader-player.tsx`, статичный fallback — в `components/ai/agent-diagram.tsx`. За основу взята бесплатная [`Streaming tokens`](https://illos.dev/library/shader/streaming-tokens): оригинальные MODEL → travelling ribbon → RESPONSE, field/cell sampling и двухпроходный bar renderer. Палитра адаптирована к `#FFFF01`; внешние текстуры, новые runtime-зависимости и сетевые запросы не используются.
+- Исходная последовательность длится 4,2 секунды и завершается. Есть pause/resume/replay, остановка вне viewport/скрытой вкладки, reduced-motion и no-WebGL fallback с той же композицией. Правила и browser-чек-лист зафиксированы в `AGENTS.md`.
+- Иллюстрация используется по [`Illos free license`](https://illos.dev/license), разрешающей коммерческое использование и изменения. Установщик `illos@0.1.1` и Pro-toolkit по-прежнему не используются, `ILLOS_KEY` не требуется и не должен сохраняться в репозитории.
 
 ### Комплексная разработка и оптимизация
 
