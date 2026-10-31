@@ -434,7 +434,7 @@ ROBOKASSA_HASH_ALGO="md5"
 
 Перед изменением интерфейса читайте [`docs/ui-ux-pro-max.md`](docs/ui-ux-pro-max.md): постоянный стандарт доступности, адаптивности, микроанимаций, производительности и browser evidence, закреплённый также в `AGENTS.md`. Цветовая композиция следует 60/30/10, фирменный `#FFFF01` остаётся ограниченным акцентом, а тени и ring-as-shadow запрещены; keyboard focus строится на outline.
 
-Тематические 8-кадровые sprites направлений воспроизводятся командой `npm run sprites:directions`. Генератор и палитра находятся в `scripts/generate-direction-sprites.cjs`, готовые локальные PNG — в `public/assets/pixels/`; ручное редактирование PNG без обновления генератора не допускается. Сохранённые SpriteCook workflow skills и лицензия находятся в `.agents/skills/`.
+Тематические 24-кадровые sprites направлений с циклом 2,4 с воспроизводятся командой `npm run sprites:directions`. Генератор и палитра находятся в `scripts/generate-direction-sprites.cjs`, готовые локальные PNG — в `public/assets/pixels/`; ручное редактирование PNG без обновления генератора не допускается. Сохранённые SpriteCook workflow skills и лицензия находятся в `.agents/skills/`.
 
 ### ИИ-направление и shader-визуализации
 

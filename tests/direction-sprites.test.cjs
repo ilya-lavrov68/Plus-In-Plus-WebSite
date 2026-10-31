@@ -71,9 +71,9 @@ test("Direction sprites pause offscreen and keep a final reduced-motion frame", 
 
   assert.match(component, /IntersectionObserver/);
   assert.match(component, /visibilitychange/);
-  assert.match(component, /data-frame-count="8"/);
+  assert.match(component, /data-frame-count="24"/);
   assert.doesNotMatch(component, /setInterval|requestAnimationFrame/);
-  assert.match(styles, /animation: pixel-direction-frames 4\.8s steps\(8, end\) infinite/);
+  assert.match(styles, /animation: pixel-direction-frames 2\.4s steps\(24, end\) infinite/);
   assert.match(styles, /image-rendering: pixelated/);
-  assert.match(styles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?background-position: -560px 0/);
+  assert.match(styles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?background-position: -1840px 0/);
 });

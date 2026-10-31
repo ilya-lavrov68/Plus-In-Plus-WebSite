@@ -303,7 +303,7 @@ test("Home directions and AI page present two announced agents without a fabrica
     ["ai", "design"],
   );
   for (const sprite of directionSprites) {
-    assert.equal(sprite.props["data-frame-count"], "8");
+    assert.equal(sprite.props["data-frame-count"], "24");
     assert.equal(sprite.props["data-active"], "false");
     assert.equal(sprite.props["aria-hidden"], "true");
   }

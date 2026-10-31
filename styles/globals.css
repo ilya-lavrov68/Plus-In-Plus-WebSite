@@ -137,7 +137,7 @@
     background-position: 0 0;
   }
   to {
-    background-position: -640px 0;
+    background-position: -1920px 0;
   }
 }
 
@@ -375,8 +375,8 @@
     transform: scale(var(--pixel-sprite-scale));
     image-rendering: pixelated;
     background-repeat: no-repeat;
-    background-size: 640px 40px;
-    background-position: -560px 0;
+    background-size: 1920px 40px;
+    background-position: -1840px 0;
   }
 
   .pixel-direction-sprite--ai .pixel-direction-sprite__sheet {
@@ -388,7 +388,7 @@
   }
 
   .pixel-direction-sprite[data-active="true"] .pixel-direction-sprite__sheet {
-    animation: pixel-direction-frames 4.8s steps(8, end) infinite;
+    animation: pixel-direction-frames 2.4s steps(24, end) infinite;
   }
 
   @media (width < 381px) {
@@ -400,7 +400,7 @@
   @media (prefers-reduced-motion: reduce) {
     .pixel-direction-sprite__sheet {
       animation: none !important;
-      background-position: -560px 0;
+      background-position: -1840px 0;
     }
   }
 
