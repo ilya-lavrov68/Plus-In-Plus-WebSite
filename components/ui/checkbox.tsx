@@ -47,7 +47,7 @@ const Checkbox = React.forwardRef<HTMLButtonElement, CheckboxProps>(
         ref={ref}
         onClick={handleClick}
         className={cn(
-          "peer inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border border-primary/60 bg-background transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
+          "peer inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border border-primary/60 bg-background transition-colors duration-200 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50",
           isChecked && "border-primary bg-primary text-primary-foreground",
           className
         )}

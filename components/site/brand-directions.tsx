@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { ArrowUpRight, Code2, PenTool, type LucideIcon } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 
-import { PixelPattern } from "@/components/site/pixel-pattern";
+import { PixelDirectionSprite } from "@/components/site/pixel-direction-sprite";
 import { getRequestTranslations } from "@/lib/server-i18n";
 
 interface DirectionCardProps {
@@ -12,7 +12,6 @@ interface DirectionCardProps {
   description: string;
   meta: string;
   linkLabel: string;
-  icon: LucideIcon;
   pattern: "ai" | "design";
   accent?: boolean;
 }
@@ -25,23 +24,16 @@ function DirectionCard({
   description,
   meta,
   linkLabel,
-  icon: Icon,
   pattern,
   accent = false,
 }: DirectionCardProps) {
   return (
     <Link
       href={href}
-      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-colors duration-200 hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-colors duration-200 hover:border-foreground/30 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
     >
       <div className="relative h-40 shrink-0 overflow-hidden border-b border-border bg-background sm:h-48">
-        <PixelPattern
-          variant={pattern}
-          className="absolute inset-0 size-full opacity-70 transition-opacity duration-200 group-hover:opacity-100"
-        />
-        <div className="absolute bottom-5 left-5 flex size-11 items-center justify-center rounded-xl border border-border bg-card text-foreground sm:left-6">
-          <Icon aria-hidden="true" className="size-5" strokeWidth={1.7} />
-        </div>
+        <PixelDirectionSprite variant={pattern} className="absolute inset-0 size-full" />
       </div>
       <div className="flex flex-1 flex-col p-6 sm:p-8">
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
@@ -63,7 +55,7 @@ function DirectionCard({
           {linkLabel}
           <ArrowUpRight
             aria-hidden="true"
-            className="size-4 text-primary transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+            className="size-4 text-muted-foreground transition-[color,transform] duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary"
           />
         </span>
       </div>
@@ -80,7 +72,7 @@ export async function BrandDirections() {
       <div className="container">
         <div data-reveal="" className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
           <div>
-            <p className="text-xs font-medium tracking-[0.18em] text-primary uppercase">{t("eyebrow")}</p>
+            <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">{t("eyebrow")}</p>
             <h2 className="mt-4 max-w-2xl text-3xl font-medium tracking-tight sm:text-4xl md:text-5xl">
               {t("heading")}
             </h2>
@@ -100,7 +92,6 @@ export async function BrandDirections() {
               description={t("ai.description")}
               meta={t("ai.meta")}
               linkLabel={t("ai.link")}
-              icon={Code2}
               pattern="ai"
               accent
             />
@@ -114,7 +105,6 @@ export async function BrandDirections() {
               description={t("design.description")}
               meta={t("design.meta")}
               linkLabel={t("design.link")}
-              icon={PenTool}
               pattern="design"
             />
           </div>

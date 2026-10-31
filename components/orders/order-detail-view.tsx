@@ -92,7 +92,7 @@ export async function OrderDetailView({
     <div>
       <Link
         href={basePath}
-        className="inline-flex items-center gap-1 rounded-sm text-sm font-medium text-muted-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="inline-flex items-center gap-1 rounded-sm text-sm font-medium text-muted-foreground underline-offset-4 hover:underline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         <ChevronLeft aria-hidden="true" className="h-4 w-4" />
         {t("backToOrders")}

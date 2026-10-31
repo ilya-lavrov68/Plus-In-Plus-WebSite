@@ -183,7 +183,7 @@ export function ImageAlbumUploader({
                     removeImage(index);
                   }}
                   aria-label={t("upload.albumRemove", { index: index + 1 })}
-                  className="font-medium absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-black/70 text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 hover:bg-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+                  className="font-medium absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-black/70 text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 hover:bg-destructive focus-visible:opacity-100 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>

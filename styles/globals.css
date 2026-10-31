@@ -132,6 +132,15 @@
   }
 }
 
+@keyframes pixel-direction-frames {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: -640px 0;
+  }
+}
+
 @theme {
   --font-sans: "Google Sans Flex", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-sans-flex: "Google Sans Flex", "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -220,9 +229,9 @@
     --mobile-bottom-nav-clearance: 0px;
 
     --hero-pillar-1: 60 100% 50%;
-    --hero-pillar-2: 60 42% 40%;
+    --hero-pillar-2: 0 0% 32%;
     --hero-pillar-3: 0 0% 62%;
-    --hero-pillar-4: 60 28% 36%;
+    --hero-pillar-4: 0 0% 22%;
 
     --spectrum-primary: #FFFF01;
     --spectrum-primary-hover: #E6E601;
@@ -345,6 +354,56 @@
 }
 
 @layer components {
+  /* Два смысловых pixel-sprite: сетка фона неподвижна, кадры меняются через
+   * steps, а финальный кадр остаётся доступен без JS и при reduced motion. */
+  .pixel-direction-sprite {
+    --pixel-sprite-scale: 4;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    background-color: hsl(var(--background));
+    background-image:
+      linear-gradient(hsl(var(--foreground) / 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--foreground) / 0.035) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  .pixel-direction-sprite__sheet {
+    width: 80px;
+    height: 40px;
+    flex: none;
+    transform: scale(var(--pixel-sprite-scale));
+    image-rendering: pixelated;
+    background-repeat: no-repeat;
+    background-size: 640px 40px;
+    background-position: -560px 0;
+  }
+
+  .pixel-direction-sprite--ai .pixel-direction-sprite__sheet {
+    background-image: url("/assets/pixels/direction-ai.png");
+  }
+
+  .pixel-direction-sprite--design .pixel-direction-sprite__sheet {
+    background-image: url("/assets/pixels/direction-design.png");
+  }
+
+  .pixel-direction-sprite[data-active="true"] .pixel-direction-sprite__sheet {
+    animation: pixel-direction-frames 4.8s steps(8, end) infinite;
+  }
+
+  @media (width < 381px) {
+    .pixel-direction-sprite {
+      --pixel-sprite-scale: 3;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pixel-direction-sprite__sheet {
+      animation: none !important;
+      background-position: -560px 0;
+    }
+  }
+
   /* Clip only decorative motion overflow, never the reading layout. Excluding
    * these subtrees from scroll anchoring also prevents one-shot transforms and
    * hover polish from becoming the browser's next anchor target. */
@@ -441,30 +500,27 @@
   }
 
   /* Opt-in translucent backgrounds for suitable panels only.
-   * The owning utility controls the tint; no extra gradient or shadow is added. */
+   * The owning utility controls the tint; no extra gradient or decoration is added. */
   .glass-panel {
     -webkit-backdrop-filter: blur(24px);
     backdrop-filter: blur(24px);
   }
 
-  /* Existing accent surfaces keep their own translucent tint and soft shadow. */
+  /* Полупрозрачный оттенок без декоративной тени. */
   .glass-surface {
     border: 0;
     -webkit-backdrop-filter: blur(24px) saturate(135%);
     backdrop-filter: blur(24px) saturate(135%);
-    box-shadow: 0 24px 80px -32px hsl(0 0% 0% / 0.55);
   }
 
-  /* The hero's large media frame keeps the translucent rim and shadow without
-   * a full-width backdrop blur. That blur forced expensive offscreen rendering
-   * on every scroll frame, especially while crossing the ambient pillars. */
+  /* Тонкая нейтральная граница сохраняет силуэт hero без тени и без
+   * full-width backdrop blur на каждом scroll-кадре. */
   .hero-media-frame {
-    border: 0;
-    box-shadow: 0 24px 80px -32px hsl(0 0% 0% / 0.55);
+    border: 1px solid hsl(var(--border));
   }
 
-  /* Timeline cards keep the glass treatment without stacking expensive 24px
-   * blurs and large shadows on every milestone during scrolling. */
+  /* Timeline cards сохраняют glass без дополнительных теней и без
+   * накопления дорогих 24px blur на каждой карточке. */
   .story-card {
     border: 0;
     -webkit-backdrop-filter: blur(12px);

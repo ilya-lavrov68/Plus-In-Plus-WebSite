@@ -432,18 +432,22 @@ ROBOKASSA_HASH_ALGO="md5"
 
 ### Обязательный UI/UX-документ
 
-Перед изменением интерфейса читайте [`docs/ui-ux-pro-max.md`](docs/ui-ux-pro-max.md): постоянный стандарт доступности, адаптивности, микроанимаций, производительности и browser evidence, закреплённый также в `AGENTS.md`.
+Перед изменением интерфейса читайте [`docs/ui-ux-pro-max.md`](docs/ui-ux-pro-max.md): постоянный стандарт доступности, адаптивности, микроанимаций, производительности и browser evidence, закреплённый также в `AGENTS.md`. Цветовая композиция следует 60/30/10, фирменный `#FFFF01` остаётся ограниченным акцентом, а тени и ring-as-shadow запрещены; keyboard focus строится на outline.
+
+Тематические 8-кадровые sprites направлений воспроизводятся командой `npm run sprites:directions`. Генератор и палитра находятся в `scripts/generate-direction-sprites.cjs`, готовые локальные PNG — в `public/assets/pixels/`; ручное редактирование PNG без обновления генератора не допускается. Сохранённые SpriteCook workflow skills и лицензия находятся в `.agents/skills/`.
 
 ### ИИ-направление и shader-визуализации
 
 - `/ai` — презентация анонса, а не запущенный AI-сервис. До отдельной интеграции на странице нет чата, выполнения кода или отправки юридических запросов. Lumi Q1 позиционируется как кодирующий агент; Kairo — как информационный помощник по праву РФ, не заменяющий юриста.
-- Оригинальные GLSL fields находятся в `lib/agent-fields.ts`, общий renderer — в `lib/agent-shaders.ts`, управление воспроизведением — в `components/ai/agent-shader-player.tsx`, статичные кадры — в `lib/agent-static-frames.ts` и `components/ai/agent-diagram.tsx`. Lumi Q1 использует бесплатную [`Tool calls`](https://illos.dev/library/shader/tool-calls): задача, агент, search/code runner/calendar и возврат результатов. Kairo использует [`RAG answer`](https://illos.dev/library/shader/rag): вопрос, три ближайшие страницы и ответ с citations. Палитра адаптирована к `#FFFF01`; внешние текстуры, новые runtime-зависимости и сетевые запросы не используются.
+- Оригинальные GLSL fields находятся в `lib/agent-fields.ts`, общий renderer — в `lib/agent-shaders.ts`, управление воспроизведением — в `components/ai/agent-shader-player.tsx`, статичные кадры — в `lib/agent-static-frames.ts` и `components/ai/agent-diagram.tsx`. Lumi Q1 использует бесплатную [`Tool calls`](https://illos.dev/library/shader/tool-calls): задача, агент, search/code runner/calendar и возврат результатов. Kairo использует [`RAG answer`](https://illos.dev/library/shader/rag): вопрос, три ближайшие страницы и ответ с citations. Рендер использует нейтральные ступени и точный `#FFFF01` только для сильного сигнала; внешние текстуры, новые runtime-зависимости и сетевые запросы не используются.
 - Обе последовательности автоматически повторяются каждые 4,5 секунды через modulo shader clock. Есть только компактные icon-only pause/resume без replay; resume не сбрасывает фазу. Сохранены остановка вне viewport/скрытой вкладки и разные reduced-motion/no-WebGL кадры из тех же fields. Правила и browser-чек-лист зафиксированы в `AGENTS.md`.
 - Иллюстрации используются по [`Illos free license`](https://illos.dev/license), разрешающей коммерческое использование и изменения. Установщик `illos@0.1.1` и Pro-toolkit по-прежнему не используются, `ILLOS_KEY` не требуется и не должен сохраняться в репозитории.
 
 ### Комплексная разработка и оптимизация
 
 Перед любой разработкой или проверкой применяйте [`docs/agent-workflow.md`](docs/agent-workflow.md): он требует завершать не только UI, но и связанные server/data/auth/mutation/error/revalidation слои с end-to-end доказательствами. Для оптимизации дополнительно используйте [`docs/next-forge-optimization.md`](docs/next-forge-optimization.md): там отделены изученные практики `vercel/next-forge` от решений PIP и обозначены будущие измеримые этапы без автоматической смены архитектуры.
+
+Переход staff-панели на Payload пока только спроектирован: [`docs/payload-migration-plan.md`](docs/payload-migration-plan.md) фиксирует platform prerequisites, RBAC/MFA parity, контент и заказы, миграцию Prisma/Turso, backup/rollback и поэтапные go/no-go. Payload в текущей версии не установлен, схема и production-данные не изменены.
 
 Воспроизводимые baselines, результаты последовательных пакетов и границы доказанности находятся в [`docs/performance-baseline.md`](docs/performance-baseline.md). Для новой bundle-карты выполните `npm run analyze`: это отдельная production-сборка с reports в `.next/analyze/`; analyzer не включается в обычный runtime.
 

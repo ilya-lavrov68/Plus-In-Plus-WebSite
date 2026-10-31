@@ -32,7 +32,7 @@ ResponsiveModalOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 const ResponsiveModalVariants = cva(
   cn(
-    "fixed z-50 gap-4 border-border bg-card text-card-foreground p-6 shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-200 data-[state=open]:duration-200 overflow-y-auto",
+    "fixed z-50 gap-4 border-border bg-card text-card-foreground p-6 transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-200 data-[state=open]:duration-200 overflow-y-auto",
     "lg:left-[50%] lg:top-[50%] lg:grid lg:w-full lg:max-w-lg lg:translate-x-[-50%] lg:translate-y-[-50%] lg:border lg:duration-200 lg:data-[state=open]:animate-in lg:data-[state=closed]:animate-out lg:data-[state=closed]:fade-out-0 lg:data-[state=open]:fade-in-0 lg:rounded-xl",
   ),
   {
@@ -73,7 +73,7 @@ const ResponsiveModalContent = React.forwardRef<
       {...props}
     >
       {children}
-      <ResponsiveModalClose aria-label={closeLabel} className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
+      <ResponsiveModalClose aria-label={closeLabel} className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-solid focus:outline-2 focus:outline-offset-2 focus:outline-ring disabled:pointer-events-none data-[state=open]:bg-secondary">
         <X className="h-4 w-4" />
         <span className="sr-only">{closeLabel}</span>
       </ResponsiveModalClose>

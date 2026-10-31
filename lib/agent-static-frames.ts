@@ -13,7 +13,7 @@ export type AgentStaticBar = readonly [
   spark: boolean,
 ];
 
-export const AGENT_STATIC_BAR_FILLS = ["#6b6b00", "#d9d900", "#9e9e00", "#FFFF01"] as const;
+export const AGENT_STATIC_BAR_FILLS = ["#525254", "#d9d9dc", "#8c8c8e", "#FFFF01"] as const;
 
 export const AGENT_STATIC_FRAMES: Record<AgentScene, AgentStaticBar[]> = {
   "lumi": [

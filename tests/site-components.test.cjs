@@ -214,7 +214,10 @@ const { AiPageView } = require("../components/ai/ai-page-view.tsx");
 const { AgentTechnologyPage } = require("../components/ai/agent-technology-page.tsx");
 const { AgentDiagram } = require("../components/ai/agent-diagram.tsx");
 const { BrandDirections } = require("../components/site/brand-directions.tsx");
-const { AGENT_STATIC_FRAMES } = require("../lib/agent-static-frames.ts");
+const {
+  AGENT_STATIC_BAR_FILLS,
+  AGENT_STATIC_FRAMES,
+} = require("../lib/agent-static-frames.ts");
 const {
   AGENT_BARS_FRAGMENT_SHADER,
   AGENT_FIELD_FRAGMENT_SHADERS,
@@ -292,6 +295,18 @@ test("Home directions and AI page present two announced agents without a fabrica
   assert.match(directionText, /AI technology and design/);
   assert.match(directionText, /Announcement · soon/);
   assert.match(directionText, /Available now/);
+  const directionSprites = directionsView.root.findAll(
+    (node) => Boolean(node.props?.["data-pixel-sprite"]),
+  );
+  assert.deepEqual(
+    directionSprites.map((sprite) => sprite.props["data-pixel-sprite"]),
+    ["ai", "design"],
+  );
+  for (const sprite of directionSprites) {
+    assert.equal(sprite.props["data-frame-count"], "8");
+    assert.equal(sprite.props["data-active"], "false");
+    assert.equal(sprite.props["aria-hidden"], "true");
+  }
 
   const aiText = textOf(aiView.root);
   assert.match(aiText, /Lumi Q1/);
@@ -381,6 +396,11 @@ test("Brand accent and shader implementation keep the approved visual and motion
   assert.equal(AGENT_SHADER_DURATION_MS, 4500);
   assert.equal(AGENT_SHADER_COLS, 103);
   assert.equal(AGENT_SHADER_CELLS, 49);
+  assert.deepEqual(AGENT_STATIC_BAR_FILLS, ["#525254", "#d9d9dc", "#8c8c8e", "#FFFF01"]);
+  assert.match(player, /const BAR_RAMP/);
+  assert.match(player, /\[1, 1, 0\.00392157\]/);
+  assert.match(player, /\[0\.851, 0\.851, 0\.8627\]/);
+  assert.doesNotMatch(player, /0\.851, 0\.851, 0\]/);
   assert.notEqual(AGENT_FIELD_FRAGMENT_SHADERS.lumi, AGENT_FIELD_FRAGMENT_SHADERS.kairo);
   for (const field of Object.values(AGENT_FIELD_FRAGMENT_SHADERS)) {
     assert.match(field, /uniform float uT;/);
@@ -446,6 +466,35 @@ test("Brand accent and shader implementation keep the approved visual and motion
     assert.ok(catalog.directions.ai.status.length > 0);
     assert.ok(catalog.ai.kairo.note.length > 80);
     assert.equal(catalog.ai.animation.replay, undefined);
+  }
+});
+
+test("Interface depth uses borders and outlines, never shadows or focus rings", () => {
+  const files = [];
+  const visit = (directory) => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const filename = path.join(directory, entry.name);
+      if (entry.isDirectory()) visit(filename);
+      else if (/\.(?:css|ts|tsx)$/.test(entry.name)) files.push(filename);
+    }
+  };
+  for (const root of ["app", "components", "styles"]) {
+    visit(path.resolve(__dirname, "..", root));
+  }
+
+  for (const filename of files) {
+    const source = fs.readFileSync(filename, "utf8");
+    assert.doesNotMatch(
+      source,
+      /shadow|ring-offset|focus-visible:ring|focus:ring/,
+      `${path.relative(path.resolve(__dirname, ".."), filename)} must stay shadow-free and use outlines for focus`,
+    );
+  }
+
+  for (const filename of ["components/ui/button-variants.ts", "components/ui/input.tsx"]) {
+    const source = fs.readFileSync(path.resolve(__dirname, "..", filename), "utf8");
+    assert.match(source, /outline-ring/);
+    assert.match(source, /focus-visible:outline-2/);
   }
 });
 
@@ -539,14 +588,14 @@ test("Navbar10 and Footer7 render all required navigation items and footer colum
     "The header must not add decorative shadows",
   );
   assert.equal(
-    (navbarSource.match(/glass-surface shadow-none/g) || []).length,
+    (navbarSource.match(/glass-surface/g) || []).length,
     3,
-    "Every glass surface in the header must explicitly disable the shared glass shadow",
+    "The header must retain its three intentional glass surfaces without shadow overrides",
   );
   assert.match(
     navbarSource,
-    /inset-0 z-\[70\][^"]*shadow-none/,
-    "The full-screen mobile sheet must stay above the bottom bar and override the shared Sheet shadow",
+    /inset-0 z-\[70\][^"]*bg-background/,
+    "The full-screen mobile sheet must stay above the bottom bar and use an opaque background",
   );
   for (const file of [
     "components/ui/navigation-menu.tsx",
@@ -734,7 +783,7 @@ test("MobileBottomNav renders four touch targets and animates individual SVG ico
   );
   for (const link of links) {
     assert.match(link.props.className, /min-h-14/);
-    assert.match(link.props.className, /focus-visible:ring-2/);
+    assert.match(link.props.className, /focus-visible:outline-2/);
   }
   for (const label of ["Home", "Services", "Cart", "Menu"]) {
     assert.ok(textOf(nav).includes(label), "Missing mobile tab: " + label);
@@ -1067,8 +1116,9 @@ test("public UI uses neutral media slots and keeps ambient glow only in the hero
 
   const styles = fs.readFileSync(path.resolve(__dirname, "../styles/globals.css"), "utf8");
   assert.match(styles, /\.glass-surface\s*\{[^}]*border:\s*0;[^}]*backdrop-filter:/s);
-  assert.match(styles, /\.hero-media-frame\s*\{[^}]*box-shadow:/s);
+  assert.match(styles, /\.hero-media-frame\s*\{[^}]*border: 1px solid hsl\(var\(--border\)\)/s);
   assert.doesNotMatch(styles, /\.hero-media-frame\s*\{[^}]*backdrop-filter:/s);
+  assert.doesNotMatch(styles, /box-shadow:|text-shadow:/);
 
   const placeholders = require("../lib/content-placeholders.ts");
   assert.equal(

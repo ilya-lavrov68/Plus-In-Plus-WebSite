@@ -27,6 +27,14 @@
 
 Уже утверждённые PIP-решения, security-ограничения и требования пользователя имеют приоритет над рекомендациями каталога. Не добавляй generated design systems, зависимости или чужие assets автоматически.
 
+### Постоянные правила цвета, глубины и pixel sprites
+
+1. Соблюдай композицию **60/30/10**: около 60% занимает основной цвет темы (`background` и основной текст), около 30% — поддерживающие нейтральные поверхности, borders и secondary text, не более чем около 10% — фирменный акцент `#FFFF01`. Это правило визуального распределения, а не подсчёт числа токенов. Акцент концентрируется в CTA, активном статусе, hover/focus и отдельных сильных pixel/shader-сигналах; повторяющиеся номера, labels, иконки, разделители и вторичные ссылки остаются нейтральными.
+2. **Тени запрещены полностью**: не используй Tailwind `shadow*`, `drop-shadow*`, ring/ring-offset как замену тени, CSS `box-shadow` или `text-shadow`. Глубину и разделение создавай фоном, spacing и нейтральными borders. Keyboard focus обязателен и реализуется видимым `outline` с достаточным контрастом и offset, а не тенью.
+3. Тематические sprites направлений — содержательная визуализация, а не абстрактный шум: у ИИ кодовые brackets, узлы и проверка выполненной задачи; у дизайна артборд, pen и формирование знака плюса. Детерминированные исходники и палитра находятся в `scripts/generate-direction-sprites.cjs`; assets пересобираются командой `npm run sprites:directions`, воспроизводимость и кадры проверяются `tests/direction-sprites.test.cjs`.
+4. Workflow sprite-assets изучен по [`SpriteCook/skills`](https://github.com/SpriteCook/skills), commit `289cc2750fc3a7a468017c3d8b0f18efde1802e2`. Четыре сохранённых навыка и MIT license находятся в `.agents/skills/spritecook-*` и `.agents/skills/SPRITECOOK-LICENSE`; hashes источника зафиксированы в `skills-lock.json`. Это навыки производства assets, а не второй источник общей дизайн-системы. Соблюдай crisp hard edges, ограниченную палитру, nearest-neighbor scaling, стабильный силуэт, проверку native size/zoom, каждого кадра и loop boundary.
+5. Локальный генератор PIP не выдаёт себя за облачную генерацию SpriteCook и не создаёт вымышленные `asset_id`, credit operations или MCP-интеграцию. Для будущих cloud/batch/paid operations сначала нужен фактически подключённый официальный канал, проверка условий и явное разрешение пользователя; секреты и API keys не запрашивать в чате и не сохранять в manifest/репозитории.
+
 ## Обязательный стандарт анимации и shader-визуализаций
 
 ### Источники и статус Illos
@@ -40,7 +48,7 @@
 
 - `lib/agent-fields.ts` содержит две разные WebGL1/GLSL field-сцены: у Lumi задача передаётся агенту, вызываются search/code runner/calendar и возвращаются результаты; у Kairo вопрос находит три ближайшие страницы, передаёт их в ответ и формирует строки с citations. `lib/agent-shaders.ts` вычисляет field для ячеек 7 × 9,4 px в texture 103 × 49, а общий второй проход рисует тонкие бары четырёх плотностей, grid, grain и spark-пиксели. Внешних текстур, сетевых запросов и новых runtime-зависимостей нет.
 - `components/ai/agent-shader-player.tsx` управляет воспроизведением; `components/ai/agent-diagram.tsx` использует разные статичные кадры из `lib/agent-static-frames.ts`, вычисленные из тех же fields при `t = 4,5` для reduced motion/no WebGL. Это не скрытый второй интерфейс агента.
-- Фирменный акцент — точный `#FFFF01` в `--primary`, с тёмным `--primary-foreground`. Исходная teal-рампа заменена на жёлтую без изменения thresholds и геометрии; пиксельные узоры детерминированы, random external imagery и fabricated interfaces запрещены.
+- Фирменный акцент — точный `#FFFF01` в `--primary`, с тёмным `--primary-foreground`. Shader-рампа содержит три нейтральные ступени и жёлтый только для самого сильного сигнала; thresholds, геометрия и смысловые сцены сохранены. Пиксельные узоры детерминированы, random external imagery и fabricated interfaces запрещены.
 - Обе сцены автоматически зациклены по явному решению пользователя: `AGENT_SHADER_DURATION_MS = 4500`, shader clock использует modulo и никогда не переводит player в `complete`. Автозапуск выполняется при видимости и только без `prefers-reduced-motion`; это не разрешение добавлять бесконечные ambient/hover loops в другие блоки.
 - Обязательны компактные icon-only pause/resume без replay, остановка `requestAnimationFrame` вне viewport и в скрытой вкладке, обработка потери WebGL context и статичный fallback при reduced motion или отсутствии WebGL. Resume продолжает сохранённую фазу, а не перезапускает цикл.
 - Семантика, доступность действий и содержательное объяснение не зависят от WebGL или воспроизведения. Рядом остаётся текстовый сценарий, а canvas скрыт от screen reader как дублирующая визуализация.

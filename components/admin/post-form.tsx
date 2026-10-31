@@ -145,7 +145,7 @@ export function PostForm({ mode, postId, initial }: PostFormProps) {
             id="post-source"
             name="source"
             defaultValue={initial?.source ?? "manual"}
-            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring [&_option]:bg-card [&_option]:text-foreground"
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&_option]:bg-card [&_option]:text-foreground"
           >
             <option value="manual">{t("form.sourceManual")}</option>
             <option value="telegram">Telegram</option>

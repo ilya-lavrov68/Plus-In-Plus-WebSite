@@ -306,7 +306,7 @@ export function SecuritySettings({ required, initialTotpEnabled, initialPasskeys
         {notice ? <p role="status" className="text-sm text-foreground">{notice}</p> : null}
 
         {backupCodes ? (
-          <section className="space-y-4 rounded-lg border border-primary/40 bg-secondary/60 p-4" aria-labelledby="backup-codes-heading">
+          <section className="space-y-4 rounded-lg border border-border bg-secondary/60 p-4" aria-labelledby="backup-codes-heading">
             <div>
               <h3 id="backup-codes-heading" className="text-sm font-semibold">{t("backupCodesTitle")}</h3>
               <p className="mt-1 text-sm text-destructive">{t("backupCodesWarning")}</p>

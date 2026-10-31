@@ -1,16 +1,16 @@
 import { cva, type VariantProps } from "class-variance-authority";
 
 export const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-[background-color,color,border-color,box-shadow] duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-[background-color,color,border-color,outline-color] duration-200 ease-out focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow-[0_0_0_0px_rgba(250,250,250,0)] hover:bg-primary/95 hover:shadow-[0_0_0_4px_rgba(250,250,250,0.2)]",
+          "bg-primary text-primary-foreground hover:bg-primary/95",
         primary:
-          "bg-primary text-primary-foreground shadow-[0_0_0_0px_rgba(250,250,250,0)] hover:bg-primary/95 hover:shadow-[0_0_0_4px_rgba(250,250,250,0.2)]",
+          "bg-primary text-primary-foreground hover:bg-primary/95",
         cta:
-          "bg-primary text-primary-foreground shadow-[0_0_0_0px_rgba(250,250,250,0)] hover:bg-primary/95 hover:shadow-[0_0_0_4px_rgba(250,250,250,0.2)]",
+          "bg-primary text-primary-foreground hover:bg-primary/95",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/85",
         outline:
@@ -36,14 +36,14 @@ export const buttonVariants = cva(
 );
 
 export const headerButtonVariants = cva(
-  "inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 text-sm font-medium transition-[background-color,color,border-color,box-shadow] duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 text-sm font-medium transition-[background-color,color,border-color,outline-color] duration-200 ease-out focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
         outline:
           "border border-border bg-transparent text-foreground hover:border-foreground/25 hover:bg-white/[0.06] hover:text-foreground",
         primary:
-          "bg-primary text-primary-foreground shadow-[0_0_0_0px_rgba(250,250,250,0)] hover:bg-primary/95 hover:shadow-[0_0_0_4px_rgba(250,250,250,0.2)]",
+          "bg-primary text-primary-foreground hover:bg-primary/95",
       },
     },
     defaultVariants: {

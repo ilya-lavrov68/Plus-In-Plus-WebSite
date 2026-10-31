@@ -127,7 +127,7 @@ const Blog11 = ({
                 >
                   <Link
                     href={`/blog/${post.slug}`}
-                    className="group relative flex h-80 flex-col justify-between overflow-hidden rounded-xl bg-muted p-6 focus-visible:outline-none focus-visible:shadow-[0_0_0_4px_rgba(250,250,250,0.18)]"
+                    className="group relative flex h-80 flex-col justify-between overflow-hidden rounded-xl bg-muted p-6 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                   >
                     <div
                       aria-hidden="true"

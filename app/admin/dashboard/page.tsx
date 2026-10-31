@@ -35,7 +35,7 @@ export default async function AdminDashboardPage() {
 
       <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map(({ title, icon: Icon, value, detail, href }) => (
-          <Link key={title} href={href} className="group rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <Link key={title} href={href} className="group rounded-xl focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
             <Card className="h-full transition-colors duration-200 ease-out group-hover:border-foreground/25 group-hover:bg-white/[0.04]">
               <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>

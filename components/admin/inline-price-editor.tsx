@@ -86,7 +86,7 @@ export function InlinePriceEditor({
         className={cn(
           "group inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-left tabular-nums",
           "transition-colors duration-200 ease-out hover:bg-accent",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
           !basePrice && "text-muted-foreground",
         )}
       >

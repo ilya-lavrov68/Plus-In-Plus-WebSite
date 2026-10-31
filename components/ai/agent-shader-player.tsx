@@ -41,11 +41,11 @@ interface PlayerController {
 const GROUND: RGB = [0.0392, 0.0392, 0.0392];
 const INK: RGB = [0.8549, 0.8549, 0.8627];
 const SPARK: RGB = [1, 1, 1];
-const YELLOW_RAMP: RGB[] = [
+const BAR_RAMP: RGB[] = [
   [1, 1, 0.00392157],
-  [0.851, 0.851, 0],
-  [0.6196, 0.6196, 0],
-  [0.4196, 0.4196, 0],
+  [0.851, 0.851, 0.8627],
+  [0.549, 0.549, 0.5569],
+  [0.3216, 0.3216, 0.3294],
 ];
 
 function compileShader(
@@ -213,7 +213,7 @@ export function AgentShaderPlayer({ agent, scene, labels }: AgentShaderPlayerPro
     gl.uniform3fv(inkUniform, INK);
     gl.uniform3fv(sparkUniform, SPARK);
     rampUniforms.forEach((uniform, index) => {
-      gl.uniform3fv(uniform, YELLOW_RAMP[index]);
+      gl.uniform3fv(uniform, BAR_RAMP[index]);
     });
     gl.uniform1i(fieldUniform, 0);
 
@@ -395,7 +395,7 @@ export function AgentShaderPlayer({ agent, scene, labels }: AgentShaderPlayerPro
           aria-label={label}
           title={label}
           data-shader-control={resolvedScene}
-          className="absolute right-3 bottom-3 size-8 border-border bg-background/90 text-foreground shadow-sm backdrop-blur-sm hover:bg-card [&_svg]:size-3.5"
+          className="absolute right-3 bottom-3 size-8 border-border bg-background/90 text-foreground backdrop-blur-sm hover:bg-card [&_svg]:size-3.5"
         >
           <Icon aria-hidden="true" className="text-primary" />
         </Button>

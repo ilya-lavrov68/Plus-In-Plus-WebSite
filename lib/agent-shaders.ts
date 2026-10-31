@@ -130,7 +130,8 @@ export const AGENT_FIELD_FRAGMENT_SHADERS: Record<AgentScene, string> = {
 
 /**
  * Второй проход: оригинальные thin bars четырёх плотностей, grain, screen lines,
- * grid и spark-пиксели. Рампы передаются uniform-ами и используют фирменный жёлтый.
+ * grid и spark-пиксели. Жёлтый занимает только самый сильный сигнал;
+ * остальная рампа нейтральная, чтобы акцент не заполнял всю композицию.
  */
 export const AGENT_BARS_FRAGMENT_SHADER = `
 precision highp float;

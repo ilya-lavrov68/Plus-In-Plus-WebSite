@@ -189,7 +189,7 @@ export function ServiceConfigurator({
                       key={option.id}
                       className={cn(
                         "cursor-pointer rounded-xl border px-4 py-2.5 text-sm transition-colors",
-                        "focus-within:ring-2 focus-within:ring-ring",
+                        "focus-within:outline-solid focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring",
                         active
                           ? "border-primary bg-primary text-primary-foreground"
                           : "border-border bg-secondary/40 text-foreground hover:border-foreground/40 hover:bg-secondary"

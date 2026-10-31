@@ -91,7 +91,7 @@ export function LanguageSwitcher() {
         disabled={pending}
         data-testid="language-switcher"
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-muted-foreground uppercase transition-colors duration-200 ease-out hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-muted-foreground uppercase transition-colors duration-200 ease-out hover:bg-accent hover:text-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         <Languages aria-hidden="true" className="h-4 w-4" strokeWidth={1.8} />
         <span>{locale}</span>
@@ -110,7 +110,7 @@ export function LanguageSwitcher() {
               data-locale-option={option}
               aria-selected={option === locale}
               onClick={() => changeLocale(option)}
-              className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium text-popover-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium text-popover-foreground transition-colors hover:bg-accent focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <span>{labels[option]}</span>
               <span className="ml-4 flex items-center gap-1.5 text-xs text-muted-foreground uppercase">

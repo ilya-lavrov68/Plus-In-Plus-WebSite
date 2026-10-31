@@ -70,7 +70,7 @@ export async function AgentTechnologyPage({ agent }: { agent: AgentKind }) {
       <section className="container pb-24 pt-16 md:pb-32 md:pt-24">
         <div className="grid items-center gap-16 lg:grid-cols-[0.9fr_1.1fr] lg:gap-24 xl:gap-32">
           <div data-reveal="" className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-primary">{t(`${agent}.name`)} / Lumina</p>
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">{t(`${agent}.name`)} / Lumina</p>
             <h1 className="mt-7 text-6xl font-medium tracking-tight sm:text-7xl xl:text-8xl">{content.name}</h1>
             <p className="mt-8 max-w-xl text-2xl font-medium leading-tight tracking-tight sm:text-3xl">
               {content.title}
@@ -99,7 +99,7 @@ export async function AgentTechnologyPage({ agent }: { agent: AgentKind }) {
       <section className="border-t border-border py-24 md:py-32" aria-labelledby={`${agent}-benefits`}>
         <div className="container">
           <div className="max-w-2xl" data-reveal="">
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-primary">02 / {t("advantages")}</p>
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">02 / {t("advantages")}</p>
             <h2 id={`${agent}-benefits`} className="mt-5 text-3xl font-medium tracking-tight sm:text-4xl">
               {content.benefitsTitle}
             </h2>
@@ -107,7 +107,7 @@ export async function AgentTechnologyPage({ agent }: { agent: AgentKind }) {
           <div className="mt-16 grid gap-x-12 gap-y-14 sm:grid-cols-2 lg:grid-cols-4 lg:gap-x-10">
             {content.benefits.map((benefit, index) => (
               <article key={benefit.title} data-reveal="" data-reveal-delay={Math.min(index * 80, 240)}>
-                <span aria-hidden="true" className="font-mono text-xs text-primary">
+                <span aria-hidden="true" className="font-mono text-xs text-muted-foreground">
                   {String(index + 1).padStart(2, "0")}
                 </span>
                 <h3 className="mt-5 text-lg font-medium leading-snug">{benefit.title}</h3>
@@ -125,7 +125,7 @@ export async function AgentTechnologyPage({ agent }: { agent: AgentKind }) {
               data-reveal=""
               className={cn("min-w-0", index % 2 === 1 && "lg:order-2")}
             >
-              <span aria-hidden="true" className="font-mono text-xs text-primary">
+              <span aria-hidden="true" className="font-mono text-xs text-muted-foreground">
                 {String(index + 3).padStart(2, "0")}
               </span>
               <h2 className="mt-5 max-w-lg text-3xl font-medium tracking-tight sm:text-4xl">{section.title}</h2>
@@ -135,7 +135,7 @@ export async function AgentTechnologyPage({ agent }: { agent: AgentKind }) {
               <ul className="mt-10 space-y-5">
                 {section.points.map((point) => (
                   <li key={point} className="flex max-w-xl items-start gap-4 text-sm leading-relaxed text-foreground/85 sm:text-base">
-                    <span aria-hidden="true" className="mt-3 h-px w-5 shrink-0 bg-primary/70" />
+                    <span aria-hidden="true" className="mt-3 h-px w-5 shrink-0 bg-muted-foreground/40" />
                     <span>{point}</span>
                   </li>
                 ))}
@@ -155,7 +155,7 @@ export async function AgentTechnologyPage({ agent }: { agent: AgentKind }) {
       <section className="border-t border-border py-24 md:py-32">
         <div className="container grid gap-14 lg:grid-cols-2 lg:gap-24 xl:gap-32">
           <div data-reveal="">
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-primary">06 / {t("boundaries")}</p>
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">06 / {t("boundaries")}</p>
             <h2 className="mt-5 max-w-xl text-3xl font-medium tracking-tight sm:text-4xl">{content.closingTitle}</h2>
             <p className="mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
               {content.closingDescription}
@@ -186,7 +186,7 @@ export async function AgentTechnologyPage({ agent }: { agent: AgentKind }) {
             </div>
             <span className="flex items-center gap-4 text-lg font-medium">
               {otherContent.name}
-              <ArrowRight aria-hidden="true" className="size-6 text-primary transition-transform group-hover:translate-x-1" />
+              <ArrowRight aria-hidden="true" className="size-6 text-muted-foreground transition-[color,transform] group-hover:translate-x-1 group-hover:text-primary" />
             </span>
           </Link>
         </div>

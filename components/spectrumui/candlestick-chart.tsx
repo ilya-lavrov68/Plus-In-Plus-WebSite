@@ -231,7 +231,7 @@ export function CandlestickChart({
 
       {activePoint ? (
         <div
-          className="pointer-events-none absolute top-2 z-10 w-48 rounded-xl border border-border bg-popover p-3 text-xs shadow-lg"
+          className="pointer-events-none absolute top-2 z-10 w-48 rounded-xl border border-border bg-popover p-3 text-xs "
           style={
             tooltipOnLeft
               ? { right: `${100 - (activeCenter / VIEW_W) * 100 + 2}%` }

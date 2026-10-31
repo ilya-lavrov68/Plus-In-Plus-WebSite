@@ -415,7 +415,7 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
                         setAccountReturnFocusId("account-trigger");
                         setAccountOpen(true);
                       }}
-                      className="inline-flex items-center gap-2 rounded-full border border-border p-0.5 pr-3 text-xs font-medium text-foreground transition-colors duration-200 ease-out hover:border-foreground/25 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="inline-flex items-center gap-2 rounded-full border border-border p-0.5 pr-3 text-xs font-medium text-foreground transition-colors duration-200 ease-out hover:border-foreground/25 hover:bg-white/[0.06] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     >
                       <UserAvatar user={session.user} size={36} />
                       <span className="max-w-24 truncate">
@@ -571,7 +571,7 @@ const DropdownMenu1 = ({ links }: { links?: MenuLink[] }) => {
           </li>
         ))}
       </ul>
-      <div className="glass-surface shadow-none relative !h-[16rem] w-full overflow-hidden rounded-2xl bg-white/[0.05]">
+      <div className="glass-surface relative !h-[16rem] w-full overflow-hidden rounded-2xl bg-white/[0.05]">
         {links.map((link, index) => (
           <div
             key={`default-nav-link-img-${index}`}
@@ -701,7 +701,7 @@ const FeaturedImageLink = ({ link }: { link?: MenuLink }) => {
       <Link href={link.url} className="group block w-full max-w-[36.875rem]">
         <AspectRatio
           ratio={1.77245509}
-          className="glass-surface shadow-none overflow-hidden rounded-2xl bg-white/[0.05]"
+          className="glass-surface overflow-hidden rounded-2xl bg-white/[0.05]"
         >
           <div className="size-full">
             <Badge className="absolute top-2 left-2">{tAdmin("new")}</Badge>
@@ -737,7 +737,7 @@ const FeaturedLink = ({ link }: { link: MenuLink }) => {
       href={link.url}
       target={link.external ? "_blank" : undefined}
       rel={link.external ? "noopener noreferrer" : undefined}
-      className="glass-surface shadow-none group relative flex w-full overflow-hidden rounded-2xl bg-white/[0.055] px-8 py-7"
+      className="glass-surface group relative flex w-full overflow-hidden rounded-2xl bg-white/[0.055] px-8 py-7"
     >
       <div className="relative z-10 flex w-full items-center gap-6">
         <div className="flex size-12 shrink-0 rounded-lg bg-background">
@@ -840,7 +840,7 @@ const MobileNavigationMenu = ({
           document.getElementById("mobile-menu-trigger")?.focus({ preventScroll: true });
         }}
         side="top"
-        className="inset-0 z-[70] h-dvh w-full overflow-y-auto bg-background p-0 shadow-none [&>button]:hidden"
+        className="inset-0 z-[70] h-dvh w-full overflow-y-auto bg-background p-0 [&>button]:hidden"
       >
         <div className="container flex min-h-full flex-col pt-[calc(1rem+env(safe-area-inset-top))] pb-[var(--mobile-bottom-nav-clearance)]">
           <div className="flex h-16 shrink-0 items-center justify-between gap-4">
