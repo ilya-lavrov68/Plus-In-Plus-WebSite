@@ -3,6 +3,7 @@
 import { MotionConfig } from "motion/react";
 import { SessionProvider } from "next-auth/react";
 
+import { CursorFillController } from "@/components/site/cursor-fill-controller";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { ScrollExperience } from "@/components/site/motion/scroll-experience";
 import { SessionRefresh } from "@/components/site/session-refresh";
@@ -16,6 +17,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       refetchWhenOffline={false}
     >
       <MotionConfig reducedMotion="user">
+        <CursorFillController />
         <ScrollExperience />
         <PageViewTracker />
         <SessionRefresh />

@@ -82,9 +82,9 @@ Module._load = function (name, parent, isMain) {
   return originalLoad.call(this, name, parent, isMain);
 };
 
-const shopPage = require("../app/shop/(index)/page.tsx");
-const aiPage = require("../app/ai/page.tsx");
-const sitemap = require("../app/sitemap.ts").default;
+const shopPage = require("../app/(site)/shop/(index)/page.tsx");
+const aiPage = require("../app/(site)/ai/page.tsx");
+const sitemap = require("../app/(site)/sitemap.ts").default;
 const { getPublicSiteSettings } = require("../lib/public-site-settings.ts");
 const {
   normalizePublicSiteSettings,
@@ -219,7 +219,7 @@ test("public site settings apply only validated non-secret values", async () => 
 test("public settings have a server-only loader and are wired to metadata and the footer", () => {
   const shared = fs.readFileSync(path.resolve(__dirname, "../lib/site-settings.ts"), "utf8");
   const loader = fs.readFileSync(path.resolve(__dirname, "../lib/public-site-settings.ts"), "utf8");
-  const layout = fs.readFileSync(path.resolve(__dirname, "../app/layout.tsx"), "utf8");
+  const layout = fs.readFileSync(path.resolve(__dirname, "../app/(site)/layout.tsx"), "utf8");
   const footer = fs.readFileSync(path.resolve(__dirname, "../components/site/footer.tsx"), "utf8");
 
   assert.equal(shared.includes("@/lib/prisma"), false);

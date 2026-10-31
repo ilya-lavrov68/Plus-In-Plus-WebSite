@@ -40,7 +40,7 @@ Module._load = function (name, parent, isMain) {
   return originalLoad.call(this, name, parent, isMain);
 };
 
-const BlogPostContent = require("../app/blog/[slug]/content.tsx").default;
+const BlogPostContent = require("../app/(site)/blog/[slug]/content.tsx").default;
 
 function row(content) {
   return {

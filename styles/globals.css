@@ -687,9 +687,43 @@
   }
 }
 
+/* Белые primary-кнопки: жёлтый круг растёт из точки входа указателя. */
+.pip-cursor-fill {
+  --cursor-fill-x: 50%;
+  --cursor-fill-y: 50%;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-color: #fff;
+  color: #0a0a0a;
+}
+
+.pip-cursor-fill::before {
+  position: absolute;
+  z-index: -1;
+  top: var(--cursor-fill-y);
+  left: var(--cursor-fill-x);
+  width: 250%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #ffff01;
+  content: "";
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pip-cursor-fill:hover::before {
+  transform: translate(-50%, -50%) scale(3);
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+
+  .pip-cursor-fill::before {
+    transition: none;
   }
 
   [data-reveal] {

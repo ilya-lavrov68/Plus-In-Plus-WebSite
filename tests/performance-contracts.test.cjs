@@ -101,9 +101,9 @@ test("blog cards exclude article bodies, sections, excerpts and navigation-only 
   assert.doesNotMatch(blogSource, /STUDIO_BLOG_POSTS|from "@\/lib\/studio-catalog"/);
   for (const file of [
     "components/site/blog-section.tsx",
-    "app/blog/(index)/page.tsx",
-    "app/blog/[slug]/content.tsx",
-    "app/shop/[slug]/content.tsx",
+    "app/(site)/blog/(index)/page.tsx",
+    "app/(site)/blog/[slug]/content.tsx",
+    "app/(site)/shop/[slug]/content.tsx",
   ]) {
     assert.match(source(file), /map\(toBlogCardData\)/, file);
   }
@@ -120,8 +120,8 @@ test("latest-post readers apply the database limit before mapping card content",
   assert.equal(postQueries.length, 1);
   assert.equal(postQueries[0].take, 3);
   assert.equal(postQueries[0].where.isPublished, true);
-  assert.match(source("app/page.tsx"), /getPublishedPosts\(3\)/);
-  assert.match(source("app/shop/[slug]/content.tsx"), /getPublishedPosts\(3\)/);
+  assert.match(source("app/(site)/page.tsx"), /getPublishedPosts\(3\)/);
+  assert.match(source("app/(site)/shop/[slug]/content.tsx"), /getPublishedPosts\(3\)/);
 });
 
 test("sitemap keeps both unbounded reads but selects only URL and date fields", async () => {
@@ -141,7 +141,7 @@ test("sitemap keeps both unbounded reads but selects only URL and date fields", 
   assert.deepEqual(serviceQueries[0].where, { isPublished: true, isActive: true });
   assert.deepEqual(serviceQueries[0].orderBy, { createdAt: "asc" });
 
-  const sitemapSource = source("app/sitemap.ts");
+  const sitemapSource = source("app/(site)/sitemap.ts");
   assert.match(sitemapSource, /getSitemapPosts\(\)/);
   assert.match(sitemapSource, /getSitemapServices\(\)/);
   assert.doesNotMatch(sitemapSource, /getPublishedPosts|getPublishedServices/);
@@ -170,7 +170,7 @@ test("full locale catalogs are separated from browser-safe locale helpers", () =
   const catalogs = source("i18n-catalog.ts");
   assert.match(catalogs, /@\/messages\/en\.json/);
   assert.match(catalogs, /@\/messages\/ru\.json/);
-  for (const file of ["app/layout.tsx", "i18n-request.ts"]) {
+  for (const file of ["app/(site)/layout.tsx", "i18n-request.ts"]) {
     assert.match(source(file), /@\/i18n-catalog/);
   }
 });
@@ -186,7 +186,7 @@ test("client messages omit server actions but preserve every staff fallback", ()
     }
   }
 
-  assert.match(source("app/layout.tsx"), /messages=\{getClientMessages\(locale\)\}/);
+  assert.match(source("app/(site)/layout.tsx"), /messages=\{getClientMessages\(locale\)\}/);
   for (const file of [
     "components/admin/inline-price-editor.tsx",
     "components/admin/inline-price-type.tsx",
@@ -197,7 +197,7 @@ test("client messages omit server actions but preserve every staff fallback", ()
 });
 
 test("critical font preloads are locale-aware and reuse CSS font requests", () => {
-  const layout = source("app/layout.tsx");
+  const layout = source("app/(site)/layout.tsx");
   const head = layout.split("<head>")[1].split("</head>")[0];
 
   for (const href of [

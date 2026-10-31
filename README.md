@@ -3,7 +3,7 @@
 Официальная веб-платформа **Plus In Plus** объединяет два направления: существующую дизайн-практику и анонсируемые ИИ-технологии. На сайте — витрина дизайн-услуг с конфигуратором опций и корзиной, презентация ИИ-агентов Lumi Q1 и Kairo, двухшаговая форма брифа и заявок с прямой записью в БД, блог со статьями и галереями, личный кабинет клиента, рабочее место менеджера и полная админ-панель. Фирменный акцент интерфейса — `#FFFF01`.
 
 **Стек текущей версии:**
-`Next.js 16 (App Router)` · `React 19` · `TypeScript` · `Tailwind CSS 4` · `Shadcnblocks UI (палитра Hero 138)` · `Motion` · `Prisma 6 + libSQL / SQLite (Turso)` · `Auth.js v5` · `next-intl (RU / EN)` · `TipTap` · `Robokassa` · `Sharp (WebP)`
+`Next.js 16 (App Router)` · `React 19` · `TypeScript` · `Tailwind CSS 4` · `Shadcnblocks UI (палитра Hero 138)` · `Motion` · `Prisma 6 + libSQL / SQLite (Turso)` · `Payload 3 (изолированный CMS vertical slice)` · `Auth.js v5` · `next-intl (RU / EN)` · `TipTap` · `Robokassa` · `Sharp (WebP)`
 
 ---
 
@@ -109,9 +109,12 @@ Copy-Item .env.example .env
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
 
-Вставьте ключ в `AUTH_SECRET="..."` внутри `.env`, а для базы оставьте:
+Вставьте ключ в `AUTH_SECRET="..."`, повторите генерацию для независимого `PAYLOAD_SECRET` и оставьте две разные базы:
 ```env
 TURSO_DATABASE_URL="file:./prisma/dev.db"
+PAYLOAD_SECRET="второй_независимый_секрет_от_32_символов"
+PAYLOAD_DATABASE_URL="file:./payload/payload.db"
+PAYLOAD_DATABASE_AUTH_TOKEN=""
 ```
 
 </td>
@@ -132,6 +135,9 @@ nano .env
 TURSO_DATABASE_URL="libsql://plus-in-plus-org.turso.io"
 TURSO_AUTH_TOKEN="ваш_токен_turso"
 AUTH_SECRET="ваш_секрет_от_32_символов"
+PAYLOAD_SECRET="другой_независимый_секрет_от_32_символов"
+PAYLOAD_DATABASE_URL="libsql://plus-in-plus-cms-org.turso.io"
+PAYLOAD_DATABASE_AUTH_TOKEN="токен_отдельной_CMS_БД"
 AUTH_URL="https://example.com"
 NEXT_PUBLIC_SITE_URL="https://example.com"
 WEBAUTHN_ORIGIN="https://example.com"
@@ -151,6 +157,7 @@ WEBAUTHN_RP_ID="example.com"
 
 ```bash
 npm run db:push
+npm run payload:migrate
 npm run db:seed-demo
 npm run db:check
 ```
@@ -174,6 +181,8 @@ npm run db:check
 set -a; source .env; set +a
 npm run db:push
 npm run db:check
+# Только после review payload/migrations и backup отдельной CMS-БД:
+npm run payload:migrate
 ```
 
 После запуска сайта зарегистрируйте свой личный аккаунт через `/signup` и выдайте ему роль основателя (`FOUNDER` — полный доступ, включая настройки оплаты и финансы; из админки эту роль выдать нельзя):
@@ -447,7 +456,7 @@ ROBOKASSA_HASH_ALGO="md5"
 
 Перед любой разработкой или проверкой применяйте [`docs/agent-workflow.md`](docs/agent-workflow.md): он требует завершать не только UI, но и связанные server/data/auth/mutation/error/revalidation слои с end-to-end доказательствами. Для оптимизации дополнительно используйте [`docs/next-forge-optimization.md`](docs/next-forge-optimization.md): там отделены изученные практики `vercel/next-forge` от решений PIP и обозначены будущие измеримые этапы без автоматической смены архитектуры.
 
-Переход staff-панели на Payload пока только спроектирован: [`docs/payload-migration-plan.md`](docs/payload-migration-plan.md) фиксирует platform prerequisites, RBAC/MFA parity, контент и заказы, миграцию Prisma/Turso, backup/rollback и поэтапные go/no-go. Payload в текущей версии не установлен, схема и production-данные не изменены.
+Начат реальный переход staff-панели на Payload `3.92.1`: работают изолированные `/payload` и `/api/payload`, отдельный root layout, Auth.js staff strategy без второго парольного входа, коллекция `posts` и reviewed SQLite migration с `push: false`. CMS использует только `PAYLOAD_DATABASE_URL`, а не Prisma-БД сайта. Публичный сайт пока не читает Payload: production-контент не копировался, полный перенос коллекций, данных, заказов и старого `/admin` не заявляется. Границы и следующие gates — в [`docs/payload-migration-plan.md`](docs/payload-migration-plan.md).
 
 Воспроизводимые baselines, результаты последовательных пакетов и границы доказанности находятся в [`docs/performance-baseline.md`](docs/performance-baseline.md). Для новой bundle-карты выполните `npm run analyze`: это отдельная production-сборка с reports в `.next/analyze/`; analyzer не включается в обычный runtime.
 
@@ -463,7 +472,8 @@ ROBOKASSA_HASH_ALGO="md5"
 | `/contact` | `ContactOrderForm` + `createOrder` | Выбор нескольких услуг и отправка брифа в БД; legacy `POST /api/support` доступен только авторизованному клиенту |
 | `/blog`, `/blog/[slug]` | `Blog 11` · `Blogpost 11` | Публикации с фильтрацией по категориям, обложками, цитатами и санитизированной вёрсткой |
 | `/cart` | Единая корзина и заказы `Order` / `OrderItem` + `OrderCard` | Корзина и список заказов на одной странице: услуги и товары с серверной проверкой цены и остатков, отправка одной заявки на согласование, статусы и счета по отправленным заказам, отмена своего неоплаченного заказа |
-| `/login`, `/register`, `/signup` | `SignUp 10` + `AccountModal` | Локализованные вход и регистрация с отдельным режимом служебного входа |
+| `/login`, `/register`, `/signup` | `SignUp 10` в композиции `login5` + `AccountModal` | Локализованные вход и регистрация без OAuth-кнопок, с отдельным режимом служебного входа и сохранёнными MFA/passkeys |
+| `/payload` | Payload Admin + Auth.js staff strategy | Изолированный первый CMS-срез для `ADMIN` / `FOUNDER`; не заменяет пока существующий `/admin` |
 | `/orders` | Редирект на `/cart` | Отдельной страницы заказов больше нет: корзина и заказы объединены на `/cart`. Маршрут сохранён для старых ссылок и возврата с оплаты |
 | `/profile` | `ProfileForm` · `SecuritySettings` · `SessionRefresh` | Профиль, аватар, смена пароля с отзывом старых сессий, TOTP/passkeys, backup codes и refresh короткой access session |
 | `/manager/orders/*` | Кабинет `MANAGER` | Обработка заявок клиентов, согласование итоговой цены, выставление счёта, фиксация цены с блокировкой заказа и смена статусов |
@@ -473,14 +483,16 @@ ROBOKASSA_HASH_ALGO="md5"
 
 | Путь | Содержимое |
 | --- | --- |
-| `app/` | Маршруты Next.js App Router, API-хендлеры (`app/api/*`) и серверные экшены (`app/actions/*`) |
+| `app/(site)/`, `app/(payload)/` | Два root layout без изменения публичных URL: существующий сайт и изолированный Payload Admin |
+| `app/actions/`, `app/api/`, `app/uploads/` | Существующие server actions и прикладные route handlers на прежних путях |
 | `components/blocks/` | Базовые секции на базе **Shadcnblocks** (`navbar10`, `hero138`, `feature314`, `community3`, `blog11`, `blogpost11`, `services11`, `product-detail1`, `contact29`, `signup10`, `cta13`, `footer7`) |
 | `components/site/`, `admin/`, `orders/`, `ui/`, `spectrumui/` | Обёртки секций с данными БД, админ-таблицы/формы, UI-примитивы и графики |
 | `components/ai/` | Презентация ИИ-направления, WebGL-плеер и статичные схемы агентов без интеграционных API |
 | `public/assets/logos/` | Официальная векторная айдентика: полный логотип `npip.svg` (шапка и футер), знак `lnpip.svg` и логотип партнёра `ts-connect.svg` |
 | `public/uploads/` | Локальное хранилище перекодированных в `.webp` аватаров и обложек (вне Git) |
 | `lib/` | Работа с БД (`libSQL`/Prisma), Auth.js и RBAC-проверки, валидация Zod, санитизация HTML, загрузка изображений, Robokassa, i18n |
-| `prisma/schema.prisma` | Единая схема БД (`sqlite` / `libSQL`) без файлов миграций |
+| `prisma/schema.prisma` | Схема действующей прикладной БД (`sqlite` / `libSQL`) |
+| `payload.config.ts`, `payload/` | Payload config, Auth.js strategy, isolated collections, generated types и reviewed migrations |
 | `messages/{ru,en}.json` | Полная двуязычная локализация интерфейса (`ru` / `en`) |
 | `scripts/` и `tests/` | CLI-скрипты обслуживания БД/деплоя и полный набор автотестов на `node --test` |
 
@@ -496,6 +508,8 @@ ROBOKASSA_HASH_ALGO="md5"
 | `npm run lint` / `npx tsc --noEmit` | Проверка ESLint и строгой типизации TypeScript |
 | `npm test` | Запуск полного набора автотестов (`tests/*.test.cjs`) |
 | `npm run security:audit` / `npm run security:dependencies` | Проверка security-политик исходников и полный аудит зависимостей |
+| `npm run payload:migrate` / `npm run payload -- migrate:status` | Явное применение / проверка reviewed migrations только для отдельной `PAYLOAD_DATABASE_URL`; автоматический `push` выключен |
+| `npm run payload:importmap` / `npm run payload:types` | Повторная генерация Payload import map и TypeScript-типов после согласованного изменения config |
 | `npm run db:push` / `npm run db:check` | Согласованная синхронизация `prisma/schema.prisma` с БД и проверка всех таблиц; перед реальной БД обязательны backup/review |
 | `npm run db:audit-retention -- --older-than-days=365` | Dry-run псевдонимизации старых ActivityLog; apply требует отдельный ключ и `--apply --confirm=PSEUDONYMIZE` |
 | `npm run db:seed-demo` | Заполнение **локальной** SQLite-базы демо-данными и тестовыми ролями |

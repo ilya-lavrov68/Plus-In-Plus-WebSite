@@ -189,7 +189,7 @@ const { AccountModal } = require("../components/site/account-modal.tsx");
 const { Signup10 } = require("../components/blocks/signup10.tsx");
 const { ProfileForm } = require("../components/site/profile-form.tsx");
 const { UserAvatar } = require("../components/site/user-avatar.tsx");
-const LoginPage = require("../app/login/page.tsx").default;
+const LoginPage = require("../app/(site)/login/page.tsx").default;
 
 beforeEach(() => {
   initialSession = null;
@@ -268,7 +268,7 @@ async function submit(view, label, fields) {
   });
 }
 
-test("Signup10 supports Log in / Register tabs with Admin mode only on Log in", async () => {
+test("Signup10 switches Log in / Register modes with Admin mode only on Log in", async () => {
   const view = mount(React.createElement(Signup10, { defaultMode: "login" }));
   assert.equal(view.root.findAllByProps({ role: "switch" }).length, 1);
   assert.deepEqual(
@@ -276,10 +276,12 @@ test("Signup10 supports Log in / Register tabs with Admin mode only on Log in", 
     ["email", "password"]
   );
 
-  const registerTab = view.root
-    .findAllByProps({ role: "tab" })
-    .find((n) => content(n) === "Register");
-  act(() => registerTab.props.onClick());
+  assert.equal(view.root.findAllByProps({ role: "tablist" }).length, 0);
+  const registerLink = view.root
+    .findAllByType("button")
+    .find((n) => content(n) === "Don't have an account? Register");
+  assert.ok(registerLink, "login5 mode link must be present below the form");
+  act(() => registerLink.props.onClick());
   assert.equal(view.root.findAllByProps({ role: "switch" }).length, 0);
   assert.deepEqual(
     view.root.findAllByType("input").map((n) => n.props.name),

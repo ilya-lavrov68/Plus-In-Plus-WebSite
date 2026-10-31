@@ -254,7 +254,7 @@ test("admin editor adds, edits, reorders and removes real timeline moments", asy
 });
 
 test("landing order and protected admin data access are explicit", () => {
-  const page = fs.readFileSync(path.resolve(__dirname, "../app/page.tsx"), "utf8");
+  const page = fs.readFileSync(path.resolve(__dirname, "../app/(site)/page.tsx"), "utf8");
   const hero = page.indexOf("<Hero />");
   const story = page.indexOf("<Story />");
   const features = page.indexOf("<Features />");

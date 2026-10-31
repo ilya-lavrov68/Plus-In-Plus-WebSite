@@ -67,8 +67,8 @@ Module._load = function (name, parent, isMain) {
   return originalLoad.call(this, name, parent, isMain);
 };
 
-const blogPage = require("../app/blog/[slug]/page.tsx");
-const shopPage = require("../app/shop/[slug]/page.tsx");
+const blogPage = require("../app/(site)/blog/[slug]/page.tsx");
+const shopPage = require("../app/(site)/shop/[slug]/page.tsx");
 
 beforeEach(() => {
   locale = "en";
@@ -97,15 +97,16 @@ test("missing shop slugs redirect in metadata and rendering for EN and RU", asyn
 test("dynamic routes have no ancestor loading boundary that streams an early shell", () => {
   for (const file of [
     "app/loading.tsx",
-    "app/blog/loading.tsx",
-    "app/blog/[slug]/loading.tsx",
-    "app/shop/loading.tsx",
-    "app/shop/[slug]/loading.tsx",
+    "app/(site)/loading.tsx",
+    "app/(site)/blog/loading.tsx",
+    "app/(site)/blog/[slug]/loading.tsx",
+    "app/(site)/shop/loading.tsx",
+    "app/(site)/shop/[slug]/loading.tsx",
   ]) {
     assert.equal(fs.existsSync(path.join(__dirname, "..", file)), false, file);
   }
   for (const route of ["blog", "shop"]) {
-    const source = fs.readFileSync(path.join(__dirname, "..", "app", route, "[slug]", "page.tsx"), "utf8");
+    const source = fs.readFileSync(path.join(__dirname, "..", "app", "(site)", route, "[slug]", "page.tsx"), "utf8");
     assert.doesNotMatch(source, /<Suspense/);
   }
 });
