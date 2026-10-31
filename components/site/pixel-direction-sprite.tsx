@@ -10,7 +10,7 @@ interface PixelDirectionSpriteProps {
 }
 
 /**
- * Тематический 8-кадровый sprite, а не непрерывно движущийся фон.
+ * Тематический 24-кадровый sprite, а не непрерывно движущийся фон.
  * CSS steps сохраняет пиксельную сетку; вне viewport и в скрытой вкладке
  * показывается неподвижный финальный кадр, reduced motion не запускает цикл.
  */
@@ -47,7 +47,7 @@ export function PixelDirectionSprite({ variant = "ai", className }: PixelDirecti
       aria-hidden="true"
       data-pixel-sprite={variant}
       data-active="false"
-      data-frame-count="8"
+      data-frame-count="24"
       className={cn("pixel-direction-sprite", `pixel-direction-sprite--${variant}`, className)}
     >
       <div className="pixel-direction-sprite__sheet" />
