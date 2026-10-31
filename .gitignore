@@ -37,6 +37,10 @@ yarn-error.log*
 /prisma/*.db
 /prisma/*.db-*
 
+# отдельная локальная БД Payload (development/CI only)
+/payload/*.db
+/payload/*.db-*
+
 # vercel
 .vercel
 

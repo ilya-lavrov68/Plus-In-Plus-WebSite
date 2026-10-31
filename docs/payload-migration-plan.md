@@ -2,7 +2,16 @@
 
 ## 1. Статус документа
 
-**Payload пока не установлен: выполнен только подготовительный platform-этап.** Сайт переведён на совместимые Next.js 16 / React 19 / Node 24, Prisma-схема и production-данные не затронуты, существующие `/admin`, `/manager`, Auth.js, MFA, заказы и API продолжают работать как прежде. Перенос коллекций, Admin UI, auth и данных остаётся планом.
+**Реализован первый рабочий vertical slice, но полный переход ещё не выполнен.** Установлен Payload `3.92.1`; `/payload` и `/api/payload` работают через отдельный `(payload)` root layout, GraphQL выключен. Существующие страницы перенесены в `(site)` без изменения URL. Старые `/admin`, `/manager`, Auth.js, MFA/passkeys, RBAC, заказы и прикладные API сохранены.
+
+Текущий срез включает:
+- отдельные `PAYLOAD_SECRET` и `PAYLOAD_DATABASE_URL`; запрет совпадения с Prisma/Turso-БД, `push: false` и reviewed `payload/migrations/20261031_195142_initial.ts`;
+- Auth.js custom strategy на `requireAdmin()` с effective role `min(token, DB)`: только `ADMIN` / `FOUNDER`, без Payload password login; shadow-запись содержит лишь Auth.js ID, email и effective role;
+- изолированную RU/EN `posts` collection с Lexical, slug, excerpt и draft/published status. Она **не подключена** к публичному сайту и не является завершённой схемой блога из раздела 5;
+- явный Auth.js logout из Payload и staff guard для `/payload`; REST не заменяет прикладные endpoint'ы;
+- synthetic unit tests и успешное применение миграции к одноразовой SQLite-БД.
+
+Production-данные не копировались, Prisma-схема не менялась. Перенос существующего контента, services/media/settings, orders/custom views, drafts/versions/preview, cutover публичных reads и retirement старой панели остаются следующими этапами с go/no-go проверками.
 
 Дата проверки внешних требований: **31 октября 2026 года**. Перед реализацией каждого этапа версии и официальные требования нужно проверить повторно и зафиксировать точные версии в lockfile.
 
@@ -52,7 +61,7 @@
 
 Актуальный `@payloadcms/next@3.92.1` дополнительно фиксирует в `peerDependencies` Next `>=16.3.3 <17` для линейки 16, поэтому выбранная `16.4.3` удовлетворяет не только общему installation guide, но и фактическому ограничению пакета.
 
-**Платформенная несовместимость устранена.** Payload-пакеты ещё не установлены; их добавление выполняется отдельным изменением после этого platform PR. `cacheComponents` не включать до отдельной проверки: документация Payload пока не гарантирует полную совместимость.
+**Платформенная несовместимость устранена.** Payload `3.92.1` и его Next/SQLite/Lexical/UI-пакеты зафиксированы в lockfile. `cacheComponents` не включать до отдельной проверки: документация Payload пока не гарантирует полную совместимость.
 
 ### 3.2. База данных
 
@@ -153,7 +162,7 @@ Payload Admin (/payload на переходный период, затем /admi
 
 ### 5.3. Блог и авторский редактор
 
-Не переводить контент в Lexical в первом релизе. Сохранить существующие HTML/TipTap и Markdown через custom Payload field component:
+Не конвертировать существующий контент в Lexical автоматически. Новая изолированная `posts` collection первого среза использует Lexical только для новых записей и не подключена к публичным статьям. Для существующих HTML/TipTap и Markdown при реальном cutover нужен custom Payload field component:
 
 - `contentFormat` различает HTML и Markdown;
 - текущий `renderPostContent` и sanitizer остаются серверной границей;
@@ -393,7 +402,7 @@ Payload UI не заменяет доменную логику. Для этих 
 - rollback после новых записей имеет исполнимую delta-процедуру;
 - production-наблюдение стабильно, документация и редакторские инструкции обновлены.
 
-## 11. Решения, которые нужно утвердить до реализации
+## 11. Решения первого среза и оставшиеся gates
 
 1. Platform upgrade на Next 16 и новый Node engine как обязательный первый этап.
 2. Сохранение Auth.js/MFA через custom Payload strategy вместо второго password login.
@@ -403,7 +412,7 @@ Payload UI не заменяет доменную логику. Для этих 
 6. Сохранение TipTap/Markdown вместо немедленной конвертации в Lexical.
 7. Последовательность cutover: контент раньше заказов, без необоснованного big bang.
 
-До утверждения этих пунктов допустимы только synthetic PoC и чтение документации — не установка в production и не изменение схемы.
+Пункты 1–3 реализованы в изолированном vertical slice. Остальные решения и любой production cutover по-прежнему требуют отдельного утверждения, backup/restore и parity-доказательств; текущая реализация не разрешает перенос production-данных или отключение старой панели.
 
 ## 12. Официальные источники
 

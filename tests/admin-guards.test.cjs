@@ -86,6 +86,45 @@ test("protected redirects use the trusted public origin instead of the bind addr
   }
 });
 
+test("Payload pages require ADMIN/FOUNDER while its REST API stays non-redirecting", async () => {
+  process.env.AUTH_SECRET = "test-secret-with-at-least-32-characters";
+
+  const guest = await proxy({ url: "https://preview.example/payload", auth: null });
+  assert.equal(guest.status, 307);
+  assert.equal(
+    guest.headers.get("location"),
+    "https://preview.example/login?mode=admin&callbackUrl=%2Fpayload"
+  );
+
+  for (const [role, expected] of [
+    ["USER", "https://preview.example/"],
+    ["MANAGER", "https://preview.example/manager/orders"],
+  ]) {
+    const response = await proxy({
+      url: "https://preview.example/payload",
+      auth: { user: { id: "staff-1", role } },
+    });
+    assert.equal(response.status, 307);
+    assert.equal(response.headers.get("location"), expected);
+  }
+
+  for (const role of ["ADMIN", "FOUNDER"]) {
+    const response = await proxy({
+      url: "https://preview.example/payload",
+      auth: { user: { id: "staff-1", role } },
+    });
+    assert.equal(response.status, 200);
+  }
+
+  const localeBypass = await proxy({ url: "https://preview.example/ru/payload", auth: null });
+  assert.equal(localeBypass.status, 307);
+  assert.equal(localeBypass.headers.get("location"), "https://preview.example/payload");
+
+  const api = await proxy({ url: "https://preview.example/api/payload/posts", auth: null });
+  assert.equal(api.status, 200);
+  assert.equal(api.headers.get("location"), null);
+});
+
 test("admin data queries have their own guard; layouts alone are not trusted", async () => {
   for (const getter of Object.values(data)) await assert.rejects(getter("id"), /redirect:\//);
   assert.equal(queries.length, 0);

@@ -24,6 +24,10 @@ jobs:
       # CI-only dummy values. Real deployments set their own AUTH_SECRET
       # (at least 32 characters) in the hosting panel; nothing here is a secret.
       AUTH_SECRET: "ci-only-secret-used-by-the-test-suite-32ch"
+      # Отдельная одноразовая CMS-БД: не Prisma и не production.
+      PAYLOAD_SECRET: "ci-only-payload-secret-not-for-production-32ch"
+      PAYLOAD_DATABASE_URL: "file:./payload/ci.db"
+      PAYLOAD_DATABASE_AUTH_TOKEN: ""
     steps:
       - uses: actions/checkout@v4
 
@@ -74,6 +78,11 @@ jobs:
         run: |
           npm run db:push
           npm run db:check
+
+      - name: Apply reviewed Payload migrations to the disposable CMS database
+        run: |
+          npm run payload:migrate
+          npm run payload -- migrate:status
 
       - name: Production build
         run: npm run build

@@ -61,7 +61,7 @@ Module._load = function (name, parent, isMain) {
   return originalLoad.call(this, name, parent, isMain);
 };
 
-const PaymentSuccessPage = require("../app/payment/success/page.tsx").default;
+const PaymentSuccessPage = require("../app/(site)/payment/success/page.tsx").default;
 
 const textOf = (node) =>
   node.children

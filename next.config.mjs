@@ -1,3 +1,4 @@
+import { withPayload } from "@payloadcms/next/withPayload";
 import createNextIntlPlugin from "next-intl/plugin";
 
 /** @type {import('next').NextConfig} */
@@ -38,5 +39,7 @@ if (process.env.ANALYZE === "true") {
   const { default: withBundleAnalyzer } = await import("@next/bundle-analyzer");
   config = withBundleAnalyzer({ enabled: true, openAnalyzer: false })(config);
 }
+
+config = withPayload(config);
 
 export default config;

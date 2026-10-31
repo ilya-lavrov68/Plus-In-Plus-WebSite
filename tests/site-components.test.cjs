@@ -198,8 +198,8 @@ const { Signup10 } = require("../components/blocks/signup10.tsx");
 const { CandlestickChart } = require("../components/spectrumui/candlestick-chart.tsx");
 const { ServiceConfigurator } = require("../components/site/service-configurator.tsx");
 const { OrderCard } = require("../components/site/order-card.tsx");
-const CartPage = require("../app/cart/page.tsx").default;
-const OrdersPage = require("../app/orders/page.tsx").default;
+const CartPage = require("../app/(site)/cart/page.tsx").default;
+const OrdersPage = require("../app/(site)/orders/page.tsx").default;
 const { CookieBanner } = require("../components/site/cookie-banner.tsx");
 const {
   MobileBottomNav,
@@ -371,7 +371,7 @@ test("Dedicated agent pages use four distinct Illos shader processes per agent",
   }
 
   const mechanism = fs.readFileSync(path.resolve(__dirname, "../components/ai/agent-mechanism.tsx"), "utf8");
-  const sitemap = fs.readFileSync(path.resolve(__dirname, "../app/sitemap.ts"), "utf8");
+  const sitemap = fs.readFileSync(path.resolve(__dirname, "../app/(site)/sitemap.ts"), "utf8");
   assert.match(mechanism, /AgentShaderPlayer/);
   assert.match(mechanism, /MECHANISM_SCENES/);
   assert.doesNotMatch(mechanism, /PermissionsScene|SandboxScene|agent-motion|setInterval/);
@@ -943,7 +943,7 @@ test("Navbar10 shares one cart request between desktop and mobile navigation", a
 
 test("mobile navigation coordinates safe-area and fixed UI clearance", () => {
   const read = (file) => fs.readFileSync(path.resolve(__dirname, "..", file), "utf8");
-  const layout = read("app/layout.tsx");
+  const layout = read("app/(site)/layout.tsx");
   assert.match(layout, /viewportFit:\s*"cover"/);
   assert.match(layout, /pb-\[var\(--mobile-bottom-nav-clearance\)\]/);
 

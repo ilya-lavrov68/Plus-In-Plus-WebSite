@@ -25,11 +25,13 @@ const requestPathname = (request: { nextUrl?: { pathname?: string }; url?: strin
 
 function isProtectedPath(pathname: string): {
   isAdminArea: boolean;
+  isPayloadArea: boolean;
   isManagerArea: boolean;
   isOrdersArea: boolean;
   isFounderSettings: boolean;
 } {
   const isAdminArea = pathname === "/admin" || pathname.startsWith("/admin/");
+  const isPayloadArea = pathname === "/payload" || pathname.startsWith("/payload/");
   const isManagerArea = pathname === "/manager" || pathname.startsWith("/manager/");
   const isOrdersArea =
     pathname === "/orders" ||
@@ -40,7 +42,7 @@ function isProtectedPath(pathname: string): {
     pathname.startsWith("/profile/");
   const isFounderSettings =
     pathname === "/admin/settings" || pathname.startsWith("/admin/settings/");
-  return { isAdminArea, isManagerArea, isOrdersArea, isFounderSettings };
+  return { isAdminArea, isPayloadArea, isManagerArea, isOrdersArea, isFounderSettings };
 }
 
 /**
@@ -104,9 +106,9 @@ function carryOver(from: unknown, to: NextResponse): void {
 
 const authMiddleware = NextAuth(authConfig).auth((request) => {
   const pathname = requestPathname(request);
-  const { isAdminArea, isManagerArea, isOrdersArea, isFounderSettings } =
+  const { isAdminArea, isPayloadArea, isManagerArea, isOrdersArea, isFounderSettings } =
     isProtectedPath(pathname);
-  if (!isAdminArea && !isManagerArea && !isOrdersArea) {
+  if (!isAdminArea && !isPayloadArea && !isManagerArea && !isOrdersArea) {
     return NextResponse.next();
   }
 
@@ -116,8 +118,9 @@ const authMiddleware = NextAuth(authConfig).auth((request) => {
 
   if (!signedIn) {
     const mayRefresh = request.cookies?.get(REFRESH_PRESENT_COOKIE)?.value === "1";
-    const target = new URL(isOrdersArea || mayRefresh ? "/login" : "/", publicUrl);
-    if (mayRefresh) {
+    const target = new URL(isOrdersArea || mayRefresh || isPayloadArea ? "/login" : "/", publicUrl);
+    if (isPayloadArea) target.searchParams.set("mode", "admin");
+    if (mayRefresh || isPayloadArea) {
       const requestedPath = `${pathname}${request.nextUrl?.search ?? ""}`;
       target.searchParams.set("callbackUrl", requestedPath);
     }
@@ -128,7 +131,7 @@ const authMiddleware = NextAuth(authConfig).auth((request) => {
     return NextResponse.redirect(new URL("/", publicUrl));
   }
   // Админка — администратору и основателю; менеджера ведём в его заявки.
-  if (isAdminArea && role !== "FOUNDER" && role !== "ADMIN") {
+  if ((isAdminArea || isPayloadArea) && role !== "FOUNDER" && role !== "ADMIN") {
     return NextResponse.redirect(new URL("/manager/orders", publicUrl));
   }
   // ЖЁСТКОЕ ОГРАНИЧЕНИЕ: /admin/settings доступен ТОЛЬКО для FOUNDER.
@@ -153,6 +156,7 @@ export async function proxy(
     const strippedGuards = isProtectedPath(stripped);
     if (
       strippedGuards.isAdminArea ||
+      strippedGuards.isPayloadArea ||
       strippedGuards.isManagerArea ||
       strippedGuards.isOrdersArea
     ) {
@@ -172,10 +176,10 @@ export async function proxy(
     }
   }
 
-  const { isAdminArea, isManagerArea, isOrdersArea } =
+  const { isAdminArea, isPayloadArea, isManagerArea, isOrdersArea } =
     isProtectedPath(pathname);
 
-  if (isAdminArea || isManagerArea || isOrdersArea) {
+  if (isAdminArea || isPayloadArea || isManagerArea || isOrdersArea) {
     const decision = await authMiddleware(request, event);
     const location = (decision as NextResponse | undefined)?.headers?.get(
       "location"
