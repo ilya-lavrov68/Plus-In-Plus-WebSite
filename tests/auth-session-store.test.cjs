@@ -56,13 +56,13 @@ const authSession = {
   },
 };
 
-const prisma = {
+const db = {
   authSession,
-  $transaction: async (callback) => callback(prisma),
+  transaction: async (callback) => callback(db),
 };
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/prisma") return { prisma };
+  if (name === "@/lib/payload-db") return { db };
   if (name === "next/headers") {
     return { cookies: async () => ({
       get: (key) => cookieValues.has(key) ? { value: cookieValues.get(key).value } : undefined,

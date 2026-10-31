@@ -9,7 +9,7 @@ const { execFileSync } = require("node:child_process");
 
 const root = path.resolve(__dirname, "..");
 const findings = [];
-const sourceExtensions = new Set([".ts", ".tsx", ".js", ".cjs", ".mjs", ".json", ".prisma", ".yml", ".yaml"]);
+const sourceExtensions = new Set([".ts", ".tsx", ".js", ".cjs", ".mjs", ".json", ".db", ".yml", ".yaml"]);
 const files = [];
 
 function walk(relativeDirectory) {
@@ -23,8 +23,8 @@ function walk(relativeDirectory) {
   }
 }
 
-for (const directory of ["app", "components", "lib", "scripts", "prisma", "tests", ".github"]) walk(directory);
-for (const filename of ["auth.ts", "auth.config.ts", "proxy.ts", "next.config.mjs"]) {
+for (const directory of ["app", "components", "lib", "payload", "scripts", "tests", ".github"]) walk(directory);
+for (const filename of ["auth.ts", "auth.config.ts", "proxy.ts", "next.config.mjs", "payload.config.ts"]) {
   if (fs.existsSync(path.join(root, filename))) files.push(filename);
 }
 
@@ -60,7 +60,7 @@ for (const file of files) {
 }
 
 const analytics = fs.readFileSync(path.join(root, "lib/admin-analytics.ts"), "utf8");
-if (!analytics.includes("prisma.$queryRawUnsafe(sql, ...args)")) {
+if (!analytics.includes("db.queryRaw")) {
   report("lib/admin-analytics.ts", 1, "raw-sql-must-use-bound-parameters");
 }
 const postContent = fs.readFileSync(path.join(root, "lib/post-content.ts"), "utf8");

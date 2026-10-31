@@ -4,7 +4,7 @@ import {
   ShopCatalogView,
   type ShopProductCardData,
 } from "@/components/site/shop-catalog-view";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/payload-db";
 import { getRequestLocale } from "@/lib/request-locale";
 import { createPageMetadata } from "@/lib/seo";
 import { getRequestTranslations } from "@/lib/server-i18n";
@@ -12,10 +12,10 @@ import { getRequestTranslations } from "@/lib/server-i18n";
 export const dynamic = "force-dynamic";
 
 async function getActiveShopProducts(): Promise<ShopProductCardData[]> {
-  if (!prisma) return [];
+  if (!db) return [];
 
   try {
-    const rows = await prisma.product.findMany({
+    const rows = await db.product.findMany({
       where: { isActive: true },
       orderBy: { createdAt: "desc" },
     });
@@ -36,10 +36,10 @@ async function getActiveShopProducts(): Promise<ShopProductCardData[]> {
 }
 
 async function hasActiveShopProducts(): Promise<boolean> {
-  if (!prisma) return false;
+  if (!db) return false;
 
   try {
-    return (await prisma.product.count({ where: { isActive: true } })) > 0;
+    return (await db.product.count({ where: { isActive: true } })) > 0;
   } catch (error) {
     console.error("Failed to count shop products for metadata:", error);
     return false;

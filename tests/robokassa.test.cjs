@@ -39,7 +39,7 @@ const invoiceDb = {
     // получит тот же id, что уже лежит в базе.
     this.sequence = Math.max(this.sequence, rows.length);
   },
-  prisma: {
+  db: {
     payment: {
       findMany: async ({ where = {} } = {}) =>
         [...invoiceDb.payments.values()]
@@ -69,7 +69,7 @@ const invoiceDb = {
       create: async ({ data }) => {
         if (data.externalId != null && [...invoiceDb.payments.values()].some((payment) =>
           payment.provider === data.provider && payment.externalId === data.externalId)) {
-          throw Object.assign(new Error("duplicate provider invoice"), { code: "P2002" });
+          throw Object.assign(new Error("duplicate provider invoice"), { code: "PAYLOAD_UNIQUE_CONSTRAINT" });
         }
         const row = { id: `pay-${++invoiceDb.sequence}`, createdAt: new Date(), ...data };
         invoiceDb.payments.set(row.id, row);
@@ -108,7 +108,7 @@ const invoiceDb = {
     activityLog: {
       create: async ({ data }) => { invoiceDb.logs.push(structuredClone(data)); return data; },
     },
-    $transaction: async (callback) => callback(invoiceDb.prisma),
+    transaction: async (callback) => callback(invoiceDb.db),
   },
 };
 
@@ -117,7 +117,7 @@ Module._load = function (name, parent, isMain) {
   // Сгенерированный Prisma-клиент — ESM, из .cjs его не подключить.
   // invoice.ts всё равно работает только с базой, а здесь проверяется
   // чистая арифметика номера счёта.
-  if (name === "@/lib/prisma") return { prisma: invoiceDb.prisma };
+  if (name === "@/lib/payload-db") return { db: invoiceDb.db };
   if (name.startsWith("@/")) name = path.resolve(__dirname, "..", name.slice(2));
   return originalLoad.call(this, name, parent, isMain);
 };
@@ -387,7 +387,7 @@ describe("повторное выставление счёта", () => {
 
   test("concurrent invoice requests reuse one unique InvId", async () => {
     const { issueInvoice } = require("../lib/payments/invoice.ts");
-    const schema = fs.readFileSync(path.join(__dirname, "..", "prisma", "schema.prisma"), "utf8");
+    const schema = fs.readFileSync(path.join(__dirname, "..", "db", "schema.db"), "utf8");
     assert.match(schema, /@@unique\(\[provider, externalId\]\)/);
     invoiceDb.reset();
     const input = {

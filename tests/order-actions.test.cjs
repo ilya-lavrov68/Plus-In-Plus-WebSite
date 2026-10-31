@@ -16,7 +16,7 @@ require.extensions[".ts"] = (module, filename) =>
 // Только в памяти. Никаких записей в реальную БД.
 let admin, customer, orders, orderItems, payments, logs, invalidated, sequence, invoiceClients, invoiceFailure, writeRaceLost;
 
-const prisma = {
+const db = {
   user: {
     // requireCustomer проверяет, что аккаунт жив и не заблокирован.
     findUnique: async ({ where }) =>
@@ -72,10 +72,10 @@ const prisma = {
     create: async ({ data }) => { logs.push(structuredClone(data)); return data; },
   },
 };
-prisma.$transaction = async (callback) => {
+db.transaction = async (callback) => {
   const snapshot = structuredClone({ orders, orderItems, payments, logs });
   try {
-    return await callback(prisma);
+    return await callback(db);
   } catch (error) {
     orders = snapshot.orders;
     orderItems = snapshot.orderItems;
@@ -87,7 +87,7 @@ prisma.$transaction = async (callback) => {
 
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/prisma") return { prisma };
+  if (name === "@/lib/payload-db") return { db };
   // Заявки ведёт requireStaff: администратор и менеджер.
   if (name === "@/lib/admin-session") return {
     requireAdmin: async () => (admin && admin.id !== "usr-manager" ? admin : null),
@@ -185,7 +185,7 @@ test("setOrderPrice: создаёт счёт на согласованную с�
   assert.equal(payment.orderId, id);
   // Ссылки пока нет — её даст платёжный провайдер.
   assert.equal(payment.paymentUrl, null);
-  assert.equal(invoiceClients[0], prisma, "invoice writes use the order transaction client");
+  assert.equal(invoiceClients[0], db, "invoice writes use the order transaction client");
 });
 
 test("setOrderPrice rolls back the price and line writes if the invoice cannot be issued", async () => {

@@ -1,4 +1,4 @@
-import type { Prisma } from "@/lib/generated/prisma/client";
+import type { PayloadTransactionClient } from "@/lib/payload-db";
 
 export interface ActivityInput {
   action: string;
@@ -12,6 +12,6 @@ export interface ActivityInput {
 }
 
 /** Use the mutation's transaction: an audit entry must not outlive a failed write. */
-export async function recordActivity(tx: Prisma.TransactionClient, activity: ActivityInput) {
+export async function recordActivity(tx: PayloadTransactionClient, activity: ActivityInput) {
   await tx.activityLog.create({ data: activity });
 }

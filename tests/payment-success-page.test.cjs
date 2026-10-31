@@ -35,7 +35,7 @@ let signatureValid = false;
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
   if (name === "next/link") return tag("a");
-  if (name === "@/lib/prisma") return { prisma: {
+  if (name === "@/lib/payload-db") return { db: {
     payment: {
       findFirst: async () => paymentStatus ? { status: paymentStatus } : null,
     },

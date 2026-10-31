@@ -52,7 +52,7 @@ function matchesActiveOrderForService(order, where) {
   return true;
 }
 
-const prisma = {
+const db = {
   user: {
     findUnique: async ({ where }) => {
       const row = users.get(where.id);
@@ -227,7 +227,7 @@ const prisma = {
   authSession: {
     updateMany: async () => ({ count: 0 }),
   },
-  $transaction: async (fn) => fn(prisma),
+  transaction: async (fn) => fn(db),
 };
 
 const originalLoad = Module._load;
@@ -236,7 +236,7 @@ Module._load = function (name, parent, isMain) {
     compare: async (password, hash) => password === "current-password" && hash === "current-hash",
     hash: async (password) => `hash:${password}`,
   };
-  if (name === "@/lib/prisma") return { prisma };
+  if (name === "@/lib/payload-db") return { db };
   if (name === "@/lib/password-breach") return {
     CompromisedPasswordError: class CompromisedPasswordError extends Error {},
     assertPasswordNotCompromised: async () => {},

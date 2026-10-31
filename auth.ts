@@ -12,14 +12,27 @@ import {
   downgradeAuthSession,
 } from "@/lib/auth-sessions";
 import { authorizeCredentials } from "@/lib/credentials";
-import { prisma } from "@/lib/prisma";
+import { getPayloadClient } from "@/lib/payload-native";
 import { logServerError } from "@/lib/security-log";
 import { localAvatarPath } from "@/lib/upload-policy";
-import { normalizeRole, profileName, userProfileSelect } from "@/lib/user-profile";
+import { normalizeRole, profileName } from "@/lib/user-profile";
 
 /** A revocable session marker without putting the bcrypt hash itself in the JWT. */
 function passwordStamp(passwordHash: string): string {
   return createHash("sha256").update(passwordHash).digest("base64url");
+}
+
+async function findAuthAccount(id: string) {
+  const payload = await getPayloadClient();
+  const result = await payload.find({
+    collection: "accounts",
+    depth: 0,
+    limit: 1,
+    overrideAccess: true,
+    showHiddenFields: true,
+    where: { id: { equals: id } },
+  });
+  return result.docs[0] ?? null;
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -44,10 +57,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async signOut(message) {
       try {
         const token = "token" in message ? message.token : null;
-        if (prisma && token?.sessionId) {
-          await prisma.authSession.updateMany({
-            where: { id: token.sessionId, revokedAt: null },
-            data: { revokedAt: new Date(), revokeReason: "logout" },
+        if (token?.sessionId) {
+          const payload = await getPayloadClient();
+          await payload.update({
+            collection: "auth-sessions",
+            data: { revokedAt: new Date().toISOString(), revokeReason: "logout" },
+            overrideAccess: true,
+            where: {
+              and: [
+                { id: { equals: token.sessionId } },
+                { revokedAt: { exists: false } },
+              ],
+            },
           });
         }
         await clearRefreshCookies();
@@ -59,14 +80,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     ...authConfig.callbacks,
     async jwt({ token, user }) {
-      if (!isAuthConfigured() || !prisma) return null;
+      if (!isAuthConfigured()) return null;
       try {
         if (user) {
-          const account = await prisma.user.findUnique({
-            where: { id: user.id },
-            select: { ...userProfileSelect, passwordHash: true },
-          });
-          if (!account || account.isBlocked) return null;
+          const account = await findAuthAccount(user.id);
+          if (!account || account.isBlocked || !account.passwordHash) return null;
 
           const requestedRole = normalizeRole(user.role);
           token.id = account.id;
@@ -101,13 +119,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         } else {
           if (!token.id || !token.passwordStamp || !token.sessionId || !token.deviceHash) return null;
           const [account, activeSession] = await Promise.all([
-            prisma.user.findUnique({
-              where: { id: token.id },
-              select: { ...userProfileSelect, passwordHash: true },
-            }),
+            findAuthAccount(token.id),
             authSessionIsActive(token.sessionId, token.deviceHash),
           ]);
-          if (!account || account.isBlocked || !activeSession) return null;
+          if (!account || account.isBlocked || !account.passwordHash || !activeSession) return null;
           // Password reset and server-side session revocation are both immediate.
           if (token.passwordStamp !== passwordStamp(account.passwordHash)) return null;
           token.email = account.email;

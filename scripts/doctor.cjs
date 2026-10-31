@@ -1,7 +1,7 @@
 // `npm run doctor` — one command that answers "can this checkout actually run?".
 //
 // It reports, in order: the Node version, install integrity (the cause of every
-// `Module not found` 500), the generated Prisma client, the database target and the
+// `Module not found` 500), the generated Payload artifacts, the database target and the
 // environment values the site needs to authenticate users and take payments. Secrets are
 // never printed — only whether they are present and long enough.
 //
@@ -72,11 +72,12 @@ function collectFindings({ env = process.env, versions = process.versions.node }
     }
   }
 
-  const prismaClient = path.join(rootDir, "lib", "generated", "prisma");
-  if (fs.existsSync(prismaClient)) {
-    add("ok", "prisma", "Prisma client is generated (lib/generated/prisma).");
+  const payloadTypes = path.join(rootDir, "payload", "payload-types.ts");
+  const importMap = path.join(rootDir, "app", "(payload)", "admin", "importMap.js");
+  if (fs.existsSync(payloadTypes) && fs.existsSync(importMap)) {
+    add("ok", "db", "Payload types and admin import map are generated.");
   } else {
-    add("error", "prisma", "Prisma client is missing — run: npm run prisma:generate");
+    add("error", "db", "Payload artifacts are missing — run: npm run payload:types && npm run payload:importmap");
   }
 
   try {
@@ -99,6 +100,13 @@ function collectFindings({ env = process.env, versions = process.versions.node }
     add("warn", "auth", `AUTH_SECRET is ${secret.length} characters; at least 32 are required for sessions to be issued.`);
   } else {
     add("ok", "auth", "AUTH_SECRET is set and long enough (value not printed).");
+  }
+
+  const payloadSecret = (env.PAYLOAD_SECRET || fileEnv.PAYLOAD_SECRET || "").trim();
+  if (payloadSecret.length < 32) {
+    add("error", "payload", "PAYLOAD_SECRET must contain at least 32 characters (value not printed).");
+  } else {
+    add("ok", "payload", "PAYLOAD_SECRET is set and long enough (value not printed).");
   }
 
   const isProduction = (env.NODE_ENV ?? "").toLowerCase() === "production";

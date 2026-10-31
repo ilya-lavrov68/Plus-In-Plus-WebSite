@@ -11,21 +11,21 @@ require.extensions[".ts"] = (module, filename) => module._compile(ts.transpileMo
 // In-memory repositories only. No user, content or seed is inserted in PostgreSQL.
 let admin, store, logs, failAudit, uploads, cleaned, invalidated, queries, sequence, activeOrderCount;
 class UploadValidationError extends Error {}
-const prisma = { activityLog: { create: async ({ data }) => {
+const db = { activityLog: { create: async ({ data }) => {
   if (failAudit) throw new Error("simulated audit failure"); logs.push(structuredClone(data)); return data;
 } } };
 for (const entity of ["service", "post"]) {
-  prisma[entity] = {
+  db[entity] = {
     findUnique: async ({ where }) => { queries += 1; return structuredClone(store[entity].get(where.id) ?? null); },
     create: async ({ data }) => {
       queries += 1;
-      if (entity === "post" && [...store.post.values()].some((p) => p.slug === data.slug)) throw Object.assign(new Error("unique"), { code: "P2002" });
+      if (entity === "post" && [...store.post.values()].some((p) => p.slug === data.slug)) throw Object.assign(new Error("unique"), { code: "PAYLOAD_UNIQUE_CONSTRAINT" });
       const result = { id: `mock-${entity}-${++sequence}`, ...structuredClone(data) }; store[entity].set(result.id, result); return structuredClone(result);
     },
     update: async ({ where, data }) => {
       queries += 1;
       const old = store[entity].get(where.id); if (!old) throw new Error("missing");
-      if (entity === "post" && [...store.post.values()].some((p) => p.id !== where.id && p.slug === data.slug)) throw Object.assign(new Error("unique"), { code: "P2002" });
+      if (entity === "post" && [...store.post.values()].some((p) => p.id !== where.id && p.slug === data.slug)) throw Object.assign(new Error("unique"), { code: "PAYLOAD_UNIQUE_CONSTRAINT" });
       Object.assign(old, structuredClone(data)); return structuredClone(old);
     },
     updateMany: async ({ where = {}, data }) => {
@@ -52,14 +52,14 @@ for (const entity of ["service", "post"]) {
     }).length,
   };
 }
-prisma.order = { count: async () => activeOrderCount };
-prisma.$transaction = async (callback) => {
+db.order = { count: async () => activeOrderCount };
+db.transaction = async (callback) => {
   const snapshot = structuredClone({ store, logs });
-  try { return await callback(prisma); } catch (e) { store = snapshot.store; logs = snapshot.logs; throw e; }
+  try { return await callback(db); } catch (e) { store = snapshot.store; logs = snapshot.logs; throw e; }
 };
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/prisma") return { prisma };
+  if (name === "@/lib/payload-db") return { db };
   if (name === "@/lib/admin-session") return { requireAdmin: async () => admin };
   if (name === "next/cache") return { revalidatePath: (url) => invalidated.push(url) };
   if (name === "@/lib/uploads") return {

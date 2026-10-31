@@ -1,56 +1,34 @@
 import { NextResponse } from "next/server";
 
-import { prisma } from "@/lib/prisma";
+import { getPayloadClient } from "@/lib/payload-native";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  if (!prisma) {
-    return NextResponse.json({ post: null });
-  }
-
   try {
-    const now = new Date();
-    const publishedWindow = {
-      isPublished: true,
-      OR: [{ publishedAt: null }, { publishedAt: { lte: now } }],
-    };
-
-    let post = await prisma.post.findFirst({
-      where: { ...publishedWindow, isFeatured: true },
-      orderBy: [
-        { publishedAt: { sort: "desc", nulls: "last" } },
-        { createdAt: "desc" },
-      ],
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        excerpt: true,
-        coverImage: true,
-        isFeatured: true,
-      },
+    const payload = await getPayloadClient();
+    const published = { and: [{ isPublished: { equals: true } }, { or: [{ publishedAt: { exists: false } }, { publishedAt: { less_than_equal: new Date().toISOString() } }] }] };
+    const find = (featured: boolean) => payload.find({
+      collection: "posts",
+      depth: 1,
+      limit: 1,
+      sort: ["-publishedAt", "-createdAt"],
+      overrideAccess: true,
+      where: featured ? { and: [{ isFeatured: { equals: true } }, ...published.and] } : published,
     });
-
-    if (!post) {
-      post = await prisma.post.findFirst({
-        where: publishedWindow,
-        orderBy: [
-          { publishedAt: { sort: "desc", nulls: "last" } },
-          { createdAt: "desc" },
-        ],
-        select: {
-          id: true,
-          title: true,
-          slug: true,
-          excerpt: true,
-          coverImage: true,
-          isFeatured: true,
-        },
-      });
-    }
-
-    return NextResponse.json({ post });
+    let result = await find(true);
+    if (!result.docs.length) result = await find(false);
+    const post = result.docs[0] as any;
+    return NextResponse.json({
+      post: post ? {
+        id: post.id,
+        title: post.title,
+        slug: post.slug,
+        excerpt: post.excerpt,
+        coverImage: post.coverImage ?? (typeof post.cover === "object" ? post.cover?.url : null),
+        isFeatured: post.isFeatured,
+      } : null,
+    });
   } catch (error) {
     console.error("Failed to load featured post:", error);
     return NextResponse.json({ post: null });

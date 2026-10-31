@@ -29,14 +29,6 @@ yarn-error.log*
 .env
 .env*.local
 
-# prisma
-/lib/generated/
-# local libSQL/SQLite database (development only)
-/prisma/dev.db
-/prisma/dev.db-*
-/prisma/*.db
-/prisma/*.db-*
-
 # отдельная локальная БД Payload (development/CI only)
 /payload/*.db
 /payload/*.db-*
@@ -47,9 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-# local prisma engine stub (offline workaround, not part of the project)
-/.prisma-stub/
 
 # runtime account/admin uploads (keep folder structure + docs via negations)
 /public/uploads/avatars/*
@@ -71,3 +60,7 @@ next-env.d.ts
 /dump.sql
 /backup-*.sql
 *.dump
+
+# Payload Media runtime files
+/public/uploads/media/*
+!/public/uploads/media/.gitkeep

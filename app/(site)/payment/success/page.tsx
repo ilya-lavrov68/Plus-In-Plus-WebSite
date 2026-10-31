@@ -3,7 +3,7 @@ import { CheckCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/payload-db";
 import { signatureMatches, successSignature } from "@/lib/payments/robokassa";
 import { resolveRobokassaConfig } from "@/lib/payments/robokassa-config";
 import { getRequestTranslations } from "@/lib/server-i18n";
@@ -45,8 +45,8 @@ export default async function PaymentSuccessPage({ searchParams }: PaymentPagePr
 
   // Статус показываем из базы, а не из ссылки: вдруг уведомление ещё в пути.
   let status: string | null = null;
-  if (prisma && invId) {
-    const payment = await prisma.payment
+  if (db && invId) {
+    const payment = await db.payment
       .findFirst({
         where: { externalId: invId, provider: "robokassa" },
         select: { status: true },

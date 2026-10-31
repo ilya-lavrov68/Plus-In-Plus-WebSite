@@ -62,7 +62,7 @@ test("Payload refuses to reuse the Prisma/Turso application database", () => {
     () => assert.throws(() => require(modulePath), /must not reuse/)
   );
   withEnv(
-    { ...valid, PAYLOAD_DATABASE_URL: "file:./prisma/dev.db" },
+    { ...valid, PAYLOAD_DATABASE_URL: "file:./db/dev.db" },
     () => assert.throws(() => require(modulePath), /must not reuse/)
   );
 });

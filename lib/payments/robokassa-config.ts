@@ -1,6 +1,6 @@
-import type { Prisma } from "@/lib/generated/prisma/client";
+import type { PayloadTransactionClient } from "@/lib/payload-db";
 
-import { prisma } from "@/lib/prisma";
+import { db as database } from "@/lib/payload-db";
 import { pickConfig, type ResolvedRobokassa } from "@/lib/payments/robokassa";
 
 /**
@@ -14,11 +14,11 @@ import { pickConfig, type ResolvedRobokassa } from "@/lib/payments/robokassa";
  * Ошибка чтения настроек не должна ломать оплату целиком: падаем на env/демо.
  */
 export async function resolveRobokassaConfig(
-  db?: Pick<Prisma.TransactionClient, "siteSetting">,
+  db?: Pick<PayloadTransactionClient, "siteSetting">,
 ): Promise<ResolvedRobokassa> {
   let settings: Record<string, string> = {};
   try {
-    const client = db ?? prisma;
+    const client = db ?? database;
     const rows = await client?.siteSetting?.findMany({
       where: { key: { startsWith: "robokassa" } },
     });

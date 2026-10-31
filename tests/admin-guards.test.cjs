@@ -15,7 +15,7 @@ Module._load = function (name, parent, isMain) {
   if (name === "next-auth") return () => ({ auth: (callback) => callback });
   if (name === "next/navigation") return { redirect: (url) => { throw new Error(`redirect:${url}`); } };
   if (name === "@/lib/admin-session") return { requireAdmin: async () => admin };
-  if (name === "@/lib/prisma") return { prisma: {
+  if (name === "@/lib/payload-db") return { db: {
     user: { findMany, count: async () => 0 }, post: { findMany, findUnique: findMany, count: async () => 0 },
     service: { findMany, findUnique: findMany, count: async () => 0 }, activityLog: { findMany },
   } };

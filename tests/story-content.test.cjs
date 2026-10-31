@@ -24,7 +24,7 @@ let revalidated;
 let storyQueries;
 let failAudit;
 
-const prisma = {
+const db = {
   siteSetting: {
     upsert: async ({ where, update, create }) => {
       stored.set(where.key, stored.has(where.key) ? update.value : create.value);
@@ -43,11 +43,11 @@ const prisma = {
       return data;
     },
   },
-  $transaction: async (callback) => {
+  transaction: async (callback) => {
     const storedSnapshot = new Map(stored);
     const auditSnapshot = [...audits];
     try {
-      return await callback(prisma);
+      return await callback(db);
     } catch (error) {
       stored = storedSnapshot;
       audits = auditSnapshot;
@@ -58,7 +58,7 @@ const prisma = {
 
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/prisma") return { prisma };
+  if (name === "@/lib/payload-db") return { db };
   if (name === "@/lib/admin-session") {
     return {
       requireAdmin: async () =>

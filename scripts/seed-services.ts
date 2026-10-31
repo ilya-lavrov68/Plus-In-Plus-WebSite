@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/payload-db";
 import { STUDIO_SERVICES } from "@/lib/studio-catalog";
 
 interface SeedServiceSpec {
@@ -103,13 +103,13 @@ const services: SeedServiceSpec[] = [
 ];
 
 async function main() {
-  if (!prisma) {
+  if (!db) {
     throw new Error(
-      "Database client is not configured. Run `npm run db:push` first."
+      "Database client is not configured. Run `npm run payload:migrate` first."
     );
   }
 
-  console.log("🌱 Seeding services...");
+  console.log("Seeding services through Payload…");
 
   for (const service of services) {
     const preset = STUDIO_SERVICES.find(
@@ -119,21 +119,21 @@ async function main() {
 
     // Migrate legacy slug row in place if present and no orders block it
     if (service.legacySlug) {
-      const targetExists = await prisma.service.findUnique({
+      const targetExists = await db.service.findUnique({
         where: { slug: service.slug },
         select: { id: true },
       });
-      const legacyRow = await prisma.service.findUnique({
+      const legacyRow = await db.service.findUnique({
         where: { slug: service.legacySlug },
         select: { id: true },
       });
       if (legacyRow && !targetExists) {
-        await prisma.service.update({
+        await db.service.update({
           where: { id: legacyRow.id },
           data: { slug: service.slug },
         });
       } else if (legacyRow && targetExists) {
-        const refCount = await prisma.order.count({
+        const refCount = await db.order.count({
           where: {
             OR: [
               { services: { some: { serviceId: legacyRow.id } } },
@@ -142,7 +142,7 @@ async function main() {
           },
         });
         if (refCount === 0) {
-          await prisma.service.delete({ where: { id: legacyRow.id } });
+          await db.service.delete({ where: { id: legacyRow.id } });
         }
       }
     }
@@ -155,7 +155,7 @@ async function main() {
       preset?.resultText ??
       "Production-ready design layout and realistic preview.";
 
-    await prisma.service.upsert({
+    await db.service.upsert({
       where: { slug: service.slug },
       update: {
         title: service.name,
@@ -196,11 +196,11 @@ async function main() {
     });
 
     console.log(
-      `✓ Added: ${service.name} (${service.category} — ${service.basePrice.toLocaleString("ru-RU")} ₽)`
+      `Added: ${service.name} (${service.category} — ${service.basePrice.toLocaleString("ru-RU")} ₽)`
     );
   }
 
-  console.log("✅ Services seeding completed");
+  console.log("Services seeding completed.");
 }
 
 main()
@@ -209,5 +209,5 @@ main()
     process.exit(1);
   })
   .finally(async () => {
-    await prisma?.$disconnect();
+    await db?.close();
   });

@@ -1,20 +1,18 @@
-import { prisma } from "@/lib/prisma";
-import {
-  normalizePublicSiteSettings,
-  PUBLIC_SITE_SETTING_KEYS,
-  type PublicSiteSettings,
-} from "@/lib/site-settings";
+import { getPayloadClient } from "@/lib/payload-native";
+import { normalizePublicSiteSettings, PUBLIC_SITE_SETTING_KEYS, type PublicSiteSettings } from "@/lib/site-settings";
 
-/** Fails closed to an empty object and never selects parser/payment/notification secrets. */
+/** Публичные ключи только allowlist; parser/payment/notification secrets не читаются. */
 export async function getPublicSiteSettings(): Promise<PublicSiteSettings> {
-  if (!prisma) return {};
-
   try {
-    const rows = await prisma.siteSetting.findMany({
+    const payload = await getPayloadClient();
+    const result = await payload.find({
+      collection: "site-settings",
+      depth: 0,
+      pagination: false,
+      overrideAccess: true,
       where: { key: { in: [...PUBLIC_SITE_SETTING_KEYS] } },
-      select: { key: true, value: true },
     });
-    return normalizePublicSiteSettings(rows);
+    return normalizePublicSiteSettings(result.docs.map((row) => ({ key: row.key, value: row.value })));
   } catch (error) {
     console.error("Failed to load public site settings:", error);
     return {};

@@ -27,7 +27,7 @@ let publishedPosts = [];
 let settingRows = [];
 let settingQueries = [];
 
-const prisma = {
+const db = {
   product: {
     findMany: async ({ where } = {}) =>
       productRows.filter((row) => !where?.isActive || row.isActive),
@@ -44,7 +44,7 @@ const prisma = {
 
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/prisma") return { prisma };
+  if (name === "@/lib/payload-db") return { db };
   if (name === "@/lib/request-locale") {
     return { getRequestLocale: async () => "en" };
   }
@@ -222,8 +222,8 @@ test("public settings have a server-only loader and are wired to metadata and th
   const layout = fs.readFileSync(path.resolve(__dirname, "../app/(site)/layout.tsx"), "utf8");
   const footer = fs.readFileSync(path.resolve(__dirname, "../components/site/footer.tsx"), "utf8");
 
-  assert.equal(shared.includes("@/lib/prisma"), false);
-  assert.ok(loader.includes("@/lib/prisma"));
+  assert.equal(shared.includes("@/lib/payload-db"), false);
+  assert.ok(loader.includes("@/lib/payload-db"));
   assert.ok(layout.includes("getPublicSiteSettings"));
   assert.ok(layout.includes("settings.metaTitle"));
   assert.ok(footer.includes("getPublicSiteSettings"));

@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 import { recordActivity } from "@/lib/activity-log";
 import { requireActiveCustomer } from "@/lib/cart";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/payload-db";
 import { checkRateLimitAsync, getClientAddress, hashRateLimitIdentifier, retryAfterHeaders } from "@/lib/rate-limit";
 import { isJsonObject, readJsonBody } from "@/lib/request-body";
 import { isSameOriginRequest } from "@/lib/request-origin";
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   if (!isSameOriginRequest(request)) {
     return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
   }
-  if (!prisma) {
+  if (!db) {
     return NextResponse.json(
       { ok: false, error: "Database connection is temporarily unavailable." },
       { status: 503 }
@@ -116,7 +116,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const matchedService = await prisma.service.findFirst({
+    const matchedService = await db.service.findFirst({
       where: {
         ...(serviceId
           ? { OR: [{ id: serviceId }, { slug: serviceSlug || serviceId }] }
@@ -146,10 +146,10 @@ export async function POST(request: Request) {
     const resolvedCustomerId = customerId;
 
     for (let attempt = 0; attempt < 5; attempt += 1) {
-      const sequence = (await prisma.order.count()) + 1 + attempt;
+      const sequence = (await db.order.count()) + 1 + attempt;
       orderNumber = formatOrderNumber(sequence);
       try {
-        await prisma.$transaction(async (tx) => {
+        await db.transaction(async (tx) => {
           const order = await tx.order.create({
             data: {
               number: orderNumber,

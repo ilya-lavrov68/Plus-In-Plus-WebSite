@@ -21,7 +21,7 @@ class CredentialsSignin extends Error { code = "credentials"; }
 function nextAuth(config) { options = config; return {}; }
 nextAuth.CredentialsSignin = CredentialsSignin;
 
-const prisma = {
+const db = {
   user: { findUnique: async () => {
     if (lookupFails) throw new Error("simulated DB outage");
     return account;
@@ -70,7 +70,7 @@ Module._load = function (name, parent, isMain) {
     downgradeAuthSession: async () => {},
     rotateAuthSession: async () => null,
   };
-  if (name === "@/lib/prisma") return { prisma };
+  if (name === "@/lib/payload-db") return { db };
   if (name.startsWith("@/")) name = path.resolve(__dirname, "..", name.slice(2));
   return originalLoad.call(this, name, parent, isMain);
 };

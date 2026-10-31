@@ -27,7 +27,7 @@ Module._load = function (name, parent, isMain) {
     auth: async () => { authCalls += 1; return null; },
     signIn: async () => { signInCalls += 1; },
   };
-  if (name === "@/lib/prisma") return { prisma: {} };
+  if (name === "@/lib/payload-db") return { db: {} };
   if (name === "@/lib/payments/invoice") return {
     issueInvoice: async () => { invoiceCalls += 1; return null; },
   };

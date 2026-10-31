@@ -35,13 +35,13 @@ async function main() {
 
   try {
     if (!email) {
-      const rows = await client.execute("select id, email, role, createdAt from users order by createdAt");
+      const rows = await client.execute("select id, email, role, created_at from accounts order by created_at");
       if (rows.rows.length === 0) {
         console.log("[admin] No accounts yet — register in the site first, then promote that email.");
         return;
       }
       for (const row of rows.rows) {
-        console.log(`  ${String(row.role).padEnd(7)} ${String(row.email).padEnd(32)} ${String(row.createdAt)}  ${String(row.id)}`);
+        console.log(`  ${String(row.role).padEnd(7)} ${String(row.email).padEnd(32)} ${String(row.created_at)}  ${String(row.id)}`);
       }
       console.log("[admin] Promote with: npm run db:promote-admin -- <email> [--founder|--manager|--revoke]");
       return;
@@ -52,7 +52,7 @@ async function main() {
       process.exit(1);
     }
 
-    const existing = await client.execute({ sql: "select id, role from users where email = ?", args: [email] });
+    const existing = await client.execute({ sql: "select id, role from accounts where email = ?", args: [email] });
     if (existing.rows.length === 0) {
       console.error(`[admin] No account with email ${email}. Register it in the site first.`);
       process.exit(1);
@@ -72,7 +72,7 @@ async function main() {
       console.warn(`[admin] NOTE: FOUNDER is invulnerable in the admin UI and sees Settings/finances. Keep exactly one founder account.`);
     }
 
-    await client.execute({ sql: "update users set role = ?, updatedAt = ? where email = ?", args: [role, new Date().toISOString().replace("Z", "+00:00"), email] });
+    await client.execute({ sql: "update accounts set role = ?, updated_at = ? where email = ?", args: [role, new Date().toISOString().replace("Z", "+00:00"), email] });
     console.log(`[admin] ${email} is now ${role}. Log out, reopen "Log in", enable Admin mode, and log in again.`);
   } finally {
     client.close();

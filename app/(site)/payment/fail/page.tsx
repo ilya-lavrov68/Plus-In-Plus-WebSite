@@ -3,7 +3,7 @@ import { XCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/payload-db";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getRequestTranslations } from "@/lib/server-i18n";
 
@@ -34,8 +34,8 @@ export default async function PaymentFailPage({ searchParams }: PaymentPageProps
   // Если уведомление об оплате успело прийти раньше браузера — человек
   // просто закрыл вкладку не там, где мы ждали. Показываем правду.
   let alreadyPaid = false;
-  if (prisma && invId) {
-    const payment = await prisma.payment
+  if (db && invId) {
+    const payment = await db.payment
       .findFirst({
         where: { externalId: invId, provider: "robokassa" },
         select: { status: true },

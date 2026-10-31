@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/payload-db";
 import { looksLikeContactOrNetworkText, pseudonymizeActivityRecord } from "@/lib/audit-retention";
 
 const BATCH_SIZE = 500;
@@ -9,7 +9,7 @@ function argument(name: string): string | undefined {
 }
 
 async function main(): Promise<void> {
-  const database = prisma;
+  const database = db;
   if (!database) throw new Error("Database unavailable");
   const days = Number(argument("older-than-days") ?? "365");
   if (!Number.isSafeInteger(days) || days < 1 || days > 3650) {
@@ -31,10 +31,14 @@ async function main(): Promise<void> {
   let changed = 0;
   do {
     const rows = await database.activityLog.findMany({
-      where: { createdAt: { lt: cutoff } },
+      where: {
+        AND: [
+          { createdAt: { lt: cutoff } },
+          ...(cursor ? [{ id: { gt: cursor } }] : []),
+        ],
+      },
       orderBy: { id: "asc" },
       take: BATCH_SIZE,
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       select: { id: true, actorId: true, actorPseudonym: true, title: true },
     });
     if (!rows.length) break;
@@ -46,12 +50,18 @@ async function main(): Promise<void> {
       const next = pseudonymizeActivityRecord(row, key!);
       if (!next.changed) return [];
       changed += 1;
-      return [database.activityLog.update({
-        where: { id: row.id },
-        data: { actorId: null, actorPseudonym: next.actorPseudonym, title: next.title },
-      })];
+      return [{ id: row.id as string, actorPseudonym: next.actorPseudonym, title: next.title }];
     });
-    if (updates.length) await database.$transaction(updates);
+    if (updates.length) {
+      await database.transaction(async (tx) => {
+        for (const update of updates) {
+          await tx.activityLog.update({
+            where: { id: update.id },
+            data: { actorId: null, actorPseudonym: update.actorPseudonym, title: update.title },
+          });
+        }
+      });
+    }
     cursor = rows[rows.length - 1]?.id;
     if (rows.length < BATCH_SIZE) break;
   } while (true);
@@ -75,5 +85,5 @@ main()
     process.exitCode = 1;
   })
   .finally(async () => {
-    await prisma?.$disconnect();
+    await db?.close();
   });

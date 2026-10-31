@@ -3,30 +3,15 @@
 import bcrypt from "bcryptjs";
 import QRCode from "qrcode";
 import { revalidatePath } from "next/cache";
-import {
-  generateAuthenticationOptions,
-  generateRegistrationOptions,
-  verifyRegistrationResponse,
-} from "@simplewebauthn/server";
+import { generateAuthenticationOptions, generateRegistrationOptions, verifyRegistrationResponse } from "@simplewebauthn/server";
 
 import { auth } from "@/auth";
 import { getActionTranslator } from "@/lib/action-i18n";
-import { recordActivity } from "@/lib/activity-log";
 import { revokeOtherAuthSessions } from "@/lib/auth-sessions";
 import { parseJsonArray } from "@/lib/db-helpers";
-import {
-  createTotpSecret,
-  decryptMfaSecret,
-  encryptMfaSecret,
-  generateBackupCodes,
-  totpUri,
-  verifyTotp,
-} from "@/lib/mfa";
-import {
-  readPendingLogin,
-  savePendingWebAuthnChallenge,
-} from "@/lib/pending-login";
-import { prisma } from "@/lib/prisma";
+import { createTotpSecret, decryptMfaSecret, encryptMfaSecret, generateBackupCodes, totpUri, verifyTotp } from "@/lib/mfa";
+import { readPendingLogin, savePendingWebAuthnChallenge } from "@/lib/pending-login";
+import { getPayloadClient, payloadDate, withPayloadTransaction } from "@/lib/payload-native";
 import { checkRateLimitAsync, hashRateLimitIdentifier } from "@/lib/rate-limit";
 import { logSecurityEvent, logServerError } from "@/lib/security-log";
 import { profileName } from "@/lib/user-profile";
@@ -34,59 +19,35 @@ import { webAuthnConfigFromAction } from "@/lib/webauthn-config";
 
 class AuthenticationRequired extends Error {}
 class RateLimited extends Error {}
-
 const TOTP_SETUP_TTL_MS = 10 * 60 * 1000;
+export interface MfaActionResult { ok: boolean; error?: string; backupCodes?: string[] }
+export interface TotpSetupResult extends MfaActionResult { secret?: string; qrCode?: string; otpauthUri?: string; setupId?: number; setupExpiresIn?: number }
+export interface TotpEnableResult extends MfaActionResult { failureReason?: "invalid-code" | "stale-setup" }
 
-export interface MfaActionResult {
-  ok: boolean;
-  error?: string;
-  backupCodes?: string[];
+async function writeActivity(payload: any, req: any, action: string, userId: string) {
+  await payload.create({ collection: "activity-logs", data: { action, entityType: "user", entityId: userId, title: "User account", actorId: userId }, overrideAccess: true, req });
 }
-
-export interface TotpSetupResult extends MfaActionResult {
-  secret?: string;
-  qrCode?: string;
-  otpauthUri?: string;
-  setupId?: number;
-  setupExpiresIn?: number;
-}
-
-export interface TotpEnableResult extends MfaActionResult {
-  failureReason?: "invalid-code" | "stale-setup";
-}
-
 async function requireAccount() {
   const session = await auth();
-  if (!session?.user?.id || !prisma) throw new AuthenticationRequired();
-  const account = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    include: {
-      webAuthnCredentials: {
-        select: { id: true, publicKey: true, counter: true, transports: true, name: true },
-      },
-    },
-  });
+  if (!session?.user?.id) throw new AuthenticationRequired();
+  const payload = await getPayloadClient();
+  const result = await payload.find({ collection: "accounts", depth: 0, limit: 1, overrideAccess: true, showHiddenFields: true, where: { id: { equals: session.user.id } } });
+  const account = result.docs[0] as any;
   if (!account || account.isBlocked) throw new AuthenticationRequired();
-  return account;
+  const credentials = await payload.find({ collection: "webauthn-credentials", depth: 0, pagination: false, overrideAccess: true, where: { userId: { equals: account.id } } });
+  return {
+    ...account,
+    mfaPendingCreatedAt: payloadDate(account.mfaPendingCreatedAt),
+    webAuthnRegistrationChallengeExp: payloadDate(account.webAuthnRegistrationChallengeExp),
+    webAuthnCredentials: credentials.docs,
+  };
 }
-
 async function mfaRateLimit(userId: string, operation: string, limit = 10): Promise<void> {
-  const result = await checkRateLimitAsync(
-    hashRateLimitIdentifier(`mfa-${operation}:${userId}`),
-    limit,
-    10 * 60 * 1000,
-  );
+  const result = await checkRateLimitAsync(hashRateLimitIdentifier(`mfa-${operation}:${userId}`), limit, 10 * 60 * 1000);
   if (!result.allowed) throw new RateLimited();
 }
-
-async function verifyOwner(
-  account: { passwordHash: string; mfaSecret: string | null },
-  password: unknown,
-  code: unknown,
-): Promise<"password" | "mfa" | null> {
-  if (typeof password !== "string" || !password || !(await bcrypt.compare(password, account.passwordHash))) {
-    return "password";
-  }
+async function verifyOwner(account: { passwordHash: string; mfaSecret: string | null }, password: unknown, code: unknown): Promise<"password" | "mfa" | null> {
+  if (typeof password !== "string" || !password || !(await bcrypt.compare(password, account.passwordHash))) return "password";
   if (account.mfaSecret && !verifyTotp(account.mfaSecret, code)) return "mfa";
   return null;
 }
@@ -97,73 +58,33 @@ export async function beginTotpSetup(): Promise<TotpSetupResult> {
     const account = await requireAccount();
     await mfaRateLimit(account.id, "setup");
     if (account.mfaSecret) return { ok: false, error: t("mfaAlreadyEnabled") };
-
+    const payload = await getPayloadClient();
     const cutoff = Date.now() - TOTP_SETUP_TTL_MS;
-    let secret: string | null = null;
-    let setupId: number | undefined;
-    if (account.mfaPendingSecret && account.mfaPendingCreatedAt && account.mfaPendingCreatedAt.getTime() >= cutoff) {
-      setupId = account.mfaPendingCreatedAt.getTime();
-      try {
-        // Reopening the setup must not invalidate a QR already scanned in another tab.
-        secret = decryptMfaSecret(account.mfaPendingSecret);
-      } catch {
-        // An unreadable pending enrollment can be replaced; an enabled factor cannot.
-        secret = null;
-        setupId = undefined;
+    const enrollment = await withPayloadTransaction(payload, async (req) => {
+      const currentResult = await payload.find({ collection: "accounts", depth: 0, limit: 1, overrideAccess: true, showHiddenFields: true, req, where: { id: { equals: account.id } } });
+      const current = currentResult.docs[0] as any;
+      if (!current || current.isBlocked) throw new AuthenticationRequired();
+      if (current.mfaSecret) return { already: true as const };
+      const pendingAt = payloadDate(current.mfaPendingCreatedAt);
+      if (current.mfaPendingSecret && pendingAt && pendingAt.getTime() >= cutoff) {
+        try { return { secret: decryptMfaSecret(current.mfaPendingSecret), createdAt: pendingAt }; } catch { /* replace unreadable pending enrollment */ }
       }
-    }
-
-    if (!secret) {
-      const candidate = createTotpSecret();
-      const encrypted = encryptMfaSecret(candidate);
+      const secret = createTotpSecret();
       const createdAt = new Date();
-      const stored = await prisma!.user.updateMany({
-        where: {
-          id: account.id,
-          mfaSecret: null,
-          OR: [
-            { mfaPendingSecret: null },
-            { mfaPendingCreatedAt: null },
-            { mfaPendingCreatedAt: { lt: new Date(cutoff) } },
-            ...(account.mfaPendingSecret && account.mfaPendingCreatedAt ? [{
-              mfaPendingSecret: account.mfaPendingSecret,
-              mfaPendingCreatedAt: account.mfaPendingCreatedAt,
-            }] : []),
-          ],
-        },
-        data: { mfaPendingSecret: encrypted, mfaPendingCreatedAt: createdAt },
+      await payload.update({
+        collection: "accounts",
+        id: account.id,
+        data: { mfaPendingSecret: encryptMfaSecret(secret), mfaPendingCreatedAt: createdAt.toISOString() },
+        overrideAccess: true,
+        req,
       });
-
-      if (stored.count === 1) {
-        secret = candidate;
-        setupId = createdAt.getTime();
-      } else {
-        // A parallel request won the atomic write. Return its enrollment instead
-        // of showing a QR whose secret is no longer stored for this account.
-        const current = await prisma!.user.findUnique({
-          where: { id: account.id },
-          select: { mfaSecret: true, mfaPendingSecret: true, mfaPendingCreatedAt: true },
-        });
-        if (current?.mfaSecret) return { ok: false, error: t("mfaAlreadyEnabled") };
-        if (!current?.mfaPendingSecret || !current.mfaPendingCreatedAt || current.mfaPendingCreatedAt.getTime() < cutoff) {
-          throw new Error("TOTP enrollment changed concurrently.");
-        }
-        setupId = current.mfaPendingCreatedAt.getTime();
-        secret = decryptMfaSecret(current.mfaPendingSecret);
-      }
-    }
-
-    if (setupId === undefined) throw new Error("TOTP enrollment has no creation timestamp.");
-    const otpauthUri = totpUri(secret, account.email);
+      return { secret, createdAt };
+    });
+    if ("already" in enrollment) return { ok: false, error: t("mfaAlreadyEnabled") };
+    const setupId = enrollment.createdAt.getTime();
+    const otpauthUri = totpUri(enrollment.secret, account.email);
     const qrCode = await QRCode.toDataURL(otpauthUri, { width: 256, margin: 1, errorCorrectionLevel: "M" });
-    return {
-      ok: true,
-      secret,
-      qrCode,
-      otpauthUri,
-      setupId,
-      setupExpiresIn: Math.max(0, setupId + TOTP_SETUP_TTL_MS - Date.now()),
-    };
+    return { ok: true, secret: enrollment.secret, qrCode, otpauthUri, setupId, setupExpiresIn: Math.max(0, setupId + TOTP_SETUP_TTL_MS - Date.now()) };
   } catch (error) {
     if (error instanceof AuthenticationRequired) return { ok: false, error: t("unauthorized") };
     if (error instanceof RateLimited) return { ok: false, error: t("tooManyMfaAttempts") };
@@ -177,43 +98,28 @@ export async function enableTotp(code: string, setupId?: number): Promise<TotpEn
   try {
     const account = await requireAccount();
     await mfaRateLimit(account.id, "verify", 5);
-    if (!account.mfaPendingSecret || !account.mfaPendingCreatedAt || account.mfaPendingCreatedAt.getTime() < Date.now() - TOTP_SETUP_TTL_MS) {
-      return { ok: false, error: t("mfaSetupExpired"), failureReason: "stale-setup" };
-    }
-    if (setupId !== undefined && (!Number.isSafeInteger(setupId) || account.mfaPendingCreatedAt.getTime() !== setupId)) {
-      return { ok: false, error: t("mfaSetupExpired"), failureReason: "stale-setup" };
-    }
+    if (!account.mfaPendingSecret || !account.mfaPendingCreatedAt || account.mfaPendingCreatedAt.getTime() < Date.now() - TOTP_SETUP_TTL_MS) return { ok: false, error: t("mfaSetupExpired"), failureReason: "stale-setup" };
+    if (setupId !== undefined && (!Number.isSafeInteger(setupId) || account.mfaPendingCreatedAt.getTime() !== setupId)) return { ok: false, error: t("mfaSetupExpired"), failureReason: "stale-setup" };
     if (!verifyTotp(account.mfaPendingSecret, code)) {
-      // Fixed redacted event: no account, secret, submitted code or expected code.
       logSecurityEvent("auth.mfa.failed");
       return { ok: false, error: t("invalidMfaCode"), failureReason: "invalid-code" };
     }
     const firstFactor = !account.mfaSecret && account.webAuthnCredentials.length === 0;
     const backup = firstFactor ? generateBackupCodes() : null;
-    await prisma!.$transaction(async (tx) => {
-      await tx.user.update({
-        where: { id: account.id },
-        data: {
-          mfaSecret: account.mfaPendingSecret,
-          mfaPendingSecret: null,
-          mfaPendingCreatedAt: null,
-          ...(firstFactor ? { mfaEnabledAt: new Date() } : {}),
-        },
-        select: { id: true },
+    const payload = await getPayloadClient();
+    await withPayloadTransaction(payload, async (req) => {
+      await payload.update({
+        collection: "accounts",
+        id: account.id,
+        data: { mfaSecret: account.mfaPendingSecret, mfaPendingSecret: null, mfaPendingCreatedAt: null, ...(firstFactor ? { mfaEnabledAt: new Date().toISOString() } : {}) },
+        overrideAccess: true,
+        req,
       });
       if (backup) {
-        await tx.mfaBackupCode.deleteMany({ where: { userId: account.id } });
-        await tx.mfaBackupCode.createMany({
-          data: backup.hashes.map((codeHash) => ({ userId: account.id, codeHash })),
-        });
+        await payload.delete({ collection: "mfa-backup-codes", where: { userId: { equals: account.id } }, overrideAccess: true, req });
+        for (const codeHash of backup.hashes) await payload.create({ collection: "mfa-backup-codes", data: { userId: account.id, codeHash }, overrideAccess: true, req });
       }
-      await recordActivity(tx, {
-        action: "mfa enabled",
-        entityType: "user",
-        entityId: account.id,
-        title: "User account",
-        actorId: account.id,
-      });
+      await writeActivity(payload, req, "mfa enabled", account.id);
     });
     if (firstFactor) await revokeOtherAuthSessions(account.id, "mfa_enabled");
     logSecurityEvent("auth.mfa.setup_complete");
@@ -232,24 +138,15 @@ export async function regenerateBackupCodes(password: string, code: string): Pro
   try {
     const account = await requireAccount();
     await mfaRateLimit(account.id, "backup", 5);
-    if (!account.mfaSecret && account.webAuthnCredentials.length === 0) {
-      return { ok: false, error: t("mfaNotEnabled") };
-    }
+    if (!account.mfaSecret && account.webAuthnCredentials.length === 0) return { ok: false, error: t("mfaNotEnabled") };
     const failure = await verifyOwner(account, password, code);
     if (failure) return { ok: false, error: t(failure === "password" ? "currentPasswordIncorrect" : "invalidMfaCode") };
     const backup = generateBackupCodes();
-    await prisma!.$transaction(async (tx) => {
-      await tx.mfaBackupCode.deleteMany({ where: { userId: account.id } });
-      await tx.mfaBackupCode.createMany({
-        data: backup.hashes.map((codeHash) => ({ userId: account.id, codeHash })),
-      });
-      await recordActivity(tx, {
-        action: "backup codes regenerated",
-        entityType: "user",
-        entityId: account.id,
-        title: "User account",
-        actorId: account.id,
-      });
+    const payload = await getPayloadClient();
+    await withPayloadTransaction(payload, async (req) => {
+      await payload.delete({ collection: "mfa-backup-codes", where: { userId: { equals: account.id } }, overrideAccess: true, req });
+      for (const codeHash of backup.hashes) await payload.create({ collection: "mfa-backup-codes", data: { userId: account.id, codeHash }, overrideAccess: true, req });
+      await writeActivity(payload, req, "backup codes regenerated", account.id);
     });
     revalidatePath("/profile");
     return { ok: true, backupCodes: backup.codes };
@@ -265,27 +162,16 @@ export async function getMfaPasskeyOptions(pendingLoginId: string, pendingLoginS
   const t = await getActionTranslator();
   try {
     const pending = await readPendingLogin(pendingLoginId, pendingLoginSecret);
-    if (!pending || pending.user.webAuthnCredentials.length === 0) {
-      return { ok: false as const, error: t("passkeyUnavailable") };
-    }
-    const limit = await checkRateLimitAsync(
-      hashRateLimitIdentifier(`mfa-passkey-options:${pendingLoginId}`),
-      10,
-      5 * 60 * 1000,
-    );
+    if (!pending || pending.user.webAuthnCredentials.length === 0) return { ok: false as const, error: t("passkeyUnavailable") };
+    const limit = await checkRateLimitAsync(hashRateLimitIdentifier(`mfa-passkey-options:${pendingLoginId}`), 10, 5 * 60 * 1000);
     if (!limit.allowed) return { ok: false as const, error: t("tooManyMfaAttempts") };
     const config = await webAuthnConfigFromAction();
     const options = await generateAuthenticationOptions({
       rpID: config.rpID,
       userVerification: "required",
-      allowCredentials: pending.user.webAuthnCredentials.map((credential) => ({
-        id: credential.id,
-        transports: parseJsonArray(credential.transports),
-      })),
+      allowCredentials: pending.user.webAuthnCredentials.map((credential: { id: string; transports: string }) => ({ id: credential.id, transports: parseJsonArray(credential.transports) })),
     });
-    if (!(await savePendingWebAuthnChallenge(pending.id, pending.secretHash, options.challenge))) {
-      return { ok: false as const, error: t("invalidMfaCode") };
-    }
+    if (!(await savePendingWebAuthnChallenge(pending.id, pending.secretHash, options.challenge))) return { ok: false as const, error: t("invalidMfaCode") };
     return { ok: true as const, options };
   } catch (error) {
     logServerError("auth.mfa.passkey_failed", error);
@@ -300,26 +186,16 @@ export async function beginPasskeyRegistration() {
     await mfaRateLimit(account.id, "passkey-setup");
     const config = await webAuthnConfigFromAction();
     const options = await generateRegistrationOptions({
-      rpName: "Plus In Plus",
-      rpID: config.rpID,
-      userID: new TextEncoder().encode(account.id),
-      userName: account.email,
-      userDisplayName: profileName(account) || account.email,
-      attestationType: "none",
-      excludeCredentials: account.webAuthnCredentials.map((credential) => ({
-        id: credential.id,
-        transports: parseJsonArray(credential.transports),
-      })),
-      authenticatorSelection: { residentKey: "preferred", userVerification: "required" },
-      supportedAlgorithmIDs: [-7, -257],
+      rpName: "Plus In Plus", rpID: config.rpID, userID: new TextEncoder().encode(account.id), userName: account.email,
+      userDisplayName: profileName(account) || account.email, attestationType: "none",
+      excludeCredentials: account.webAuthnCredentials.map((credential: { id: string; transports: string }) => ({ id: credential.id, transports: parseJsonArray(credential.transports) })),
+      authenticatorSelection: { residentKey: "preferred", userVerification: "required" }, supportedAlgorithmIDs: [-7, -257],
     });
-    await prisma!.user.update({
-      where: { id: account.id },
-      data: {
-        webAuthnRegistrationChallenge: options.challenge,
-        webAuthnRegistrationChallengeExp: new Date(Date.now() + 10 * 60 * 1000),
-      },
-      select: { id: true },
+    const payload = await getPayloadClient();
+    await payload.update({
+      collection: "accounts", id: account.id,
+      data: { webAuthnRegistrationChallenge: options.challenge, webAuthnRegistrationChallengeExp: new Date(Date.now() + 10 * 60 * 1000).toISOString() },
+      overrideAccess: true,
     });
     return { ok: true as const, options };
   } catch (error) {
@@ -331,67 +207,34 @@ export async function beginPasskeyRegistration() {
 }
 
 type RegistrationResponse = Parameters<typeof verifyRegistrationResponse>[0]["response"];
-
 export async function finishPasskeyRegistration(response: RegistrationResponse, name: string): Promise<MfaActionResult> {
   const t = await getActionTranslator();
   try {
     const account = await requireAccount();
     await mfaRateLimit(account.id, "passkey-verify", 5);
-    if (!account.webAuthnRegistrationChallenge || !account.webAuthnRegistrationChallengeExp || account.webAuthnRegistrationChallengeExp.getTime() <= Date.now()) {
-      return { ok: false, error: t("mfaSetupExpired") };
-    }
-    if (!response || typeof response !== "object" || JSON.stringify(response).length > 32_768) {
-      return { ok: false, error: t("passkeyFailed") };
-    }
+    if (!account.webAuthnRegistrationChallenge || !account.webAuthnRegistrationChallengeExp || account.webAuthnRegistrationChallengeExp.getTime() <= Date.now()) return { ok: false, error: t("mfaSetupExpired") };
+    if (!response || typeof response !== "object" || JSON.stringify(response).length > 32_768) return { ok: false, error: t("passkeyFailed") };
     const config = await webAuthnConfigFromAction();
-    const verification = await verifyRegistrationResponse({
-      response,
-      expectedChallenge: account.webAuthnRegistrationChallenge,
-      expectedOrigin: config.origin,
-      expectedRPID: config.rpID,
-      requireUserVerification: true,
-      supportedAlgorithmIDs: [-7, -257],
-    });
+    const verification = await verifyRegistrationResponse({ response, expectedChallenge: account.webAuthnRegistrationChallenge, expectedOrigin: config.origin, expectedRPID: config.rpID, requireUserVerification: true, supportedAlgorithmIDs: [-7, -257] });
     if (!verification.verified) return { ok: false, error: t("passkeyFailed") };
     const firstFactor = !account.mfaSecret && account.webAuthnCredentials.length === 0;
     const backup = firstFactor ? generateBackupCodes() : null;
     const credential = verification.registrationInfo.credential;
-    const safeName = typeof name === "string" && name.trim() && !/[\u0000-\u001f]/.test(name)
-      ? name.trim().slice(0, 80)
-      : "Passkey";
-    await prisma!.$transaction(async (tx) => {
-      await tx.webAuthnCredential.create({
-        data: {
-          id: credential.id,
-          userId: account.id,
-          publicKey: Buffer.from(credential.publicKey).toString("base64url"),
-          counter: String(credential.counter),
-          transports: JSON.stringify(credential.transports ?? []),
-          name: safeName,
-        },
+    const safeName = typeof name === "string" && name.trim() && !/[\u0000-\u001f]/.test(name) ? name.trim().slice(0, 80) : "Passkey";
+    const payload = await getPayloadClient();
+    await withPayloadTransaction(payload, async (req) => {
+      await payload.create({
+        collection: "webauthn-credentials",
+        data: { id: credential.id, userId: account.id, publicKey: Buffer.from(credential.publicKey).toString("base64url"), counter: String(credential.counter), transports: JSON.stringify(credential.transports ?? []), name: safeName },
+        overrideAccess: true,
+        req,
       });
-      await tx.user.update({
-        where: { id: account.id },
-        data: {
-          webAuthnRegistrationChallenge: null,
-          webAuthnRegistrationChallengeExp: null,
-          ...(firstFactor ? { mfaEnabledAt: new Date() } : {}),
-        },
-        select: { id: true },
-      });
+      await payload.update({ collection: "accounts", id: account.id, data: { webAuthnRegistrationChallenge: null, webAuthnRegistrationChallengeExp: null, ...(firstFactor ? { mfaEnabledAt: new Date().toISOString() } : {}) }, overrideAccess: true, req });
       if (backup) {
-        await tx.mfaBackupCode.deleteMany({ where: { userId: account.id } });
-        await tx.mfaBackupCode.createMany({
-          data: backup.hashes.map((codeHash) => ({ userId: account.id, codeHash })),
-        });
+        await payload.delete({ collection: "mfa-backup-codes", where: { userId: { equals: account.id } }, overrideAccess: true, req });
+        for (const codeHash of backup.hashes) await payload.create({ collection: "mfa-backup-codes", data: { userId: account.id, codeHash }, overrideAccess: true, req });
       }
-      await recordActivity(tx, {
-        action: "passkey added",
-        entityType: "user",
-        entityId: account.id,
-        title: "User account",
-        actorId: account.id,
-      });
+      await writeActivity(payload, req, "passkey added", account.id);
     });
     if (firstFactor) await revokeOtherAuthSessions(account.id, "mfa_enabled");
     logSecurityEvent("auth.mfa.setup_complete");
@@ -413,29 +256,19 @@ export async function removePasskey(credentialId: string, password: string, code
     if (typeof credentialId !== "string" || credentialId.length > 1024) return { ok: false, error: t("passkeyFailed") };
     const failure = await verifyOwner(account, password, code);
     if (failure) return { ok: false, error: t(failure === "password" ? "currentPasswordIncorrect" : "invalidMfaCode") };
-    const credential = account.webAuthnCredentials.find((item) => item.id === credentialId);
+    const credential = account.webAuthnCredentials.find((item: { id: string }) => item.id === credentialId);
     if (!credential) return { ok: false, error: t("passkeyFailed") };
     const staff = account.role === "FOUNDER" || account.role === "ADMIN" || account.role === "MANAGER";
     const lastFactor = !account.mfaSecret && account.webAuthnCredentials.length === 1;
     if (staff && lastFactor) return { ok: false, error: t("staffMfaRequired") };
-
-    await prisma!.$transaction(async (tx) => {
-      await tx.webAuthnCredential.delete({ where: { id: credential.id } });
+    const payload = await getPayloadClient();
+    await withPayloadTransaction(payload, async (req) => {
+      await payload.delete({ collection: "webauthn-credentials", where: { and: [{ id: { equals: credential.id } }, { userId: { equals: account.id } }] }, overrideAccess: true, req });
       if (lastFactor) {
-        await tx.mfaBackupCode.deleteMany({ where: { userId: account.id } });
-        await tx.user.update({
-          where: { id: account.id },
-          data: { mfaEnabledAt: null },
-          select: { id: true },
-        });
+        await payload.delete({ collection: "mfa-backup-codes", where: { userId: { equals: account.id } }, overrideAccess: true, req });
+        await payload.update({ collection: "accounts", id: account.id, data: { mfaEnabledAt: null }, overrideAccess: true, req });
       }
-      await recordActivity(tx, {
-        action: "passkey removed",
-        entityType: "user",
-        entityId: account.id,
-        title: "User account",
-        actorId: account.id,
-      });
+      await writeActivity(payload, req, "passkey removed", account.id);
     });
     revalidatePath("/profile");
     return { ok: true };

@@ -324,11 +324,11 @@ const mockPrisma = {
     },
   },
 };
-mockPrisma.$transaction = async (cb) => cb(mockPrisma);
+mockPrisma.transaction = async (cb) => cb(mockPrisma);
 
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/prisma") return { prisma: mockPrisma };
+  if (name === "@/lib/payload-db") return { db: mockPrisma };
   if (name === "@/lib/auth-secret") return { isAuthConfigured: () => true };
   if (name === "@/auth") {
     return {
@@ -366,7 +366,7 @@ beforeEach(() => {
 
 test("schema defines single Order model (status default cart), OrderItem.itemType, Product, and no duplicate CartItem model", () => {
   const schema = fs.readFileSync(
-    path.join(__dirname, "..", "prisma", "schema.prisma"),
+    path.join(__dirname, "..", "db", "schema.db"),
     "utf8"
   );
   assert.doesNotMatch(schema, /model\s+CartItem\b/);

@@ -19,7 +19,7 @@ const rootDir = path.join(__dirname, "..", "..");
 const BUILTINS = new Set(builtinModules);
 
 /**
- * Imported on purpose without being declared: `scripts/migrate-from-postgres.cjs` loads `pg`
+ * Imported on purpose without being declared: `scripts/seed-services.ts` loads `pg`
  * inside try/catch and prints `npm i -D pg`, because only that one-off migration needs it.
  */
 const OPTIONAL_AT_RUNTIME = new Set(["pg"]);

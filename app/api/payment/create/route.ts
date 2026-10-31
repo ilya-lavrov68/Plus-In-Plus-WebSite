@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/payload-db";
 import { issueInvoice } from "@/lib/payments/invoice";
 import { checkRateLimitAsync, getClientAddress, hashRateLimitIdentifier, retryAfterHeaders } from "@/lib/rate-limit";
 import { isSameOriginRequest } from "@/lib/request-origin";
@@ -27,7 +27,7 @@ async function createPaymentRedirect(request: Request): Promise<Response> {
   if (contentType !== "application/x-www-form-urlencoded") {
     return NextResponse.json({ ok: false, error: "unsupported_media_type" }, { status: 415 });
   }
-  if (!prisma) {
+  if (!db) {
     return NextResponse.json({ ok: false, error: "payments_unavailable" }, { status: 503 });
   }
 
@@ -57,11 +57,11 @@ async function createPaymentRedirect(request: Request): Promise<Response> {
   }
 
   const [account, order] = await Promise.all([
-    prisma.user.findUnique({
+    db.user.findUnique({
       where: { id: session.user.id },
       select: { id: true, role: true, isBlocked: true },
     }),
-    prisma.order.findFirst({
+    db.order.findFirst({
       where: {
         status: { not: "cart" },
         OR: [

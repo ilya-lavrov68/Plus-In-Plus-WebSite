@@ -11,7 +11,7 @@ import {
   readPendingLogin,
   recordPendingLoginFailure,
 } from "@/lib/pending-login";
-import { prisma } from "@/lib/prisma";
+import { getPayloadClient } from "@/lib/payload-native";
 import { checkRateLimitAsync, getClientAddress, hashRateLimitIdentifier, progressiveLoginDelayMs } from "@/lib/rate-limit";
 import { logSecurityEvent, logServerError } from "@/lib/security-log";
 import { localAvatarPath } from "@/lib/upload-policy";
@@ -134,6 +134,7 @@ async function authorizePendingLogin(
   }
   const pending = await readPendingLogin(pendingLoginId, pendingLoginSecret);
   if (!pending) return null;
+  const payload = await getPayloadClient();
 
   let verified = false;
   const rawResponse = credentials.webAuthnResponse;
@@ -144,7 +145,7 @@ async function authorizePendingLogin(
     // not an empty authenticator code.
     const assertion = parseWebAuthnResponse(rawResponse);
     const stored = assertion
-      ? pending.user.webAuthnCredentials.find((credential) => credential.id === assertion.id)
+      ? pending.user.webAuthnCredentials.find((credential: { id: string }) => credential.id === assertion.id)
       : undefined;
     if (assertion && stored && pending.webAuthnChallenge) {
       try {
@@ -163,12 +164,14 @@ async function authorizePendingLogin(
           },
         });
         if (verification.verified) {
-          await prisma!.webAuthnCredential.update({
-            where: { id: stored.id },
+          await payload.update({
+            collection: "webauthn-credentials",
+            id: stored.id,
             data: {
               counter: String(verification.authenticationInfo.newCounter),
-              lastUsedAt: new Date(),
+              lastUsedAt: new Date().toISOString(),
             },
+            overrideAccess: true,
           });
           verified = true;
         }
@@ -183,16 +186,22 @@ async function authorizePendingLogin(
     } else {
       const normalized = normalizeBackupCode(code);
       if (normalized.length === 12) {
-        const backup = await prisma!.mfaBackupCode.findFirst({
-          where: { userId: pending.user.id, codeHash: hashBackupCode(normalized), usedAt: null },
-          select: { id: true },
+        const backupResult = await payload.find({
+          collection: "mfa-backup-codes",
+          depth: 0,
+          limit: 1,
+          overrideAccess: true,
+          where: { and: [{ userId: { equals: pending.user.id } }, { codeHash: { equals: hashBackupCode(normalized) } }, { usedAt: { exists: false } }] },
         });
+        const backup = backupResult.docs[0];
         if (backup) {
-          const consumed = await prisma!.mfaBackupCode.updateMany({
-            where: { id: backup.id, usedAt: null },
-            data: { usedAt: new Date() },
+          const consumed = await payload.update({
+            collection: "mfa-backup-codes",
+            data: { usedAt: new Date().toISOString() },
+            overrideAccess: true,
+            where: { and: [{ id: { equals: backup.id } }, { usedAt: { exists: false } }] },
           });
-          verified = consumed.count === 1;
+          verified = consumed.docs.length === 1;
         }
       }
     }
@@ -217,7 +226,7 @@ export async function authorizeCredentials(
   credentials: Partial<Record<CredentialFields, unknown>>,
   request: Request,
 ) {
-  if (!isAuthConfigured() || !prisma) return null;
+  if (!isAuthConfigured()) return null;
   if (credentials.refreshToken !== undefined || credentials.deviceId !== undefined) {
     return authorizeRefresh(credentials);
   }
@@ -246,12 +255,22 @@ export async function authorizeCredentials(
     return null;
   }
 
-  let account;
+  let account: any;
   try {
-    account = await prisma.user.findUnique({
-      where: { email },
-      include: { webAuthnCredentials: { select: { id: true }, take: 1 } },
+    const payload = await getPayloadClient();
+    const result = await payload.find({
+      collection: "accounts",
+      depth: 0,
+      limit: 1,
+      overrideAccess: true,
+      showHiddenFields: true,
+      where: { email: { equals: email } },
     });
+    const found = result.docs[0] as any;
+    const passkeys = found
+      ? await payload.find({ collection: "webauthn-credentials", depth: 0, limit: 1, overrideAccess: true, where: { userId: { equals: found.id } } })
+      : { docs: [] };
+    account = found ? { ...found, webAuthnCredentials: passkeys.docs } : null;
   } catch (error) {
     logServerError("auth.credentials.lookup_failed", error);
     await bcrypt.compare(password, DUMMY_PASSWORD_HASH);

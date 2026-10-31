@@ -18,7 +18,7 @@ let serviceWhere;
 let userDirectoryQuery;
 let addressSequence = 10;
 
-const prisma = {
+const db = {
   user: {
     findMany: async (query) => {
       userDirectoryQuery = query;
@@ -39,12 +39,12 @@ const prisma = {
   activityLog: {
     create: async ({ data }) => { activities.push(structuredClone(data)); return data; },
   },
-  $transaction: async (callback) => callback(prisma),
+  transaction: async (callback) => callback(db),
 };
 
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/prisma") return { prisma };
+  if (name === "@/lib/payload-db") return { db };
   if (name === "@/lib/cart") return { requireActiveCustomer: async () => customer };
   if (name === "@/lib/admin-session") return {
     requireStaff: async () => staff,

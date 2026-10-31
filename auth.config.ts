@@ -5,7 +5,7 @@ import { ACCESS_SESSION_SECONDS } from "@/lib/session-policy";
 import { localAvatarPath } from "@/lib/upload-policy";
 import { profileName } from "@/lib/user-profile";
 
-/** Edge-safe session decoding. Prisma and bcrypt are only imported by auth.ts. */
+/** Edge-safe session decoding. Database and bcrypt are only imported by auth.ts. */
 export const authConfig = {
   secret: getAuthSecret(),
   // Next.js runs behind our trusted reverse proxy (which must overwrite forwarded headers).

@@ -16,7 +16,7 @@ require.extensions[".ts"] = (module, filename) =>
 // Только в памяти: пользователи, настройки и журнал действий.
 let actor, users, settings, logs, posts;
 
-const prisma = {
+const db = {
   user: {
     findUnique: async ({ where }) => {
       const row = users.get(where.id);
@@ -58,16 +58,16 @@ const prisma = {
   authSession: {
     updateMany: async () => ({ count: 0 }),
   },
-  $transaction: async (callback) => {
+  transaction: async (callback) => {
     const snapshot = structuredClone({ settings, posts, logs });
-    try { return await callback(prisma); }
+    try { return await callback(db); }
     catch (error) { settings = snapshot.settings; posts = snapshot.posts; logs = snapshot.logs; throw error; }
   },
 };
 
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/prisma") return { prisma };
+  if (name === "@/lib/payload-db") return { db };
   // actor описывает вошедшего сотрудника: null, обычный админ или основатель.
   if (name === "@/lib/admin-session") return {
     requireAdmin: async () => (actor ? { ...actor, isFounder: actor.role === "FOUNDER" } : null),

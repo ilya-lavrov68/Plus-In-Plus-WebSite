@@ -45,9 +45,9 @@ Module._load = function (name, parent, isMain) {
           : null,
     };
   }
-  if (name === "@/lib/prisma") {
+  if (name === "@/lib/payload-db") {
     return {
-      prisma: {
+      db: {
         siteSetting: {
           findMany: async () => [
             { key: "studioName", value: "Plus In Plus" },

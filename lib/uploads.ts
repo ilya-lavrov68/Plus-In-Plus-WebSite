@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, unlink, writeFile } from "node:fs/promises";
+import { unlink } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 
+import { getPayloadClient } from "@/lib/payload-native";
 import {
   isUploadFilename, isUploadKind, MAX_AVATAR_BYTES, MAX_COVER_BYTES,
   MAX_COVER_INPUT_PIXELS, MAX_COVER_OUTPUT_EDGE_PX, type UploadKind,
@@ -45,9 +46,7 @@ function matchesImageSignature(bytes: Buffer, extension: string): boolean {
   }
 }
 
-/** Validate and re-encode a local raster image; strip metadata and never accept SVG/URLs. */
-export async function saveImageUpload(file: File, kind: UploadKind): Promise<string> {
-  const folder = uploadDirectory(kind);
+async function processImage(file: File, kind: UploadKind): Promise<Buffer> {
   const extension = path.extname(file.name || "").toLowerCase();
   if (!IMAGE_TYPES[extension] || IMAGE_TYPES[extension] !== file.type) {
     throw new UploadValidationError("Only PNG, JPEG, WebP, GIF and AVIF images can be uploaded.");
@@ -56,36 +55,73 @@ export async function saveImageUpload(file: File, kind: UploadKind): Promise<str
   if (!file.size || file.size > limit) {
     throw new UploadValidationError(`Image must be between 1 byte and ${limit / 1024 / 1024} MB.`);
   }
-
   const bytes = Buffer.from(await file.arrayBuffer());
   if (bytes.length !== file.size || !matchesImageSignature(bytes, extension)) {
     throw new UploadValidationError("Invalid image file.");
   }
-
-  let image: Buffer;
   try {
     const size = kind === "avatars" ? 256 : MAX_COVER_OUTPUT_EDGE_PX;
-    image = await sharp(bytes, { limitInputPixels: MAX_COVER_INPUT_PIXELS, animated: false })
+    const image = await sharp(bytes, { limitInputPixels: MAX_COVER_INPUT_PIXELS, animated: false })
       .rotate()
       .resize({ width: size, height: size, fit: "inside", withoutEnlargement: true })
       .webp({ quality: 88 })
       .toBuffer();
+    if (image.length > limit) throw new Error("processed image too large");
+    return image;
   } catch {
     throw new UploadValidationError(`Invalid image file. Please choose a valid image under ${MAX_COVER_INPUT_PIXELS / 1_000_000} megapixels.`);
   }
+}
 
-  if (image.length > limit) throw new UploadValidationError("The processed image is too large. Please choose a smaller image.");
-  const name = `${randomUUID()}.webp`;
-  await mkdir(folder, { recursive: true });
-  await writeFile(path.join(folder, name), image, { flag: "wx" });
-  return `/uploads/${kind}/${name}`;
+async function createMedia(image: Buffer, kind: UploadKind): Promise<string> {
+  const payload = await getPayloadClient();
+  const media = await payload.create({
+    collection: "media",
+    data: { alt: kind === "avatars" ? "User avatar" : "Plus In Plus image", kind },
+    file: {
+      data: image,
+      mimetype: "image/webp",
+      name: `${randomUUID()}.webp`,
+      size: image.length,
+    },
+    overrideAccess: true,
+  });
+  if (!media.url) throw new UploadValidationError("Payload did not return a media URL.");
+  return media.url;
+}
+
+/** Validate, strip metadata and store a local raster image through Payload Media. */
+export async function saveImageUpload(file: File, kind: UploadKind): Promise<string> {
+  if (!isUploadKind(kind)) throw new UploadValidationError("Unknown upload destination.");
+  return createMedia(await processImage(file, kind), kind);
+}
+
+async function deletePayloadMedia(publicPath: string, kind: UploadKind): Promise<boolean> {
+  if (!publicPath.startsWith("/uploads/media/")) return false;
+  const filename = publicPath.slice("/uploads/media/".length);
+  if (!/^[a-z0-9][a-z0-9._-]{0,240}$/i.test(filename)) return true;
+  const payload = await getPayloadClient();
+  const result = await payload.find({
+    collection: "media",
+    depth: 0,
+    limit: 1,
+    overrideAccess: true,
+    where: { and: [{ filename: { equals: filename } }, { kind: { equals: kind } }] },
+  });
+  const media = result.docs[0];
+  if (media) await payload.delete({ collection: "media", id: media.id, overrideAccess: true });
+  return true;
 }
 
 /** Only delete uploader-owned files in the expected folder, never arbitrary paths. */
 export async function deleteImageUpload(publicPath: string | null, kind: UploadKind): Promise<void> {
+  if (!publicPath || !isUploadKind(kind)) return;
+  if (await deletePayloadMedia(publicPath, kind)) return;
+
+  // Legacy local-file cleanup. New writes always take the Payload branch above.
   const folder = uploadDirectory(kind);
   const prefix = `/uploads/${kind}/`;
-  if (!publicPath?.startsWith(prefix)) return;
+  if (!publicPath.startsWith(prefix)) return;
   const name = publicPath.slice(prefix.length);
   if (!isUploadFilename(name)) return;
   try {
@@ -100,54 +136,13 @@ export async function cleanupUpload(publicPath: string | null, kind: UploadKind)
   await deleteImageUpload(publicPath, kind).catch((error) => console.error("Upload cleanup failed:", error));
 }
 
-/** Validate and re-encode an album image; save to /public/uploads/blog/albums/. */
 export async function saveAlbumImage(file: File): Promise<string> {
-  const folder = path.join(process.cwd(), "public", "uploads", "blog", "albums");
-  const extension = path.extname(file.name || "").toLowerCase();
-  if (!IMAGE_TYPES[extension] || IMAGE_TYPES[extension] !== file.type) {
-    throw new UploadValidationError("Only PNG, JPEG, WebP, GIF and AVIF images can be uploaded.");
-  }
-  const limit = MAX_COVER_BYTES;
-  if (!file.size || file.size > limit) {
-    throw new UploadValidationError(`Image must be between 1 byte and ${limit / 1024 / 1024} MB.`);
-  }
-
-  const bytes = Buffer.from(await file.arrayBuffer());
-  if (bytes.length !== file.size || !matchesImageSignature(bytes, extension)) {
-    throw new UploadValidationError("Invalid image file.");
-  }
-
-  let image: Buffer;
-  try {
-    image = await sharp(bytes, { limitInputPixels: MAX_COVER_INPUT_PIXELS, animated: false })
-      .rotate()
-      .resize({ width: MAX_COVER_OUTPUT_EDGE_PX, height: MAX_COVER_OUTPUT_EDGE_PX, fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 88 })
-      .toBuffer();
-  } catch {
-    throw new UploadValidationError(`Invalid image file. Please choose a valid image under ${MAX_COVER_INPUT_PIXELS / 1_000_000} megapixels.`);
-  }
-
-  if (image.length > limit) throw new UploadValidationError("The processed image is too large. Please choose a smaller image.");
-  const name = `${randomUUID()}.webp`;
-  await mkdir(folder, { recursive: true });
-  await writeFile(path.join(folder, name), image, { flag: "wx" });
-  return `/uploads/blog/albums/${name}`;
+  return saveImageUpload(file, "blog");
 }
 
 export async function deleteAlbumImage(publicPath: string | null): Promise<void> {
-  const folder = path.join(process.cwd(), "public", "uploads", "blog", "albums");
-  const prefix = "/uploads/blog/albums/";
-  if (!publicPath?.startsWith(prefix)) return;
-  const name = publicPath.slice(prefix.length);
-  if (!isUploadFilename(name)) return;
-  try {
-    await unlink(path.join(folder, name));
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-  }
+  await deleteImageUpload(publicPath, "blog");
 }
 
-// Compatibility with the original cover uploader API.
 export const saveCoverUpload = saveImageUpload;
 export const deleteCoverUpload = deleteImageUpload;

@@ -1,43 +1,19 @@
 import { NextResponse } from "next/server";
 
-import { toPublicServiceItem } from "@/lib/data";
-import { prisma } from "@/lib/prisma";
+import { getActiveServices } from "@/lib/data";
 import { getRequestLocale } from "@/lib/request-locale";
 import { localizePublicServices } from "@/lib/service-localization";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  if (!prisma) {
-    return NextResponse.json([], { headers: { "Cache-Control": "no-store" } });
-  }
-
   try {
-    const [services, locale] = await Promise.all([
-      prisma.service.findMany({
-        where: { isActive: true, isPublished: true },
-        orderBy: [
-          { category: "desc" },
-          { sortOrder: "asc" },
-          { title: "asc" },
-        ],
-      }),
-      getRequestLocale(),
-    ]);
-
-    const localized = localizePublicServices(
-      services.map(toPublicServiceItem),
-      locale
-    );
-
-    return NextResponse.json(localized, {
-      headers: { "Cache-Control": "no-store" },
-    });
+    const [services, locale] = await Promise.all([getActiveServices(), getRequestLocale()]);
+    const localized = localizePublicServices(services, locale);
+    localized.sort((a, b) => b.category.localeCompare(a.category));
+    return NextResponse.json(localized, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Error fetching services:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch services" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch services" }, { status: 500 });
   }
 }

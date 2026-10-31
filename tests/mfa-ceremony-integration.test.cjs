@@ -7,7 +7,7 @@ const Module = require("node:module");
 const ts = require("typescript");
 const bcrypt = require("bcryptjs");
 const { TOTP, URI } = require("otpauth");
-const { applyOfflineSqliteDdl } = require("../scripts/lib/prisma-cli.cjs");
+const { applyOfflineSqliteDdl } = require("../scripts/lib/db-cli.cjs");
 const { createSoftwareAuthenticator } = require("./helpers/software-webauthn.cjs");
 
 const ORIGIN = "http://localhost:3000";
@@ -18,7 +18,7 @@ const originalLoad = Module._load;
 
 let core;
 let authErrors;
-let prisma;
+let db;
 let loginUser;
 let mfaActions;
 let currentUserId;
@@ -117,13 +117,13 @@ before(async () => {
   await applyOfflineSqliteDdl(process.env);
   core = await import("@auth/core");
   authErrors = await import("@auth/core/errors");
-  ({ prisma } = require("../lib/prisma.ts"));
+  ({ db } = require("../lib/db.ts"));
   ({ loginUser } = require("../app/actions/auth.ts"));
   mfaActions = require("../app/actions/mfa.ts");
 });
 
 after(async () => {
-  await prisma?.$disconnect();
+  await db?.$disconnect();
   Module._load = originalLoad;
   if (originalTsExtension) require.extensions[".ts"] = originalTsExtension;
   else delete require.extensions[".ts"];
@@ -131,7 +131,7 @@ after(async () => {
 });
 
 async function createAccount(email) {
-  const account = await prisma.user.create({
+  const account = await db.user.create({
     data: {
       email,
       passwordHash: await bcrypt.hash(PASSWORD, 12),
@@ -171,7 +171,7 @@ test("real passkey and TOTP ceremonies survive Auth.js serialization and remain 
   assert.match(setup.secret, /^[A-Z2-7]{32}$/);
   assert.match(setup.qrCode, /^data:image\/png;base64,/);
   assert.match(setup.otpauthUri, /^otpauth:\/\/totp\//);
-  const pendingSecret = await prisma.user.findUnique({
+  const pendingSecret = await db.user.findUnique({
     where: { id: account.id },
     select: { mfaPendingSecret: true },
   });
@@ -180,13 +180,13 @@ test("real passkey and TOTP ceremonies survive Auth.js serialization and remain 
   const enabled = await mfaActions.enableTotp(totpCode(setup.secret));
   assert.equal(enabled.ok, true, enabled.error);
   assert.equal(enabled.backupCodes, undefined, "adding a second factor does not rotate existing backup codes");
-  const enabledAccount = await prisma.user.findUnique({
+  const enabledAccount = await db.user.findUnique({
     where: { id: account.id },
     select: { mfaSecret: true, mfaPendingSecret: true },
   });
   assert.ok(enabledAccount.mfaSecret);
   assert.equal(enabledAccount.mfaPendingSecret, null);
-  assert.equal(await prisma.mfaBackupCode.count({ where: { userId: account.id } }), 10);
+  assert.equal(await db.mfaBackupCode.count({ where: { userId: account.id } }), 10);
 
   const passwordStep = await loginUser({ email: account.email, password: PASSWORD, adminMode: false });
   assert.equal(passwordStep.mfaRequired, true);
@@ -206,7 +206,7 @@ test("real passkey and TOTP ceremonies survive Auth.js serialization and remain 
   const rejected = await loginUser({ ...pending, webAuthnResponse: wrongOrigin });
   assert.equal(rejected.ok, false);
   assert.equal(rejected.mfaRequired, true);
-  let credential = await prisma.webAuthnCredential.findUnique({ where: { id: authenticator.id } });
+  let credential = await db.webAuthnCredential.findUnique({ where: { id: authenticator.id } });
   assert.equal(credential.counter, "0");
 
   // Malformed passkey input must not fall back to a simultaneously valid TOTP.
@@ -223,10 +223,10 @@ test("real passkey and TOTP ceremonies survive Auth.js serialization and remain 
   const assertion = authenticator.authenticationResponse(authentication.options, 1);
   const passkeyLogin = await loginUser({ ...pending, webAuthnResponse: assertion });
   assert.deepEqual(passkeyLogin, { ok: true, success: true, isAdmin: false });
-  credential = await prisma.webAuthnCredential.findUnique({ where: { id: authenticator.id } });
+  credential = await db.webAuthnCredential.findUnique({ where: { id: authenticator.id } });
   assert.equal(credential.counter, "1");
   assert.ok(credential.lastUsedAt instanceof Date);
-  assert.equal(await prisma.pendingLogin.count({ where: { id: pending.pendingLoginId } }), 0);
+  assert.equal(await db.pendingLogin.count({ where: { id: pending.pendingLoginId } }), 0);
 
   const replay = await loginUser({ ...pending, webAuthnResponse: assertion });
   assert.equal(replay.ok, false);
@@ -274,7 +274,7 @@ test("parallel authenticator setup keeps one stable secret and accepts the scann
   assert.equal(enabled.ok, true, enabled.error);
   assert.equal(enabled.backupCodes.length, 10);
 
-  const enabledAccount = await prisma.user.findUnique({
+  const enabledAccount = await db.user.findUnique({
     where: { id: account.id },
     select: { mfaSecret: true, mfaPendingSecret: true },
   });
@@ -287,7 +287,7 @@ test("expired authenticator setup has an explicit stale state and can be renewed
   const setup = await mfaActions.beginTotpSetup();
   assert.equal(setup.ok, true, setup.error);
 
-  await prisma.user.update({
+  await db.user.update({
     where: { id: account.id },
     data: { mfaPendingCreatedAt: new Date(Date.now() - 11 * 60 * 1000) },
   });

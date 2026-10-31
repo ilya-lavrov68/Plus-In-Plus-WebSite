@@ -1,6 +1,6 @@
-import type { Prisma } from "@/lib/generated/prisma/client";
+import type { PayloadTransactionClient } from "@/lib/payload-db";
 
-import { prisma } from "@/lib/prisma";
+import { db as database } from "@/lib/payload-db";
 import { buildPaymentUrl } from "@/lib/payments/robokassa";
 import { resolveRobokassaConfig } from "@/lib/payments/robokassa-config";
 
@@ -20,7 +20,7 @@ export interface IssuedInvoice {
   invId: number | null;
 }
 
-type InvoiceDb = Pick<Prisma.TransactionClient, "payment" | "siteSetting">;
+type InvoiceDb = Pick<PayloadTransactionClient, "payment" | "siteSetting">;
 
 /**
  * Номер счёта для Робокассы.
@@ -37,7 +37,7 @@ export function invoiceNumber(orderNumber: string, attempt: number): number {
 }
 
 function isUniqueConflict(error: unknown): boolean {
-  return (error as { code?: string } | null)?.code === "P2002";
+  return (error as { code?: string } | null)?.code === "PAYLOAD_UNIQUE_CONSTRAINT";
 }
 
 /**
@@ -183,11 +183,11 @@ export async function issueInvoice(
   db?: InvoiceDb,
 ): Promise<IssuedInvoice | null> {
   if (db) return issueInvoiceWithDb(input, db);
-  if (!prisma) return null;
+  if (!database) return null;
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-      return await prisma.$transaction((tx) => issueInvoiceWithDb(input, tx));
+      return await database.transaction((tx) => issueInvoiceWithDb(input, tx));
     } catch (error) {
       if (!isUniqueConflict(error) || attempt === 1) throw error;
     }

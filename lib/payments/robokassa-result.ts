@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { recordActivity } from "@/lib/activity-log";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/payload-db";
 import { verifyPaymentHash } from "@/lib/payments/robokassa";
 import { resolveRobokassaConfig } from "@/lib/payments/robokassa-config";
 
@@ -19,7 +19,7 @@ import { resolveRobokassaConfig } from "@/lib/payments/robokassa-config";
  */
 export async function handleRobokassaResult(request: Request): Promise<Response> {
   const { config } = await resolveRobokassaConfig();
-  if (!config || !prisma) {
+  if (!config || !db) {
     console.error("[robokassa] Result URL вызван, но провайдер не настроен");
     return new NextResponse("OK0", { status: 200 });
   }
@@ -67,7 +67,7 @@ export async function handleRobokassaResult(request: Request): Promise<Response>
   }
 
   try {
-    const payment = await prisma.payment.findFirst({
+    const payment = await db.payment.findFirst({
       where: { externalId: invId, provider: "robokassa" },
       select: { id: true, orderId: true, amount: true, status: true },
     });
@@ -105,7 +105,7 @@ export async function handleRobokassaResult(request: Request): Promise<Response>
     }
 
     const now = new Date();
-    await prisma.$transaction(async (tx) => {
+    await db.transaction(async (tx) => {
       const [latestInvoice, order] = await Promise.all([
         tx.payment.findFirst({
           where: { orderId: payment.orderId, provider: "robokassa" },

@@ -1,9 +1,8 @@
 name: CI
 
-# Verifies every push and pull request without any secret or external service:
-# the Prisma client is generated offline, the tests use mocked repositories and a
-# throwaway SQLite file is used as the database. This is the same code path as
-# Turso in production, only with `TURSO_DATABASE_URL=file:…`.
+# Полный cutover проверяется без внешних сервисов и production-секретов:
+# reviewed Payload migrations применяются к одноразовой SQLite БД, затем та же
+# база используется production build и smoke test.
 on:
   push:
     branches: ["**"]
@@ -15,19 +14,14 @@ concurrency:
 
 jobs:
   verify:
-    name: Tests, types, schema and build
+    name: Payload migrations, tests, types and build
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
-      TURSO_DATABASE_URL: "file:./prisma/ci.db"
-      TURSO_AUTH_TOKEN: ""
-      # CI-only dummy values. Real deployments set their own AUTH_SECRET
-      # (at least 32 characters) in the hosting panel; nothing here is a secret.
-      AUTH_SECRET: "ci-only-secret-used-by-the-test-suite-32ch"
-      # Отдельная одноразовая CMS-БД: не Prisma и не production.
-      PAYLOAD_SECRET: "ci-only-payload-secret-not-for-production-32ch"
       PAYLOAD_DATABASE_URL: "file:./payload/ci.db"
       PAYLOAD_DATABASE_AUTH_TOKEN: ""
+      AUTH_SECRET: "ci-only-secret-used-by-the-test-suite-32ch"
+      PAYLOAD_SECRET: "ci-only-payload-secret-not-for-production-32ch"
     steps:
       - uses: actions/checkout@v4
 
@@ -36,30 +30,23 @@ jobs:
           node-version: "24.22.1"
           cache: npm
 
-      # Restore only Next's incremental artifacts, before npm ci creates node_modules.
-      # The application, server bundles and static output are always rebuilt;
-      # lint, types, tests, audits and production smoke checks are never skipped.
       - name: Restore Next.js build cache
         uses: actions/cache@v4
         with:
           path: .next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.tsx', '**/*.js', '**/*.cjs', '**/*.mjs', '**/*.json', 'prisma/schema.prisma') }}
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.tsx', '**/*.js', '**/*.cjs', '**/*.mjs', '**/*.json', 'payload.config.ts') }}
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-
 
-      # postinstall runs `prisma generate` (schema only, no database connection).
       - name: Install dependencies
         run: npm ci
 
-      # Fails when package.json, package-lock.json and the imports in the sources disagree —
-      # the mismatch that otherwise shows up as "Module not found" and a 500 on every page.
-      - name: Check the environment (deps, lockfile, Prisma client, database)
+      - name: Check environment and generated Payload artifacts
         run: npm run doctor
 
       - name: Repository security policy audit
         run: npm run security:audit
 
-      # Fails on reported vulnerabilities; never use --force or ignore audit output.
       - name: Dependency vulnerability audit
         run: npm run security:dependencies
 
@@ -67,22 +54,17 @@ jobs:
         run: npm run lint
 
       - name: Type check
-        run: npx tsc --noEmit
+        run: npm run typecheck
+
+      - name: Apply and verify reviewed Payload migrations
+        run: |
+          rm -f payload/ci.db payload/ci.db-*
+          npm run payload:migrate
+          npm run payload -- migrate:status
+          npm run db:check
 
       - name: Tests
         run: npm test
-
-      # Proves the exact production path: push the schema into an empty database,
-      # then confirm every table and column the app expects exists.
-      - name: Apply and verify the database schema
-        run: |
-          npm run db:push
-          npm run db:check
-
-      - name: Apply reviewed Payload migrations to the disposable CMS database
-        run: |
-          npm run payload:migrate
-          npm run payload -- migrate:status
 
       - name: Production build
         run: npm run build

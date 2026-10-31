@@ -15,20 +15,20 @@ let ip = 1;
 class AuthError extends Error {}
 class CredentialsSignin extends AuthError { code = "credentials"; }
 class UploadValidationError extends Error {}
-const prisma = {
+const db = {
   user: {
     findUnique: async ({ where }) => structuredClone(users.find((user) => where.id ? user.id === where.id : user.email === where.email) ?? null),
     create: async ({ data }) => {
-      if (duplicateError) throw Object.assign(new Error("unique constraint"), { code: "P2002" });
+      if (duplicateError) throw Object.assign(new Error("unique constraint"), { code: "PAYLOAD_UNIQUE_CONSTRAINT" });
       const user = { id: `mock-user-${users.length + 1}`, ...data, avatar: null };
       users.push(user); return user;
     },
     update: async ({ where, data }) => { const user = users.find((u) => u.id === where.id); if (!user) throw new Error("missing"); Object.assign(user, data); return user; },
   },
   activityLog: { create: async ({ data }) => { if (transactionError) throw new Error("simulated transaction failure"); activity.push(data); return data; } },
-  $transaction: async (callback) => {
+  transaction: async (callback) => {
     const snapshot = structuredClone({ users, activity });
-    try { return await callback(prisma); } catch (error) { users = snapshot.users; activity = snapshot.activity; throw error; }
+    try { return await callback(db); } catch (error) { users = snapshot.users; activity = snapshot.activity; throw error; }
   },
 };
 const originalLoad = Module._load;
@@ -41,7 +41,7 @@ Module._load = function (name, parent, isMain) {
   };
   if (name === "next/headers") return { headers: async () => new Headers({ "x-real-ip": `203.0.113.${ip}` }) };
   if (name === "next/cache") return { revalidatePath: (p) => refreshed.push(p) };
-  if (name === "@/lib/prisma") return { prisma };
+  if (name === "@/lib/payload-db") return { db };
   if (name === "@/lib/password-breach") return {
     CompromisedPasswordError: class CompromisedPasswordError extends Error {},
     assertPasswordNotCompromised: async () => {},

@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 import { getSitemapPosts, getSitemapServices, serviceHref } from "@/lib/data";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/payload-db";
 import { absoluteUrl } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
@@ -10,8 +10,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [services, posts, activeProductCount] = await Promise.all([
     getSitemapServices(),
     getSitemapPosts(),
-    prisma
-      ? prisma.product
+    db
+      ? db.product
           .count({ where: { isActive: true } })
           .catch((error: unknown) => {
             console.error("Failed to count shop products for the sitemap:", error);

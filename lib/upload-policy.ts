@@ -37,7 +37,13 @@ export function isUploadFilename(value: string): boolean {
 
 /** Never request external avatars, including URLs manually placed in the DB. */
 export function localAvatarPath(value: unknown): string | null {
-  const prefix = "/uploads/avatars/";
-  return typeof value === "string" && value.startsWith(prefix) &&
-    isUploadFilename(value.slice(prefix.length)) ? value : null;
+  if (typeof value !== "string") return null;
+  const legacyPrefix = "/uploads/avatars/";
+  if (value.startsWith(legacyPrefix) && isUploadFilename(value.slice(legacyPrefix.length))) return value;
+  const mediaPrefix = "/uploads/media/";
+  if (!value.startsWith(mediaPrefix)) return null;
+  const filename = value.slice(mediaPrefix.length);
+  return /^[a-z0-9][a-z0-9._-]{0,240}\.(?:png|jpe?g|webp|gif|avif)$/i.test(filename)
+    ? value
+    : null;
 }

@@ -5,7 +5,7 @@ const path = require("node:path");
 const { test } = require("node:test");
 const { createClient } = require("@libsql/client");
 
-const { applyOfflineSqliteDdl } = require("../scripts/lib/prisma-cli.cjs");
+const { applyOfflineSqliteDdl } = require("../scripts/lib/db-cli.cjs");
 const { checkSchema } = require("../scripts/lib/schema-check.cjs");
 
 function temporaryDatabase() {

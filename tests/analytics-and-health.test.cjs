@@ -14,7 +14,7 @@ let updates;
 let tableRows;
 let tableError;
 let addressSequence = 40;
-const prisma = {
+const db = {
   pageView: {
     create: async ({ data }) => { creates.push(structuredClone(data)); return { id: "view-1" }; },
     updateMany: async ({ where, data }) => { updates.push({ where: structuredClone(where), data: structuredClone(data) }); return { count: 1 }; },
@@ -26,7 +26,7 @@ const prisma = {
 };
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/prisma") return { prisma };
+  if (name === "@/lib/payload-db") return { db };
   if (name === "@/lib/database") return { resolveDatabaseConfig: () => ({ remote: true }) };
   if (name.startsWith("@/")) name = path.resolve(__dirname, "..", name.slice(2));
   return originalLoad.call(this, name, parent, isMain);

@@ -14,7 +14,7 @@ require.extensions[".ts"] = (module, filename) => {
 let orderFindMany;
 let serviceFindMany;
 let userFindMany;
-const prisma = {
+const db = {
   order: {
     count: async () => 120,
     findMany: async (query) => { orderFindMany = query; return []; },
@@ -45,7 +45,7 @@ const prisma = {
 
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/prisma") return { prisma };
+  if (name === "@/lib/payload-db") return { db };
   if (name === "@/lib/admin-session") return {
     requireAdmin: async () => ({ id: "admin", role: "ADMIN" }),
     requireStaff: async () => ({ id: "admin", role: "ADMIN" }),

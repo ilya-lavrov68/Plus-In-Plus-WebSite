@@ -1,6 +1,6 @@
 // Lets plain Node scripts load the project's TypeScript modules (lib/database.ts),
 // exactly like tests/*.test.cjs do. Keeping one implementation means the app, the
-// Prisma CLI config and these scripts can never disagree about the database target.
+// Payload CLI and helper scripts use the same database target.
 const fs = require("node:fs");
 
 function register() {

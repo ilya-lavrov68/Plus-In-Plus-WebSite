@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/payload-db";
 
 const DEMO_POST_SLUGS = [
   "how-exterior-signage-shapes-first-impressions",
@@ -7,16 +7,16 @@ const DEMO_POST_SLUGS = [
 ];
 
 async function main() {
-  if (!prisma) {
+  if (!db) {
     throw new Error(
-      "Database client is not configured. Run `npm run db:push` first."
+      "Database client is not configured. Run `npm run payload:migrate` first."
     );
   }
 
-  console.log("🧹 Starting database cleanup...");
+  console.log("Starting Payload database cleanup…");
 
   // 1. Find test/demo users (all non-FOUNDER accounts with test/demo emails or Demo names)
-  const testUsers = await prisma.user.findMany({
+  const testUsers = await db.user.findMany({
     where: {
       AND: [
         { role: { not: "FOUNDER" } },
@@ -37,22 +37,22 @@ async function main() {
   let deletedOrdersCount = 0;
   if (testUserIds.length > 0) {
     // Detach managerId references from test staff before deleting orders/users
-    await prisma.order.updateMany({
+    await db.order.updateMany({
       where: { managerId: { in: testUserIds } },
       data: { managerId: null },
     });
-    const deletedOrders = await prisma.order.deleteMany({
+    const deletedOrders = await db.order.deleteMany({
       where: { userId: { in: testUserIds } },
     });
     deletedOrdersCount = deletedOrders.count;
-    await prisma.activityLog.deleteMany({
+    await db.activityLog.deleteMany({
       where: { actorId: { in: testUserIds } },
     });
   }
   console.log(`Deleted ${deletedOrdersCount} test/demo orders`);
 
   // 2. Delete test/demo posts
-  const deletedPosts = await prisma.post.deleteMany({
+  const deletedPosts = await db.post.deleteMany({
     where: {
       OR: [
         { title: { contains: "Test" } },
@@ -66,7 +66,7 @@ async function main() {
   console.log(`Deleted ${deletedPosts.count} test/demo posts`);
 
   // 3. Delete test/demo services
-  const deletedServices = await prisma.service.deleteMany({
+  const deletedServices = await db.service.deleteMany({
     where: {
       OR: [
         { title: { contains: "Test" } },
@@ -81,19 +81,19 @@ async function main() {
   // 4. Delete test/demo users (preserving FOUNDER)
   const deletedUsers =
     testUserIds.length > 0
-      ? await prisma.user.deleteMany({
+      ? await db.user.deleteMany({
           where: { id: { in: testUserIds } },
         })
       : { count: 0 };
   console.log(`Deleted ${deletedUsers.count} test/demo users`);
 
   // Normalize FOUNDER display name if it was left as "Demo" by an old seed
-  await prisma.user.updateMany({
+  await db.user.updateMany({
     where: { role: "FOUNDER", firstName: "Demo" },
     data: { firstName: "Studio", lastName: "Founder" },
   });
 
-  console.log("✅ Database cleanup completed");
+  console.log("Database cleanup completed.");
 }
 
 main()
@@ -102,5 +102,5 @@ main()
     process.exit(1);
   })
   .finally(async () => {
-    await prisma?.$disconnect();
+    await db?.close();
   });

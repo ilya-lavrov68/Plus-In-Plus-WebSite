@@ -24,8 +24,8 @@ const { slugify, withNumericSuffix } = require("../lib/slug.ts");
 const { checkRateLimit, hashRateLimitIdentifier } = require("../lib/rate-limit.ts");
 const validators = require("../lib/validators.ts");
 
-const schema = fs.readFileSync(path.join(rootDir, "prisma", "schema.prisma"), "utf8");
-const prismaClientSource = fs.readFileSync(path.join(rootDir, "lib", "prisma.ts"), "utf8");
+const schema = fs.readFileSync(path.join(rootDir, "db", "schema.db"), "utf8");
+const prismaClientSource = fs.readFileSync(path.join(rootDir, "lib", "db.ts"), "utf8");
 const packageJson = JSON.parse(fs.readFileSync(path.join(rootDir, "package.json"), "utf8"));
 
 // ---------------------------------------------------------------------------
@@ -49,11 +49,11 @@ test("the schema targets libSQL/SQLite with explicit table names and one datasou
 });
 
 test("the runtime client uses the libSQL adapter and no PostgreSQL driver remains", () => {
-  assert.match(prismaClientSource, /@prisma\/adapter-libsql/);
+  assert.match(prismaClientSource, /@db\/adapter-libsql/);
   assert.doesNotMatch(prismaClientSource, /adapter-pg|PrismaPg/);
   assert.equal(packageJson.dependencies.pg, undefined);
-  assert.equal(packageJson.dependencies["@prisma/adapter-pg"], undefined);
-  assert.equal(packageJson.dependencies["@prisma/adapter-libsql"], "6.19.3");
+  assert.equal(packageJson.dependencies["@db/adapter-pg"], undefined);
+  assert.equal(packageJson.dependencies["@db/adapter-libsql"], "6.19.3");
   assert.ok(packageJson.dependencies["@libsql/client"]);
   assert.ok(packageJson.dependencies.zod);
   for (const script of ["db:push", "db:check", "db:promote-admin", "db:migrate-from-postgres", "db:load-dump", "deploy:verify"]) {
@@ -68,7 +68,7 @@ test("database resolution prefers Turso and falls back to the local file in deve
 
   const development = resolveDatabaseConfig({ env: {}, rootDir: "/app" });
   assert.deepEqual(development, {
-    url: `file:${path.join("/app", "prisma", "dev.db")}`,
+    url: `file:${path.join("/app", "db", "dev.db")}`,
     authToken: undefined,
     remote: false,
     ignoredUrl: undefined,
@@ -92,7 +92,7 @@ test("database resolution prefers Turso and falls back to the local file in deve
 test("a leftover PostgreSQL DATABASE_URL is reported, never silently used", () => {
   const legacy = "postgresql://postgres:secret@localhost:5432/plus_in_plus";
   const development = resolveDatabaseConfig({ env: { DATABASE_URL: legacy }, rootDir: "/app" });
-  assert.equal(development.url, `file:${path.join("/app", "prisma", "dev.db")}`);
+  assert.equal(development.url, `file:${path.join("/app", "db", "dev.db")}`);
   assert.equal(development.ignoredUrl, legacy);
   assert.match(unsupportedDatabaseUrlMessage({ DATABASE_URL: legacy }), /not a libSQL\/SQLite URL/);
   assert.equal(unsupportedDatabaseUrlMessage({ DATABASE_URL: "file:local.db" }), null);
@@ -107,7 +107,7 @@ test("a leftover PostgreSQL DATABASE_URL is reported, never silently used", () =
 test("log output never exposes credentials", () => {
   assert.equal(describeDatabaseUrl("libsql://db-org.turso.io?authToken=super-secret"), "libsql://db-org.turso.io?authToken=***");
   assert.equal(describeDatabaseUrl("https://user:password@sqld.example"), "https://***@sqld.example/");
-  assert.equal(localDatabaseUrl("/app").endsWith("/prisma/dev.db"), true);
+  assert.equal(localDatabaseUrl("/app").endsWith("/db/dev.db"), true);
 });
 
 // ---------------------------------------------------------------------------

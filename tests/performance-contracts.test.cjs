@@ -29,7 +29,7 @@ let postQueries = [];
 let featuredQueries = [];
 let serviceQueries = [];
 
-const prisma = {
+const db = {
   service: {
     findMany: async (query) => {
       serviceQueries.push(structuredClone(query));
@@ -50,7 +50,7 @@ const prisma = {
 
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/prisma") return { prisma };
+  if (name === "@/lib/payload-db") return { db };
   if (name.startsWith("@/")) name = path.resolve(root, name.slice(2));
   return originalLoad.call(this, name, parent, isMain);
 };

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { ProfileForm } from "@/components/site/profile-form";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/payload-db";
 import { getRequestTranslations } from "@/lib/server-i18n";
 import { localAvatarPath } from "@/lib/upload-policy";
 
@@ -20,8 +20,8 @@ export default async function ProfilePage() {
     redirect("/login");
   }
 
-  const dbUser = prisma
-    ? await prisma.user.findUnique({
+  const dbUser = db
+    ? await db.user.findUnique({
         where: { id: session.user.id },
         select: {
           email: true,
@@ -46,7 +46,7 @@ export default async function ProfilePage() {
       security={{
         required: ["FOUNDER", "ADMIN", "MANAGER"].includes(dbUser?.role ?? ""),
         initialTotpEnabled: Boolean(dbUser?.mfaSecret),
-        initialPasskeys: dbUser?.webAuthnCredentials.map((credential) => ({ id: credential.id, name: credential.name })) ?? [],
+        initialPasskeys: dbUser?.webAuthnCredentials.map((credential: { id: string; name: string }) => ({ id: credential.id, name: credential.name })) ?? [],
       }}
       initialUser={{
         email: dbUser?.email ?? session.user.email ?? "",

@@ -106,7 +106,7 @@ function carryOver(from: unknown, to: NextResponse): void {
 
 const authMiddleware = NextAuth(authConfig).auth((request) => {
   const pathname = requestPathname(request);
-  const { isAdminArea, isPayloadArea, isManagerArea, isOrdersArea, isFounderSettings } =
+  const { isAdminArea, isPayloadArea, isManagerArea, isOrdersArea } =
     isProtectedPath(pathname);
   if (!isAdminArea && !isPayloadArea && !isManagerArea && !isOrdersArea) {
     return NextResponse.next();
@@ -118,9 +118,9 @@ const authMiddleware = NextAuth(authConfig).auth((request) => {
 
   if (!signedIn) {
     const mayRefresh = request.cookies?.get(REFRESH_PRESENT_COOKIE)?.value === "1";
-    const target = new URL(isOrdersArea || mayRefresh || isPayloadArea ? "/login" : "/", publicUrl);
-    if (isPayloadArea) target.searchParams.set("mode", "admin");
-    if (mayRefresh || isPayloadArea) {
+    const target = new URL(isOrdersArea || mayRefresh || isPayloadArea || isAdminArea ? "/login" : "/", publicUrl);
+    if (isPayloadArea || isAdminArea) target.searchParams.set("mode", "admin");
+    if (mayRefresh || isPayloadArea || isAdminArea) {
       const requestedPath = `${pathname}${request.nextUrl?.search ?? ""}`;
       target.searchParams.set("callbackUrl", requestedPath);
     }
@@ -130,14 +130,8 @@ const authMiddleware = NextAuth(authConfig).auth((request) => {
   if (role !== "FOUNDER" && role !== "ADMIN" && role !== "MANAGER") {
     return NextResponse.redirect(new URL("/", publicUrl));
   }
-  // Админка — администратору и основателю; менеджера ведём в его заявки.
-  if ((isAdminArea || isPayloadArea) && role !== "FOUNDER" && role !== "ADMIN") {
-    return NextResponse.redirect(new URL("/manager/orders", publicUrl));
-  }
-  // ЖЁСТКОЕ ОГРАНИЧЕНИЕ: /admin/settings доступен ТОЛЬКО для FOUNDER.
-  if (isFounderSettings && role !== "FOUNDER") {
-    return NextResponse.redirect(new URL("/admin/dashboard", publicUrl));
-  }
+  // Payload /admin един для всех staff-ролей. Collection access и field-level
+  // правила ограничивают менеджера уже внутри панели и REST API.
   return NextResponse.next();
 });
 
@@ -147,6 +141,19 @@ export async function proxy(
 ) {
   const context = securityContext();
   const pathname = requestPathname(request);
+
+  // Legacy staff URLs have one destination; no second admin application remains.
+  if (pathname === "/payload" || pathname.startsWith("/payload/") || pathname === "/manager" || pathname.startsWith("/manager/")) {
+    const targetUrl = publicRequestUrl(request);
+    if (pathname.startsWith("/manager/orders")) {
+      targetUrl.pathname = pathname.replace(/^\/manager\/orders/, "/admin/collections/orders");
+    } else if (pathname.startsWith("/manager/users")) {
+      targetUrl.pathname = pathname.replace(/^\/manager\/users/, "/admin/collections/accounts");
+    } else {
+      targetUrl.pathname = "/admin";
+    }
+    return secure(NextResponse.redirect(targetUrl), context);
+  }
 
   // Prevent locale-prefixed bypasses of protected routes (/ru/admin/*, /en/orders, /ru/profile, etc.)
   // while persisting the requested language preference in the `pip-locale` cookie.
