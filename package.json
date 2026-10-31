@@ -17,7 +17,7 @@
     "deploy:verify": "node scripts/verify-deployment.cjs",
     "dev": "node scripts/dev.cjs",
     "doctor": "node scripts/doctor.cjs",
-    "lint": "next lint",
+    "lint": "eslint .",
     "postinstall": "node scripts/prisma-generate.cjs",
     "prisma:generate": "node scripts/prisma-generate.cjs",
     "security:audit": "node scripts/security-audit.cjs",
@@ -57,13 +57,13 @@
     "markdown-it": "14.3.3",
     "markdown-it-footnote": "^4.0.0",
     "motion": "^14.2.0",
-    "next": "15.5.28",
+    "next": "16.4.3",
     "next-auth": "5.0.0-beta.32",
     "next-intl": "^4.14.9",
     "otpauth": "^9.5.2",
     "qrcode": "^1.5.4",
-    "react": "^18",
-    "react-dom": "^18",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
     "react-hook-form": "^7.90.0",
     "sanitize-html": "2.18.1",
     "sharp": "0.35.5",
@@ -73,23 +73,23 @@
   },
   "devDependencies": {
     "@auth/core": "0.41.3",
-    "@next/bundle-analyzer": "15.5.28",
+    "@next/bundle-analyzer": "16.4.3",
     "@tailwindcss/postcss": "4.3.3",
     "@types/markdown-it": "^14.2.0",
     "@types/markdown-it-footnote": "^3.0.4",
-    "@types/node": "^20",
+    "@types/node": "24.19.2",
     "@types/qrcode": "^1.5.6",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
     "@types/sanitize-html": "2.16.2",
-    "eslint": "^8",
-    "eslint-config-next": "14.2.35",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.4.3",
     "intl-messageformat": "11.2.15",
     "minimatch": "file:vendor/minimatch",
     "minimatch-upstream": "npm:minimatch@11.0.3",
     "postcss": "8.5.29",
     "prisma": "6.19.3",
-    "react-test-renderer": "^18.3.1",
+    "react-test-renderer": "19.3.1",
     "tailwindcss": "4.3.3",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5"
@@ -106,9 +106,11 @@
     "@auth/core": {
       "@simplewebauthn/browser": "14.0.0",
       "@simplewebauthn/server": "14.0.3"
-    }
+    },
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0"
   },
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=24.22.1"
   }
 }

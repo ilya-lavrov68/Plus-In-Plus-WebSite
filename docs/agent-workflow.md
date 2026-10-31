@@ -70,7 +70,7 @@
 | Маршрут | `app/**/page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`, `not-found.tsx`, route handlers |
 | Публичный UI | Server Components, client boundaries, локализация, states, доступность |
 | Чтение | `lib/*data*.ts`, профильные `lib/*.ts`, Prisma select/include/filter/order/pagination |
-| Авторизация | `middleware.ts`, `auth.ts`, `auth.config.ts`, `lib/admin-session.ts`, ownership и role checks у самой операции |
+| Авторизация | `proxy.ts`, `auth.ts`, `auth.config.ts`, `lib/admin-session.ts`, ownership и role checks у самой операции |
 | Mutation | `app/actions/*.ts`, `app/api/**/route.ts`, client submit/retry/double-submit |
 | Вход | `unknown` → Zod/существующие validators, allowlist полей, bounds, content limits, file type/size |
 | Запись | Prisma transaction, уникальность, идемпотентность, порядок операций, audit log |

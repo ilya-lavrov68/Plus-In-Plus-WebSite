@@ -46,7 +46,8 @@ function requestHeaders() {
 
 /** The same URL-encoded credentials boundary used by next-auth's server signIn. */
 async function signInThroughAuthJs(provider, options) {
-  const { redirect: _redirect, redirectTo, ...credentials } = options;
+  const { redirectTo, ...credentials } = options;
+  delete credentials.redirect;
   const body = new URLSearchParams({ ...credentials, callbackUrl: redirectTo ?? "/" });
   const address = `10.23.${Math.floor(requestSequence / 250) + 1}.${(requestSequence++ % 250) + 1}`;
   const request = new Request(`${ORIGIN}/api/auth/callback/${provider}`, {

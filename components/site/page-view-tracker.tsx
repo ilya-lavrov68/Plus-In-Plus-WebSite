@@ -61,7 +61,7 @@ function referrerDomain(): string | null {
 
 export function PageViewTracker() {
   const pathname = usePathname();
-  const startedAt = useRef<number>(Date.now());
+  const startedAt = useRef<number>(0);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
 
   useEffect(() => {

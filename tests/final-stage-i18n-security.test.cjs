@@ -65,7 +65,7 @@ Module._load = function (name, parent, isMain) {
 
 const { explicitLocaleFromPath } = require("../i18n.ts");
 const { localizedPath } = require("../i18n/routing.ts");
-const { middleware } = require("../middleware.ts");
+const { proxy } = require("../proxy.ts");
 const { getSiteSettings } = require("../lib/admin-data.ts");
 const {
   localizePublicServices,
@@ -105,11 +105,11 @@ test("bidirectional EN <-> RU path resolution handles prefixed, unprefixed, and 
   assert.equal(explicitLocaleFromPath("/ru/services"), "ru");
 });
 
-test("middleware restricts /admin/settings to FOUNDER only and prevents locale-prefixed bypasses", async () => {
+test("proxy restricts /admin/settings to FOUNDER only and prevents locale-prefixed bypasses", async () => {
   process.env.AUTH_SECRET = "test-secret-with-at-least-32-characters";
 
   // ADMIN is redirected away from /admin/settings to /admin/dashboard
-  const adminRes = await middleware({
+  const adminRes = await proxy({
     url: "https://preview.example/admin/settings",
     auth: { user: { id: "admin-1", role: "ADMIN" } },
   });
@@ -120,14 +120,14 @@ test("middleware restricts /admin/settings to FOUNDER only and prevents locale-p
   );
 
   // FOUNDER is allowed into /admin/settings
-  const founderRes = await middleware({
+  const founderRes = await proxy({
     url: "https://preview.example/admin/settings",
     auth: { user: { id: "founder-1", role: "FOUNDER" } },
   });
   assert.equal(founderRes.status, 200);
 
   // Locale-prefixed protected path (/ru/admin/settings) sets cookie and redirects to unprefixed protected path
-  const localeBypassRes = await middleware({
+  const localeBypassRes = await proxy({
     url: "https://preview.example/ru/admin/settings",
     auth: null,
   });

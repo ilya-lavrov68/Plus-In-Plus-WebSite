@@ -11,10 +11,10 @@ function isRequestLocale(value: string | undefined | null): value is RequestLoca
 /**
  * Locale of the current request.
  *
- * 1. `x-pip-locale` — set by middleware.ts for every locale-prefixed public URL
+ * 1. `x-pip-locale` — set by proxy.ts for every locale-prefixed public URL
  *    (`/ru/...`), so the rewritten internal route keeps knowing its language.
  * 2. `pip-locale` cookie — written by the language switcher and by the
- *    middleware. Admin routes have no locale prefix, so the cookie is what keeps
+ *    proxy. Admin routes have no locale prefix, so the cookie is what keeps
  *    the admin panel in the language the visitor picked on the public site.
  * 3. English, the default locale.
  *

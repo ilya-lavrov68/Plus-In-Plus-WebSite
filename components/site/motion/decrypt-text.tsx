@@ -205,8 +205,6 @@ export function DecryptText({
     };
   }, [play, resolveAll, stop, trigger]);
 
-  let cursor = -1;
-
   return (
     <span
       ref={rootRef}
@@ -220,8 +218,7 @@ export function DecryptText({
           <span key={`${wordIndex}-${text}`}>
             <span className="inline-block whitespace-nowrap">
               {word.map((item) => {
-                cursor += 1;
-                const refIndex = cursor;
+                const refIndex = item.index;
                 return (
                   <span
                     key={`${item.index}-${item.char}`}

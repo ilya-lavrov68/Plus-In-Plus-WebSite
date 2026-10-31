@@ -173,7 +173,8 @@ test("service and post schemas reject what the database cannot store safely", ()
   };
   assert.equal(validators.createServiceSchema.safeParse(service).success, true);
   // The slug is optional for services: it is derived from the title.
-  const { slug, ...withoutSlug } = service;
+  const withoutSlug = { ...service };
+  delete withoutSlug.slug;
   assert.equal(validators.createServiceSchema.safeParse(withoutSlug).success, true);
   for (const broken of [
     { ...service, category: "other" },

@@ -1805,7 +1805,8 @@ test("DecryptText keeps readable stable glyphs and resolves a single scramble", 
   global.cancelAnimationFrame = (id) => frames.delete(id);
   Object.defineProperty(global, "performance", {
     configurable: true,
-    value: { now: () => now },
+    // React 19 development builds use User Timing around render work.
+    value: { now: () => now, measure() {}, clearMeasures() {} },
   });
   global.window.matchMedia = () => ({
     matches: false,
