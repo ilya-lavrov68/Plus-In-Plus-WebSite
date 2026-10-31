@@ -16,6 +16,7 @@ import {
   AGENT_SHADER_WIDTH,
   AGENT_VERTEX_SHADER,
   type AgentKind,
+  type AgentScene,
 } from "@/lib/agent-shaders";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,7 @@ type RGB = [number, number, number];
 
 interface AgentShaderPlayerProps {
   agent: AgentKind;
+  scene?: AgentScene;
   labels: {
     play: string;
     pause: string;
@@ -94,8 +96,9 @@ function createProgram(
   return program;
 }
 
-/** Зацикленный двухпроходный player с отдельной сценой и SVG-fallback для каждого агента. */
-export function AgentShaderPlayer({ agent, labels }: AgentShaderPlayerProps) {
+/** Зацикленный двухпроходный player с SVG-fallback для каждой Illos field-сцены. */
+export function AgentShaderPlayer({ agent, scene, labels }: AgentShaderPlayerProps) {
+  const resolvedScene = scene ?? agent;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const controllerRef = useRef<PlayerController | null>(null);
@@ -126,7 +129,7 @@ export function AgentShaderPlayer({ agent, labels }: AgentShaderPlayerProps) {
     });
     if (!gl) return;
 
-    const fieldProgram = createProgram(gl, AGENT_FIELD_FRAGMENT_SHADERS[agent]);
+    const fieldProgram = createProgram(gl, AGENT_FIELD_FRAGMENT_SHADERS[resolvedScene]);
     const barsProgram = createProgram(gl, AGENT_BARS_FRAGMENT_SHADER);
     if (!fieldProgram || !barsProgram) {
       if (fieldProgram) gl.deleteProgram(fieldProgram);
@@ -353,7 +356,7 @@ export function AgentShaderPlayer({ agent, labels }: AgentShaderPlayerProps) {
       gl.deleteProgram(fieldProgram);
       gl.deleteProgram(barsProgram);
     };
-  }, [agent, reducedMotion]);
+  }, [resolvedScene, reducedMotion]);
 
   const enhanced = ready && reducedMotion === false;
   const label =
@@ -364,6 +367,7 @@ export function AgentShaderPlayer({ agent, labels }: AgentShaderPlayerProps) {
     <div
       ref={frameRef}
       data-agent={agent}
+      data-scene={resolvedScene}
       data-playback={playback}
       data-shader-loop={AGENT_SHADER_CYCLE_SECONDS}
       className="relative size-full overflow-hidden bg-background"
@@ -377,7 +381,7 @@ export function AgentShaderPlayer({ agent, labels }: AgentShaderPlayerProps) {
         )}
       />
       <div className="pointer-events-none absolute inset-0">
-        <AgentDiagram agent={agent} enhanced={enhanced} />
+        <AgentDiagram agent={agent} scene={resolvedScene} enhanced={enhanced} />
       </div>
       {enhanced ? (
         <Button
@@ -390,7 +394,7 @@ export function AgentShaderPlayer({ agent, labels }: AgentShaderPlayerProps) {
           }}
           aria-label={label}
           title={label}
-          data-shader-control={agent}
+          data-shader-control={resolvedScene}
           className="absolute right-3 bottom-3 size-8 border-border bg-background/90 text-foreground shadow-sm backdrop-blur-sm hover:bg-card [&_svg]:size-3.5"
         >
           <Icon aria-hidden="true" className="text-primary" />

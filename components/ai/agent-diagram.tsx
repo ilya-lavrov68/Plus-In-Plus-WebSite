@@ -1,9 +1,10 @@
 import { AGENT_STATIC_BAR_FILLS, AGENT_STATIC_FRAMES } from "@/lib/agent-static-frames";
-import type { AgentKind } from "@/lib/agent-shaders";
+import { AGENT_SHADER_SCENE_NAMES, type AgentKind, type AgentScene } from "@/lib/agent-shaders";
 import { cn } from "@/lib/utils";
 
 interface AgentDiagramProps {
   agent: AgentKind;
+  scene?: AgentScene;
   enhanced?: boolean;
   className?: string;
 }
@@ -13,21 +14,22 @@ const GRID_PATH = [
   ...[0, 96, 192, 288, 384].map((y) => `M0 ${y}H720`),
 ].join("");
 
-/** Неподвижный кадр той же Tool calls/RAG field-сцены для reduced motion/no WebGL. */
-export function AgentDiagram({ agent, enhanced = false, className }: AgentDiagramProps) {
+/** Неподвижный кадр той же field-сцены для reduced motion/no WebGL. */
+export function AgentDiagram({ agent, scene, enhanced = false, className }: AgentDiagramProps) {
+  const resolvedScene = scene ?? agent;
   return (
     <svg
       aria-hidden="true"
       focusable="false"
       data-agent={agent}
-      data-scene={agent === "lumi" ? "tool-calls" : "rag-answer"}
+      data-scene={AGENT_SHADER_SCENE_NAMES[resolvedScene]}
       viewBox="0 0 720 460"
       className={cn("size-full", className)}
     >
       {!enhanced ? (
-        <g data-static-field={agent}>
+        <g data-static-field={resolvedScene}>
           <path d={GRID_PATH} fill="none" stroke="currentColor" strokeWidth="1" className="text-foreground/[0.06]" />
-          {AGENT_STATIC_FRAMES[agent].map(([x, y, width, fill, spark]) => (
+          {AGENT_STATIC_FRAMES[resolvedScene].map(([x, y, width, fill, spark]) => (
             <g key={`${x}:${y}`}>
               <rect
                 x={x}
