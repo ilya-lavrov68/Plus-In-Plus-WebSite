@@ -32,7 +32,7 @@ function readEnvFile(file = path.join(rootDir, ".env")) {
   return values;
 }
 
-/** Minimum Node version from `engines.node` (">=20.19.0" style ranges only). */
+/** Minimum Node version from `engines.node` (">=24.22.1" style ranges only). */
 function requiredNodeVersion(manifest) {
   const range = String(manifest?.engines?.node ?? "").match(/(\d+)(?:\.(\d+))?(?:\.(\d+))?/);
   if (!range) return null;

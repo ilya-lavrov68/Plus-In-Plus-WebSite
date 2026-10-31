@@ -3,7 +3,7 @@
 Официальная веб-платформа **Plus In Plus** объединяет два направления: существующую дизайн-практику и анонсируемые ИИ-технологии. На сайте — витрина дизайн-услуг с конфигуратором опций и корзиной, презентация ИИ-агентов Lumi Q1 и Kairo, двухшаговая форма брифа и заявок с прямой записью в БД, блог со статьями и галереями, личный кабинет клиента, рабочее место менеджера и полная админ-панель. Фирменный акцент интерфейса — `#FFFF01`.
 
 **Стек текущей версии:**
-`Next.js 15 (App Router)` · `React 18` · `TypeScript` · `Tailwind CSS 4` · `Shadcnblocks UI (палитра Hero 138)` · `Motion` · `Prisma 6 + libSQL / SQLite (Turso)` · `Auth.js v5` · `next-intl (RU / EN)` · `TipTap` · `Robokassa` · `Sharp (WebP)`
+`Next.js 16 (App Router)` · `React 19` · `TypeScript` · `Tailwind CSS 4` · `Shadcnblocks UI (палитра Hero 138)` · `Motion` · `Prisma 6 + libSQL / SQLite (Turso)` · `Auth.js v5` · `next-intl (RU / EN)` · `TipTap` · `Robokassa` · `Sharp (WebP)`
 
 ---
 
@@ -25,7 +25,7 @@
 ### 1. Подготовка окружения
 
 Установите:
-- **Node.js `20.19+` или `22 LTS`** (`node -v`)
+- **Node.js `24.22.1+`** (`node -v`; версия зафиксирована в `.nvmrc`)
 - **Git** и **VS Code**
 
 Откройте проект в VS Code — редактор сам предложит поставить рекомендуемые расширения из `.vscode/extensions.json` (*Prisma*, *SQLTools + SQLite*, *DotENV*). Отдельный сервер БД ставить **не нужно** (работает локальный SQLite-файл).
@@ -40,7 +40,7 @@
 ```bash
 sudo apt update && sudo apt install -y \
   git curl nginx certbot python3-certbot-nginx
-curl -fsSL https://deb.nodesource.com/setup_22.x \
+curl -fsSL https://deb.nodesource.com/setup_24.x \
   | sudo -E bash -
 sudo apt install -y nodejs && sudo npm i -g pm2
 ```

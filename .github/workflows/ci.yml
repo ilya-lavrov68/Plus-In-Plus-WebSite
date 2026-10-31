@@ -29,7 +29,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24.22.1"
           cache: npm
 
       # Restore only Next's incremental artifacts, before npm ci creates node_modules.

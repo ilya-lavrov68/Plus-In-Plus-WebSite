@@ -15,7 +15,7 @@ export type { MessageTranslator } from "@/lib/i18n-messages";
  * `generateMetadata`.
  *
  * The locale comes from the request itself — the `X-NEXT-INTL-LOCALE` header that
- * middleware.ts sends for locale-prefixed public URLs, or the `pip-locale` cookie
+ * proxy.ts sends for locale-prefixed public URLs, or the `pip-locale` cookie
  * for the un-prefixed admin routes (`lib/request-locale.ts`). The messages are the
  * same `messages/*.json` catalogs the client provider receives, so server-rendered
  * markup and client components always agree, and a message that has no translation

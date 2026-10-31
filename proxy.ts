@@ -138,7 +138,7 @@ const authMiddleware = NextAuth(authConfig).auth((request) => {
   return NextResponse.next();
 });
 
-export async function middleware(
+export async function proxy(
   request: Parameters<typeof authMiddleware>[0],
   event: Parameters<typeof authMiddleware>[1]
 ) {

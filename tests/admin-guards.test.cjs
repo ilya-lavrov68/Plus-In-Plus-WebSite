@@ -22,21 +22,21 @@ Module._load = function (name, parent, isMain) {
   if (name.startsWith("@/")) name = path.resolve(__dirname, "..", name.slice(2));
   return originalLoad.call(this, name, parent, isMain);
 };
-const { middleware, config } = require("../middleware.ts");
+const { proxy, config } = require("../proxy.ts");
 const data = require("../lib/admin-data.ts");
 
-// The middleware is async: it awaits the NextAuth decision so that it can re-issue "continue"
+// The proxy is async: it awaits the NextAuth decision so that it can re-issue "continue"
 // with the request headers that carry the per-request CSP nonce.
-test("middleware redirects every non-admin or missing session to /", async () => {
+test("proxy redirects every non-admin or missing session to /", async () => {
   process.env.AUTH_SECRET = "test-secret-with-at-least-32-characters";
   assert.deepEqual(config.matcher, ["/((?!_next|api|uploads|.*\\..*).*)", "/api/:path*", "/admin/:path*"]);
   for (const auth of [null, { user: { id: "test", role: "USER" } }, { user: { role: "ADMIN" } }]) {
-    const response = await middleware({ url: "https://preview.example/admin/services/new", auth });
+    const response = await proxy({ url: "https://preview.example/admin/services/new", auth });
     assert.equal(response.status, 307);
     assert.equal(response.headers.get("location"), "https://preview.example/");
   }
 
-  const allowed = await middleware({
+  const allowed = await proxy({
     url: "https://preview.example/admin/dashboard",
     auth: { user: { id: "test", role: "ADMIN" } },
   });
@@ -47,13 +47,13 @@ test("middleware redirects every non-admin or missing session to /", async () =>
   assert.match(policy, /script-src 'self' 'nonce-[^']+'/);
   assert.equal(allowed.headers.get("x-content-type-options"), "nosniff");
 
-  const api = await middleware({ url: "https://preview.example/api/health", auth: null });
+  const api = await proxy({ url: "https://preview.example/api/health", auth: null });
   assert.equal(api.status, 200);
   assert.equal(api.headers.get("x-content-type-options"), "nosniff");
   assert.match(api.headers.get("content-security-policy"), /^default-src 'self'; /);
 
   process.env.AUTH_SECRET = "weak";
-  const unconfigured = await middleware({
+  const unconfigured = await proxy({
     url: "https://preview.example/admin/dashboard",
     auth: { user: { id: "test", role: "ADMIN" } },
   });
@@ -71,7 +71,7 @@ test("protected redirects use the trusted public origin instead of the bind addr
   ];
 
   for (const [pathname, auth, expectedPath] of cases) {
-    const response = await middleware({
+    const response = await proxy({
       url: `http://0.0.0.0:3444${pathname}`,
       headers: {
         host: "0.0.0.0:3444",

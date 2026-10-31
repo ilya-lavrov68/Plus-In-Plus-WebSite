@@ -3,7 +3,7 @@
  *
  * The Content-Security-Policy needs a fresh nonce for every document, so it cannot live in
  * `next.config.mjs` `headers()` (those are static). It is assembled here — a pure, edge-safe
- * module with no imports — and applied by `middleware.ts`.
+ * module with no imports — and applied by `proxy.ts`.
  *
  * What the site actually loads, and therefore what the policy allows:
  *   * scripts: only our own bundles, plus the inline `self.__next_f.push(…)` flight scripts

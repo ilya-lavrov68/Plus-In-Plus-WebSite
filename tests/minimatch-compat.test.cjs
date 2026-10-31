@@ -5,14 +5,18 @@ const manifest = require("../package.json");
 const lockfile = require("../package-lock.json");
 const minimatch = require("minimatch");
 
-test("dependency overrides use the patched glob and official minimatch upstream", () => {
+test("dependency overrides keep the patched glob policy and official minimatch upstream", () => {
   assert.equal(manifest.devDependencies.minimatch, "file:vendor/minimatch");
   assert.equal(manifest.devDependencies["minimatch-upstream"], "npm:minimatch@11.0.3");
   assert.equal(manifest.overrides.minimatch, "$minimatch");
   assert.equal(manifest.overrides.glob, "14.0.3");
   assert.equal(require("minimatch/package.json").version, "11.0.3-compat.0");
   assert.equal(require("minimatch-upstream/package.json").version, "11.0.3");
-  assert.equal(lockfile.packages["node_modules/glob"].version, "14.0.3");
+  const installedGlobs = Object.entries(lockfile.packages)
+    .filter(([name]) => name === "node_modules/glob" || name.endsWith("/node_modules/glob"));
+  for (const [name, metadata] of installedGlobs) {
+    assert.equal(metadata.version, "14.0.3", `${name} must retain the security override`);
+  }
 });
 
 test("legacy consumers retain a callable CommonJS minimatch export", () => {
