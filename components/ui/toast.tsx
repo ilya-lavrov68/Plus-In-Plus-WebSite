@@ -34,7 +34,7 @@ const toastVariants = cva(
     variants: {
       variant: {
         default: "border-border bg-background text-foreground",
-        destructive: "border-border bg-primary text-primary-foreground",
+        destructive: "border-destructive/50 bg-destructive text-destructive-foreground",
       },
     },
     defaultVariants: {
@@ -63,7 +63,7 @@ const ToastAction = React.forwardRef<
   <ToastPrimitives.Action
     ref={ref}
     className={cn(
-      "inline-flex h-8 shrink-0 items-center justify-center rounded-md border border-border bg-transparent px-3 text-sm font-medium transition-colors duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background disabled:pointer-events-none disabled:opacity-50",
+      "inline-flex h-8 shrink-0 items-center justify-center rounded-md border border-border bg-transparent px-3 text-sm font-medium transition-colors duration-200 ease-out focus:outline-solid focus:outline-2 focus:outline-offset-2 focus:outline-ring disabled:pointer-events-none disabled:opacity-50",
       className
     )}
     {...props}
@@ -80,7 +80,7 @@ const ToastClose = React.forwardRef<
   <ToastPrimitives.Close
     ref={ref}
     className={cn(
-      "absolute right-2 top-2 rounded-md p-1 opacity-50 transition-opacity duration-200 ease-out hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring",
+      "absolute right-2 top-2 rounded-md p-1 opacity-50 transition-opacity duration-200 ease-out hover:opacity-100 focus:outline-solid focus:outline-2 focus:outline-offset-2 focus:outline-ring",
       className
     )}
     {...props}

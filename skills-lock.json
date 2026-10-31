@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "skills": {
+    "spritecook-animate-assets": {
+      "source": "spritecook/skills",
+      "sourceType": "github",
+      "skillPath": "skills/spritecook-animate-assets/SKILL.md",
+      "computedHash": "3e5b1aecc425e6203c773d088716cfe13f750c3abe9ff5feb6e4014ceda0f308"
+    },
+    "spritecook-generate-sprites": {
+      "source": "spritecook/skills",
+      "sourceType": "github",
+      "skillPath": "skills/spritecook-generate-sprites/SKILL.md",
+      "computedHash": "23fdec80ef96867d066a51525ddbf3ffe67018d90435dff3a5b28819bf7f8277"
+    },
+    "spritecook-polish-sprites": {
+      "source": "spritecook/skills",
+      "sourceType": "github",
+      "skillPath": "skills/spritecook-polish-sprites/SKILL.md",
+      "computedHash": "d86bdf05d043db02cf977e1bbfc0cc7c07fc67b8bff9d5d9831abb0b9858676a"
+    },
+    "spritecook-workflow-essentials": {
+      "source": "spritecook/skills",
+      "sourceType": "github",
+      "skillPath": "skills/spritecook-workflow-essentials/SKILL.md",
+      "computedHash": "aaf3fb9488d81af6ffcb58fbceaf629685cad4029f5e33bd9f9e0499cfec13d7"
+    }
+  }
+}

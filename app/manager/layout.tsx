@@ -40,7 +40,7 @@ export default async function ManagerLayout({
           <div className="flex items-center justify-between gap-3">
             <Link
               href="/manager/orders"
-              className="inline-flex items-center rounded-md p-1 transition-opacity duration-200 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="inline-flex items-center rounded-md p-1 transition-opacity duration-200 hover:opacity-80 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <BrandMark className="h-7" label="Plus In Plus" />
             </Link>

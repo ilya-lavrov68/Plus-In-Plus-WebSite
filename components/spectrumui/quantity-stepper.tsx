@@ -277,7 +277,7 @@ export function QuantityStepper({
   const buttonClasses = cn(
     "flex shrink-0 touch-manipulation items-center justify-center rounded-full text-muted-foreground transition-colors",
     "hover:bg-white/[0.08] hover:text-foreground",
-    "focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring",
+    "focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
     button,
   )
 
@@ -326,7 +326,7 @@ export function QuantityStepper({
         animate={shakeControls}
         className={cn(
           "flex items-center justify-center overflow-hidden px-1 font-medium tabular-nums transition-colors",
-          "focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring",
+          "focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
           flash > 0 ? "text-red-400" : "text-foreground",
           valueClasses,
         )}

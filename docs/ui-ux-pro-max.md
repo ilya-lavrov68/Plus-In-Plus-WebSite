@@ -35,15 +35,17 @@
 - нижняя панель не перегружается: основных пунктов не более пяти, дополнительные действия размещаются предсказуемо;
 - не возвращается panel-oriented icon animation; микроанимация адресуется самой иконке и её состоянию;
 - ориентир микровзаимодействий — SberBank Online-like отклик, а не непрерывное декоративное движение;
-- header остаётся без лишних теней;
+- тени запрещены во всём интерфейсе, включая header, cards, overlays, pinned columns и focus: никаких `shadow*`, `drop-shadow*`, `box-shadow`, `text-shadow` или ring-as-shadow; разделение создаётся нейтральными borders, фоном и spacing, а keyboard focus — видимым outline;
 - Features сохраняет очищенный logo/plus treatment;
 - все plus icons при hover поворачиваются на 90°;
-- glass surfaces остаются полупрозрачными и blurred, без chamfered styling;
+- glass surfaces остаются полупрозрачными и blurred, без chamfered styling и теней;
 - animated timeline outline и его branch-and-trace behavior сохраняются;
 - background glows ниже hero не возвращаются;
-- фирменный акцент — точный `#FFFF01`; он применяется к primary actions, фокусу и отдельным пиксельным сигналам с тёмным текстом на жёлтом, а не заливает все нейтральные поверхности;
+- цветовая композиция следует правилу **60/30/10**: основной цвет темы занимает около 60%, поддерживающие нейтральные поверхности/текст/borders — около 30%, фирменный акцент — не более чем около 10%; это норма визуального распределения, а не подсчёт количества токенов;
+- фирменный акцент — точный `#FFFF01`; он концентрируется в primary actions, активном статусе, hover/focus и отдельных сильных пиксельных сигналах с тёмным текстом на жёлтом. Повторяющиеся номера, labels, иконки, разделители и вторичные ссылки остаются нейтральными;
 - главная представляет два равноправных направления — ИИ и дизайн; `/ai` отделяет анонсируемые концепции Lumi Q1 и Kairo от действующей дизайн-практики и не имитирует рабочий чат;
 - компьютеризация и пиксели выражаются детерминированными квадратными сетками, кодовыми сигналами и shader-кадрами без случайных внешних изображений;
+- карточки направлений используют разные тематические 8-кадровые sprites: ИИ показывает код/агентный workflow и проверку задачи, Дизайн — артборд, pen и формирование плюса. Исходник воспроизводится `npm run sprites:directions`; обязательны ограниченная палитра, nearest-neighbor scaling, стабильный силуэт, проверка кадров и loop boundary, статичный финальный кадр при reduced motion и остановка вне viewport/в скрытой вкладке;
 - agent shaders используют свободные Illos Tool calls для Lumi и RAG answer для Kairo: сюжеты различаются и соответствуют coding/agent workflow и retrieval-augmented generation; обе сцены автоматически повторяют исходный цикл 4,5 секунды, имеют компактные icon-only pause/resume без replay, остановку вне экрана и разные статичные fallback-кадры при reduced motion/отсутствии WebGL; это решение не переносит hover-loop или бесконечный ambient loop на другие блоки;
 - hero не получает прежние `will-change`/`translateZ`, старые trace offsets или тяжёлые per-card continuous scroll timelines;
 - интерфейс не использует emojis как иконки; применяются существующие SVG/Lucide-решения;
@@ -162,7 +164,7 @@
 - Автоматически rotating content получает previous/next/pause и останавливается при hover/focus/reduced motion.
 - Видео предпочтительно click-to-play, с pause/captions и остановкой вне экрана; reduced motion не получает autoplay.
 
-Для PIP это означает: оживляем иконку и её отклик, а не заставляем панель постоянно двигаться; plus rotation и timeline trace сохраняются, но не превращаются в непрерывный фоновый цикл.
+Для PIP это означает: оживляем иконку и её отклик, а не заставляем панель постоянно двигаться; plus rotation и timeline trace сохраняются, но не превращаются в непрерывный фоновый цикл. Отдельно утверждённые смысловые shader- и direction-sprite loops не являются разрешением на ambient motion: они останавливаются вне экрана и заменяются статичным конечным кадром при reduced motion.
 
 ## 8. Формы, loading и обратная связь
 
@@ -225,7 +227,7 @@
 1. **Baseline:** открыть страницу на 1440×900, проверить render, console и сделать screenshot.
 2. **Сценарии:** primary flow, menu/modal/tabs, valid/invalid form, hover/active/disabled/loading/empty/error, destructive confirmation.
 3. **Responsive:** 375, 768, 1024, 1440; для системных изменений добавить 1920 и узкие 320/360/390/414 по риску.
-4. **Visual polish:** alignment, spacing rhythm, type scale, radii/borders/shadows, image quality, отсутствие бесполезного декора.
+4. **Visual polish:** alignment, spacing rhythm, type scale, radii/borders, соблюдение 60/30/10, полное отсутствие теней, image quality и отсутствие бесполезного декора.
 5. **Accessibility:** пройти весь сценарий клавиатурой, проверить names/labels/headings/focus/contrast/reduced motion.
 6. **Robustness:** длинные RU/EN строки, пустые данные, медленная сеть, повреждённый/неожиданный контент.
 7. **Console/network:** ошибки, failed requests, 404 assets, повторные запросы и неожиданный payload.
@@ -253,6 +255,7 @@ Heuristic script и static checks не заменяют полный review сц
 Перед завершением UI-задачи ответить «да» или честно указать исключение:
 
 - [ ] существующая функциональность и PIP-ограничения сохранены;
+- [ ] композиция выдерживает 60/30/10, акцент не расползается по вторичным элементам, тени и ring-as-shadow отсутствуют;
 - [ ] основной сценарий работает мышью, touch и клавиатурой;
 - [ ] focus виден и не перекрыт;
 - [ ] labels, errors, loading, success, empty и recovery понятны;

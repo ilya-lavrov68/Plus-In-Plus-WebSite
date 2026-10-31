@@ -172,7 +172,7 @@ const Signup10 = ({
             <div className="flex flex-col items-center text-center">
               <Link
                 href="/"
-                className="mx-auto inline-flex items-center justify-center rounded-xl p-1.5 transition-opacity duration-200 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="mx-auto inline-flex items-center justify-center rounded-xl p-1.5 transition-opacity duration-200 hover:opacity-80 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 <BrandMark className="h-9" label="Plus In Plus" />
               </Link>
@@ -207,7 +207,7 @@ const Signup10 = ({
                   <motion.span
                     layoutId="signup10-mode-pill"
                     transition={{ type: "spring", stiffness: 450, damping: 36 }}
-                    className="absolute inset-0 rounded-full bg-primary shadow-sm"
+                    className="absolute inset-0 rounded-full bg-primary "
                   />
                 )}
                 <span className="relative z-10">{t("login")}</span>
@@ -227,7 +227,7 @@ const Signup10 = ({
                   <motion.span
                     layoutId="signup10-mode-pill"
                     transition={{ type: "spring", stiffness: 450, damping: 36 }}
-                    className="absolute inset-0 rounded-full bg-primary shadow-sm"
+                    className="absolute inset-0 rounded-full bg-primary "
                   />
                 )}
                 <span className="relative z-10">{t("register")}</span>

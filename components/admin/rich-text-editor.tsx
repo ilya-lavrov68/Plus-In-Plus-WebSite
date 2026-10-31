@@ -56,7 +56,7 @@ export function RichTextEditor({
   }, [canvaInsertion, editor]);
 
   return (
-    <div className="overflow-hidden rounded-md border border-input bg-background shadow-sm">
+    <div className="overflow-hidden rounded-md border border-input bg-background ">
       <div className="flex flex-wrap items-center gap-1 border-b border-border bg-muted/30 p-2" aria-label={t("editor.toolbar")}>
         {toolbar.map((action) => (
           <button
@@ -65,7 +65,7 @@ export function RichTextEditor({
             title={t(`editor.${action.titleKey}`)}
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => action.run(editor)}
-            className="inline-flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-sm font-semibold text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-sm font-semibold text-foreground transition-colors hover:bg-secondary focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             {action.label}
           </button>

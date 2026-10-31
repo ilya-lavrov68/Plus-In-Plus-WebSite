@@ -67,7 +67,7 @@ const Blogpost11 = ({
             {post.author || post.quote?.trim() ? <Separator className="my-8" /> : null}
 
             {post.quote?.trim() ? (
-              <figure className="rounded-xl border border-primary/25 bg-card p-6 md:p-8">
+              <figure className="rounded-xl border border-border bg-card p-6 md:p-8">
                 <blockquote className="text-lg leading-relaxed font-medium text-foreground">
                   &ldquo;{post.quote}&rdquo;
                 </blockquote>

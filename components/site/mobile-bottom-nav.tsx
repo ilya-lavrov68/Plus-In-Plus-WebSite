@@ -138,7 +138,7 @@ function MobileMenuIcon({ open }: { open: boolean }) {
 }
 
 const itemClassName =
-  "group flex h-full min-h-14 min-w-0 touch-manipulation select-none flex-col items-center justify-center gap-1 rounded-xl px-0.5 text-[10px] leading-none font-medium transition-colors duration-200 ease-out active:bg-accent/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none";
+  "group flex h-full min-h-14 min-w-0 touch-manipulation select-none flex-col items-center justify-center gap-1 rounded-xl px-0.5 text-[10px] leading-none font-medium transition-colors duration-200 ease-out active:bg-accent/70 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none";
 
 export function MobileBottomNav({
   cartCount,

@@ -610,7 +610,7 @@ export function AccountModal({
                   </Button>
                   <button
                     type="button"
-                    className="w-full rounded text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="w-full rounded text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     onClick={() => switchTab("register")}
                   >
                     {t("noAccount")}

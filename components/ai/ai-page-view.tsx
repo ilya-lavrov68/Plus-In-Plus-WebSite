@@ -53,7 +53,7 @@ function AgentSection({
           className={cn("min-w-0", reverse && "lg:order-2")}
         >
           <div className="flex items-center justify-between gap-4 border-t border-border pt-5 text-xs">
-            <span className="font-mono text-primary">{index}</span>
+            <span className="font-mono text-muted-foreground">{index}</span>
             <span className="font-medium text-muted-foreground">{status}</span>
           </div>
           <div className="mt-6 aspect-[36/23] w-full border-y border-border bg-background text-foreground">
@@ -63,8 +63,8 @@ function AgentSection({
         </figure>
 
         <div data-reveal="" data-reveal-delay={100} className="min-w-0">
-          <Icon aria-hidden="true" className="size-7 text-primary" strokeWidth={1.5} />
-          <p className="mt-8 text-sm font-medium text-primary">{role}</p>
+          <Icon aria-hidden="true" className="size-7 text-foreground/70" strokeWidth={1.5} />
+          <p className="mt-8 text-sm font-medium text-foreground/80">{role}</p>
           <h2 className="mt-3 text-4xl font-medium tracking-tight sm:text-5xl">{name}</h2>
           <p className="mt-7 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
             {description}
@@ -74,7 +74,7 @@ function AgentSection({
           <ol className="mt-6 space-y-6">
             {benefits.map((benefit, benefitIndex) => (
               <li key={benefit} className="flex items-start gap-5 border-t border-border pt-5">
-                <span aria-hidden="true" className="mt-1 shrink-0 font-mono text-xs text-primary">
+                <span aria-hidden="true" className="mt-1 shrink-0 font-mono text-xs text-muted-foreground">
                   {String(benefitIndex + 1).padStart(2, "0")}
                 </span>
                 <span className="min-w-0 text-sm leading-relaxed text-foreground/85 sm:text-base">{benefit}</span>
@@ -83,10 +83,10 @@ function AgentSection({
           </ol>
           <Link
             href={`/ai/${agent}`}
-            className="group mt-9 inline-flex items-center gap-3 text-sm font-medium text-foreground transition-colors hover:text-primary"
+            className="group mt-9 inline-flex items-center gap-3 text-sm font-medium text-foreground/80 transition-colors hover:text-foreground"
           >
             {detailsLink}
-            <ArrowRight aria-hidden="true" className="size-4 text-primary transition-transform group-hover:translate-x-1" />
+            <ArrowRight aria-hidden="true" className="size-4 text-muted-foreground transition-[color,transform] group-hover:translate-x-1 group-hover:text-primary" />
           </Link>
           <p className="mt-9 max-w-xl border-t border-border pt-5 text-sm leading-relaxed text-muted-foreground">
             {note}
@@ -114,7 +114,7 @@ export async function AiPageView() {
           <div className="grid gap-12 lg:grid-cols-[1.15fr_0.85fr] lg:items-end lg:gap-20">
             <div>
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">{t("eyebrow")}</p>
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">{t("eyebrow")}</p>
                 <span className="text-xs text-muted-foreground">{t("announcement")}</span>
               </div>
               <h1 className="mt-8 max-w-4xl text-4xl font-medium tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
@@ -140,7 +140,7 @@ export async function AiPageView() {
             className="mt-16 flex max-w-4xl items-start gap-5 border-t border-border pt-7"
             aria-label={t("integrationNoticeTitle")}
           >
-            <CircuitBoard aria-hidden="true" className="mt-0.5 size-6 shrink-0 text-primary" strokeWidth={1.5} />
+            <CircuitBoard aria-hidden="true" className="mt-0.5 size-6 shrink-0 text-muted-foreground" strokeWidth={1.5} />
             <div>
               <h2 className="text-sm font-semibold text-foreground">{t("integrationNoticeTitle")}</h2>
               <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">{t("integrationNotice")}</p>
@@ -191,7 +191,7 @@ export async function AiPageView() {
             className="flex flex-col justify-between gap-12 lg:flex-row lg:items-end lg:gap-20"
           >
             <div className="max-w-2xl">
-              <PenTool aria-hidden="true" className="size-7 text-primary" strokeWidth={1.5} />
+              <PenTool aria-hidden="true" className="size-7 text-foreground/70" strokeWidth={1.5} />
               <h2 className="mt-8 text-3xl font-medium tracking-tight sm:text-4xl">{t("designBridge.title")}</h2>
               <p className="mt-6 text-base leading-relaxed text-muted-foreground sm:text-lg">{t("designBridge.description")}</p>
             </div>

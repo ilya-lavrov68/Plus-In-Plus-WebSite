@@ -50,7 +50,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         // min-height inline makes the first paint correct.
         style={{ minHeight, ...style }}
         className={cn(
-          "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-[0_0_0_0px_rgba(250,250,250,0)] transition-[height,border-color,box-shadow] duration-200 ease-out placeholder:text-muted-foreground hover:border-foreground/25 focus-visible:border-foreground/50 focus-visible:outline-none focus-visible:shadow-[0_0_0_4px_rgba(250,250,250,0.1)] disabled:cursor-not-allowed disabled:opacity-50",
+          "w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-[height,border-color,outline-color] duration-200 ease-out placeholder:text-muted-foreground hover:border-foreground/25 focus-visible:border-foreground/50 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50",
           className
         )}
         {...props}

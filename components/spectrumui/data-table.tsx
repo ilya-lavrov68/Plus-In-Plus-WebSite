@@ -297,7 +297,7 @@ const WAVE_STEP = 0.06;
 const INSTANT = { duration: 0 } as const;
 
 const FOCUS =
-  'focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring';
+  'focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring';
 const EASE = 'ease-[cubic-bezier(0.2,0,0,1)]';
 
 const DENSITY: Record<DataTableDensity, { head: string; cell: string; text: string; pad: string }> =
@@ -641,7 +641,7 @@ function SelectBox({
           filled
             ? "border-primary"
             : 'border-border bg-background hover:border-foreground/40',
-          'peer-focus-visible:ring-1 peer-focus-visible:ring-ring',
+          'peer-focus-visible:outline-solid peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring',
         )}
       >
         <motion.span
@@ -1071,12 +1071,8 @@ export function DataTable<T>({
     select: renderDetail ? DETAIL_COL : 0,
     first: (renderDetail ? DETAIL_COL : 0) + (selectable ? SELECT_COL : 0),
   };
-  // An outer box-shadow rather than a pseudo-element: the pinned cell clips its
-  // own overflow to truncate long values, and that would clip the shadow too.
-  const pinnedShadow =
-    pinFirstColumn && scrolledX
-      ? 'shadow-[12px_0_10px_-10px_rgba(0,0,0,0.12)] dark:shadow-[12px_0_10px_-10px_rgba(0,0,0,0.55)]'
-      : '';
+  // Нейтральная линия отделяет закреплённую колонку без тени.
+  const pinnedRule = pinFirstColumn && scrolledX ? 'border-e border-border' : '';
 
   const rowRefs = React.useRef<(HTMLTableRowElement | null)[]>([]);
 
@@ -1331,7 +1327,7 @@ export function DataTable<T>({
               className={cn(
                 'w-full border-collapse whitespace-nowrap',
                 scale.text,
-                'outline-hidden focus-visible:outline-hidden',
+                'outline-hidden focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
               )}
               style={
                 measured
@@ -1347,8 +1343,8 @@ export function DataTable<T>({
                   surface.head,
                   stickyHeader && surface.headPinned,
                   stickyHeader && 'sticky top-0 z-10',
-                  'transition-shadow duration-150 ease-out',
-                  stickyHeader && scrolled && 'shadow-[0_6px_10px_-8px_rgba(0,0,0,0.35)]',
+                  'transition-colors duration-150 ease-out',
+                  stickyHeader && scrolled && 'border-b border-border',
                 )}
               >
                 <tr className={scale.head}>
@@ -1427,7 +1423,7 @@ export function DataTable<T>({
                           surface.cell,
                           surface.headRule,
                           column.hideBelow && HIDE_BELOW[column.hideBelow],
-                          pinned && cn('sticky z-1', surface.head, pinnedShadow),
+                          pinned && cn('sticky z-1', surface.head, pinnedRule),
                           column.headerClassName,
                         )}
                       >
@@ -1499,7 +1495,7 @@ export function DataTable<T>({
                               "before:absolute before:inset-y-1.5 before:left-1/2 before:w-px before:-translate-x-1/2 before:bg-neutral-900 before:opacity-0 before:transition-opacity before:duration-100 before:content-['']",
                               'hover:before:opacity-20 focus-visible:before:opacity-100 dark:before:bg-neutral-100',
                               resizing === column.id && 'before:opacity-100',
-                              'focus-visible:outline-hidden',
+                              'focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
                             )}
                           />
                         )}
@@ -1703,7 +1699,7 @@ export function DataTable<T>({
                                   columnIndex === 0 && 'font-medium text-foreground',
                                   pinFirstColumn &&
                                     columnIndex === 0 &&
-                                    cn('sticky z-1', surface.rowFill, pinnedShadow),
+                                    cn('sticky z-1', surface.rowFill, pinnedRule),
                                   column.className,
                                 )}
                               >
@@ -1846,7 +1842,7 @@ export function DataTable<T>({
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 8 }}
                     transition={motionOn ? SPRING_ENTRANCE : INSTANT}
-                    className="pointer-events-auto flex max-w-full items-center gap-1 rounded-full border border-border bg-popover p-1 ps-3 whitespace-nowrap text-popover-foreground shadow-lg"
+                    className="pointer-events-auto flex max-w-full items-center gap-1 rounded-full border border-border bg-popover p-1 ps-3 whitespace-nowrap text-popover-foreground"
                   >
                     <span className="pe-1 text-xs font-medium tabular-nums">
                       <FlipDigits value={selected.length} instant={!motionOn} /> {t('selected')}
@@ -1858,7 +1854,7 @@ export function DataTable<T>({
                         onClick={() => void copySelection()}
                         aria-label={t('copyRows', { count: selected.length })}
                         className={cn(
-                          'flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm font-medium hover:bg-accent focus-visible:ring-1 focus-visible:ring-current focus-visible:outline-hidden',
+                          'flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm font-medium hover:bg-accent focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
                           PRESS,
                         )}
                       >
@@ -1907,7 +1903,7 @@ export function DataTable<T>({
                       onClick={() => setSelected([])}
                       aria-label={t('clearSelection')}
                       className={cn(
-                        'grid size-7 place-items-center rounded-full opacity-60 hover:opacity-100 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-current',
+                        'grid size-7 place-items-center rounded-full opacity-60 hover:opacity-100 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
                         PRESS,
                       )}
                     >
