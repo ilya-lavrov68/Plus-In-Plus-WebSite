@@ -85,6 +85,8 @@
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
     "intl-messageformat": "11.2.15",
+    "minimatch": "file:vendor/minimatch",
+    "minimatch-upstream": "npm:minimatch@11.0.3",
     "postcss": "8.5.29",
     "prisma": "6.19.3",
     "react-test-renderer": "^18.3.1",
@@ -95,7 +97,8 @@
   "overrides": {
     "postcss": "8.5.29",
     "deepmerge-ts": "8.0.2",
-    "glob": "10.5.0",
+    "glob": "14.0.3",
+    "minimatch": "$minimatch",
     "next-auth": {
       "@simplewebauthn/browser": "14.0.0",
       "@simplewebauthn/server": "14.0.3"

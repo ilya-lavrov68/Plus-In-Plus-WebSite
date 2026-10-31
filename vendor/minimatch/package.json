@@ -1,0 +1,10 @@
+{
+  "name": "minimatch",
+  "version": "11.0.3-compat.0",
+  "private": true,
+  "description": "CommonJS compatibility facade over minimatch 11.0.3 for dependents that still require the legacy callable export.",
+  "main": "index.js",
+  "dependencies": {
+    "minimatch-upstream": "npm:minimatch@11.0.3"
+  }
+}
