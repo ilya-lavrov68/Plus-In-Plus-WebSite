@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { ProfileForm } from "@/components/site/profile-form";
-import { prisma } from "@/lib/prisma";
+import { getPayloadClient } from "@/lib/payload-native";
 import { getRequestTranslations } from "@/lib/server-i18n";
 import { localAvatarPath } from "@/lib/upload-policy";
 
@@ -16,29 +16,30 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function ProfilePage() {
   const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
+  if (!session?.user?.id) redirect("/login");
 
-  const dbUser = prisma
-    ? await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: {
-          email: true,
-          firstName: true,
-          lastName: true,
-          avatar: true,
-          role: true,
-          isBlocked: true,
-          mfaSecret: true,
-          webAuthnCredentials: { select: { id: true, name: true }, orderBy: { createdAt: "asc" } },
-        },
-      })
-    : null;
-
-  if (dbUser?.isBlocked) {
-    redirect("/login");
-  }
+  const payload = await getPayloadClient();
+  const [accountResult, credentialsResult] = await Promise.all([
+    payload.find({
+      collection: "accounts",
+      depth: 0,
+      limit: 1,
+      overrideAccess: true,
+      showHiddenFields: true,
+      where: { id: { equals: session.user.id } },
+    }),
+    payload.find({
+      collection: "webauthn-credentials",
+      depth: 0,
+      pagination: false,
+      sort: "createdAt",
+      overrideAccess: true,
+      select: { name: true },
+      where: { userId: { equals: session.user.id } },
+    }),
+  ]);
+  const dbUser = accountResult.docs[0];
+  if (dbUser?.isBlocked) redirect("/login");
 
   return (
     <ProfileForm
@@ -46,7 +47,10 @@ export default async function ProfilePage() {
       security={{
         required: ["FOUNDER", "ADMIN", "MANAGER"].includes(dbUser?.role ?? ""),
         initialTotpEnabled: Boolean(dbUser?.mfaSecret),
-        initialPasskeys: dbUser?.webAuthnCredentials.map((credential) => ({ id: credential.id, name: credential.name })) ?? [],
+        initialPasskeys: credentialsResult.docs.map((credential) => ({
+          id: credential.id,
+          name: credential.name,
+        })),
       }}
       initialUser={{
         email: dbUser?.email ?? session.user.email ?? "",

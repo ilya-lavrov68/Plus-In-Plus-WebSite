@@ -53,7 +53,7 @@ export interface UserProfile {
   role: UserRole;
 }
 
-export function profileName(user: Pick<UserProfile, "firstName" | "lastName">): string {
+export function profileName(user: { firstName?: string | null; lastName?: string | null }): string {
   return [user.firstName?.trim(), user.lastName?.trim()].filter(Boolean).join(" ");
 }
 

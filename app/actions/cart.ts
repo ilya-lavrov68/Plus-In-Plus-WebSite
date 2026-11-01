@@ -12,7 +12,6 @@ import {
   updateOwnedCartItem,
   type CartOperationErrorCode,
 } from "@/lib/cart-operations";
-import { prisma } from "@/lib/prisma";
 
 export interface CartActionResult {
   ok: boolean;
@@ -43,7 +42,6 @@ export async function addToCart(input: {
   const t = await getActionTranslator();
   const customer = await requireActiveCustomer();
   if (!customer) return { ok: false, error: t("unauthorized") };
-  if (!prisma) return { ok: false, error: t("genericError") };
 
   try {
     const result = await addCartItem(customer.id, {
@@ -69,7 +67,6 @@ export async function updateCartItemQuantity(input: {
   const t = await getActionTranslator();
   const customer = await requireActiveCustomer();
   if (!customer) return { ok: false, error: t("unauthorized") };
-  if (!prisma) return { ok: false, error: t("genericError") };
 
   try {
     const result = await updateOwnedCartItem(customer.id, {
@@ -92,7 +89,6 @@ export async function removeCartItem(input: {
   const t = await getActionTranslator();
   const customer = await requireActiveCustomer();
   if (!customer) return { ok: false, error: t("unauthorized") };
-  if (!prisma) return { ok: false, error: t("genericError") };
 
   try {
     const result = await removeOwnedCartItem(customer.id, input.itemId);
@@ -113,7 +109,6 @@ export async function checkoutCart(input?: {
   const t = await getActionTranslator();
   const customer = await requireActiveCustomer();
   if (!customer) return { ok: false, error: t("unauthorized") };
-  if (!prisma) return { ok: false, error: t("genericError") };
 
   try {
     const result = await checkoutOwnedCart(customer.id, {
@@ -122,9 +117,8 @@ export async function checkoutCart(input?: {
     });
     revalidatePath("/cart");
     revalidatePath("/cart");
-    revalidatePath("/admin/orders");
-    revalidatePath("/manager/orders");
-    revalidatePath("/admin/dashboard");
+    revalidatePath("/admin/collections/orders");
+      revalidatePath("/admin");
     return { ok: true, orderNumber: result.orderNumber };
   } catch (error) {
     if (!(error instanceof CartOperationError)) {

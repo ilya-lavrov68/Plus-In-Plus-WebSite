@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { closePayloadClient, getPayloadClient } from "@/lib/payload-native";
 
 const DEMO_POST_SLUGS = [
   "how-exterior-signage-shapes-first-impressions",
@@ -7,54 +7,65 @@ const DEMO_POST_SLUGS = [
 ];
 
 async function main() {
-  if (!prisma) {
-    throw new Error(
-      "Database client is not configured. Run `npm run db:push` first."
-    );
-  }
+  const payload = await getPayloadClient();
+  console.log("Starting Payload database cleanup…");
 
-  console.log("🧹 Starting database cleanup...");
-
-  // 1. Find test/demo users (all non-FOUNDER accounts with test/demo emails or Demo names)
-  const testUsers = await prisma.user.findMany({
+  const testUsers = await payload.find({
+    collection: "accounts",
+    depth: 0,
+    pagination: false,
+    overrideAccess: true,
+    select: {},
     where: {
-      AND: [
-        { role: { not: "FOUNDER" } },
+      and: [
+        { role: { not_equals: "FOUNDER" } },
         {
-          OR: [
+          or: [
             { email: { contains: "test" } },
             { email: { contains: "demo" } },
-            { firstName: "Demo" },
+            { firstName: { equals: "Demo" } },
           ],
         },
       ],
     },
-    select: { id: true, email: true },
   });
-  const testUserIds = testUsers.map((u) => u.id);
+  const testUserIds = testUsers.docs.map((user) => user.id);
 
-  // Clean up test/demo orders (including draft carts) and logs tied to test users first
   let deletedOrdersCount = 0;
   if (testUserIds.length > 0) {
-    // Detach managerId references from test staff before deleting orders/users
-    await prisma.order.updateMany({
-      where: { managerId: { in: testUserIds } },
+    await payload.update({
+      collection: "orders",
       data: { managerId: null },
+      overrideAccess: true,
+      where: { managerId: { in: testUserIds } },
     });
-    const deletedOrders = await prisma.order.deleteMany({
+    const orders = await payload.find({
+      collection: "orders",
+      depth: 0,
+      pagination: false,
+      overrideAccess: true,
       where: { userId: { in: testUserIds } },
     });
-    deletedOrdersCount = deletedOrders.count;
-    await prisma.activityLog.deleteMany({
+    for (const order of orders.docs) {
+      await payload.delete({ collection: "orders", id: order.id, overrideAccess: true });
+      deletedOrdersCount += 1;
+    }
+    await payload.delete({
+      collection: "activity-logs",
+      overrideAccess: true,
       where: { actorId: { in: testUserIds } },
     });
   }
   console.log(`Deleted ${deletedOrdersCount} test/demo orders`);
 
-  // 2. Delete test/demo posts
-  const deletedPosts = await prisma.post.deleteMany({
+  const posts = await payload.find({
+    collection: "posts",
+    depth: 0,
+    pagination: false,
+    overrideAccess: true,
+    select: {},
     where: {
-      OR: [
+      or: [
         { title: { contains: "Test" } },
         { title: { contains: "Demo" } },
         { slug: { contains: "test" } },
@@ -63,12 +74,19 @@ async function main() {
       ],
     },
   });
-  console.log(`Deleted ${deletedPosts.count} test/demo posts`);
+  for (const post of posts.docs) {
+    await payload.delete({ collection: "posts", id: post.id, overrideAccess: true });
+  }
+  console.log(`Deleted ${posts.docs.length} test/demo posts`);
 
-  // 3. Delete test/demo services
-  const deletedServices = await prisma.service.deleteMany({
+  const services = await payload.find({
+    collection: "services",
+    depth: 0,
+    pagination: false,
+    overrideAccess: true,
+    select: {},
     where: {
-      OR: [
+      or: [
         { title: { contains: "Test" } },
         { title: { contains: "Demo" } },
         { slug: { contains: "test" } },
@@ -76,31 +94,28 @@ async function main() {
       ],
     },
   });
-  console.log(`Deleted ${deletedServices.count} test/demo services`);
+  for (const service of services.docs) {
+    await payload.delete({ collection: "services", id: service.id, overrideAccess: true });
+  }
+  console.log(`Deleted ${services.docs.length} test/demo services`);
 
-  // 4. Delete test/demo users (preserving FOUNDER)
-  const deletedUsers =
-    testUserIds.length > 0
-      ? await prisma.user.deleteMany({
-          where: { id: { in: testUserIds } },
-        })
-      : { count: 0 };
-  console.log(`Deleted ${deletedUsers.count} test/demo users`);
+  for (const id of testUserIds) {
+    await payload.delete({ collection: "accounts", id, overrideAccess: true });
+  }
+  console.log(`Deleted ${testUserIds.length} test/demo users`);
 
-  // Normalize FOUNDER display name if it was left as "Demo" by an old seed
-  await prisma.user.updateMany({
-    where: { role: "FOUNDER", firstName: "Demo" },
+  await payload.update({
+    collection: "accounts",
     data: { firstName: "Studio", lastName: "Founder" },
+    overrideAccess: true,
+    where: { and: [{ role: { equals: "FOUNDER" } }, { firstName: { equals: "Demo" } }] },
   });
-
-  console.log("✅ Database cleanup completed");
+  console.log("Database cleanup completed.");
 }
 
 main()
   .catch((error) => {
     console.error(error);
-    process.exit(1);
+    process.exitCode = 1;
   })
-  .finally(async () => {
-    await prisma?.$disconnect();
-  });
+  .finally(closePayloadClient);

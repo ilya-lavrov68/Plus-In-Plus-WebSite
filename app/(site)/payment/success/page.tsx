@@ -3,7 +3,7 @@ import { CheckCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { prisma } from "@/lib/prisma";
+import { getPayloadClient } from "@/lib/payload-native";
 import { signatureMatches, successSignature } from "@/lib/payments/robokassa";
 import { resolveRobokassaConfig } from "@/lib/payments/robokassa-config";
 import { getRequestTranslations } from "@/lib/server-i18n";
@@ -45,14 +45,21 @@ export default async function PaymentSuccessPage({ searchParams }: PaymentPagePr
 
   // Статус показываем из базы, а не из ссылки: вдруг уведомление ещё в пути.
   let status: string | null = null;
-  if (prisma && invId) {
-    const payment = await prisma.payment
-      .findFirst({
-        where: { externalId: invId, provider: "robokassa" },
+  if (invId) {
+    try {
+      const payload = await getPayloadClient();
+      const result = await payload.find({
+        collection: "payments",
+        depth: 0,
+        limit: 1,
+        overrideAccess: true,
         select: { status: true },
-      })
-      .catch(() => null);
-    status = payment?.status ?? null;
+        where: { and: [{ externalId: { equals: invId } }, { provider: { equals: "robokassa" } }] },
+      });
+      status = result.docs[0]?.status ?? null;
+    } catch {
+      status = null;
+    }
   }
 
   // A browser return is only a display hint. Without a valid Success URL

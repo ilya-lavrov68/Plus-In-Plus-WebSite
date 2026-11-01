@@ -36,7 +36,7 @@
 
 1. **Authorize и записать:** назначить operator/reviewer, выбрать recovery point, указать ожидаемое UTC time и создать isolated workspace/provider project.
 2. **Защитить production:** использовать separate credentials без production write/delete privilege. Перед каждой destructive command подтвердить target name.
-3. **Восстановить БД:** импортировать в новую isolated libSQL/Turso database, не перезаписывая source backup. Проверить схему через Prisma generation, `db:check` и health; текущая схема ожидает 17 таблиц.
+3. **Восстановить БД:** импортировать в новую isolated libSQL/Turso database, не перезаписывая source backup. Применить reviewed Payload migrations, затем проверить `migrate:status`, `db:check` и health; health ожидает 16 обязательных прикладных таблиц плюс служебные таблицы Payload.
 4. **Восстановить uploads:** извлечь в новую isolated directory с path traversal/symlink-safe handling. Сравнить manifest counts, sizes и cryptographic hashes.
 5. **Проверить integrity:** сравнить row counts и нечувствительные invariants: roles, published slugs, order/payment state totals. Не печатать customer records/secrets в drill log.
 6. **Обезопасить restored sessions:** до открытия приложения выполнить reviewed revocation restored `AuthSession` и очистку `PendingLogin`, чтобы старые browser tokens не получили доступ после cutover. Само наличие backup не должно воскрешать refresh access.
@@ -78,7 +78,7 @@
 - Source/target environments (нечувствительные IDs):
 - Recovery point и причина выбора:
 - Backup integrity/encryption/immutability checks:
-- Schema (17 таблиц), counts и invariant results:
+- Schema (16 обязательных прикладных таблиц плюс служебные Payload tables), counts и invariant results:
 - Upload manifest/hash/reference result:
 - Session revocation и privacy reapplication result:
 - Application/MFA/security smoke result:

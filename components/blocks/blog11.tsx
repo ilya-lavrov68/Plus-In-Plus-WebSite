@@ -131,7 +131,7 @@ const Blog11 = ({
                   >
                     <div
                       aria-hidden="true"
-                      className={`pointer-events-none absolute inset-0 transition-[clip-path] duration-300 ease-out will-change-[clip-path] ${
+                      className={`pointer-events-none absolute inset-0 transition-[clip-path] duration-300 ease-out ${
                         isFeatured
                           ? "[clip-path:inset(0_0_0%_0)]"
                           : "[clip-path:inset(0_0_100%_0)] group-hover:[clip-path:inset(0_0_0%_0)] group-focus-visible:[clip-path:inset(0_0_0%_0)]"
@@ -140,6 +140,9 @@ const Blog11 = ({
                       <img
                         src={post.image}
                         alt={post.title}
+                        loading={index < 2 ? "eager" : "lazy"}
+                        decoding="async"
+                        fetchPriority={index === 0 ? "high" : "auto"}
                         className="size-full object-contain"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/30" />

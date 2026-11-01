@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
+const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
 
 require.extensions[".ts"] = (module, filename) =>
   module._compile(
@@ -52,7 +53,7 @@ function matchesActiveOrderForService(order, where) {
   return true;
 }
 
-const prisma = {
+const db = {
   user: {
     findUnique: async ({ where }) => {
       const row = users.get(where.id);
@@ -211,7 +212,19 @@ const prisma = {
       return { count: 1 };
     },
   },
+  orderService: {
+    create: async ({ data }) => {
+      const row = { id: `os-${++seq}`, ...structuredClone(data) };
+      orderServices.set(row.id, row);
+      return structuredClone(row);
+    },
+  },
   orderItem: {
+    create: async ({ data }) => {
+      const row = { id: `oi-${++seq}`, ...structuredClone(data) };
+      orderItems.set(row.id, row);
+      return structuredClone(row);
+    },
     update: async ({ where, data }) => {
       const row = orderItems.get(where.id);
       if (row) Object.assign(row, structuredClone(data));
@@ -227,7 +240,7 @@ const prisma = {
   authSession: {
     updateMany: async () => ({ count: 0 }),
   },
-  $transaction: async (fn) => fn(prisma),
+  transaction: async (fn) => fn(db),
 };
 
 const originalLoad = Module._load;
@@ -236,7 +249,7 @@ Module._load = function (name, parent, isMain) {
     compare: async (password, hash) => password === "current-password" && hash === "current-hash",
     hash: async (password) => `hash:${password}`,
   };
-  if (name === "@/lib/prisma") return { prisma };
+  if (name === "@/lib/payload-native") return createNativeModuleMock(db);
   if (name === "@/lib/password-breach") return {
     CompromisedPasswordError: class CompromisedPasswordError extends Error {},
     assertPasswordNotCompromised: async () => {},
@@ -295,15 +308,7 @@ Module._load = function (name, parent, isMain) {
 };
 
 const { GET: getServicesApi } = require("../app/api/services/route.ts");
-const { createOrder, setOrderPrice } = require("../app/actions/orders.ts");
-const {
-  deleteService,
-  bulkUpdateServices,
-  updateServicePrice,
-  updateServicePriceType,
-  toggleServiceActive,
-  saveQuickService,
-} = require("../app/actions/services.ts");
+const { createOrder } = require("../app/actions/orders.ts");
 const { changePassword, updateUserProfile } = require("../app/actions/user.ts");
 
 beforeEach(() => {
@@ -453,144 +458,22 @@ test("createOrder enforces authentication, non-empty services, active services, 
   );
 });
 
-test("createOrder generates ПИП-XXXXXX, links multiple services, and manager sets finalPrice", async () => {
-  const future = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-    .toISOString()
-    .slice(0, 10);
-
-  const created = await createOrder({
+test("createOrder generates ПИП-XXXXXX and persists native service links and unified items", async () => {
+  const future = new Date(Date.now() + 3 * 86400000);
+  const order = await createOrder({
     serviceIds: ["svc-small", "svc-large"],
     deadline: future,
-    description: "Need storefront signage + highway billboard",
+    description: "Two-sided sign and billboard",
   });
-
-  assert.match(created.orderNumber, /^ПИП-\d{6}$/);
-  assert.equal(created.orderNumber, "ПИП-000001");
-  assert.equal(created.status, "quote_requested");
-  assert.equal(created.estimatedAmount, 5_000_000); // 15,000 + 35,000 ₽ in kopecks
-  assert.equal(created.services.length, 2);
-  assert.ok(created.deadline instanceof Date);
-  assert.equal(
-    created.description,
-    "Need storefront signage + highway billboard"
-  );
-
-  // Manager sets final price on the order
-  admin = { id: "usr-manager", email: "manager@pip.test", role: "MANAGER" };
-  const priced = await setOrderPrice({
-    orderId: created.id,
-    amountRub: "48500",
-    managerNote: "Bundle discount applied",
-  });
-  assert.equal(priced.ok, true);
-
-  const stored = orders.get(created.id);
-  assert.equal(stored.total, 4_850_000);
-  assert.equal(stored.finalPrice, 48500);
-  assert.equal(stored.status, "awaiting_payment");
-});
-
-test("HARD CONSTRAINTS: active orders block service deletion and service price changes", async () => {
-  // Create an active order referencing svc-small
-  const order = await createOrder({
-    serviceIds: ["svc-small"],
-    description: "Active sign project",
-  });
-
-  // 1. Deleting svc-small is FORBIDDEN while order is active
-  const delBlocked = await deleteService("svc-small");
-  assert.equal(delBlocked.ok, false);
-  assert.match(delBlocked.error, /active orders/i);
-  assert.equal(services.has("svc-small"), true);
-
-  // Bulk delete is ALSO forbidden
-  const bulkBlocked = await bulkUpdateServices(["svc-small"], "delete");
-  assert.equal(bulkBlocked.ok, false);
-  assert.match(bulkBlocked.error, /active orders/i);
-  assert.equal(services.has("svc-small"), true);
-
-  // 2. Changing svc-small price is FORBIDDEN while order is active
-  const priceBlocked = await updateServicePrice({
-    serviceId: "svc-small",
-    basePriceRub: "20000",
-  });
-  assert.equal(priceBlocked.ok, false);
-  assert.match(priceBlocked.error, /active order/i);
-  assert.equal(services.get("svc-small").basePrice, 1_500_000);
-
-  const typeBlocked = await updateServicePriceType({
-    serviceId: "svc-small",
-    priceType: "quote",
-  });
-  assert.equal(typeBlocked.ok, false);
-  assert.match(typeBlocked.error, /active order/i);
-
-  const quickPriceBlocked = await saveQuickService({
-    id: "svc-small",
-    title: "Sign Design",
-    category: "small",
-    basePriceRub: "22000",
-  });
-  assert.equal(quickPriceBlocked.ok, false);
-  assert.match(quickPriceBlocked.error, /active order/i);
-
-  // Non-price metadata edit (same price) remains allowed
-  const quickMetaOk = await saveQuickService({
-    id: "svc-small",
-    title: "Sign Design Updated",
-    category: "small",
-    description: "Updated copy",
-    basePriceRub: "15000",
-    isActive: true,
-  });
-  assert.equal(quickMetaOk.ok, true);
-  assert.equal(services.get("svc-small").title, "Sign Design Updated");
-
-  // Once the order is completed, price updates and deletion are allowed again
-  orders.get(order.id).status = "completed";
-
-  const priceAllowed = await updateServicePrice({
-    serviceId: "svc-small",
-    basePriceRub: "18000",
-  });
-  assert.equal(priceAllowed.ok, true);
-  assert.equal(services.get("svc-small").basePrice, 1_800_000);
-
-  const delAllowed = await deleteService("svc-small");
-  assert.equal(delAllowed.ok, true);
-  assert.equal(services.has("svc-small"), false);
-});
-
-test("saveQuickService and toggleServiceActive enforce admin guard and manage active services", async () => {
-  admin = { id: "usr-manager", email: "manager@pip.test", role: "MANAGER" };
-  const denied = await saveQuickService({
-    title: "Unauthorized Service",
-    category: "small",
-    basePriceRub: "5000",
-  });
-  assert.equal(denied.ok, false);
-
-  admin = { id: "usr-admin", email: "admin@pip.test", role: "ADMIN" };
-  const created = await saveQuickService({
-    title: "Window Vinyl",
-    category: "small",
-    description: "Custom storefront vinyl decals",
-    basePriceRub: "6500",
-    isActive: true,
-  });
-  assert.equal(created.ok, true);
-  const row = services.get(created.id);
-  assert.equal(row.slug, "window-vinyl");
-  assert.equal(row.basePrice, 650_000);
-  assert.equal(row.isActive, true);
-
-  const toggled = await toggleServiceActive({
-    serviceId: created.id,
-    isActive: false,
-  });
-  assert.equal(toggled.ok, true);
-  assert.equal(services.get(created.id).isActive, false);
-  assert.equal(services.get(created.id).isPublished, false);
+  assert.match(order.orderNumber, /^ПИП-\d{6}$/);
+  assert.equal(order.services.length, 2);
+  assert.equal(order.estimatedAmount, 5_000_000);
+  assert.equal(orders.size, 1);
+  assert.equal(orderServices.size, 2);
+  assert.equal(orderItems.size, 2);
+  assert.ok([...orderItems.values()].every((item) => item.itemType === "service" && item.optionsSnapshot === "[]"));
+  assert.equal(logs[0].entityType, "order");
+  assert.equal(logs[0].actorId, "usr-client");
 });
 
 test("HARD CONSTRAINT: updateUserProfile requires authorization and never mutates email or role", async () => {

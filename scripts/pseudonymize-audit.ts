@@ -1,5 +1,5 @@
-import { prisma } from "@/lib/prisma";
 import { looksLikeContactOrNetworkText, pseudonymizeActivityRecord } from "@/lib/audit-retention";
+import { closePayloadClient, getPayloadClient, payloadId, withPayloadTransaction } from "@/lib/payload-native";
 
 const BATCH_SIZE = 500;
 
@@ -9,8 +9,7 @@ function argument(name: string): string | undefined {
 }
 
 async function main(): Promise<void> {
-  const database = prisma;
-  if (!database) throw new Error("Database unavailable");
+  const payload = await getPayloadClient();
   const days = Number(argument("older-than-days") ?? "365");
   if (!Number.isSafeInteger(days) || days < 1 || days > 3650) {
     throw new Error("older-than-days must be an integer from 1 to 3650");
@@ -30,13 +29,25 @@ async function main(): Promise<void> {
   let candidates = 0;
   let changed = 0;
   do {
-    const rows = await database.activityLog.findMany({
-      where: { createdAt: { lt: cutoff } },
-      orderBy: { id: "asc" },
-      take: BATCH_SIZE,
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-      select: { id: true, actorId: true, actorPseudonym: true, title: true },
+    const result = await payload.find({
+      collection: "activity-logs",
+      depth: 0,
+      limit: BATCH_SIZE,
+      sort: "id",
+      overrideAccess: true,
+      select: { actorId: true, actorPseudonym: true, title: true },
+      where: {
+        and: [
+          { createdAt: { less_than: cutoff.toISOString() } },
+          ...(cursor ? [{ id: { greater_than: cursor } }] : []),
+        ],
+      },
     });
+    const rows = result.docs.map((row) => ({
+      ...row,
+      actorId: payloadId(row.actorId),
+      actorPseudonym: row.actorPseudonym ?? null,
+    }));
     if (!rows.length) break;
     scanned += rows.length;
     const updates = rows.flatMap((row) => {
@@ -46,12 +57,21 @@ async function main(): Promise<void> {
       const next = pseudonymizeActivityRecord(row, key!);
       if (!next.changed) return [];
       changed += 1;
-      return [database.activityLog.update({
-        where: { id: row.id },
-        data: { actorId: null, actorPseudonym: next.actorPseudonym, title: next.title },
-      })];
+      return [{ id: row.id, actorPseudonym: next.actorPseudonym, title: next.title }];
     });
-    if (updates.length) await database.$transaction(updates);
+    if (updates.length) {
+      await withPayloadTransaction(payload, async (req) => {
+        for (const update of updates) {
+          await payload.update({
+            collection: "activity-logs",
+            id: update.id,
+            data: { actorId: null, actorPseudonym: update.actorPseudonym, title: update.title },
+            overrideAccess: true,
+            req,
+          });
+        }
+      });
+    }
     cursor = rows[rows.length - 1]?.id;
     if (rows.length < BATCH_SIZE) break;
   } while (true);
@@ -70,10 +90,7 @@ async function main(): Promise<void> {
 
 main()
   .catch(() => {
-    // Do not print database errors, connection strings, record values or keys.
     console.error("Audit retention job failed. Check the runbook and database health without exposing secrets.");
     process.exitCode = 1;
   })
-  .finally(async () => {
-    await prisma?.$disconnect();
-  });
+  .finally(closePayloadClient);

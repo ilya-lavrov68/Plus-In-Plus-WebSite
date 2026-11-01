@@ -365,7 +365,7 @@ test("mismatched passwords fail client check before calling registerUser", async
   act(() => view.unmount());
 });
 
-test("admin login redirects to /admin/dashboard while ordinary login stays on page", async () => {
+test("admin login redirects to /admin while ordinary login stays on page", async () => {
   let view = mount(modal());
   await submit(view, "Log in", {
     email: profile.email,
@@ -382,7 +382,7 @@ test("admin login redirects to /admin/dashboard while ordinary login stays on pa
     ok: true,
     success: true,
     isAdmin: true,
-    redirectTo: "/admin/dashboard",
+    redirectTo: "/admin",
   };
   nextSession = { user: { ...profile, role: "ADMIN" } };
   act(() => view.root.findByProps({ role: "switch" }).props.onClick());
@@ -391,7 +391,7 @@ test("admin login redirects to /admin/dashboard while ordinary login stays on pa
     password: "valid-passphrase",
   });
   assert.equal(calls.at(-1)[1].adminMode, true);
-  assert.deepEqual(pushes, ["/admin/dashboard"]);
+  assert.deepEqual(pushes, ["/admin"]);
   act(() => view.unmount());
 });
 

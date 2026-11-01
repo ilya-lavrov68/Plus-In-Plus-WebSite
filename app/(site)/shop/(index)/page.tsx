@@ -1,58 +1,49 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 
-import {
-  ShopCatalogView,
-  type ShopProductCardData,
-} from "@/components/site/shop-catalog-view";
-import { prisma } from "@/lib/prisma";
+import { ShopCatalogView, type ShopProductCardData } from "@/components/site/shop-catalog-view";
+import { getPayloadClient } from "@/lib/payload-native";
 import { getRequestLocale } from "@/lib/request-locale";
 import { createPageMetadata } from "@/lib/seo";
 import { getRequestTranslations } from "@/lib/server-i18n";
 
 export const dynamic = "force-dynamic";
 
-async function getActiveShopProducts(): Promise<ShopProductCardData[]> {
-  if (!prisma) return [];
-
+/** React cache deduplicates the metadata and page query within one request. */
+const getActiveShopProducts = cache(async (): Promise<ShopProductCardData[]> => {
   try {
-    const rows = await prisma.product.findMany({
-      where: { isActive: true },
-      orderBy: { createdAt: "desc" },
+    const payload = await getPayloadClient();
+    const result = await payload.find({
+      collection: "products",
+      depth: 1,
+      pagination: false,
+      sort: "-createdAt",
+      overrideAccess: true,
+      where: { isActive: { equals: true } },
     });
-    return rows.map((row) => ({
+    return result.docs.map((row) => ({
       id: row.id,
       name: row.name,
       slug: row.slug,
-      description: row.description,
+      description: row.description ?? null,
       price: row.price,
-      coverImage: row.coverImage,
-      category: row.category,
+      coverImage: row.coverImage ?? (typeof row.cover === "object" ? row.cover?.url : null) ?? null,
+      category: row.category ?? null,
       stock: row.stock,
     }));
   } catch (error) {
     console.error("Failed to load shop products:", error);
     return [];
   }
-}
-
-async function hasActiveShopProducts(): Promise<boolean> {
-  if (!prisma) return false;
-
-  try {
-    return (await prisma.product.count({ where: { isActive: true } })) > 0;
-  } catch (error) {
-    console.error("Failed to count shop products for metadata:", error);
-    return false;
-  }
-}
+});
 
 export async function generateMetadata(): Promise<Metadata> {
-  const [locale, t, hasProducts] = await Promise.all([
+  const [locale, t, products] = await Promise.all([
     getRequestLocale(),
     getRequestTranslations("shop"),
-    hasActiveShopProducts(),
+    getActiveShopProducts(),
   ]);
-
+  const hasProducts = products.length > 0;
   return {
     ...createPageMetadata({
       title: hasProducts ? t("catalogTitle") : t("comingSoonTitle"),

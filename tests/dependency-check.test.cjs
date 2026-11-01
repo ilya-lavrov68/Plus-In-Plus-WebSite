@@ -84,7 +84,7 @@ test("dependency check reports nothing when the install is complete", () => {
 test("dependency check names the packages a stale install is missing", () => {
   const dir = createProject({
     dependencies: { next: "15.5.27", "@radix-ui/react-navigation-menu": "^1.4.1" },
-    devDependencies: { prisma: "6.19.3" },
+    devDependencies: { db: "6.19.3" },
     installed: ["next"],
   });
 
@@ -92,12 +92,12 @@ test("dependency check names the packages a stale install is missing", () => {
 
   assert.equal(result.ok, false);
   assert.deepEqual(result.missing, ["@radix-ui/react-navigation-menu"]);
-  assert.deepEqual(result.missingDev, ["prisma"]);
+  assert.deepEqual(result.missingDev, ["db"]);
   assert.equal(needsInstall(result), true);
 
   const report = formatReport(result).join("\n");
   assert.match(report, /@radix-ui\/react-navigation-menu/);
-  assert.match(report, /prisma/);
+  assert.match(report, /db/);
   assert.match(report, /npm install/);
 });
 
@@ -127,7 +127,7 @@ test("SQL and prose are not mistaken for imports", () => {
     "const sql = `SELECT * FROM \"users\" WHERE id = ?`;",
     "/* import fake from \"not-a-module\"; */",
     'const real = require("zod");',
-    'const lazy = await import("@tiptap/core");',
+    'const lazy = await import("@tiptap' + '/core");',
   ].join("\n");
 
   assert.deepEqual(importSpecifiers(source).sort(), ["@tiptap/core", "zod"]);

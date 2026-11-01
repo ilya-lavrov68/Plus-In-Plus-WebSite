@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
+const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
 
 require.extensions[".ts"] = (module, filename) =>
   module._compile(
@@ -16,12 +17,12 @@ require.extensions[".ts"] = (module, filename) =>
 // Только в памяти.
 let sessionUser, dbUser;
 
-const prisma = {
+const db = {
   user: { findUnique: async ({ where }) => (where.id === dbUser?.id ? { ...dbUser } : null) },
 };
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/prisma") return { prisma };
+  if (name === "@/lib/payload-native") return createNativeModuleMock(db);
   // auth() отдаёт то, что лежит в подписанном токене.
   if (name === "@/auth") return { auth: async () => (sessionUser ? { user: sessionUser } : null) };
   if (name === "@/lib/auth-secret") return { isAuthConfigured: () => true };

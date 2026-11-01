@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { prisma } from "@/lib/prisma";
+import { getPayloadClient } from "@/lib/payload-native";
 import { checkRateLimitAsync, getClientAddress, hashRateLimitIdentifier, retryAfterHeaders } from "@/lib/rate-limit";
 import { isJsonObject, readJsonBody } from "@/lib/request-body";
 import { isSameOriginRequest } from "@/lib/request-origin";
 
-const DEVICES = new Set(["desktop", "mobile", "tablet"]);
 const WINDOW_MS = 10 * 60 * 1000;
 /**
  * Аналитика пишется с браузера без входа, поэтому её можно накрутить — и заодно раздуть
@@ -28,13 +27,17 @@ function clean(value: unknown, max: number): string | null {
   return typeof value === "string" && value.trim() ? value.trim().slice(0, max) : null;
 }
 
+function cleanDevice(value: unknown): "desktop" | "mobile" | "tablet" | null {
+  const device = clean(value, 16);
+  return device === "desktop" || device === "mobile" || device === "tablet" ? device : null;
+}
+
 /**
  * Запись просмотра. Вызывается с браузера, поэтому всему, что приходит,
  * доверять нельзя: обрезаем длину, проверяем путь и перечисления.
  */
 export async function POST(request: Request) {
   if (!isSameOriginRequest(request)) return NextResponse.json({ ok: false }, { status: 403 });
-  if (!prisma) return NextResponse.json({ ok: false }, { status: 503 });
   const limit = await pageViewRateLimit(request, "post");
   if (!limit.allowed) return NextResponse.json({ ok: false }, { status: 429, headers: retryAfterHeaders(limit.retryAfterSeconds) });
   try {
@@ -52,18 +55,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false }, { status: 400 });
     }
 
-    const device = clean(body?.device, 16);
-    const view = await prisma.pageView.create({
+    const payload = await getPayloadClient();
+    const view = await payload.create({
+      collection: "page-views",
       data: {
         path,
         referrer: clean(body?.referrer, 200),
         utmSource: clean(body?.utmSource, 100),
-        // Чужие значения не пишем: перечисление из трёх значений.
-        device: device && DEVICES.has(device) ? device : null,
+        device: cleanDevice(body?.device),
         sessionId: clean(body?.sessionId, 100),
         visitorId: clean(body?.visitorId, 100),
       },
-      select: { id: true },
+      overrideAccess: true,
     });
     // id нужен, чтобы позже дозаписать, сколько пробыли на странице.
     return NextResponse.json({ ok: true, id: view.id }, { status: 201 });
@@ -79,7 +82,6 @@ export async function POST(request: Request) {
  */
 export async function PATCH(request: Request) {
   if (!isSameOriginRequest(request)) return NextResponse.json({ ok: false }, { status: 403 });
-  if (!prisma) return NextResponse.json({ ok: false }, { status: 503 });
   const limit = await pageViewRateLimit(request, "patch");
   if (!limit.allowed) return NextResponse.json({ ok: false }, { status: 429, headers: retryAfterHeaders(limit.retryAfterSeconds) });
   try {
@@ -95,9 +97,12 @@ export async function PATCH(request: Request) {
     if (!id || !Number.isFinite(durationMs) || durationMs < 0) {
       return NextResponse.json({ ok: false }, { status: 400 });
     }
-    await prisma.pageView.updateMany({
-      where: { id, durationMs: null },
+    const payload = await getPayloadClient();
+    await payload.update({
+      collection: "page-views",
       data: { durationMs: Math.min(Math.round(durationMs), 3_600_000) },
+      overrideAccess: true,
+      where: { and: [{ id: { equals: id } }, { durationMs: { exists: false } }] },
     });
     return NextResponse.json({ ok: true });
   } catch {

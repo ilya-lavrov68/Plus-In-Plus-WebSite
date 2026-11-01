@@ -1,34 +1,29 @@
-import { prisma } from "@/lib/prisma";
+import { getPayloadClient } from "@/lib/payload-native";
 import { cleanupUpload } from "@/lib/uploads";
+import type { Post } from "@/payload/payload-types";
 
-/**
- * Duplicated content deliberately shares upload paths. Delete an old file only
- * after the committed mutation and only when no remaining row references it.
- * If references cannot be checked, preserving the file is the safe outcome.
- */
+/** Файл удаляется только после committed mutation и проверки оставшихся ссылок. */
 export async function cleanupServiceCoverIfUnused(publicPath: string | null): Promise<void> {
-  if (!publicPath || !prisma) return;
+  if (!publicPath) return;
   try {
-    const references = await prisma.service.count({ where: { coverImage: publicPath } });
-    if (references === 0) await cleanupUpload(publicPath, "services");
+    const payload = await getPayloadClient();
+    const references = await payload.count({ collection: "services", overrideAccess: true, where: { coverImage: { equals: publicPath } } });
+    if (references.totalDocs === 0) await cleanupUpload(publicPath, "services");
   } catch (error) {
     console.error("Service cover reference check failed; preserving the upload:", error);
   }
 }
 
 export async function cleanupPostCoverIfUnused(publicPath: string | null): Promise<void> {
-  if (!publicPath || !prisma) return;
+  if (!publicPath) return;
   try {
-    const references = await prisma.post.count({
-      where: {
-        OR: [
-          { coverImage: publicPath },
-          // Albums are JSON-encoded strings in SQLite and may share the cover.
-          { images: { contains: publicPath } },
-        ],
-      },
-    });
-    if (references === 0) await cleanupUpload(publicPath, "blog");
+    const payload = await getPayloadClient();
+    const references = await payload.count({ collection: "posts", overrideAccess: true, where: { coverImage: { equals: publicPath } } });
+    if (references.totalDocs > 0) return;
+    const posts = await payload.find({ collection: "posts", depth: 1, pagination: false, overrideAccess: true });
+    const documents = posts.docs as Post[];
+    const galleryUsesPath = documents.some((post) => (post.gallery ?? []).some((media) => (typeof media === "object" ? media.url : null) === publicPath));
+    if (!galleryUsesPath) await cleanupUpload(publicPath, "blog");
   } catch (error) {
     console.error("Post cover reference check failed; preserving the upload:", error);
   }

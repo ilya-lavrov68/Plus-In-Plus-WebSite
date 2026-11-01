@@ -5,23 +5,10 @@ import { Pause, Play } from "lucide-react";
 
 import { AgentDiagram } from "@/components/ai/agent-diagram";
 import { Button } from "@/components/ui/button";
-import {
-  AGENT_BARS_FRAGMENT_SHADER,
-  AGENT_FIELD_FRAGMENT_SHADERS,
-  AGENT_SHADER_CELLS,
-  AGENT_SHADER_COLS,
-  AGENT_SHADER_CYCLE_SECONDS,
-  AGENT_SHADER_DURATION_MS,
-  AGENT_SHADER_HEIGHT,
-  AGENT_SHADER_WIDTH,
-  AGENT_VERTEX_SHADER,
-  type AgentKind,
-  type AgentScene,
-} from "@/lib/agent-shaders";
+import { AGENT_SHADER_CYCLE_SECONDS, type AgentKind, type AgentScene } from "@/lib/agent-shaders";
 import { cn } from "@/lib/utils";
 
 type PlaybackState = "idle" | "playing" | "paused";
-type RGB = [number, number, number];
 
 interface AgentShaderPlayerProps {
   agent: AgentKind;
@@ -33,76 +20,18 @@ interface AgentShaderPlayerProps {
   };
 }
 
-interface PlayerController {
-  play: () => void;
-  pause: () => void;
-}
-
-const GROUND: RGB = [0.0392, 0.0392, 0.0392];
-const INK: RGB = [0.8549, 0.8549, 0.8627];
-const SPARK: RGB = [1, 1, 1];
-const BAR_RAMP: RGB[] = [
-  [1, 1, 0.00392157],
-  [0.851, 0.851, 0.8627],
-  [0.549, 0.549, 0.5569],
-  [0.3216, 0.3216, 0.3294],
-];
-
-function compileShader(
-  gl: WebGLRenderingContext,
-  type: number,
-  source: string
-): WebGLShader | null {
-  const shader = gl.createShader(type);
-  if (!shader) return null;
-  gl.shaderSource(shader, source);
-  gl.compileShader(shader);
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    gl.deleteShader(shader);
-    return null;
-  }
-  return shader;
-}
-
-function createProgram(
-  gl: WebGLRenderingContext,
-  fragmentSource: string
-): WebGLProgram | null {
-  const vertex = compileShader(gl, gl.VERTEX_SHADER, AGENT_VERTEX_SHADER);
-  const fragment = compileShader(gl, gl.FRAGMENT_SHADER, fragmentSource);
-  if (!vertex || !fragment) {
-    if (vertex) gl.deleteShader(vertex);
-    if (fragment) gl.deleteShader(fragment);
-    return null;
-  }
-
-  const program = gl.createProgram();
-  if (!program) {
-    gl.deleteShader(vertex);
-    gl.deleteShader(fragment);
-    return null;
-  }
-  gl.attachShader(program, vertex);
-  gl.attachShader(program, fragment);
-  gl.bindAttribLocation(program, 0, "a_position");
-  gl.linkProgram(program);
-  gl.deleteShader(vertex);
-  gl.deleteShader(fragment);
-
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    gl.deleteProgram(program);
-    return null;
-  }
-  return program;
-}
-
-/** Зацикленный двухпроходный player с SVG-fallback для каждой Illos field-сцены. */
+/**
+ * The original shader loops are pre-rendered from lib/agent-shaders.ts. Native
+ * video avoids runtime shader compilation and software-GPU stalls while keeping
+ * the same motion, pause/resume controls and a lightweight poster from the same frame.
+ */
 export function AgentShaderPlayer({ agent, scene, labels }: AgentShaderPlayerProps) {
   const resolvedScene = scene ?? agent;
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
-  const controllerRef = useRef<PlayerController | null>(null);
+  const userPausedRef = useRef(false);
   const [reducedMotion, setReducedMotion] = useState<boolean | null>(null);
+  const [nearViewport, setNearViewport] = useState(false);
   const [ready, setReady] = useState(false);
   const [playback, setPlayback] = useState<PlaybackState>("idle");
 
@@ -116,251 +45,99 @@ export function AgentShaderPlayer({ agent, scene, labels }: AgentShaderPlayerPro
 
   useEffect(() => {
     if (reducedMotion !== false) return;
-    const canvas = canvasRef.current;
-    const frameElement = frameRef.current;
-    if (!canvas || !frameElement) return;
-
-    const gl = canvas.getContext("webgl", {
-      alpha: false,
-      antialias: false,
-      depth: false,
-      stencil: false,
-      powerPreference: "low-power",
-    });
-    if (!gl) return;
-
-    const fieldProgram = createProgram(gl, AGENT_FIELD_FRAGMENT_SHADERS[resolvedScene]);
-    const barsProgram = createProgram(gl, AGENT_BARS_FRAGMENT_SHADER);
-    if (!fieldProgram || !barsProgram) {
-      if (fieldProgram) gl.deleteProgram(fieldProgram);
-      if (barsProgram) gl.deleteProgram(barsProgram);
-      return;
-    }
-
-    const buffer = gl.createBuffer();
-    const cells = gl.createTexture();
-    const framebuffer = gl.createFramebuffer();
-    if (!buffer || !cells || !framebuffer) {
-      if (buffer) gl.deleteBuffer(buffer);
-      if (cells) gl.deleteTexture(cells);
-      if (framebuffer) gl.deleteFramebuffer(framebuffer);
-      gl.deleteProgram(fieldProgram);
-      gl.deleteProgram(barsProgram);
-      return;
-    }
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Float32Array([-1, -1, 3, -1, -1, 3]),
-      gl.STATIC_DRAW
-    );
-    gl.enableVertexAttribArray(0);
-    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, cells);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      AGENT_SHADER_COLS,
-      AGENT_SHADER_CELLS,
-      0,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      null
-    );
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-    gl.framebufferTexture2D(
-      gl.FRAMEBUFFER,
-      gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D,
-      cells,
-      0
-    );
-    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      gl.deleteFramebuffer(framebuffer);
-      gl.deleteTexture(cells);
-      gl.deleteBuffer(buffer);
-      gl.deleteProgram(fieldProgram);
-      gl.deleteProgram(barsProgram);
-      return;
-    }
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-    const timeUniform = gl.getUniformLocation(fieldProgram, "uT");
-    const resolutionUniform = gl.getUniformLocation(barsProgram, "uRes");
-    const gridUniform = gl.getUniformLocation(barsProgram, "uGrid");
-    const dprUniform = gl.getUniformLocation(barsProgram, "uDpr");
-    const groundUniform = gl.getUniformLocation(barsProgram, "uGround");
-    const inkUniform = gl.getUniformLocation(barsProgram, "uInk");
-    const sparkUniform = gl.getUniformLocation(barsProgram, "uSpark");
-    const fieldUniform = gl.getUniformLocation(barsProgram, "uField");
-    const rampUniforms = [1, 2, 3, 4].map((index) =>
-      gl.getUniformLocation(barsProgram, `uR${index}`)
-    );
-
-    gl.useProgram(barsProgram);
-    gl.uniform2f(resolutionUniform, AGENT_SHADER_WIDTH, AGENT_SHADER_HEIGHT);
-    gl.uniform2f(gridUniform, AGENT_SHADER_COLS, AGENT_SHADER_CELLS);
-    gl.uniform3fv(groundUniform, GROUND);
-    gl.uniform3fv(inkUniform, INK);
-    gl.uniform3fv(sparkUniform, SPARK);
-    rampUniforms.forEach((uniform, index) => {
-      gl.uniform3fv(uniform, BAR_RAMP[index]);
-    });
-    gl.uniform1i(fieldUniform, 0);
-
-    let disposed = false;
-    let contextLost = false;
-    let animationFrame = 0;
-    let previousFrame = 0;
-    let elapsed = 0;
-    let visible = false;
-    let autoPlayed = false;
-    let state: PlaybackState = "idle";
-
-    const updateState = (next: PlaybackState) => {
-      state = next;
-      if (!disposed) setPlayback(next);
-    };
-
-    const draw = () => {
-      if (disposed || contextLost) return;
-
-      gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-      gl.viewport(0, 0, AGENT_SHADER_COLS, AGENT_SHADER_CELLS);
-      gl.useProgram(fieldProgram);
-      gl.uniform1f(timeUniform, elapsed / 1000);
-      gl.drawArrays(gl.TRIANGLES, 0, 3);
-
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      gl.viewport(0, 0, canvas.width, canvas.height);
-      gl.useProgram(barsProgram);
-      gl.uniform1f(dprUniform, canvas.width / AGENT_SHADER_WIDTH);
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, cells);
-      gl.drawArrays(gl.TRIANGLES, 0, 3);
-    };
-
-    const resize = () => {
-      const rect = frameElement.getBoundingClientRect();
-      if (rect.width < 1 || rect.height < 1) return;
-      const ratio = Math.min(window.devicePixelRatio || 1, 2);
-      const width = Math.max(1, Math.round(rect.width * ratio));
-      const height = Math.max(1, Math.round(rect.height * ratio));
-      if (canvas.width !== width || canvas.height !== height) {
-        canvas.width = width;
-        canvas.height = height;
+    const element = frameRef.current;
+    if (!element || typeof IntersectionObserver === "undefined") return;
+    let idleHandle: number | null = null;
+    let quietTimer: ReturnType<typeof setTimeout> | null = null;
+    let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+    let activated = false;
+    const activate = () => {
+      if (activated) return;
+      activated = true;
+      window.removeEventListener("scroll", schedule);
+      const startLoading = () => setNearViewport(true);
+      if (typeof window.requestIdleCallback === "function") {
+        idleHandle = window.requestIdleCallback(startLoading);
+      } else {
+        fallbackTimer = setTimeout(startLoading, 120);
       }
-      draw();
     };
-
-    const tick = (now: number) => {
-      animationFrame = 0;
-      if (disposed || contextLost || state !== "playing" || !visible || document.hidden) {
-        previousFrame = 0;
-        return;
-      }
-      if (previousFrame) {
-        elapsed = (elapsed + Math.min(now - previousFrame, 64)) % AGENT_SHADER_DURATION_MS;
-      }
-      previousFrame = now;
-      draw();
-      animationFrame = window.requestAnimationFrame(tick);
-    };
-
     const schedule = () => {
-      if (!animationFrame && visible && !document.hidden && state === "playing") {
-        previousFrame = 0;
-        animationFrame = window.requestAnimationFrame(tick);
-      }
+      if (quietTimer !== null) clearTimeout(quietTimer);
+      quietTimer = setTimeout(activate, 220);
     };
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        observer.disconnect();
+        schedule();
+        window.addEventListener("scroll", schedule, { passive: true });
+      },
+      { rootMargin: "240px 0px", threshold: 0.01 },
+    );
+    observer.observe(element);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", schedule);
+      if (idleHandle !== null) window.cancelIdleCallback(idleHandle);
+      if (quietTimer !== null) clearTimeout(quietTimer);
+      if (fallbackTimer !== null) clearTimeout(fallbackTimer);
+    };
+  }, [reducedMotion]);
 
+  useEffect(() => {
+    if (!nearViewport || reducedMotion !== false) return;
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = true;
+    video.defaultMuted = true;
+    video.load();
+  }, [nearViewport, reducedMotion, resolvedScene]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    const frame = frameRef.current;
+    if (!video || !frame || !nearViewport) return;
+    if (reducedMotion !== false) {
+      video.pause();
+      return;
+    }
+
+    let visible = false;
     const play = () => {
-      if (disposed || contextLost) return;
-      updateState("playing");
-      draw();
-      schedule();
+      if (userPausedRef.current || document.hidden || !visible) return;
+      video.play().catch(() => {
+        // Autoplay policy or decode failure leaves a usable manual control.
+        setPlayback("paused");
+      });
     };
-
-    const pause = () => {
-      if (state === "playing") updateState("paused");
-      if (animationFrame) window.cancelAnimationFrame(animationFrame);
-      animationFrame = 0;
-      previousFrame = 0;
-    };
-
-    controllerRef.current = { play, pause };
-    const resizeObserver = new ResizeObserver(resize);
-    const intersectionObserver = new IntersectionObserver(
+    const observer = new IntersectionObserver(
       ([entry]) => {
         visible = entry.isIntersecting;
         if (!visible) {
-          if (animationFrame) window.cancelAnimationFrame(animationFrame);
-          animationFrame = 0;
-          previousFrame = 0;
+          video.pause();
           return;
         }
-        if (!autoPlayed) {
-          autoPlayed = true;
-          if (state === "idle") play();
-        }
-        schedule();
+        play();
       },
-      { threshold: 0.35 }
+      { threshold: 0.35 },
     );
-
     const onVisibilityChange = () => {
-      if (document.hidden) {
-        if (animationFrame) window.cancelAnimationFrame(animationFrame);
-        animationFrame = 0;
-        previousFrame = 0;
-      } else {
-        schedule();
-      }
+      if (document.hidden) video.pause();
+      else play();
     };
-    const onContextLost = (event: Event) => {
-      event.preventDefault();
-      contextLost = true;
-      pause();
-      if (!disposed) setReady(false);
-    };
-
     document.addEventListener("visibilitychange", onVisibilityChange);
-    canvas.addEventListener("webglcontextlost", onContextLost);
-    setPlayback("idle");
-    resize();
-    setReady(true);
-    resizeObserver.observe(frameElement);
-    intersectionObserver.observe(frameElement);
+    observer.observe(frame);
 
     return () => {
-      disposed = true;
-      controllerRef.current = null;
-      if (animationFrame) window.cancelAnimationFrame(animationFrame);
-      resizeObserver.disconnect();
-      intersectionObserver.disconnect();
+      observer.disconnect();
       document.removeEventListener("visibilitychange", onVisibilityChange);
-      canvas.removeEventListener("webglcontextlost", onContextLost);
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      gl.deleteFramebuffer(framebuffer);
-      gl.deleteTexture(cells);
-      gl.deleteBuffer(buffer);
-      gl.deleteProgram(fieldProgram);
-      gl.deleteProgram(barsProgram);
+      video.pause();
     };
-  }, [resolvedScene, reducedMotion]);
+  }, [nearViewport, reducedMotion, resolvedScene]);
 
-  const enhanced = ready && reducedMotion === false;
-  const label =
-    playback === "playing" ? labels.pause : playback === "paused" ? labels.resume : labels.play;
+  const enhanced = ready && playback !== "idle" && reducedMotion === false;
+  const label = playback === "playing" ? labels.pause : playback === "paused" ? labels.resume : labels.play;
   const Icon = playback === "playing" ? Pause : Play;
 
   return (
@@ -370,16 +147,35 @@ export function AgentShaderPlayer({ agent, scene, labels }: AgentShaderPlayerPro
       data-scene={resolvedScene}
       data-playback={playback}
       data-shader-loop={AGENT_SHADER_CYCLE_SECONDS}
+      data-renderer="video"
       className="relative size-full overflow-hidden bg-background"
     >
-      <canvas
-        ref={canvasRef}
+      <video
+        ref={videoRef}
         aria-hidden="true"
-        className={cn(
-          "pointer-events-none absolute inset-0 size-full opacity-0",
-          enhanced && "opacity-100"
-        )}
-      />
+        className={cn("pointer-events-none absolute inset-0 size-full object-fill opacity-0", enhanced && "opacity-100")}
+        loop
+        muted
+        playsInline
+        preload="none"
+        onCanPlay={() => setReady(true)}
+        onPlaying={() => {
+          setReady(true);
+          setPlayback("playing");
+        }}
+        onPause={() => setPlayback("paused")}
+        onError={() => {
+          setReady(false);
+          setPlayback("idle");
+        }}
+      >
+        {nearViewport && reducedMotion === false ? (
+          <>
+            <source src={`/assets/agents/${resolvedScene}.mp4`} type="video/mp4" />
+            <source src={`/assets/agents/${resolvedScene}.webm`} type="video/webm" />
+          </>
+        ) : null}
+      </video>
       <div className="pointer-events-none absolute inset-0">
         <AgentDiagram agent={agent} scene={resolvedScene} enhanced={enhanced} />
       </div>
@@ -389,8 +185,15 @@ export function AgentShaderPlayer({ agent, scene, labels }: AgentShaderPlayerPro
           variant="outline"
           size="icon"
           onClick={() => {
-            if (playback === "playing") controllerRef.current?.pause();
-            else controllerRef.current?.play();
+            const video = videoRef.current;
+            if (!video) return;
+            if (playback === "playing") {
+              userPausedRef.current = true;
+              video.pause();
+            } else {
+              userPausedRef.current = false;
+              video.play().catch(() => setPlayback("paused"));
+            }
           }}
           aria-label={label}
           title={label}

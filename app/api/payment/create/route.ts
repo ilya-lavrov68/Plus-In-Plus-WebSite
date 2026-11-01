@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
+import { getPayloadClient, payloadId } from "@/lib/payload-native";
 import { issueInvoice } from "@/lib/payments/invoice";
 import { checkRateLimitAsync, getClientAddress, hashRateLimitIdentifier, retryAfterHeaders } from "@/lib/rate-limit";
 import { isSameOriginRequest } from "@/lib/request-origin";
@@ -10,15 +10,7 @@ import { roleLevel } from "@/lib/user-profile";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-/**
- * «Оплатить»: генерирует ссылку Робокассы по уже согласованной цене и
- * редиректит пользователя на форму оплаты.
- *
- * Цену здесь не назначают — её фиксирует менеджер (см. setOrderPrice).
- * Маршрут только достаёт/создаёт счёт на сумму заказа. Доступ: владелец
- * заказа или любой сотрудник; чужой заказ по подставленному orderId
- * оплатить нельзя.
- */
+/** Создаёт/переиспользует счёт только для собственного или staff-доступного заказа. */
 async function createPaymentRedirect(request: Request): Promise<Response> {
   if (!isSameOriginRequest(request)) {
     return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
@@ -26,9 +18,6 @@ async function createPaymentRedirect(request: Request): Promise<Response> {
   const contentType = request.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase();
   if (contentType !== "application/x-www-form-urlencoded") {
     return NextResponse.json({ ok: false, error: "unsupported_media_type" }, { status: 415 });
-  }
-  if (!prisma) {
-    return NextResponse.json({ ok: false, error: "payments_unavailable" }, { status: 503 });
   }
 
   const session = await auth();
@@ -48,41 +37,37 @@ async function createPaymentRedirect(request: Request): Promise<Response> {
     );
   }
 
-  let orderId = "";
   const form = await request.formData().catch(() => null);
   const value = form?.get("orderId");
-  if (typeof value === "string") orderId = value.trim();
+  const orderId = typeof value === "string" ? value.trim() : "";
   if (!orderId || orderId.length > 128) {
     return NextResponse.json({ ok: false, error: "order_id_required" }, { status: 400 });
   }
 
-  const [account, order] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { id: true, role: true, isBlocked: true },
+  const payload = await getPayloadClient();
+  const [accountResult, orderResult] = await Promise.all([
+    payload.find({
+      collection: "accounts",
+      depth: 0,
+      limit: 1,
+      overrideAccess: true,
+      where: { id: { equals: session.user.id } },
     }),
-    prisma.order.findFirst({
+    payload.find({
+      collection: "orders",
+      depth: 0,
+      limit: 1,
+      overrideAccess: true,
       where: {
-        status: { not: "cart" },
-        OR: [
-          { id: orderId },
-          { number: orderId },
-          { orderNumber: orderId },
+        and: [
+          { status: { not_equals: "cart" } },
+          { or: [{ id: { equals: orderId } }, { number: { equals: orderId } }, { orderNumber: { equals: orderId } }] },
         ],
-      },
-      select: {
-        id: true,
-        orderNumber: true,
-        number: true,
-        userId: true,
-        status: true,
-        total: true,
-        currency: true,
-        payments: { where: { status: "succeeded" }, select: { id: true }, take: 1 },
-        user: { select: { email: true } },
       },
     }),
   ]);
+  const account = accountResult.docs[0];
+  const order = orderResult.docs[0];
   if (!account || account.isBlocked) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
@@ -90,20 +75,36 @@ async function createPaymentRedirect(request: Request): Promise<Response> {
     return NextResponse.json({ ok: false, error: "order_not_found" }, { status: 404 });
   }
 
-  // Владелец платит за свой заказ; сотрудник может открыть оплату любого —
-  // например, чтобы проверить ссылку перед отправкой клиенту.
-  const isOwner = order.userId === account.id;
+  const customerId = payloadId(order.userId);
+  const isOwner = customerId === account.id;
   const isStaff = roleLevel(account.role) >= 1 && roleLevel(session.user.role) >= 1;
   if (!isOwner && !isStaff) {
     return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
   }
 
-  if (order.payments.length > 0) {
+  const succeeded = await payload.count({
+    collection: "payments",
+    overrideAccess: true,
+    where: { and: [{ orderId: { equals: order.id } }, { status: { equals: "succeeded" } }] },
+  });
+  if (succeeded.totalDocs > 0) {
     return NextResponse.redirect(new URL("/payment/success", request.url), 303);
   }
-  // Пока менеджер не согласовал цену, оплачивать нечего — total равен нулю.
   if (order.total <= 0 || order.status !== "awaiting_payment") {
     return NextResponse.json({ ok: false, error: "price_not_agreed" }, { status: 409 });
+  }
+
+  let customerEmail = isOwner ? account.email : null;
+  if (!isOwner && customerId) {
+    const customerResult = await payload.find({
+      collection: "accounts",
+      depth: 0,
+      limit: 1,
+      overrideAccess: true,
+      select: { email: true },
+      where: { id: { equals: customerId } },
+    });
+    customerEmail = customerResult.docs[0]?.email ?? null;
   }
 
   const invoice = await issueInvoice({
@@ -111,13 +112,11 @@ async function createPaymentRedirect(request: Request): Promise<Response> {
     orderNumber: order.orderNumber ?? order.number ?? order.id,
     amount: order.total,
     currency: order.currency,
-    customerEmail: order.user?.email ?? null,
-  });
+    customerEmail,
+  }, payload);
   if (!invoice?.paymentUrl) {
-    // Production без ключей Робокассы: счёт в базе есть, ссылки пока нет.
     return NextResponse.json({ ok: false, error: "provider_not_configured" }, { status: 503 });
   }
-
   return NextResponse.redirect(invoice.paymentUrl, 303);
 }
 

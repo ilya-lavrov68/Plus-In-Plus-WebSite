@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { closePayloadClient, getPayloadClient } from "@/lib/payload-native";
 import { STUDIO_SERVICES } from "@/lib/studio-catalog";
 
 interface SeedServiceSpec {
@@ -103,111 +103,98 @@ const services: SeedServiceSpec[] = [
 ];
 
 async function main() {
-  if (!prisma) {
-    throw new Error(
-      "Database client is not configured. Run `npm run db:push` first."
-    );
-  }
+  const payload = await getPayloadClient();
+  console.log("Seeding services through Payload…");
 
-  console.log("🌱 Seeding services...");
+  const findBySlug = async (slug: string) => {
+    const result = await payload.find({
+      collection: "services",
+      depth: 0,
+      limit: 1,
+      overrideAccess: true,
+      where: { slug: { equals: slug } },
+    });
+    return result.docs[0] ?? null;
+  };
 
   for (const service of services) {
     const preset = STUDIO_SERVICES.find(
-      (item) =>
-        item.slug === service.slug || item.slug === service.legacySlug
+      (item) => item.slug === service.slug || item.slug === service.legacySlug,
     );
 
-    // Migrate legacy slug row in place if present and no orders block it
     if (service.legacySlug) {
-      const targetExists = await prisma.service.findUnique({
-        where: { slug: service.slug },
-        select: { id: true },
-      });
-      const legacyRow = await prisma.service.findUnique({
-        where: { slug: service.legacySlug },
-        select: { id: true },
-      });
+      const [targetExists, legacyRow] = await Promise.all([
+        findBySlug(service.slug),
+        findBySlug(service.legacySlug),
+      ]);
       if (legacyRow && !targetExists) {
-        await prisma.service.update({
-          where: { id: legacyRow.id },
+        await payload.update({
+          collection: "services",
+          id: legacyRow.id,
           data: { slug: service.slug },
+          overrideAccess: true,
         });
       } else if (legacyRow && targetExists) {
-        const refCount = await prisma.order.count({
-          where: {
-            OR: [
-              { services: { some: { serviceId: legacyRow.id } } },
-              { items: { some: { serviceId: legacyRow.id } } },
-            ],
-          },
-        });
-        if (refCount === 0) {
-          await prisma.service.delete({ where: { id: legacyRow.id } });
+        const [serviceLinks, itemLinks] = await Promise.all([
+          payload.count({
+            collection: "order-services",
+            overrideAccess: true,
+            where: { serviceId: { equals: legacyRow.id } },
+          }),
+          payload.count({
+            collection: "order-items",
+            overrideAccess: true,
+            where: { serviceId: { equals: legacyRow.id } },
+          }),
+        ]);
+        if (serviceLinks.totalDocs + itemLinks.totalDocs === 0) {
+          await payload.delete({ collection: "services", id: legacyRow.id, overrideAccess: true });
         }
       }
     }
 
-    const basePriceKopecks = Math.round(service.basePrice * 100);
     const fullDesc = preset?.fullDesc ?? service.description;
-    const includes = JSON.stringify(preset?.includes ?? [service.description]);
-    const shapes = JSON.stringify(preset?.shapes ?? ["Custom layout"]);
-    const resultText =
-      preset?.resultText ??
-      "Production-ready design layout and realistic preview.";
-
-    await prisma.service.upsert({
-      where: { slug: service.slug },
-      update: {
-        title: service.name,
-        shortDesc: service.description,
-        fullDesc,
-        includes,
-        shapes,
-        resultText,
-        coverImage: service.coverImage,
-        basePrice: basePriceKopecks,
-        priceType: "from",
-        currency: "RUB",
-        category: service.category,
-        sortOrder: service.sortOrder,
-        isActive: service.isActive,
-        isPublished: service.isActive,
-        isOrderable: true,
-      },
-      create: {
-        id: `svc-${service.slug}`,
-        title: service.name,
-        slug: service.slug,
-        shortDesc: service.description,
-        fullDesc,
-        includes,
-        shapes,
-        resultText,
-        coverImage: service.coverImage,
-        basePrice: basePriceKopecks,
-        priceType: "from",
-        currency: "RUB",
-        category: service.category,
-        sortOrder: service.sortOrder,
-        isActive: service.isActive,
-        isPublished: service.isActive,
-        isOrderable: true,
-      },
-    });
+    const includes = (preset?.includes ?? [service.description]).map((value) => ({ value }));
+    const shapes = (preset?.shapes ?? ["Custom layout"]).map((value) => ({ value }));
+    const resultText = preset?.resultText ?? "Production-ready design layout and realistic preview.";
+    const data = {
+      title: service.name,
+      shortDesc: service.description,
+      fullDesc,
+      includes,
+      shapes,
+      resultText,
+      coverImage: service.coverImage,
+      basePrice: Math.round(service.basePrice * 100),
+      priceType: "from" as const,
+      currency: "RUB",
+      category: service.category,
+      sortOrder: service.sortOrder,
+      isActive: service.isActive,
+      isPublished: service.isActive,
+      isOrderable: true,
+    };
+    const existing = await findBySlug(service.slug);
+    if (existing) {
+      await payload.update({ collection: "services", id: existing.id, data, overrideAccess: true });
+    } else {
+      await payload.create({
+        collection: "services",
+        data: { id: `svc-${service.slug}`, slug: service.slug, ...data },
+        overrideAccess: true,
+      });
+    }
 
     console.log(
-      `✓ Added: ${service.name} (${service.category} — ${service.basePrice.toLocaleString("ru-RU")} ₽)`
+      `Added: ${service.name} (${service.category} — ${service.basePrice.toLocaleString("ru-RU")} ₽)`,
     );
   }
-
-  console.log("✅ Services seeding completed");
+  console.log("Services seeding completed.");
 }
 
 main()
   .catch((error) => {
     console.error(error);
-    process.exit(1);
+    process.exitCode = 1;
   })
-  .finally(async () => {
-    await prisma?.$disconnect();
-  });
+  .finally(closePayloadClient);

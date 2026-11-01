@@ -7,15 +7,15 @@ import { headers } from "next/headers";
 
 import { auth, signIn, signOut } from "@/auth";
 import { getActionTranslator } from "@/lib/action-i18n";
-import { recordActivity } from "@/lib/activity-log";
 import { isAuthConfigured } from "@/lib/auth-secret";
 import { assertPasswordNotCompromised, CompromisedPasswordError } from "@/lib/password-breach";
 import { readPendingLogin } from "@/lib/pending-login";
-import { prisma } from "@/lib/prisma";
+import { getPayloadClient, isPayloadUniqueError, type PayloadTransactionRequest, withPayloadTransaction } from "@/lib/payload-native";
 import { getClientAddress, checkRateLimitAsync, hashRateLimitIdentifier } from "@/lib/rate-limit";
 import { logSecurityEvent, logServerError } from "@/lib/security-log";
 import { cleanupUpload, saveImageUpload, UploadValidationError } from "@/lib/uploads";
 import { firstIssueMessage, loginSchema, profileSchema, registerSchema } from "@/lib/validators";
+import type { Account } from "@/payload/payload-types";
 
 export interface LoginInput {
   email?: string;
@@ -46,7 +46,7 @@ export interface AuthActionResult {
   ok: boolean;
   error?: string;
   /** Служебный дом после входа: админка или рабочее место менеджера. */
-  redirectTo?: "/admin/dashboard" | "/manager/orders" | "/profile?mfa=required";
+  redirectTo?: "/admin" | "/admin/collections/orders" | "/profile?mfa=required";
   accountCreated?: boolean;
   /** Effective privilege of the created session: ADMIN row + admin mode requested. */
   isAdmin?: boolean;
@@ -118,24 +118,31 @@ function readRegisterSubmission(input: RegisterSubmission): RegisterInput {
 
 const WINDOW_MS = 10 * 60 * 1000;
 
-function isUniqueViolation(error: unknown): boolean {
-  return typeof error === "object" && error !== null && (error as { code?: string }).code === "P2002";
-}
-
 async function recordAuthActivity(action: "login" | "staff login" | "logout", userId: string): Promise<void> {
-  if (!prisma) return;
   try {
-    await prisma.activityLog.create({
+    const payload = await getPayloadClient();
+    await payload.create({
+      collection: "activity-logs",
       data: { action, entityType: "user", entityId: userId, title: "User account", actorId: userId },
+      overrideAccess: true,
     });
   } catch (error) {
     logServerError("auth.audit.write_failed", error);
   }
 }
 
+async function writeAuthActivity(payload: Awaited<ReturnType<typeof getPayloadClient>>, req: PayloadTransactionRequest, action: string, userId: string): Promise<void> {
+  await payload.create({
+    collection: "activity-logs",
+    data: { action, entityType: "user", entityId: userId, title: "User account", actorId: userId },
+    overrideAccess: true,
+    req,
+  });
+}
+
 export async function loginUser(input: LoginSubmission): Promise<AuthActionResult> {
   const t = await getActionTranslator();
-  if (!isAuthConfigured() || !prisma) {
+  if (!isAuthConfigured()) {
     return { ok: false, success: false, error: t("loginUnavailable") };
   }
   const submission = readLoginSubmission(input);
@@ -165,15 +172,20 @@ export async function loginUser(input: LoginSubmission): Promise<AuthActionResul
       email = credentials.data.email;
       password = credentials.data.password;
       // This lookup only selects a destination and never replaces Auth.js verification.
-      account = await prisma.user.findUnique({
-        where: { email },
-        select: {
-          id: true,
-          role: true,
-          mfaSecret: true,
-          webAuthnCredentials: { select: { id: true }, take: 1 },
-        },
+      const payload = await getPayloadClient();
+      const result = await payload.find({
+        collection: "accounts",
+        depth: 0,
+        limit: 1,
+        overrideAccess: true,
+        showHiddenFields: true,
+        where: { email: { equals: email } },
       });
+      const found = result.docs[0] as Account | undefined;
+      const passkeys = found
+        ? await payload.find({ collection: "webauthn-credentials", depth: 0, limit: 1, overrideAccess: true, where: { userId: { equals: found.id } } })
+        : { docs: [] };
+      account = found ? { ...found, webAuthnCredentials: passkeys.docs } : null;
     }
   } catch (error) {
     logServerError("auth.login.lookup_failed", error);
@@ -184,7 +196,7 @@ export async function loginUser(input: LoginSubmission): Promise<AuthActionResul
     account?.role === "FOUNDER" || account?.role === "ADMIN" || account?.role === "MANAGER"
       ? account.role
       : null;
-  const staffHome = staffRole === "MANAGER" ? "/manager/orders" : "/admin/dashboard";
+  const staffHome = staffRole === "MANAGER" ? "/admin/collections/orders" : "/admin";
 
   try {
     await signIn("credentials", pendingStep ? {
@@ -283,21 +295,24 @@ export async function registerUser(input: RegisterSubmission): Promise<RegisterR
   }
   // Only the allowlisted fields survive validation.
   const { email, password, firstName, lastName } = result.data;
-  if (!prisma || !isAuthConfigured()) {
+  if (!isAuthConfigured()) {
     return { ok: false, success: false, error: t("registrationUnavailable") };
   }
 
   try {
-    const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } });
-    if (existing) return { ok: false, success: false, error: t("registrationFailedWithDetails") };
+    const payload = await getPayloadClient();
+    const existing = await payload.find({ collection: "accounts", depth: 0, limit: 1, overrideAccess: true, where: { email: { equals: email } } });
+    if (existing.docs.length) return { ok: false, success: false, error: t("registrationFailedWithDetails") };
     await assertPasswordNotCompromised(password);
     const passwordHash = await bcrypt.hash(password, 12);
-    await prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({
+    await withPayloadTransaction(payload, async (req) => {
+      const user = await payload.create({
+        collection: "accounts",
         data: { email, passwordHash, firstName, lastName, role: "USER" },
-        select: { id: true },
+        overrideAccess: true,
+        req,
       });
-      await recordActivity(tx, { action: "registered", entityType: "user", entityId: user.id, title: "User account", actorId: user.id });
+      await writeAuthActivity(payload, req, "registered", user.id);
     });
   } catch (error) {
     if (error instanceof CompromisedPasswordError) {
@@ -307,13 +322,13 @@ export async function registerUser(input: RegisterSubmission): Promise<RegisterR
         error: t(error.code === "compromised" ? "validation.passwordCompromised" : "validation.passwordBreachUnavailable"),
       };
     }
-    if (isUniqueViolation(error)) return { ok: false, success: false, error: t("registrationFailedWithDetails") };
+    if (isPayloadUniqueError(error)) return { ok: false, success: false, error: t("registrationFailedWithDetails") };
     logServerError("auth.registration.failed", error);
     return { ok: false, success: false, error: t("registrationFailed") };
   }
 
-  revalidatePath("/admin/users");
-  revalidatePath("/admin/dashboard");
+  revalidatePath("/admin/collections/accounts");
+  revalidatePath("/admin");
   // A new account is always logged in in regular mode, independent of submitted extra fields.
   const login = await loginUser({ email, password, adminMode: false });
   return login.ok ? { ok: true, success: true, isAdmin: false } : {
@@ -326,7 +341,7 @@ export async function registerUser(input: RegisterSubmission): Promise<RegisterR
 
 export async function updateUserProfile(formData: FormData): Promise<AuthActionResult> {
   const t = await getActionTranslator();
-  if (!isAuthConfigured() || !prisma) return { ok: false, success: false, error: t("loginToEditProfile") };
+  if (!isAuthConfigured()) return { ok: false, success: false, error: t("loginToEditProfile") };
   let newAvatar: string | null = null;
   let saved = false;
   try {
@@ -341,34 +356,35 @@ export async function updateUserProfile(formData: FormData): Promise<AuthActionR
     });
     if (!profile.success) return { ok: false, success: false, error: t(firstIssueMessage(profile.error)) };
     const { firstName, lastName } = profile.data;
-    const existing = await prisma.user.findUnique({
-      where: { id: session.user.id }, select: { id: true, avatar: true },
-    });
+    const payload = await getPayloadClient();
+    const existingResult = await payload.find({ collection: "accounts", depth: 0, limit: 1, overrideAccess: true, where: { id: { equals: session.user.id } } });
+    const existing = existingResult.docs[0];
     if (!existing) return { ok: false, success: false, error: t("accountGone") };
     const file = formData.get("avatar");
     if (typeof file === "string" && file) return { ok: false, success: false, error: t("chooseLocalImage") };
     if (file instanceof File && file.name && file.size === 0) throw new UploadValidationError(t("emptyImage"));
     if (file instanceof File && file.size > 0) newAvatar = await saveImageUpload(file, "avatars");
 
-    await prisma.$transaction(async (tx) => {
-      await tx.user.update({
-        // The id comes ONLY from the verified session, never from formData.
-        where: { id: existing.id },
+    await withPayloadTransaction(payload, async (req) => {
+      await payload.update({
+        collection: "accounts",
+        id: existing.id,
         data: { firstName: firstName || null, lastName: lastName || null, ...(newAvatar ? { avatar: newAvatar } : {}) },
-        select: { id: true },
+        overrideAccess: true,
+        req,
       });
-      await recordActivity(tx, { action: "updated profile", entityType: "user", entityId: existing.id, title: "User account", actorId: existing.id });
+      await writeAuthActivity(payload, req, "updated profile", existing.id);
     });
     saved = true;
-    if (newAvatar) await cleanupUpload(existing.avatar, "avatars");
+    if (newAvatar) await cleanupUpload(existing.avatar ?? null, "avatars");
   } catch (error) {
     if (newAvatar && !saved) await cleanupUpload(newAvatar, "avatars");
     if (error instanceof UploadValidationError) return { ok: false, success: false, error: error.message };
     logServerError("auth.profile.update_failed", error);
     return { ok: false, success: false, error: t("profileSaveFailed") };
   }
-  revalidatePath("/admin/users");
-  revalidatePath("/admin/dashboard");
+  revalidatePath("/admin/collections/accounts");
+  revalidatePath("/admin");
   return { ok: true, success: true };
 }
 

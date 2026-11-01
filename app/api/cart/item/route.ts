@@ -10,7 +10,6 @@ import {
   removeOwnedCartItem,
   updateOwnedCartItem,
 } from "@/lib/cart-operations";
-import { prisma } from "@/lib/prisma";
 import { readJsonBody } from "@/lib/request-body";
 import { isSameOriginRequest } from "@/lib/request-origin";
 import { logServerError } from "@/lib/security-log";
@@ -51,7 +50,6 @@ export async function POST(request: Request) {
   if (!isSameOriginRequest(request)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const customer = await requireActiveCustomer();
   if (!customer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!prisma) return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
 
   const body = await readJsonBody(request, 64 * 1024);
   if (!body.ok) return NextResponse.json({ error: body.error }, { status: body.status });
@@ -72,7 +70,6 @@ export async function PATCH(request: Request) {
   if (!isSameOriginRequest(request)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const customer = await requireActiveCustomer();
   if (!customer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!prisma) return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
 
   const body = await readJsonBody(request, 64 * 1024);
   if (!body.ok) return NextResponse.json({ error: body.error }, { status: body.status });
@@ -93,7 +90,6 @@ export async function DELETE(request: Request) {
   if (!isSameOriginRequest(request)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const customer = await requireActiveCustomer();
   if (!customer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!prisma) return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
 
   const body = await readJsonBody(request, 64 * 1024);
   if (!body.ok) return NextResponse.json({ error: body.error }, { status: body.status });

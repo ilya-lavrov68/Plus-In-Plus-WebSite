@@ -6,23 +6,23 @@ function requiredSecret(): string {
   return value;
 }
 
-function isolatedDatabaseUrl(): string {
-  const value = process.env.PAYLOAD_DATABASE_URL?.trim();
-  if (!value) {
-    throw new Error("PAYLOAD_DATABASE_URL must point to the dedicated CMS database.");
+/** Одна БД для Payload, публичного сайта, auth и commerce. Никакой второй Prisma-БД. */
+function databaseUrl(): string {
+  const configured = process.env.PAYLOAD_DATABASE_URL?.trim() || process.env.TURSO_DATABASE_URL?.trim();
+  if (configured) {
+    if (!/^(?:file:|libsql:|https?:|:memory:)/i.test(configured)) {
+      throw new Error("PAYLOAD_DATABASE_URL must be a SQLite/libSQL URL (file:, libsql:, http(s): or :memory:).");
+    }
+    return configured;
   }
-  if (
-    value === process.env.TURSO_DATABASE_URL ||
-    value === process.env.DATABASE_URL ||
-    (value.startsWith("file:") && /prisma[\\/]/i.test(value))
-  ) {
-    throw new Error("PAYLOAD_DATABASE_URL must not reuse the application Prisma database.");
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("PAYLOAD_DATABASE_URL (or TURSO_DATABASE_URL) must be configured in production.");
   }
-  return value;
+  return "file:./payload/pip.db";
 }
 
 export const payloadEnv = {
-  databaseAuthToken: process.env.PAYLOAD_DATABASE_AUTH_TOKEN,
-  databaseUrl: isolatedDatabaseUrl(),
+  databaseAuthToken: process.env.PAYLOAD_DATABASE_AUTH_TOKEN || process.env.TURSO_AUTH_TOKEN,
+  databaseUrl: databaseUrl(),
   secret: requiredSecret(),
 };

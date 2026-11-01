@@ -14,7 +14,7 @@ export function AdminA11yProvider({ children }: { children?: ReactNode }) {
   const { t } = useTranslation();
 
   useEffect(() => {
-    if (pathname !== "/payload") return;
+    if (pathname !== "/admin") return;
 
     const label = t("general:dashboard");
     const enhanceDashboardSelect = () => {

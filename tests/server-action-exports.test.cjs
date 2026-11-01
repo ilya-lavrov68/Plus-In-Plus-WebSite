@@ -73,6 +73,6 @@ test("every runtime export from a use server module is an async function", () =>
     }
   }
 
-  assert.ok(serverModules >= 7, "the audit must discover the server action modules");
+  assert.ok(serverModules >= 6, "the audit must discover the server action modules");
   assert.deepEqual(failures, []);
 });

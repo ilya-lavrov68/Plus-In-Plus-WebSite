@@ -1,72 +1,46 @@
 import type { AuthStrategyFunction } from "payload";
 
-import { PAYLOAD_USERS_SLUG } from "../constants.ts";
-
-type StaffRole = "ADMIN" | "FOUNDER";
-
-type PayloadStaffUser = {
-  id: number;
-  authJsId: string;
-  email: string;
-  role: StaffRole;
-  updatedAt: string;
-  createdAt: string;
-};
-
-async function findShadowUser(
-  payload: Parameters<AuthStrategyFunction>[0]["payload"],
-  authJsId: string
-): Promise<PayloadStaffUser | null> {
-  const result = await payload.find({
-    collection: PAYLOAD_USERS_SLUG,
-    depth: 0,
-    limit: 1,
-    // Local API не связан с публичным запросом; вызывается только после requireAdmin().
-    overrideAccess: true,
-    where: { authJsId: { equals: authJsId } },
-  });
-  return (result.docs[0] as PayloadStaffUser | undefined) ?? null;
-}
+import { roleLevel } from "@/lib/user-profile";
+import { ACCOUNTS_SLUG } from "../access.ts";
 
 /**
- * Payload не получает собственный парольный вход. Каждый запрос заново проверяет
- * revocable Auth.js-сессию и effective role (min из JWT и текущей роли в БД).
+ * Единый staff-вход остаётся в Auth.js: пароль, обязательная MFA, passkeys и
+ * revocable refresh-сессии проверяются до создания Payload request user.
+ * Payload не заводит второй пароль и не доверяет роли только из JWT.
  */
 export const authenticateAuthJsStaff: AuthStrategyFunction = async ({ payload }) => {
-  const { requireAdmin } = await import("@/lib/admin-session");
-  const staff = await requireAdmin();
+  const { requireStaff } = await import("@/lib/admin-session");
+  const staff = await requireStaff();
   if (!staff) return { user: null };
 
-  let user = await findShadowUser(payload, staff.id);
-  const data = { authJsId: staff.id, email: staff.email, role: staff.role };
+  const result = await payload.find({
+    collection: ACCOUNTS_SLUG,
+    depth: 0,
+    limit: 1,
+    overrideAccess: true,
+    showHiddenFields: true,
+    where: { id: { equals: staff.id } },
+  });
+  const account = result.docs[0];
+  if (!account || account.isBlocked) return { user: null };
 
-  if (!user) {
-    try {
-      user = (await payload.create({
-        collection: PAYLOAD_USERS_SLUG,
-        data,
-        depth: 0,
-        overrideAccess: true,
-      })) as PayloadStaffUser;
-    } catch (error) {
-      // Параллельный первый запрос мог создать ту же уникальную shadow-запись.
-      user = await findShadowUser(payload, staff.id);
-      if (!user) throw error;
-    }
-  } else if (user.email !== staff.email || user.role !== staff.role) {
-    user = (await payload.update({
-      id: user.id,
-      collection: PAYLOAD_USERS_SLUG,
-      data: { email: staff.email, role: staff.role },
-      depth: 0,
-      overrideAccess: true,
-    })) as PayloadStaffUser;
-  }
-
+  // Effective role is the lower of the Auth.js session role and current DB role.
+  const level = Math.min(roleLevel(staff.role), roleLevel(account.role));
+  if (level < 1) return { user: null };
+  const role = level === 3 ? "FOUNDER" : level === 2 ? "ADMIN" : "MANAGER";
   return {
     user: {
-      ...user,
-      collection: PAYLOAD_USERS_SLUG,
+      id: account.id,
+      email: account.email,
+      firstName: account.firstName ?? null,
+      lastName: account.lastName ?? null,
+      avatar: account.avatar ?? null,
+      avatarMedia: account.avatarMedia ?? null,
+      isBlocked: false,
+      createdAt: account.createdAt,
+      updatedAt: account.updatedAt,
+      role,
+      collection: ACCOUNTS_SLUG,
       _strategy: "authjs-staff",
     },
   };

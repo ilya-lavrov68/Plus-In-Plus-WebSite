@@ -3,7 +3,7 @@ import { XCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { prisma } from "@/lib/prisma";
+import { getPayloadClient } from "@/lib/payload-native";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getRequestTranslations } from "@/lib/server-i18n";
 
@@ -34,14 +34,21 @@ export default async function PaymentFailPage({ searchParams }: PaymentPageProps
   // Если уведомление об оплате успело прийти раньше браузера — человек
   // просто закрыл вкладку не там, где мы ждали. Показываем правду.
   let alreadyPaid = false;
-  if (prisma && invId) {
-    const payment = await prisma.payment
-      .findFirst({
-        where: { externalId: invId, provider: "robokassa" },
+  if (invId) {
+    try {
+      const payload = await getPayloadClient();
+      const result = await payload.find({
+        collection: "payments",
+        depth: 0,
+        limit: 1,
+        overrideAccess: true,
         select: { status: true },
-      })
-      .catch(() => null);
-    alreadyPaid = payment?.status === "succeeded";
+        where: { and: [{ externalId: { equals: invId } }, { provider: { equals: "robokassa" } }] },
+      });
+      alreadyPaid = result.docs[0]?.status === "succeeded";
+    } catch {
+      alreadyPaid = false;
+    }
   }
 
   return (

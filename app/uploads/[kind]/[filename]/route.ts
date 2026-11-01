@@ -2,8 +2,8 @@ import { constants } from "node:fs";
 import { open } from "node:fs/promises";
 import path from "node:path";
 
-import { isUploadFilename, isUploadKind, MAX_COVER_BYTES } from "@/lib/upload-policy";
-import { uploadDirectory, uploadMimeType } from "@/lib/uploads";
+import { isMediaFilename, isUploadFilename, isUploadKind, MAX_COVER_BYTES } from "@/lib/upload-policy";
+import { uploadMimeType } from "@/lib/uploads";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,11 +14,15 @@ export async function GET(
   { params }: { params: Promise<{ kind: string; filename: string }> },
 ) {
   const { kind, filename } = await params;
-  if (!isUploadKind(kind) || !isUploadFilename(filename)) return new Response(null, { status: 404 });
+  const media = kind === "media";
+  if ((!media && !isUploadKind(kind)) || !(media ? isMediaFilename(filename) : isUploadFilename(filename))) {
+    return new Response(null, { status: 404 });
+  }
 
   let file;
   try {
-    file = await open(path.join(uploadDirectory(kind), filename), constants.O_RDONLY | constants.O_NOFOLLOW);
+    const directory = path.join(process.cwd(), "public", "uploads", kind);
+    file = await open(path.join(directory, filename), constants.O_RDONLY | constants.O_NOFOLLOW);
     const stat = await file.stat();
     if (!stat.isFile() || stat.size > MAX_COVER_BYTES) return new Response(null, { status: 404 });
     const bytes = await file.readFile();

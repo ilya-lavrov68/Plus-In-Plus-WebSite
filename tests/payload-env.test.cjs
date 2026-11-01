@@ -8,7 +8,7 @@ require.extensions[".ts"] = (module, filename) =>
     ts.transpileModule(fs.readFileSync(filename, "utf8"), {
       compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
     }).outputText,
-    filename
+    filename,
   );
 
 const modulePath = require.resolve("../payload/env.ts");
@@ -17,7 +17,9 @@ const names = [
   "PAYLOAD_DATABASE_URL",
   "PAYLOAD_DATABASE_AUTH_TOKEN",
   "TURSO_DATABASE_URL",
+  "TURSO_AUTH_TOKEN",
   "DATABASE_URL",
+  "NODE_ENV",
 ];
 
 function withEnv(values, callback) {
@@ -41,28 +43,30 @@ const valid = {
   PAYLOAD_DATABASE_URL: "file:/tmp/payload-env-test.db",
 };
 
-test("Payload environment requires a dedicated database and strong explicit secret", () => {
+test("Payload environment requires a strong secret and an explicit production database", () => {
   withEnv(valid, () => {
     const { payloadEnv } = require(modulePath);
     assert.equal(payloadEnv.databaseUrl, valid.PAYLOAD_DATABASE_URL);
     assert.equal(payloadEnv.secret, valid.PAYLOAD_SECRET);
   });
-
   withEnv({ ...valid, PAYLOAD_SECRET: "short" }, () => {
     assert.throws(() => require(modulePath), /PAYLOAD_SECRET/);
   });
-  withEnv({ PAYLOAD_SECRET: valid.PAYLOAD_SECRET }, () => {
+  withEnv({ PAYLOAD_SECRET: valid.PAYLOAD_SECRET, NODE_ENV: "production" }, () => {
     assert.throws(() => require(modulePath), /PAYLOAD_DATABASE_URL/);
   });
 });
 
-test("Payload refuses to reuse the Prisma/Turso application database", () => {
+test("Payload uses one shared SQLite/libSQL database and rejects PostgreSQL URLs", () => {
   withEnv(
-    { ...valid, TURSO_DATABASE_URL: valid.PAYLOAD_DATABASE_URL },
-    () => assert.throws(() => require(modulePath), /must not reuse/)
+    { ...valid, TURSO_DATABASE_URL: "libsql://ignored-when-payload-url-is-set" },
+    () => assert.equal(require(modulePath).payloadEnv.databaseUrl, valid.PAYLOAD_DATABASE_URL),
   );
   withEnv(
-    { ...valid, PAYLOAD_DATABASE_URL: "file:./prisma/dev.db" },
-    () => assert.throws(() => require(modulePath), /must not reuse/)
+    { ...valid, PAYLOAD_DATABASE_URL: "postgresql://example.invalid/db" },
+    () => assert.throws(() => require(modulePath), /SQLite\/libSQL URL/),
   );
+  withEnv({ PAYLOAD_SECRET: valid.PAYLOAD_SECRET }, () => {
+    assert.equal(require(modulePath).payloadEnv.databaseUrl, "file:./payload/pip.db");
+  });
 });

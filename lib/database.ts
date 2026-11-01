@@ -1,20 +1,20 @@
 import path from "node:path";
 
 /**
- * One place that decides which libSQL database the app, the Prisma CLI and the
+ * One place that decides which libSQL database the app, the Payload CLI and the
  * helper scripts talk to.
  *
  * Supported URLs (see README → "Database"):
  *   - `libsql://<db>-<org>.turso.io` — Turso Cloud (production; needs TURSO_AUTH_TOKEN)
  *   - `http(s)://…`                  — a self-hosted libSQL/sqld server
- *   - `file:./prisma/dev.db`         — a local SQLite file, no server needed
+ *   - `file:./db/dev.db`         — a local SQLite file, no server needed
  *   - `:memory:`                     — throwaway database, scripts only
  *
- * TURSO_DATABASE_URL is the canonical variable in both environments — that is the
+ * PAYLOAD_DATABASE_URL is the canonical variable in both environments — that is the
  * whole point of this setup: no dev/prod difference in code or schema.
  */
 
-export const LOCAL_DATABASE_FILE = path.join("prisma", "dev.db");
+export const LOCAL_DATABASE_FILE = path.join("payload", "pip.db");
 
 /** Turso Cloud / self-hosted sqld: reached over the network instead of the filesystem. */
 const REMOTE_PROTOCOL = /^(?:libsql|https?):/i;
@@ -35,7 +35,7 @@ export interface ResolveDatabaseOptions {
   rootDir?: string;
   /**
    * Local development always has a usable database: when nothing is configured the
-   * app falls back to `prisma/dev.db`, so `npm run dev` never crashes with
+   * app falls back to `db/dev.db`, so `npm run dev` never crashes with
    * "table does not exist" on a fresh clone. Production must fail closed instead.
    */
   allowDevelopmentFallback?: boolean;
@@ -54,7 +54,7 @@ export function isSupportedDatabaseUrl(url: string): boolean {
   return trimmed === ":memory:" || isRemoteDatabaseUrl(trimmed) || trimmed.startsWith("file:");
 }
 
-/** `file:local.db` is relative to the process, not to prisma/schema.prisma. */
+/** `file:local.db` is relative to the process, not to db/schema.db. */
 function normalizeFileUrl(url: string, rootDir: string): string {
   if (!url.startsWith("file:")) return url;
   const target = url.slice("file:".length);
@@ -68,13 +68,13 @@ export function resolveDatabaseConfig(options: ResolveDatabaseOptions = {}): Dat
   const allowDevelopmentFallback =
     options.allowDevelopmentFallback ?? env.NODE_ENV !== "production";
 
-  const authToken = env.TURSO_AUTH_TOKEN?.trim() || undefined;
-  const tursoUrl = env.TURSO_DATABASE_URL?.trim();
+  const authToken = env.PAYLOAD_DATABASE_AUTH_TOKEN?.trim() || env.TURSO_AUTH_TOKEN?.trim() || undefined;
+  const tursoUrl = env.PAYLOAD_DATABASE_URL?.trim() || env.TURSO_DATABASE_URL?.trim();
   if (tursoUrl) {
     if (!isSupportedDatabaseUrl(tursoUrl)) {
       throw new Error(
-        `TURSO_DATABASE_URL must start with "libsql:", "http(s):" or "file:" — got "${describeDatabaseUrl(tursoUrl)}".` +
-          " Turso/libSQL is not a PostgreSQL server; see README → Database.",
+        `PAYLOAD_DATABASE_URL must start with "libsql:", "http(s):" or "file:" — got "${describeDatabaseUrl(tursoUrl)}".` +
+          " Payload SQLite/libSQL is not a PostgreSQL server; see README → Database.",
       );
     }
     return {
@@ -116,7 +116,7 @@ export function unsupportedDatabaseUrlMessage(env: NodeJS.ProcessEnv = process.e
   if (!legacyUrl || isSupportedDatabaseUrl(legacyUrl)) return null;
   return (
     `DATABASE_URL is set to "${describeDatabaseUrl(legacyUrl)}", which is not a libSQL/SQLite URL. ` +
-    "The app now runs on Turso/libSQL — set TURSO_DATABASE_URL (or remove DATABASE_URL). See README → Database."
+    "The app now runs on Payload SQLite/libSQL — set PAYLOAD_DATABASE_URL (or remove DATABASE_URL). See README → Database."
   );
 }
 

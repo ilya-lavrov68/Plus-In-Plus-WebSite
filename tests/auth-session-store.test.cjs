@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
+const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
 
 require.extensions[".ts"] = (module, filename) => {
   module._compile(
@@ -29,7 +30,7 @@ function matches(record, where) {
   if (where.deviceHash && record.deviceHash !== where.deviceHash) return false;
   if (where.role?.not && record.role === where.role.not) return false;
   if (Object.hasOwn(where, "revokedAt") && where.revokedAt === null && record.revokedAt !== null) return false;
-  if (where.expiresAt?.gt && !(record.expiresAt > where.expiresAt.gt)) return false;
+  if (where.expiresAt?.gt && !(new Date(record.expiresAt).getTime() > new Date(where.expiresAt.gt).getTime())) return false;
   return true;
 }
 
@@ -41,7 +42,7 @@ const authSession = {
   },
   findMany: async ({ where, orderBy, select }) => {
     const found = records.filter((record) => matches(record, where));
-    if (orderBy?.lastUsedAt === "desc") found.sort((a, b) => b.lastUsedAt - a.lastUsedAt);
+    if (orderBy?.lastUsedAt === "desc") found.sort((a, b) => new Date(b.lastUsedAt).getTime() - new Date(a.lastUsedAt).getTime());
     return found.map((record) => select?.id ? { id: record.id } : structuredClone(record));
   },
   findUnique: async ({ where }) => {
@@ -56,13 +57,13 @@ const authSession = {
   },
 };
 
-const prisma = {
+const db = {
   authSession,
-  $transaction: async (callback) => callback(prisma),
+  transaction: async (callback) => callback(db),
 };
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/prisma") return { prisma };
+  if (name === "@/lib/payload-native") return createNativeModuleMock(db);
   if (name === "next/headers") {
     return { cookies: async () => ({
       get: (key) => cookieValues.has(key) ? { value: cookieValues.get(key).value } : undefined,
