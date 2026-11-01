@@ -7,268 +7,203 @@
 
 ---
 
-## Быстрый старт: Локально (VS Code) vs Сервер (Продакшен)
+## Запуск проекта: пошаговая инструкция
 
-Ниже — параллельный гайд в **2 колонки**: слева запуск для локальной разработки через **VS Code**, справа — боевой деплой на **VPS-сервер (Linux)**.
+### Что нужно установить
 
-<table width="100%">
-<thead>
-<tr>
-<th width="50%" align="left">💻 Локально через VS Code</th>
-<th width="50%" align="left">🚀 На сервере (Продакшен / VPS)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td valign="top" width="50%">
+- **Node.js `24.22.1` или новее.** Версия `24.14.1` не подходит: проект использует более новые возможности Node и Payload.
+- **Git**.
 
-### 1. Подготовка окружения
+Для локальной разработки не нужны Turso, PM2, Nginx или отдельный сервер базы данных. Сайт хранит данные в файле `payload/pip.db` внутри проекта.
 
-Установите:
-- **Node.js `24.22.1+`** (`node -v`; версия зафиксирована в `.nvmrc`)
-- **Git** и **VS Code**
-
-Откройте проект в VS Code — редактор сам предложит поставить рекомендуемые расширения из `.vscode/extensions.json` (*SQLTools + SQLite*, *DotENV*). Отдельный сервер БД ставить **не нужно** (работает локальный SQLite-файл).
-
-</td>
-<td valign="top" width="50%">
-
-### 1. Подготовка сервера и БД
-
-На Ubuntu / Debian VPS (`2 vCPU / 2 GB RAM`, открыты порты `22, 80, 443`):
+Проверьте версии перед продолжением:
 
 ```bash
-sudo apt update && sudo apt install -y \
-  git curl nginx certbot python3-certbot-nginx
-curl -fsSL https://deb.nodesource.com/setup_24.x \
-  | sudo -E bash -
-sudo apt install -y nodejs && sudo npm i -g pm2
+node -v
+npm -v
 ```
 
-Создайте облачную БД **Turso** (или локальный `sqld` в спойлере ниже):
+Если используете nvm for Windows, нужную версию можно выбрать так:
 
-```bash
-curl -sSfL https://get.tur.so/install.sh | bash
-turso auth login
-turso db create plus-in-plus
-turso db show plus-in-plus --url
-turso db tokens create plus-in-plus
+```powershell
+nvm install 24.22.1
+nvm use 24.22.1
+node -v
 ```
 
-</td>
-</tr>
-<tr>
-<td valign="top" width="50%">
+### 1. Локальная разработка на Windows
 
-### 2. Клонирование и пакеты
+Откройте **PowerShell**. Если проект уже скачан, сразу перейдите в его папку и пропустите первые две команды.
 
-Откройте встроенный терминал VS Code (`` Ctrl+` ``) или используйте `Git: Clone`:
+```powershell
+git clone https://github.com/ilialavrov227-prog/Plus-In-Plus-WebSite.git
+cd Plus-In-Plus-WebSite
+npm ci
+Copy-Item .env.example .env
+```
+
+Создайте два разных секретных ключа. Это случайные строки для защиты входа и админ-панели, а не пароли от сайта.
+
+1. Выполните команду и скопируйте результат в `AUTH_SECRET`:
+
+   ```powershell
+   node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+   ```
+
+2. Выполните её ещё раз и скопируйте новый результат в `PAYLOAD_SECRET`.
+3. Откройте файл командой `notepad .env` и вставьте оба значения. Начало файла должно выглядеть примерно так:
+
+   ```env
+   PAYLOAD_DATABASE_URL="file:./payload/pip.db"
+   PAYLOAD_DATABASE_AUTH_TOKEN=""
+   AUTH_SECRET="первый_результат_генератора"
+   PAYLOAD_SECRET="второй_результат_генератора"
+   ```
+
+Остальные значения для обычной локальной разработки менять не нужно. Файл `.env` содержит секреты и не должен попадать в Git.
+
+Теперь создайте таблицы базы данных и проверьте их:
+
+```powershell
+npm run payload:migrate
+npm run db:check
+```
+
+Первая команда создаёт файл `payload/pip.db` и все необходимые таблицы. Повторный запуск безопасен: уже применённая миграция не выполняется заново.
+
+Если нужны начальные услуги в каталоге, выполните необязательную команду:
+
+```powershell
+npm run db:seed:services
+```
+
+Запустите сайт:
+
+```powershell
+npm run dev
+```
+
+Откройте:
+
+- сайт: <http://localhost:3000>;
+- вход: <http://localhost:3000/login>;
+- админ-панель после настройки сотрудника: <http://localhost:3000/admin>.
+
+Остановить сервер можно клавишами `Ctrl+C`. При изменении кода страница в dev-режиме обновляется автоматически.
+
+### 2. Локальная разработка на macOS или Linux
+
+Порядок тот же. Установка пакетов и создание `.env`:
 
 ```bash
 git clone https://github.com/ilialavrov227-prog/Plus-In-Plus-WebSite.git
 cd Plus-In-Plus-WebSite
-npm install
-```
-
-> В репозитории уже настроен `.npmrc` (`legacy-peer-deps=true`). Prisma и отдельная CMS-база больше не используются.
-
-</td>
-<td valign="top" width="50%">
-
-### 2. Клонирование в `/opt` и пакеты
-
-Клонируйте проект в рабочую директорию и установите зависимости (до сборки `NODE_ENV` не должен скрывать `devDependencies`):
-
-```bash
-sudo mkdir -p /opt/plus-in-plus
-sudo chown "$USER":"$USER" /opt/plus-in-plus
-git clone https://github.com/ilialavrov227-prog/Plus-In-Plus-WebSite.git \
-  /opt/plus-in-plus
-cd /opt/plus-in-plus
 npm ci
-```
-
-</td>
-</tr>
-<tr>
-<td valign="top" width="50%">
-
-### 3. Файл `.env` для локалки
-
-Скопируйте шаблон `.env.example` → `.env` и сгенерируйте `AUTH_SECRET` (≥ 32 символов):
-
-**macOS / Linux / Git Bash:**
-```bash
 cp .env.example .env
-node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
 
-**Windows PowerShell:**
-```powershell
-Copy-Item .env.example .env
-node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-```
-
-Вставьте независимые ключи в `AUTH_SECRET` и `PAYLOAD_SECRET`. CMS, auth, заказы и аналитика используют одну Payload-базу:
-```env
-PAYLOAD_DATABASE_URL="file:./payload/pip.db"
-PAYLOAD_DATABASE_AUTH_TOKEN=""
-AUTH_SECRET="первый_независимый_секрет_от_32_символов"
-PAYLOAD_SECRET="второй_независимый_секрет_от_32_символов"
-```
-
-</td>
-<td valign="top" width="50%">
-
-### 3. Боевой файл `.env`
-
-Создайте `/opt/plus-in-plus/.env` из шаблона и сгенерируйте секрет:
+Дважды выполните генератор и вставьте разные результаты в `AUTH_SECRET` и `PAYLOAD_SECRET` внутри `.env`:
 
 ```bash
-cp .env.example .env
-openssl rand -base64 32
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 nano .env
 ```
 
-Обязательный минимум в `.env` на сервере плюс WebAuthn-настройки, если используются passkeys:
-```env
-PAYLOAD_DATABASE_URL="libsql://plus-in-plus-org.turso.io"
-PAYLOAD_DATABASE_AUTH_TOKEN="ваш_токен_turso"
-AUTH_SECRET="ваш_секрет_от_32_символов"
-PAYLOAD_SECRET="другой_независимый_секрет_от_32_символов"
-AUTH_URL="https://example.com"
-NEXT_PUBLIC_SITE_URL="https://example.com"
-WEBAUTHN_ORIGIN="https://example.com"
-WEBAUTHN_RP_ID="example.com"
-```
-
-Для production passkeys обе `WEBAUTHN_*` настройки обязательны. RP ID записывается как ASCII hostname; для международного домена используйте его Punycode-форму. Подробности и остальные переменные — в `DEPLOYMENT.md` и `.env.example`.
-
-</td>
-</tr>
-<tr>
-<td valign="top" width="50%">
-
-### 4. Схема БД и демо-данные
-
-Примените reviewed Payload migrations и при необходимости добавьте базовые услуги:
+Затем:
 
 ```bash
 npm run payload:migrate
-npm run db:seed:services
 npm run db:check
-```
-
-Демо-аккаунты с известными паролями автоматически не создаются. Зарегистрируйте личный тестовый аккаунт через `/signup`; при необходимости назначьте ему staff-роль через `npm run db:promote-admin -- <email> [--manager|--founder]` и настройте MFA.
-
-</td>
-<td valign="top" width="50%">
-
-### 4. Применение схемы БД
-
-**Сначала backup, review миграций и проверка на non-production копии.** Автоматический `push` отключён; сборка не изменяет production-схему.
-
-После согласования экспортируйте переменные `.env` в текущую сессию терминала и примените миграции:
-
-```bash
-set -a; source .env; set +a
-npm run payload -- migrate:status
-npm run payload:migrate
-npm run db:check
-```
-
-После запуска сайта зарегистрируйте свой личный аккаунт через `/signup` и выдайте ему роль основателя (`FOUNDER` — полный доступ, включая настройки оплаты и финансы; из админки эту роль выдать нельзя):
-
-```bash
-set -a; source .env; set +a
-npm run db:promote-admin -- you@domain.ru --founder
-```
-
-После повторного staff login настройте TOTP или passkey в профиле, сохраните backup codes и снова войдите уже со вторым фактором. Пока MFA не настроена, staff-доступ не выдаётся. `/api/health` для актуальной схемы должен сообщать `tables: 16`.
-
-</td>
-</tr>
-<tr>
-<td valign="top" width="50%">
-
-### 5. Запуск и отладка
-
-Запустите dev-сервер:
-
-```bash
 npm run dev
 ```
 
-Если `node_modules` устарел после `git pull` (обычный симптом — `Module not found: Can't resolve '…'`
-и 500 на всех страницах), `npm run dev` сам это заметит, назовёт недостающие пакеты и выполнит
-`npm install`. Отключить автоустановку: `PIP_NO_AUTO_INSTALL=1 npm run dev`.
+Начальные услуги добавляются необязательной командой `npm run db:seed:services`.
 
-Полная проверка окружения (пакеты, lock-файл, Payload-БД, секреты и версия Node):
+### 3. Как создать первого администратора
+
+1. Запустите `npm run dev` и зарегистрируйте свой аккаунт на <http://localhost:3000/signup>.
+2. Во втором окне терминала, из папки проекта, выполните команду со своим email:
+
+   ```bash
+   npm run db:promote-admin -- you@example.com --founder
+   ```
+
+3. Выйдите из аккаунта и снова откройте `/login`. Включите **«Режим администратора»**.
+4. При первом служебном входе сайт попросит настроить второй фактор в профиле: код из приложения authenticator (TOTP) или passkey. После настройки выйдите и войдите ещё раз с этим вторым фактором.
+
+Роль `FOUNDER` назначается только этой командой. Для обычного администратора используйте ту же команду без `--founder`, для менеджера — с `--manager`.
+
+### 4. Production-режим на своём компьютере
+
+Этот режим проверяет оптимизированную сборку. Он не публикует сайт в интернет и не заменяет HTTPS-сервер.
+
+Используйте тот же `.env`, затем выполните:
 
 ```bash
-npm run doctor
-```
-
-- Сайт: `http://localhost:3000`
-- Админка: войдите на `/login` с включённым тумблером **«Режим администратора»**. При уже настроенной MFA откроется `/admin`; без второго фактора staff получит только клиентскую сессию и будет направлен на `/profile?mfa=required` для настройки
-- Просмотр и редактирование разрешённых документов: Payload Admin Panel на `http://localhost:3000/admin`
-
-</td>
-<td valign="top" width="50%">
-
-### 5. Сборка, PM2 и HTTPS
-
-Соберите production-бандл и запустите через **PM2** на `127.0.0.1:3000`:
-
-```bash
+npm run payload:migrate
 npm run build
-pm2 start npm --name plus-in-plus -- start
-pm2 save
-pm2 startup
+npm start
 ```
 
-Подключите Nginx или Apache + SSL Certbot (готовые конфиги в спойлере ниже) для проксирования `443 → http://127.0.0.1:3000`.
+Сайт снова будет доступен на <http://localhost:3000>. Остановка — `Ctrl+C`. В отличие от `npm run dev`, здесь нет автоматической пересборки при изменении файлов: после изменения кода нужно повторить `npm run build`.
 
-</td>
-</tr>
-<tr>
-<td valign="top" width="50%">
+### 5. Production на публичном сервере
 
-### 6. Проверка перед коммитом
+Для публичного сайта нужны:
 
-Единая проверка кода, типов, тестов и сборки:
+- Linux-сервер с Node.js `24.22.1+`;
+- домен и HTTPS-сертификат;
+- облачная база Turso или совместимый постоянный libSQL-сервер;
+- Nginx или другой HTTPS reverse proxy, который принимает запросы на домен и передаёт их Node-процессу;
+- PM2, который перезапускает сайт после сбоя или перезагрузки сервера.
 
-```bash
-npm run security:audit
-npm run security:dependencies
-npm run lint
-npx tsc --noEmit
-npm test
-npm run build
+В серверном `.env` обязательно укажите свои значения:
+
+```env
+PAYLOAD_DATABASE_URL="libsql://адрес-вашей-базы"
+PAYLOAD_DATABASE_AUTH_TOKEN="токен-базы"
+AUTH_SECRET="первый_случайный_секрет"
+PAYLOAD_SECRET="второй_случайный_секрет"
+AUTH_URL="https://your-domain.example"
+NEXT_PUBLIC_SITE_URL="https://your-domain.example"
+WEBAUTHN_ORIGIN="https://your-domain.example"
+WEBAUTHN_RP_ID="your-domain.example"
 ```
 
-</td>
-<td valign="top" width="50%">
+`AUTH_URL` и `NEXT_PUBLIC_SITE_URL` — это публичный адрес сайта. `WEBAUTHN_RP_ID` — домен без `https://`. Не используйте production-секреты в локальных тестах.
 
-### 6. Обновление версии на сервере
-
-Деплой свежих изменений без потери БД и `public/uploads/`:
+Перед применением миграций на сервере сделайте резервную копию базы. Основной порядок запуска:
 
 ```bash
 cd /opt/plus-in-plus
-git pull --ff-only && npm ci && npm run build
-# Только если схема изменилась и уже есть backup + approval:
+npm ci
 set -a; source .env; set +a
 npm run payload:migrate
 npm run db:check
-pm2 restart plus-in-plus
-npm run deploy:verify -- https://example.com
+npm run build
+pm2 start npm --name plus-in-plus -- start
+pm2 save
 ```
 
-</td>
-</tr>
-</tbody>
-</table>
+Проверка:
+
+```bash
+curl -fsS https://your-domain.example/api/health
+npm run deploy:verify -- https://your-domain.example
+```
+
+Настройка Turso, Nginx, HTTPS, резервных копий и обновлений без сокращений описана в [`DEPLOYMENT.md`](DEPLOYMENT.md).
+
+### Если команда не запускается
+
+| Сообщение | Что сделать |
+| --- | --- |
+| `ERR_UNSUPPORTED_ESM_URL_SCHEME` и путь начинается с `D:` | Обновите проект до версии с исправленным `scripts/payload-cli.cjs`. Затем повторите команду на Node `24.22.1+`: Windows-путь теперь преобразуется в корректный `file://` URL. |
+| Node `24.14.1` или другая старая версия | Установите Node `24.22.1+` и проверьте `node -v` в новом окне терминала. |
+| `PAYLOAD_SECRET must be configured...` | Проверьте, что существует `.env`, а оба секрета заполнены разными строками длиной не менее 32 символов. |
+| `Missing tables` | Выполните `npm run payload:migrate`, затем `npm run db:check`. |
+| Порт `3000` уже занят | Запустите dev-сервер на другом порту: `npm run dev -- -p 3001`. |
+| Нужна общая диагностика | Выполните `npm run doctor`: команда проверит Node, пакеты, файлы Payload, базу и наличие секретов, не печатая их значения. |
 
 ---
 
