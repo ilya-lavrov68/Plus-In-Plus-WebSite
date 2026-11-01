@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRightIcon } from "lucide-animated";
 import { useLocale, useTranslations } from "next-intl";
 
 import {
   ServiceCard,
   type ServiceCardData,
 } from "@/components/site/service-card";
+import { AnimatedIcon } from "@/components/ui/animated-icon";
 import { Button } from "@/components/ui/button";
 
 export interface ServicesCatalogViewProps {
@@ -66,9 +67,9 @@ export function ServicesCatalogView({
           </p>
         </div>
         <Button asChild variant="outline">
-          <Link href="/contact" className="gap-2">
+          <Link href="/contact" className="gap-2" data-pip-icon-trigger>
             {t("proceedToOrder")}
-            <ArrowRight aria-hidden="true" className="h-4 w-4" />
+            <AnimatedIcon icon={ArrowRightIcon} size={16} />
           </Link>
         </Button>
       </div>
@@ -150,9 +151,9 @@ export function ServicesCatalogView({
             >
               {t("clearSelection")}
             </Button>
-            <Button type="button" onClick={handleProceed} className="gap-2">
+            <Button type="button" onClick={handleProceed} className="gap-2" data-pip-icon-trigger>
               {t("proceedToOrder")}
-              <ArrowRight aria-hidden="true" className="h-4 w-4" />
+              <AnimatedIcon icon={ArrowRightIcon} size={16} />
             </Button>
           </div>
         </div>

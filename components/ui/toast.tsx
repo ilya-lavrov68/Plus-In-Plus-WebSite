@@ -4,10 +4,11 @@ import * as React from "react";
 
 import { cva, type VariantProps } from "class-variance-authority";
 import * as ToastPrimitives from "@radix-ui/react-toast";
-import { X } from "lucide-react";
+import { XIcon } from "lucide-animated";
 
 import { useTranslations } from "next-intl";
 
+import { AnimatedIcon } from "@/components/ui/animated-icon";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -79,13 +80,14 @@ const ToastClose = React.forwardRef<
   return (
   <ToastPrimitives.Close
     ref={ref}
+    data-pip-icon-trigger
     className={cn(
       "absolute right-2 top-2 rounded-md p-1 opacity-50 transition-opacity duration-200 ease-out hover:opacity-100 focus:outline-solid focus:outline-2 focus:outline-offset-2 focus:outline-ring",
       className
     )}
     {...props}
   >
-    <X className="h-3 w-3" />
+    <AnimatedIcon icon={XIcon} size={16} />
     <span className="sr-only">{t("close")}</span>
   </ToastPrimitives.Close>
   );

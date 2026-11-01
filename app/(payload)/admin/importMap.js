@@ -22,7 +22,11 @@ import { StrikethroughFeatureClient as StrikethroughFeatureClient_e70f5e05f09f93
 import { UnderlineFeatureClient as UnderlineFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { BoldFeatureClient as BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
+import { AdminNav as AdminNav_ff812f04e66f9ffdc62ccef0ccbc2eb2 } from '../../../payload/components/admin-nav'
+import { AdminMenuButton as AdminMenuButton_754fdc71eb0e5359462b2fb2e643892d } from '../../../payload/components/admin-menu-button'
 import { AuthLogout as AuthLogout_73cc9a743c189bd4bd47e597ecd0d18d } from '../../../payload/components/auth-logout'
+import { AdminIcon as AdminIcon_7250a210529af9bf46fb8a9b558a6ad6 } from '../../../payload/components/admin-brand'
+import { AdminLogo as AdminLogo_7250a210529af9bf46fb8a9b558a6ad6 } from '../../../payload/components/admin-brand'
 import { DashboardOverview as DashboardOverview_c2b9b7071f7f35e5d2599c03967bf3bf } from '../../../payload/components/dashboard-overview'
 import { AdminA11yProvider as AdminA11yProvider_6130d6bbec14fbe623b61266b6b6d2cc } from '../../../payload/components/admin-a11y-provider'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
@@ -53,7 +57,11 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#UnderlineFeatureClient": UnderlineFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#BoldFeatureClient": BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#ItalicFeatureClient": ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
+  "/payload/components/admin-nav#AdminNav": AdminNav_ff812f04e66f9ffdc62ccef0ccbc2eb2,
+  "/payload/components/admin-menu-button#AdminMenuButton": AdminMenuButton_754fdc71eb0e5359462b2fb2e643892d,
   "/payload/components/auth-logout#AuthLogout": AuthLogout_73cc9a743c189bd4bd47e597ecd0d18d,
+  "/payload/components/admin-brand#AdminIcon": AdminIcon_7250a210529af9bf46fb8a9b558a6ad6,
+  "/payload/components/admin-brand#AdminLogo": AdminLogo_7250a210529af9bf46fb8a9b558a6ad6,
   "/payload/components/dashboard-overview#DashboardOverview": DashboardOverview_c2b9b7071f7f35e5d2599c03967bf3bf,
   "/payload/components/admin-a11y-provider#AdminA11yProvider": AdminA11yProvider_6130d6bbec14fbe623b61266b6b6d2cc,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1

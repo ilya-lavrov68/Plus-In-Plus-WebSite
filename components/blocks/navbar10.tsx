@@ -16,9 +16,9 @@ import {
   Sparkles,
   Users,
   Video,
-  X,
   type LucideIcon,
 } from "lucide-react";
+import { XIcon } from "lucide-animated";
 import {
   forwardRef,
   Fragment,
@@ -29,6 +29,7 @@ import {
   useState,
 } from "react";
 
+import { AnimatedIcon } from "@/components/ui/animated-icon";
 import {
   LazyAccountModal,
   preloadAccountModal,
@@ -853,9 +854,10 @@ const MobileNavigationMenu = ({
               size="icon"
               className="size-11 shrink-0"
               aria-label={closeLabel}
+              data-pip-icon-trigger
               onClick={onClose}
             >
-              <X aria-hidden="true" className="size-5" />
+              <AnimatedIcon icon={XIcon} size={20} />
             </Button>
           </div>
           <div className="flex flex-1 flex-col gap-6 pb-8">

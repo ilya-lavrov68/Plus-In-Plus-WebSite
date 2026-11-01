@@ -3,8 +3,9 @@
 import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { cva, type VariantProps } from "class-variance-authority";
-import { X } from "lucide-react";
+import { XIcon } from "lucide-animated";
 
+import { AnimatedIcon } from "@/components/ui/animated-icon";
 import { cn } from "@/lib/utils";
 
 const ResponsiveModal = DialogPrimitive.Root;
@@ -73,8 +74,8 @@ const ResponsiveModalContent = React.forwardRef<
       {...props}
     >
       {children}
-      <ResponsiveModalClose aria-label={closeLabel} className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-solid focus:outline-2 focus:outline-offset-2 focus:outline-ring disabled:pointer-events-none data-[state=open]:bg-secondary">
-        <X className="h-4 w-4" />
+      <ResponsiveModalClose data-pip-icon-trigger aria-label={closeLabel} className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-solid focus:outline-2 focus:outline-offset-2 focus:outline-ring disabled:pointer-events-none data-[state=open]:bg-secondary">
+        <AnimatedIcon icon={XIcon} size={16} />
         <span className="sr-only">{closeLabel}</span>
       </ResponsiveModalClose>
     </DialogPrimitive.Content>

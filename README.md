@@ -385,6 +385,8 @@ ROBOKASSA_HASH_ALGO="md5"
 
 Переход на Payload `3.92.1` завершён без параллельной legacy-админки и Prisma: `/admin` использует Payload Admin Panel, а `/api/payload` — native REST. Контент, услуги, медиа, настройки, аккаунты, Auth.js/MFA-сессии, заказы, корзина, платежи, аналитика и audit-записи хранятся в Payload collections и обрабатываются через Local API, hooks и access control. Публичные reads, customer checkout/cancel/payment и manager scope используют ту же БД; manager не получает customers и carts. SQLite схема применяется только reviewed migrations из `payload/migrations/` с `push: false`; runbook и проверки описаны в `DEPLOYMENT.md`.
 
+Админ-панель забрендирована Plus In Plus: базовый текст увеличен до 16 px, элементы управления имеют щедрые touch/focus-цели, а разделы навигации — содержательные иконки. Фирменная навигация сохраняет Payload permissions, RU/EN labels и пользовательские preferences сворачиваемых групп. `lucide-animated` подключён через общий wrapper к иконкам админки и ключевым действиям сайта; декоративные иконки остаются статичными, а `prefers-reduced-motion` отключает необязательное движение.
+
 Воспроизводимые baselines, результаты последовательных пакетов и границы доказанности находятся в [`docs/performance-baseline.md`](docs/performance-baseline.md). Для новой bundle-карты выполните `npm run analyze`: это отдельная production-сборка с reports в `.next/analyze/`; analyzer не включается в обычный runtime.
 
 ## Что внутри текущей версии сайта
