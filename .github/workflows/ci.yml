@@ -82,3 +82,30 @@ jobs:
             curl -fsS -o /dev/null "http://127.0.0.1:3000$path"
           done
           echo "Smoke test passed."
+
+  windows-payload-cli:
+    name: Windows Payload CLI migrations
+    runs-on: windows-latest
+    timeout-minutes: 15
+    env:
+      PAYLOAD_DATABASE_URL: "file:./payload/ci-windows.db"
+      PAYLOAD_DATABASE_AUTH_TOKEN: ""
+      AUTH_SECRET: "ci-only-secret-used-by-the-test-suite-32ch"
+      PAYLOAD_SECRET: "ci-only-payload-secret-not-for-production-32ch"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.22.1"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply and verify migrations through a Windows file URL
+        shell: pwsh
+        run: |
+          npm run payload:migrate
+          npm run payload -- migrate:status
+          npm run db:check

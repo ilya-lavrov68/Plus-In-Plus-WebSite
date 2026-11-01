@@ -1,5 +1,6 @@
 // Запуск TypeScript scripts в Node 24 native ESM; Payload не проходит через require().
 const path = require("node:path");
+const { pathToFileURL } = require("node:url");
 const { spawnSync } = require("node:child_process");
 const { loadDatabaseModule } = require("./lib/database-module.cjs");
 
@@ -19,7 +20,7 @@ if (!target) {
 const result = spawnSync(process.execPath, [
   "--experimental-transform-types",
   "--loader",
-  path.join(__dirname, "lib", "ts-loader.mjs"),
+  pathToFileURL(path.join(__dirname, "lib", "ts-loader.mjs")).href,
   path.resolve(rootDir, target),
   ...process.argv.slice(3),
 ], { cwd: rootDir, env: process.env, stdio: "inherit" });

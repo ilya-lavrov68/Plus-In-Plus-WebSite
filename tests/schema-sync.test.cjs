@@ -37,6 +37,18 @@ test("reviewed migration preserves cart, order and payment uniqueness contracts"
   assert.doesNotMatch(migration, /prisma|db push/i);
 });
 
+test("Node CLI loaders use file URLs instead of raw Windows drive-letter paths", () => {
+  for (const filename of ["payload-cli.cjs", "run-ts.cjs"]) {
+    const source = fs.readFileSync(path.join(__dirname, "..", "scripts", filename), "utf8");
+    assert.match(source, /require\("node:url"\)/, filename);
+    assert.match(
+      source,
+      /pathToFileURL\(path\.join\(__dirname, "lib", "ts-loader\.mjs"\)\)\.href/,
+      `${filename} must pass a file:// URL to --loader`,
+    );
+  }
+});
+
 test("repository and CI use reviewed Payload migrations instead of additive legacy DDL", () => {
   const root = path.join(__dirname, "..");
   const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
@@ -48,5 +60,6 @@ test("repository and CI use reviewed Payload migrations instead of additive lega
   assert.match(ci, /npm run payload:migrate/);
   assert.match(ci, /npm run payload -- migrate:status/);
   assert.match(ci, /npm run db:check/);
+  assert.match(ci, /runs-on: windows-latest/);
   assert.doesNotMatch(ci, /prisma|db push/i);
 });

@@ -1,6 +1,7 @@
 // Payload CLI с теми же native TypeScript/path-alias hooks, что и run-ts.cjs.
 // Без этого `--disable-transpile` не разрешает импорты `@/...` в payload.config.ts.
 const path = require("node:path");
+const { pathToFileURL } = require("node:url");
 const { spawnSync } = require("node:child_process");
 const { loadDatabaseModule } = require("./lib/database-module.cjs");
 
@@ -20,7 +21,7 @@ if (!process.env.PAYLOAD_DATABASE_URL) {
 const result = spawnSync(process.execPath, [
   "--experimental-transform-types",
   "--loader",
-  path.join(__dirname, "lib", "ts-loader.mjs"),
+  pathToFileURL(path.join(__dirname, "lib", "ts-loader.mjs")).href,
   path.join(rootDir, "node_modules", "payload", "bin.js"),
   "--disable-transpile",
   ...process.argv.slice(2),
