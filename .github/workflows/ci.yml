@@ -109,3 +109,20 @@ jobs:
           npm run payload:migrate
           npm run payload -- migrate:status
           npm run db:check
+
+      - name: Verify Payload and db scripts load .env on Windows
+        shell: pwsh
+        run: |
+          @(
+            'PAYLOAD_DATABASE_URL="file:./payload/ci-windows-dotenv.db"'
+            'PAYLOAD_DATABASE_AUTH_TOKEN=""'
+            'AUTH_SECRET="ci-only-secret-loaded-from-dotenv-32ch"'
+            'PAYLOAD_SECRET="ci-only-payload-secret-from-dotenv-32ch"'
+          ) | Set-Content -Path .env -Encoding utf8
+          Remove-Item Env:PAYLOAD_DATABASE_URL -ErrorAction SilentlyContinue
+          Remove-Item Env:PAYLOAD_DATABASE_AUTH_TOKEN -ErrorAction SilentlyContinue
+          Remove-Item Env:AUTH_SECRET -ErrorAction SilentlyContinue
+          Remove-Item Env:PAYLOAD_SECRET -ErrorAction SilentlyContinue
+          npm run payload:migrate
+          npm run db:check
+          npm run db:promote-admin
