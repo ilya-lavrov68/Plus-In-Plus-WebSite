@@ -27,7 +27,7 @@ export function AuthLogout({ tabIndex = 0 }: { tabIndex?: number }) {
         void signOut({ callbackUrl: "/" });
       }}
     >
-      <AnimatedIcon icon={LogoutIcon} size={20} />
+      <AnimatedIcon icon={LogoutIcon} size={20} interaction="press" />
       <span>{label}</span>
     </button>
   );
