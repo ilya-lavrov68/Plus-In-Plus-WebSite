@@ -12,7 +12,7 @@ export function AdminMenuButton() {
     <NavToggler
       className={`pip-admin-menu-button${navOpen ? " pip-admin-menu-button--open" : ""}`}
     >
-      <AnimatedIcon icon={navOpen ? XIcon : MenuIcon} size={22} />
+      <AnimatedIcon icon={navOpen ? XIcon : MenuIcon} size={22} interaction="press" />
     </NavToggler>
   );
 }

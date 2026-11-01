@@ -62,7 +62,7 @@ test("custom navigation retains Payload permissions, localized labels and prefer
   }
 });
 
-test("admin styling is larger, shadow-free and keeps the exact PIP accent", () => {
+test("admin styling has light/dark themes, no shadows and the exact PIP accent", () => {
   const styles = read("app/(payload)/custom.scss");
   assert.match(styles, /--base-body-size:\s*16/);
   assert.match(styles, /--nav-width:\s*300px/);
@@ -89,10 +89,26 @@ test("brand artwork is unframed, uncropped and responsive controls keep their pl
   assert.doesNotMatch(mark[1], /border|background|border-radius/);
   assert.match(mark[1], /overflow:\s*visible/);
   assert.doesNotMatch(styles, /\.pip-admin-brand-mark img/);
-  assert.match(styles, /--pip-admin-canvas:\s*#fafaf8/);
+  assert.match(styles, /--pip-admin-canvas:\s*#f6f6f1/);
+  assert.match(styles, /html\[data-theme="dark"\]\s*\{[^}]*--pip-admin-canvas:\s*#141512/);
+  assert.match(styles, /html\[data-theme="dark"\]\s*\{[^}]*--pip-admin-surface:\s*#1d1f1a/);
   assert.match(styles, /\.pip-admin-overview__heading\s*\{[^}]*flex-direction:\s*row/);
   assert.match(styles, /\.dashboard-breadcrumb-select \.rs__control\s*\{[^}]*flex-wrap:\s*nowrap/);
   assert.match(styles, /@media \(max-width: 360px\)[\s\S]*?min-width:\s*96px/);
+});
+
+test("every admin animated icon opts into press-only interaction", () => {
+  for (const file of [
+    "payload/components/admin-menu-button.tsx",
+    "payload/components/admin-nav-client.tsx",
+    "payload/components/auth-logout.tsx",
+  ]) {
+    const icons = read(file).match(/<AnimatedIcon\b[\s\S]*?\/>/g) ?? [];
+    assert.ok(icons.length > 0, `animated icons exist: ${file}`);
+    for (const icon of icons) {
+      assert.match(icon, /interaction="press"/, `press-only icon: ${file}`);
+    }
+  }
 });
 
 test("only key public interactions opt into animated icons", () => {
@@ -111,6 +127,7 @@ test("only key public interactions opt into animated icons", () => {
     const source = read(file);
     assert.ok(source.includes("AnimatedIcon"), file);
     assert.ok(source.includes("data-pip-icon-trigger"), `whole-control interaction: ${file}`);
+    assert.doesNotMatch(source, /interaction="press"/, `public interaction stays unchanged: ${file}`);
   }
   for (const file of [
     "components/site/service-card.tsx",

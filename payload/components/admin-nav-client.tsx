@@ -114,13 +114,18 @@ function AdminNavGroup({
         tabIndex={navOpen ? 0 : -1}
       >
         <span className="nav-group__label pip-admin-nav-group__label">
-          <AnimatedIcon icon={GroupIcon} size={21} className="pip-admin-nav-icon" />
+          <AnimatedIcon
+            icon={GroupIcon}
+            size={21}
+            className="pip-admin-nav-icon"
+            interaction="press"
+          />
           <span>{label}</span>
         </span>
         <span
           className={`nav-group__indicator pip-admin-nav-group__indicator${collapsed ? "" : " pip-admin-nav-group__indicator--open"}`}
         >
-          <AnimatedIcon icon={ChevronDownIcon} size={18} />
+          <AnimatedIcon icon={ChevronDownIcon} size={18} interaction="press" />
         </span>
       </button>
       <AnimateHeight
@@ -153,7 +158,12 @@ function AdminNavGroup({
                 tabIndex={navOpen ? 0 : -1}
               >
                 {active ? <span className="nav__link-indicator" aria-hidden="true" /> : null}
-                <AnimatedIcon icon={EntityIcon} size={19} className="pip-admin-nav-icon" />
+                <AnimatedIcon
+                  icon={EntityIcon}
+                  size={19}
+                  className="pip-admin-nav-icon"
+                  interaction="press"
+                />
                 <span className="nav__link-label">{getTranslation(entity.label, i18n)}</span>
               </Link>
             );

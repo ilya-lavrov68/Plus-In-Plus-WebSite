@@ -50,7 +50,7 @@ function TestIcon({ controls }) {
   });
 }
 
-function mountIcon({ reduced = false } = {}) {
+function mountIcon({ reduced = false, interaction } = {}) {
   reducedMotion = reduced;
   const controls = { starts: 0, stops: 0 };
   const listeners = new Map();
@@ -68,7 +68,7 @@ function mountIcon({ reduced = false } = {}) {
   const Icon = TestIcon({ controls });
   let view;
   act(() => {
-    view = create(React.createElement(AnimatedIcon, { icon: Icon, size: 18 }), {
+    view = create(React.createElement(AnimatedIcon, { icon: Icon, size: 18, interaction }), {
       createNodeMock: (element) => (element.type === "span" ? host : {}),
     });
   });
@@ -107,11 +107,53 @@ test("animated icon follows the whole control for hover, focus and touch", async
   assert.equal(mounted.listeners.size, 0, "all control listeners are removed");
 });
 
-test("reduced motion leaves the icon static and removes interaction listeners", () => {
-  const mounted = mountIcon({ reduced: true });
-  assert.equal(mounted.controls.starts, 0);
-  assert.equal(mounted.controls.stops, 1, "the library is reset to its normal frame");
-  assert.equal(mounted.listeners.size, 0);
-  assert.equal(mounted.view.root.findByType("span").props["data-motion"], "reduced");
+test("press mode ignores hover/focus and settles after pointer and keyboard activation", async () => {
+  const mounted = mountIcon({ interaction: "press" });
+  assert.deepEqual(
+    [...mounted.listeners.keys()].sort(),
+    ["keydown", "pointercancel", "pointerdown"].sort(),
+  );
+  assert.equal(mounted.view.root.findByType("span").props["data-interaction"], "press");
+
+  mounted.emit("pointerenter");
+  mounted.emit("focusin");
+  mounted.emit("pointerdown", { button: 2, pointerType: "mouse" });
+  assert.equal(mounted.controls.starts, 0, "hover, focus and secondary click stay static");
+
+  mounted.emit("pointerdown", { button: 0, pointerType: "mouse" });
+  assert.equal(mounted.controls.starts, 1);
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 550));
+  });
+  assert.equal(mounted.controls.stops, 1, "pointer animation settles instead of looping");
+
+  mounted.emit("keydown", { key: "Enter", repeat: false });
+  mounted.emit("keydown", { key: "Enter", repeat: true });
+  assert.equal(mounted.controls.starts, 2, "key repeat does not restart the animation");
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 550));
+  });
+  assert.equal(mounted.controls.stops, 2);
+
+  mounted.emit("keydown", { key: " ", repeat: false });
+  mounted.emit("keydown", { key: "a", repeat: false });
+  assert.equal(mounted.controls.starts, 3, "Space activates while unrelated keys do not");
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 550));
+  });
+  assert.equal(mounted.controls.stops, 3);
+
   act(() => mounted.view.unmount());
+  assert.equal(mounted.listeners.size, 0, "all press listeners are removed");
+});
+
+test("reduced motion leaves both interaction modes static and removes listeners", () => {
+  for (const interaction of ["hover", "press"]) {
+    const mounted = mountIcon({ reduced: true, interaction });
+    assert.equal(mounted.controls.starts, 0);
+    assert.equal(mounted.controls.stops, 1, "the library is reset to its normal frame");
+    assert.equal(mounted.listeners.size, 0);
+    assert.equal(mounted.view.root.findByType("span").props["data-motion"], "reduced");
+    act(() => mounted.view.unmount());
+  }
 });

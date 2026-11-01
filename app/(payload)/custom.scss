@@ -17,11 +17,22 @@
     --nav-width: 300px;
     --app-header-height: 64px;
     --doc-controls-height: 64px;
-    --pip-admin-canvas: #fafaf8;
+    --pip-admin-canvas: #f6f6f1;
     --pip-admin-surface: #ffffff;
-    --pip-admin-subtle: #f3f3ed;
-    --pip-admin-border: #e3e3db;
+    --pip-admin-subtle: #eff0e8;
+    --pip-admin-border: #d6d8cd;
     --pip-admin-accent: #ffff01;
+    --theme-bg: var(--pip-admin-canvas);
+    --theme-text: var(--theme-elevation-1000);
+    --theme-input-bg: var(--pip-admin-surface);
+  }
+
+  /* Payload переключает data-theme через штатные настройки аккаунта. */
+  html[data-theme="dark"] {
+    --pip-admin-canvas: #141512;
+    --pip-admin-surface: #1d1f1a;
+    --pip-admin-subtle: #2a2d25;
+    --pip-admin-border: #41463a;
   }
 
   html,
