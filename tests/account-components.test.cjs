@@ -60,8 +60,11 @@ const tag =
   ({ children, ...props }) =>
     React.createElement(name, props, children);
 
+const animatedIcons = require("./helpers/animated-icons-stub.cjs").createAnimatedIconsStub();
+
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
+  if (name === "lucide-animated") return animatedIcons;
   if (name === "next-intl") return require("./next-intl-stub.cjs");
   if (name === "next-intl/server") return require("./next-intl-stub.cjs");
   if (name === "next/link") return tag("a");
@@ -177,6 +180,7 @@ Module._load = function (name, parent, isMain) {
       ),
       AnimatePresence: ({ children }) => children,
       MotionConfig: ({ children }) => children,
+      useReducedMotion: () => false,
     };
   }
   if (name.startsWith("@/")) {

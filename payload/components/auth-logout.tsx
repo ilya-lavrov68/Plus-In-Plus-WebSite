@@ -1,8 +1,11 @@
 "use client";
 
-import { LogOutIcon, useTranslation } from "@payloadcms/ui";
+import { useTranslation } from "@payloadcms/ui";
+import { LogoutIcon } from "lucide-animated";
 import { signOut } from "next-auth/react";
 import { useState } from "react";
+
+import { AnimatedIcon } from "@/components/ui/animated-icon";
 
 export function AuthLogout({ tabIndex = 0 }: { tabIndex?: number }) {
   const { t } = useTranslation();
@@ -13,7 +16,9 @@ export function AuthLogout({ tabIndex = 0 }: { tabIndex?: number }) {
     <button
       type="button"
       aria-label={label}
-      className="nav__log-out"
+      aria-busy={pending}
+      className="nav__log-out pip-admin-logout"
+      data-pip-icon-trigger
       disabled={pending}
       title={label}
       tabIndex={tabIndex}
@@ -22,7 +27,8 @@ export function AuthLogout({ tabIndex = 0 }: { tabIndex?: number }) {
         void signOut({ callbackUrl: "/" });
       }}
     >
-      <LogOutIcon />
+      <AnimatedIcon icon={LogoutIcon} size={20} />
+      <span>{label}</span>
     </button>
   );
 }

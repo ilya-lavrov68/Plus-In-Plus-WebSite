@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useCallback, useEffect, useState } from "react";
-import { ShoppingCart } from "lucide-react";
+import { CartIcon as LucideCartIcon } from "lucide-animated";
 import { useTranslations } from "next-intl";
 
+import { AnimatedIcon } from "@/components/ui/animated-icon";
 import { cn } from "@/lib/utils";
 
 export const CART_UPDATED_EVENT = "pip:cart-updated";
@@ -80,13 +81,14 @@ export function CartIcon({
     <Link
       href="/cart"
       data-testid="cart-icon"
+      data-pip-icon-trigger
       aria-label={count > 0 ? t("openWithCount", { count }) : t("open")}
       className={cn(
         "relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-foreground transition-colors duration-200 ease-out hover:bg-accent focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         className
       )}
     >
-      <ShoppingCart aria-hidden="true" className="h-5 w-5" />
+      <AnimatedIcon icon={LucideCartIcon} size={20} />
       {count > 0 ? (
         <span
           aria-hidden="true"

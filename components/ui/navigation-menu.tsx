@@ -3,8 +3,9 @@
 import * as React from "react";
 import * as NavigationMenuPrimitive from "@radix-ui/react-navigation-menu";
 import { cva } from "class-variance-authority";
-import { ChevronDown } from "lucide-react";
+import { ChevronDownIcon } from "lucide-animated";
 
+import { AnimatedIcon } from "@/components/ui/animated-icon";
 import { cn } from "@/lib/utils";
 
 const NavigationMenu = React.forwardRef<
@@ -55,12 +56,14 @@ const NavigationMenuTrigger = React.forwardRef<
   <NavigationMenuPrimitive.Trigger
     ref={ref}
     className={cn(navigationMenuTriggerStyle(), "group", className)}
+    data-pip-icon-trigger
     {...props}
   >
     {children}{" "}
-    <ChevronDown
-      className="relative top-[1px] ml-1.5 h-3.5 w-3.5 transition-transform duration-200 ease-out group-data-[state=open]:rotate-180"
-      aria-hidden="true"
+    <AnimatedIcon
+      icon={ChevronDownIcon}
+      size={14}
+      className="relative top-[1px] ml-1.5 transition-transform duration-200 ease-out group-data-[state=open]:rotate-180"
     />
   </NavigationMenuPrimitive.Trigger>
 ));

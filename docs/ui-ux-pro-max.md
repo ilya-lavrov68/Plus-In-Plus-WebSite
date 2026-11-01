@@ -35,6 +35,7 @@
 - нижняя панель не перегружается: основных пунктов не более пяти, дополнительные действия размещаются предсказуемо;
 - не возвращается panel-oriented icon animation; микроанимация адресуется самой иконке и её состоянию;
 - ориентир микровзаимодействий — SberBank Online-like отклик, а не непрерывное декоративное движение;
+- в Payload admin и ключевых интерактивных действиях сайта используется `lucide-animated` через общий `components/ui/animated-icon.tsx`: короткий отклик запускается от всей button/link по hover, keyboard focus и tap; декоративные иконки остаются статичными, бесконечные decorative loops запрещены, при reduced motion показывается статичный кадр;
 - тени запрещены во всём интерфейсе, включая header, cards, overlays, pinned columns и focus: никаких `shadow*`, `drop-shadow*`, `box-shadow`, `text-shadow` или ring-as-shadow; разделение создаётся нейтральными borders, фоном и spacing, а keyboard focus — видимым outline;
 - Features сохраняет очищенный logo/plus treatment;
 - все plus icons при hover поворачиваются на 90°;

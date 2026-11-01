@@ -24,6 +24,12 @@ export default buildConfig({
     avatar: "default",
     importMap: { baseDir: dirname },
     components: {
+      Nav: "/payload/components/admin-nav#AdminNav",
+      header: ["/payload/components/admin-menu-button#AdminMenuButton"],
+      graphics: {
+        Icon: "/payload/components/admin-brand#AdminIcon",
+        Logo: "/payload/components/admin-brand#AdminLogo",
+      },
       logout: { Button: "/payload/components/auth-logout#AuthLogout" },
       providers: ["/payload/components/admin-a11y-provider#AdminA11yProvider"],
       beforeDashboard: ["/payload/components/dashboard-overview#DashboardOverview"],
