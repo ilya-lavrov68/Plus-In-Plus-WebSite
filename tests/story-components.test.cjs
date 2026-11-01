@@ -25,9 +25,8 @@ for (const extension of [".ts", ".tsx"]) {
 let reducedMotion;
 let scrollCalls;
 let savedPayloads;
-let refreshed;
 const scrollProgress = { name: "scroll-progress" };
-const router = { refresh: () => { refreshed += 1; } };
+const router = { refresh: () => undefined };
 const tag = (name) => ({ children, ...props }) => React.createElement(name, props, children);
 
 const originalLoad = Module._load;
@@ -63,7 +62,6 @@ Module._load = function (name, parent, isMain) {
 };
 
 const { StoryTimeline } = require("../components/site/story-timeline.tsx");
-const { StoryForm } = require("../components/admin/story-form.tsx");
 
 const labels = {
   eyebrow: "Our story",
@@ -97,7 +95,6 @@ beforeEach(() => {
   reducedMotion = true;
   scrollCalls = [];
   savedPayloads = [];
-  refreshed = 0;
 });
 
 test("landing story renders author content without a second JavaScript scroll driver", () => {
@@ -192,76 +189,18 @@ test("empty CMS content shows an honest empty state rather than a preset timelin
   act(() => view.unmount());
 });
 
-test("admin editor adds, edits, reorders and removes real timeline moments", async () => {
-  let view;
-  act(() => {
-    view = create(React.createElement(StoryForm, {
-      initial: { heading: "Studio history", description: "Introduction", events: [] },
-    }));
-  });
-
-  const addButton = () => view.root.findAllByType("button").find((button) => textOf(button).includes("Add moment"));
-  act(() => addButton().props.onClick());
-  act(() => addButton().props.onClick());
-  assert.equal(view.root.findAllByType("article").length, 2);
-
-  const inputs = view.root.findAllByType("input");
-  const textareas = view.root.findAllByType("textarea");
-  // First two inputs are the section heading and its two moment period/title fields follow.
-  const momentInputs = inputs.filter((input) => input.props.required);
-  act(() => {
-    momentInputs[0].props.onChange({ target: { value: "2024" } });
-    momentInputs[1].props.onChange({ target: { value: "First" } });
-    momentInputs[2].props.onChange({ target: { value: "2025" } });
-    momentInputs[3].props.onChange({ target: { value: "Second" } });
-    textareas[1].props.onChange({ target: { value: "First description" } });
-    textareas[2].props.onChange({ target: { value: "Second description" } });
-  });
-
-  const moveDown = view.root.findAllByType("button").filter((button) => button.props["aria-label"] === "Move moment down")[0];
-  act(() => moveDown.props.onClick());
-  assert.deepEqual(
-    view.root.findAllByType("input").filter((input) => input.props.required).map((input) => input.props.value),
-    ["2025", "Second", "2024", "First"],
-    "the second moment moved above the first",
-  );
-
-  const removeButtons = view.root.findAllByType("button").filter((button) => button.props["aria-label"] === "Remove moment");
-  act(() => removeButtons[1].props.onClick());
-  assert.equal(view.root.findAllByType("article").length, 1);
-
-  // Add a second moment again so the saved payload also verifies ordering.
-  act(() => addButton().props.onClick());
-  const updatedRequired = view.root.findAllByType("input").filter((input) => input.props.required);
-  const updatedAreas = view.root.findAllByType("textarea");
-  act(() => {
-    updatedRequired[2].props.onChange({ target: { value: "2026" } });
-    updatedRequired[3].props.onChange({ target: { value: "Third" } });
-    updatedAreas[2].props.onChange({ target: { value: "Third description" } });
-  });
-
-  await act(async () => {
-    await view.root.findByType("form").props.onSubmit({ preventDefault() {} });
-  });
-  assert.equal(savedPayloads.length, 1);
-  assert.equal(savedPayloads[0].heading, "Studio history");
-  assert.deepEqual(savedPayloads[0].events.map((event) => [event.period, event.title]), [["2025", "Second"], ["2026", "Third"]]);
-  assert.ok(savedPayloads[0].events.every((event) => event.id && event.description));
-  assert.equal(refreshed, 1);
-  assert.match(textOf(view.root), /Story saved/);
-
-  act(() => view.unmount());
-});
-
-test("landing order and protected admin data access are explicit", () => {
+test("landing order and native protected Story global are explicit", () => {
   const page = fs.readFileSync(path.resolve(__dirname, "../app/(site)/page.tsx"), "utf8");
   const hero = page.indexOf("<Hero />");
   const story = page.indexOf("<Story />");
   const features = page.indexOf("<Features />");
   assert.ok(hero >= 0 && hero < story && story < features, "Hero → Story → Features");
 
-  const adminData = fs.readFileSync(path.resolve(__dirname, "../lib/admin-data.ts"), "utf8");
-  assert.match(adminData, /export async function getAdminStoryContent\(\) \{\s*const db = await adminDatabase\(\)/);
-  const navigation = fs.readFileSync(path.resolve(__dirname, "../components/admin/admin-nav.tsx"), "utf8");
-  assert.match(navigation, /key: "story", href: "\/admin\/story"/);
+  const system = fs.readFileSync(path.resolve(__dirname, "../payload/collections/system.ts"), "utf8");
+  assert.match(system, /export const Story: GlobalConfig/);
+  assert.match(system, /slug: "story"/);
+  assert.match(system, /access: \{ read: adminOnly, update: adminOnly \}/);
+  assert.match(system, /name: "events",[\s\S]*?type: "array",[\s\S]*?maxRows: 20/);
+  assert.equal(fs.existsSync(path.resolve(__dirname, "../components/admin/story-form.tsx")), false);
+  assert.equal(fs.existsSync(path.resolve(__dirname, "../lib/admin-data.ts")), false);
 });

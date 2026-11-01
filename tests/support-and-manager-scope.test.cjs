@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
+const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
 
 require.extensions[".ts"] = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename, "utf8"), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true, target: ts.ScriptTarget.ES2022 },
@@ -15,15 +16,12 @@ let orders;
 let activities;
 let userCreates;
 let serviceWhere;
-let userDirectoryQuery;
+let orderItems;
+let orderServices;
 let addressSequence = 10;
 
 const db = {
   user: {
-    findMany: async (query) => {
-      userDirectoryQuery = query;
-      return [{ id: "customer-1", email: "customer@example.com", firstName: "Test", lastName: "Customer", createdAt: new Date("2026-01-01"), _count: { orders: 3 } }];
-    },
     create: async () => { userCreates += 1; throw new Error("support must never create accounts"); },
   },
   service: {
@@ -36,6 +34,12 @@ const db = {
     count: async () => 0,
     create: async ({ data }) => { orders.push(structuredClone(data)); return { id: "order-1", ...data }; },
   },
+  orderItem: {
+    create: async ({ data }) => { orderItems.push(structuredClone(data)); return { id: "item-1", ...data }; },
+  },
+  orderService: {
+    create: async ({ data }) => { orderServices.push(structuredClone(data)); return { id: "link-1", ...data }; },
+  },
   activityLog: {
     create: async ({ data }) => { activities.push(structuredClone(data)); return data; },
   },
@@ -44,7 +48,7 @@ const db = {
 
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/payload-db") return { db };
+  if (name === "@/lib/payload-native") return createNativeModuleMock(db);
   if (name === "@/lib/cart") return { requireActiveCustomer: async () => customer };
   if (name === "@/lib/admin-session") return {
     requireStaff: async () => staff,
@@ -58,7 +62,7 @@ Module._load = function (name, parent, isMain) {
 };
 
 const { POST: postSupport } = require("../app/api/support/route.ts");
-const { getStaffUserDirectory } = require("../lib/admin-data.ts");
+const { readAccounts, readSubmittedOrders } = require("../payload/access.ts");
 
 function supportRequest(email = "form@example.com") {
   return new Request("http://localhost/api/support", {
@@ -86,7 +90,8 @@ beforeEach(() => {
   activities = [];
   userCreates = 0;
   serviceWhere = null;
-  userDirectoryQuery = null;
+  orderItems = [];
+  orderServices = [];
 });
 
 test("guest support requests are rejected without account or order creation", async () => {
@@ -107,15 +112,17 @@ test("support links only to the authenticated customer and only eligible service
   assert.equal(userCreates, 0);
   assert.equal(serviceWhere.isActive, true);
   assert.equal(serviceWhere.isPublished, true);
-  assert.equal(orders[0].items.create.itemId, "service-1");
+  assert.equal(orderItems[0].itemId, "service-1");
+  assert.equal(orderItems[0].orderId, "order-1");
+  assert.equal(orderServices[0].serviceId, "service-1");
 });
 
-test("manager customer directory is restricted to USER accounts with non-cart orders", async () => {
-  const customers = await getStaffUserDirectory();
-  assert.equal(userDirectoryQuery.where.role, "USER");
-  assert.deepEqual(userDirectoryQuery.where.orders, { some: { status: { not: "cart" } } });
-  assert.equal(userDirectoryQuery.select.role, undefined);
-  assert.equal(userDirectoryQuery.select.passwordHash, undefined);
-  assert.equal(customers[0].orderCount, 3);
-  assert.equal(customers[0]._count, undefined);
+test("manager Payload scope excludes the customer directory and every cart", () => {
+  const manager = { req: { user: { id: "manager-1", collection: "accounts", role: "MANAGER" } } };
+  const admin = { req: { user: { id: "admin-1", collection: "accounts", role: "ADMIN" } } };
+  assert.equal(readAccounts(manager), false);
+  assert.equal(readAccounts(admin), true);
+  assert.deepEqual(readSubmittedOrders(manager), { status: { not_equals: "cart" } });
+  assert.deepEqual(readSubmittedOrders(admin), { status: { not_equals: "cart" } });
+  assert.equal(readSubmittedOrders({ req: { user: null } }), false);
 });

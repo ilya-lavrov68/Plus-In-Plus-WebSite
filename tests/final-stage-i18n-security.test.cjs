@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
+const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
 
 require.extensions[".ts"] = (module, filename) =>
   module._compile(
@@ -45,17 +46,15 @@ Module._load = function (name, parent, isMain) {
           : null,
     };
   }
-  if (name === "@/lib/payload-db") {
-    return {
-      db: {
-        siteSetting: {
-          findMany: async () => [
-            { key: "studioName", value: "Plus In Plus" },
-            { key: "robokassaPassword1", value: "server-only-secret" },
-          ],
-        },
+  if (name === "@/lib/payload-native") {
+    return createNativeModuleMock({
+      siteSetting: {
+        findMany: async () => [
+          { key: "studioName", value: "Plus In Plus" },
+          { key: "robokassaPassword1", value: "server-only-secret" },
+        ],
       },
-    };
+    });
   }
   if (name.startsWith("@/")) {
     name = path.resolve(__dirname, "..", name.slice(2));
@@ -66,7 +65,6 @@ Module._load = function (name, parent, isMain) {
 const { explicitLocaleFromPath } = require("../i18n.ts");
 const { localizedPath } = require("../i18n/routing.ts");
 const { proxy } = require("../proxy.ts");
-const { getSiteSettings } = require("../lib/admin-data.ts");
 const {
   localizePublicServices,
   localizeCatalogService,
@@ -94,7 +92,7 @@ test("bidirectional EN <-> RU path resolution handles prefixed, unprefixed, and 
   );
 
   // Unprefixed protected routes stay unprefixed (switched via cookie + refresh)
-  assert.equal(localizedPath("/admin/dashboard", "ru"), "/admin/dashboard");
+  assert.equal(localizedPath("/admin", "ru"), "/admin");
   assert.equal(localizedPath("/profile", "en"), "/profile");
   assert.equal(localizedPath("/orders", "ru"), "/orders");
 
@@ -105,52 +103,34 @@ test("bidirectional EN <-> RU path resolution handles prefixed, unprefixed, and 
   assert.equal(explicitLocaleFromPath("/ru/services"), "ru");
 });
 
-test("proxy restricts /admin/settings to FOUNDER only and prevents locale-prefixed bypasses", async () => {
+test("proxy leaves collection authorization to Payload and strips locale prefixes", async () => {
   process.env.AUTH_SECRET = "test-secret-with-at-least-32-characters";
+  for (const role of ["MANAGER", "ADMIN", "FOUNDER"]) {
+    const response = await proxy({
+      url: "https://preview.example/admin/collections/site-settings",
+      auth: { user: { id: `${role.toLowerCase()}-1`, role } },
+    });
+    assert.equal(response.status, 200);
+  }
 
-  // ADMIN is redirected away from /admin/settings to /admin/dashboard
-  const adminRes = await proxy({
-    url: "https://preview.example/admin/settings",
-    auth: { user: { id: "admin-1", role: "ADMIN" } },
-  });
-  assert.equal(adminRes.status, 307);
-  assert.equal(
-    adminRes.headers.get("location"),
-    "https://preview.example/admin/dashboard"
-  );
-
-  // FOUNDER is allowed into /admin/settings
-  const founderRes = await proxy({
-    url: "https://preview.example/admin/settings",
-    auth: { user: { id: "founder-1", role: "FOUNDER" } },
-  });
-  assert.equal(founderRes.status, 200);
-
-  // Locale-prefixed protected path (/ru/admin/settings) sets cookie and redirects to unprefixed protected path
   const localeBypassRes = await proxy({
-    url: "https://preview.example/ru/admin/settings",
+    url: "https://preview.example/ru/admin/collections/site-settings",
     auth: null,
   });
   assert.equal(localeBypassRes.status, 307);
   assert.equal(
     localeBypassRes.headers.get("location"),
-    "https://preview.example/admin/settings"
+    "https://preview.example/admin/collections/site-settings"
   );
-  assert.match(
-    localeBypassRes.headers.get("set-cookie") || "",
-    /pip-locale=ru/
-  );
+  assert.match(localeBypassRes.headers.get("set-cookie") || "", /pip-locale=ru/);
 });
 
-test("getSiteSettings enforces FOUNDER-only access in data layer", async () => {
-  currentAdmin = { id: "admin-1", role: "ADMIN" };
-  await assert.rejects(() => getSiteSettings(), /redirect:\//);
-
-  currentAdmin = { id: "founder-1", role: "FOUNDER" };
-  const settings = await getSiteSettings();
-  assert.deepEqual(settings.values, { studioName: "Plus In Plus" });
-  assert.equal(settings.secrets.robokassaPassword1, true);
-  assert.doesNotMatch(JSON.stringify(settings), /server-only-secret/);
+test("site settings collection is founder-only and public loader never exposes secrets", () => {
+  const collection = fs.readFileSync(path.resolve(__dirname, "../payload/collections/system.ts"), "utf8");
+  const publicLoader = fs.readFileSync(path.resolve(__dirname, "../lib/public-site-settings.ts"), "utf8");
+  assert.match(collection, /SiteSettings[\s\S]*access: \{ read: founderOnly, create: founderOnly, update: founderOnly, delete: founderOnly \}/);
+  assert.ok(publicLoader.includes("PUBLIC_SITE_SETTING_KEYS"));
+  assert.equal(publicLoader.includes("robokassaPassword"), false);
 });
 
 test("service localization translates seeded studio services to RU without overwriting custom admin titles", () => {
@@ -221,4 +201,34 @@ test("createOrderSchema forbids orders without selected services", () => {
     }).success,
     true
   );
+});
+
+test("Auth.js logger keeps operational codes but redacts JWT profiles and metadata", () => {
+  const { authConfig } = require("../auth.config.ts");
+  const output = [];
+  const original = { error: console.error, warn: console.warn, log: console.log };
+  console.error = (...args) => output.push(args.join(" "));
+  console.warn = (...args) => output.push(args.join(" "));
+  console.log = (...args) => output.push(args.join(" "));
+  try {
+    const error = new Error("decoded profile must not be logged");
+    error.code = "JWTSessionError";
+    error.details = { payload: { email: "private@example.test", sessionId: "private-session" } };
+    authConfig.logger.error(error);
+    const productionError = new Error("minified production error");
+    productionError.name = "rk";
+    productionError.type = "JWTSessionError";
+    productionError.details = { payload: { email: "private@example.test" } };
+    authConfig.logger.error(productionError);
+    authConfig.logger.warn("debug-enabled");
+    authConfig.logger.debug("private-token", { email: "private@example.test" });
+  } finally {
+    console.error = original.error;
+    console.warn = original.warn;
+    console.log = original.log;
+  }
+  const logged = output.join("\n");
+  assert.equal(output.filter((line) => line.includes("JWTSessionError")).length, 2);
+  assert.match(logged, /debug-enabled/);
+  assert.doesNotMatch(logged, /private@example|private-session|private-token|decoded profile|minified production/);
 });

@@ -10,6 +10,7 @@ export async function getPublicSiteSettings(): Promise<PublicSiteSettings> {
       depth: 0,
       pagination: false,
       overrideAccess: true,
+      select: { key: true, value: true },
       where: { key: { in: [...PUBLIC_SITE_SETTING_KEYS] } },
     });
     return normalizePublicSiteSettings(result.docs.map((row) => ({ key: row.key, value: row.value })));

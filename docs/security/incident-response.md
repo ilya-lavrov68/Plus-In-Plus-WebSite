@@ -62,7 +62,7 @@ Structured application events намеренно содержат мало по�
 2. Ротировать credentials и отозвать attacker sessions/tokens.
 3. Выполнить deploy reviewed commit; повторить `npm ci`, audits, types, tests и production build.
 4. Если целостность сомнительна, восстановить known-clean backup сначала по изолированной процедуре из `disaster-recovery.md`.
-5. Проверить `/api/health` и все **17 таблиц**, authentication, customer/staff separation, MFA challenge/recovery, refresh revocation, order ownership, CMS и payment configuration только на test accounts/data.
+5. Проверить `/api/health` и все **16 обязательных прикладных таблиц** (плюс служебные Payload tables), authentication, customer/staff separation, MFA challenge/recovery, refresh revocation, order ownership, CMS и payment configuration только на test accounts/data.
 6. Возвращать трафик постепенно, сохраняя enhanced monitoring/limits на согласованный observation period.
 7. Получить approval руководителя до закрытия containment или объявления recovery.
 

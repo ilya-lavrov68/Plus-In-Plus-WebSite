@@ -215,10 +215,6 @@ const { AgentTechnologyPage } = require("../components/ai/agent-technology-page.
 const { AgentDiagram } = require("../components/ai/agent-diagram.tsx");
 const { BrandDirections } = require("../components/site/brand-directions.tsx");
 const {
-  AGENT_STATIC_BAR_FILLS,
-  AGENT_STATIC_FRAMES,
-} = require("../lib/agent-static-frames.ts");
-const {
   AGENT_BARS_FRAGMENT_SHADER,
   AGENT_FIELD_FRAGMENT_SHADERS,
   AGENT_SHADER_CELLS,
@@ -396,11 +392,6 @@ test("Brand accent and shader implementation keep the approved visual and motion
   assert.equal(AGENT_SHADER_DURATION_MS, 4500);
   assert.equal(AGENT_SHADER_COLS, 103);
   assert.equal(AGENT_SHADER_CELLS, 49);
-  assert.deepEqual(AGENT_STATIC_BAR_FILLS, ["#525254", "#d9d9dc", "#8c8c8e", "#FFFF01"]);
-  assert.match(player, /const BAR_RAMP/);
-  assert.match(player, /\[1, 1, 0\.00392157\]/);
-  assert.match(player, /\[0\.851, 0\.851, 0\.8627\]/);
-  assert.doesNotMatch(player, /0\.851, 0\.851, 0\]/);
   assert.notEqual(AGENT_FIELD_FRAGMENT_SHADERS.lumi, AGENT_FIELD_FRAGMENT_SHADERS.kairo);
   for (const field of Object.values(AGENT_FIELD_FRAGMENT_SHADERS)) {
     assert.match(field, /uniform float uT;/);
@@ -413,6 +404,12 @@ test("Brand accent and shader implementation keep the approved visual and motion
   assert.match(AGENT_FIELD_FRAGMENT_SHADERS.kairo, /vec2\(556\.0, 177\.0\)/);
   assert.match(AGENT_FIELD_FRAGMENT_SHADERS.kairo, /t - 3\.150/);
   assert.equal(Object.keys(AGENT_FIELD_FRAGMENT_SHADERS).length, 8);
+  for (const scene of Object.keys(AGENT_FIELD_FRAGMENT_SHADERS)) {
+    for (const extension of ["webm", "mp4"]) {
+      const asset = path.resolve(__dirname, `../public/assets/agents/${scene}.${extension}`);
+      assert.ok(fs.statSync(asset).size > 10_000, `${scene}.${extension} must contain the pre-rendered shader loop`);
+    }
+  }
   assert.match(AGENT_FIELD_FRAGMENT_SHADERS["lumi-permissions"], /taskCard\(p/);
   assert.match(AGENT_FIELD_FRAGMENT_SHADERS["lumi-permissions"], /float approval =/);
   assert.match(AGENT_FIELD_FRAGMENT_SHADERS["lumi-sandbox"], /copyCenter/);
@@ -433,23 +430,23 @@ test("Brand accent and shader implementation keep the approved visual and motion
   assert.match(AGENT_BARS_FRAGMENT_SHADER, /uniform sampler2D uField;/);
   assert.match(AGENT_BARS_FRAGMENT_SHADER, /w = 3\.6/);
   assert.match(AGENT_BARS_FRAGMENT_SHADER, /mod\(px\.y, 9\.4\)/);
-  assert.match(diagram, /viewBox="0 0 720 460"/);
-  assert.match(diagram, /AGENT_STATIC_FRAMES\[resolvedScene\]/);
+  assert.match(diagram, /assets\/agents\/\$\{resolvedScene\}-poster\.webp/);
+  assert.match(diagram, /decoding="async"/);
   assert.equal(AGENT_SHADER_SCENE_NAMES.lumi, "tool-calls");
   assert.equal(AGENT_SHADER_SCENE_NAMES.kairo, "rag-answer");
   assert.doesNotMatch(diagram, />MODEL<\/text>|>RESPONSE<\/text>|streamingField/);
-  assert.match(player, /AGENT_FIELD_FRAGMENT_SHADERS\[resolvedScene\]/);
-  assert.match(player, /% AGENT_SHADER_DURATION_MS/);
+  assert.match(player, /assets\/agents\/\$\{resolvedScene\}\.webm/);
+  assert.match(player, /assets\/agents\/\$\{resolvedScene\}\.mp4/);
   assert.match(player, /size="icon"/);
   assert.match(player, /aria-label=\{label\}/);
-  assert.match(player, /\[resolvedScene, reducedMotion\]/);
+  assert.match(player, /\[nearViewport, reducedMotion, resolvedScene\]/);
   assert.doesNotMatch(player, /"complete"|RotateCcw|restart|play\(true\)/);
   assert.match(player, /prefers-reduced-motion: reduce/);
   assert.match(player, /IntersectionObserver/);
-  assert.match(player, /webglcontextlost/);
-  assert.match(player, /cancelAnimationFrame/);
-  assert.match(player, /framebufferTexture2D/);
-  assert.doesNotMatch(player, /setInterval/);
+  assert.match(player, /video\.pause\(\)/);
+  assert.match(player, /video\.play\(\)/);
+  assert.match(player, /preload="none"/);
+  assert.doesNotMatch(player, /setInterval|requestAnimationFrame|getContext\("webgl"/);
 
   for (const locale of ["ru", "en"]) {
     const catalog = require(`../messages/${locale}.json`);
@@ -500,12 +497,10 @@ test("Interface depth uses borders and outlines, never shadows or focus rings", 
 
 test("All eight agent shader fallbacks render their own exact final field", () => {
   const scenes = Object.keys(AGENT_FIELD_FRAGMENT_SHADERS);
-  assert.equal(new Set(Object.values(AGENT_STATIC_FRAMES).map((frame) => JSON.stringify(frame))).size, 8);
   const views = {};
   let enhancedView;
   act(() => {
     for (const scene of scenes) {
-      assert.ok(AGENT_STATIC_FRAMES[scene].length > 150, `${scene} fallback is too sparse`);
       views[scene] = create(React.createElement(AgentDiagram, {
         agent: scene.startsWith("kairo") ? "kairo" : "lumi",
         scene,
@@ -514,16 +509,21 @@ test("All eight agent shader fallbacks render their own exact final field", () =
     enhancedView = create(React.createElement(AgentDiagram, { agent: "lumi", enhanced: true }));
   });
 
+  const posterContents = new Set();
   for (const [scene, view] of Object.entries(views)) {
-    const expectedRects = AGENT_STATIC_FRAMES[scene].reduce(
-      (count, bar) => count + 1 + (bar[4] ? 1 : 0),
-      0
-    );
-    assert.equal(view.root.findAllByType("rect").length, expectedRects);
-    assert.equal(view.root.findByType("svg").props["data-scene"], AGENT_SHADER_SCENE_NAMES[scene]);
-    assert.equal(view.root.findAllByType("g")[0].props["data-static-field"], scene);
+    const image = view.root.findByType("img");
+    assert.equal(image.props["data-scene"], AGENT_SHADER_SCENE_NAMES[scene]);
+    assert.equal(image.props["data-static-field"], scene);
+    assert.equal(image.props.src, `/assets/agents/${scene}-poster.webp`);
+    assert.equal(image.props.loading, "lazy");
+    const poster = fs.readFileSync(path.resolve(__dirname, `../public${image.props.src}`));
+    assert.ok(poster.length > 1000, `${scene} poster must not be empty`);
+    posterContents.add(poster.toString("base64"));
+    assert.equal(view.root.findAllByType("svg").length, 0);
+    assert.equal(view.root.findAllByType("path").length, 0);
   }
-  assert.equal(enhancedView.root.findAllByType("rect").length, 0);
+  assert.equal(posterContents.size, 8);
+  assert.equal(enhancedView.root.findAllByType("img").length, 0);
 
   act(() => {
     Object.values(views).forEach((view) => view.unmount());
@@ -1054,8 +1054,7 @@ test("public UI uses neutral media slots and keeps ambient glow only in the hero
     "lib/studio-catalog.ts",
     "lib/data.ts",
     "lib/cart.ts",
-    "app/actions/services.ts",
-    "scripts/seed-demo.cjs",
+    "payload/collections/catalog.ts",
     "scripts/seed-services.ts",
   ];
   for (const file of artworkFreeFiles) {
@@ -1870,7 +1869,7 @@ test("DecryptText keeps readable stable glyphs and resolves a single scramble", 
   act(() => view.unmount());
 });
 
-test("ScrollExperience smooths desktop anchors and reveals below-fold content", () => {
+test("ScrollExperience smooths desktop anchors and reveals below-fold content", async () => {
   class FakeHTMLElement {
     constructor(top) {
       this.top = top;
@@ -1919,8 +1918,10 @@ test("ScrollExperience smooths desktop anchors and reveals below-fold content", 
   };
 
   let view;
-  act(() => {
+  await act(async () => {
     view = create(React.createElement(ScrollExperience));
+    // Lenis is an optional, lazily loaded enhancement.
+    await new Promise((resolve) => setImmediate(resolve));
   });
 
   assert.equal(belowFold.dataset.reveal, "pending");

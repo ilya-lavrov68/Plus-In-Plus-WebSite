@@ -4,257 +4,134 @@ const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
+const bcrypt = require("bcryptjs");
+const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
 
-require.extensions[".ts"] = (module, filename) =>
-  module._compile(
-    ts.transpileModule(fs.readFileSync(filename, "utf8"), {
-      compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true, target: ts.ScriptTarget.ES2022 },
-    }).outputText,
-    filename,
-  );
+require.extensions[".ts"] = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename, "utf8"), {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true, target: ts.ScriptTarget.ES2022 },
+}).outputText, filename);
 
-// Только в памяти: пользователи, настройки и журнал действий.
-let actor, users, settings, logs, posts;
-
+let admin;
+let accounts;
+let revoked;
+let logs;
 const db = {
   user: {
-    findUnique: async ({ where }) => {
-      const row = users.get(where.id);
-      return row ? structuredClone(row) : null;
-    },
+    findUnique: async ({ where }) => structuredClone(accounts.get(where.id) ?? null),
     update: async ({ where, data }) => {
-      const row = users.get(where.id);
-      if (!row) throw new Error("missing user");
+      const row = accounts.get(where.id);
+      if (!row) throw new Error("missing account");
       Object.assign(row, structuredClone(data));
       return structuredClone(row);
     },
   },
-  siteSetting: {
-    upsert: async ({ where, update, create }) => {
-      const value = settings.has(where.key) ? update.value : create.value;
-      settings.set(where.key, value);
-      return { key: where.key, value };
-    },
-  },
-  post: {
-    updateMany: async ({ where = {}, data }) => {
-      let count = 0;
-      for (const post of posts.values()) {
-        if (where.id && post.id !== where.id) continue;
-        if (where.isPublished !== undefined && post.isPublished !== where.isPublished) continue;
-        if (where.OR && !where.OR.some((condition) =>
-          (Object.hasOwn(condition, "publishedAt") && condition.publishedAt === null && post.publishedAt === null) ||
-          (condition.publishedAt?.lte && post.publishedAt && post.publishedAt <= condition.publishedAt.lte)
-        )) continue;
-        Object.assign(post, structuredClone(data));
-        count += 1;
-      }
-      return { count };
-    },
-  },
-  activityLog: {
-    create: async ({ data }) => { logs.push(structuredClone(data)); return data; },
-  },
   authSession: {
-    updateMany: async () => ({ count: 0 }),
+    updateMany: async ({ where, data }) => { revoked.push({ where, data }); return { count: 2 }; },
   },
-  transaction: async (callback) => {
-    const snapshot = structuredClone({ settings, posts, logs });
-    try { return await callback(db); }
-    catch (error) { settings = snapshot.settings; posts = snapshot.posts; logs = snapshot.logs; throw error; }
-  },
+  activityLog: { create: async ({ data }) => { logs.push(structuredClone(data)); return data; } },
+  transaction: async (callback) => callback(db),
 };
-
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/payload-db") return { db };
-  // actor описывает вошедшего сотрудника: null, обычный админ или основатель.
-  if (name === "@/lib/admin-session") return {
-    requireAdmin: async () => (actor ? { ...actor, isFounder: actor.role === "FOUNDER" } : null),
-    requireFounder: async () =>
-      actor?.role === "FOUNDER" ? { id: actor.id, email: actor.email, role: "FOUNDER", isFounder: true } : null,
-    requireStaff: async () => null,
-  };
+  if (name === "@/lib/payload-native") return createNativeModuleMock(db);
+  if (name === "@/lib/admin-session") return { requireAdmin: async () => admin };
+  if (name === "@/lib/action-i18n") return { getActionTranslator: async () => (key) => key };
   if (name === "next/cache") return { revalidatePath: () => {} };
   if (name.startsWith("@/")) name = path.resolve(__dirname, "..", name.slice(2));
   return originalLoad.call(this, name, parent, isMain);
 };
 
-const { resetUserPassword, setFeaturedPost, toggleUserBlocked, updateSiteSettings, updateUserRole } =
-  require("../app/actions/admin.ts");
-
-const FOUNDER_INVULNERABLE = "Action denied. Founder is invulnerable.";
-
-function seed() {
-  users = new Map([
-    ["u-founder", { id: "u-founder", email: "founder@test", role: "FOUNDER", isBlocked: false, passwordHash: "h" }],
-    ["u-admin", { id: "u-admin", email: "admin@test", role: "ADMIN", isBlocked: false, passwordHash: "h" }],
-    ["u-user", { id: "u-user", email: "user@test", role: "USER", isBlocked: false, passwordHash: "h" }],
-  ]);
-  settings = new Map();
-  posts = new Map([
-    ["post-published", { id: "post-published", isPublished: true, publishedAt: new Date("2026-01-01"), isFeatured: false }],
-    ["post-draft", { id: "post-draft", isPublished: false, publishedAt: null, isFeatured: true }],
-  ]);
-  logs = [];
-}
+const { resetUserPassword } = require("../app/actions/account.ts");
+const { protectAccount, protectAccountDeletion, revokeAccountSessions } = require("../payload/hooks.ts");
+const { SiteSettings } = require("../payload/collections/system.ts");
 
 beforeEach(() => {
-  seed();
-  actor = { id: "u-admin", email: "admin@test", role: "ADMIN" };
+  admin = { id: "admin-1", role: "ADMIN" };
+  accounts = new Map([
+    ["founder-1", { id: "founder-1", email: "founder@example.test", role: "FOUNDER", isBlocked: false, passwordHash: "old" }],
+    ["user-1", { id: "user-1", email: "user@example.test", role: "USER", isBlocked: false, passwordHash: "old" }],
+  ]);
+  revoked = [];
+  logs = [];
 });
 
-// ---------------------------------------------------------------------------
-// Неуязвимость основателя
-// ---------------------------------------------------------------------------
+function req(role = "ADMIN", id = "admin-1") {
+  return { user: { id, collection: "accounts", role }, context: {}, payload: {} };
+}
 
-test("роль основателя нельзя изменить из админки — никому", async () => {
-  for (const role of ["USER", "MANAGER", "ADMIN"]) {
-    const result = await updateUserRole("u-founder", role);
-    assert.equal(result.ok, false, `понижение до ${role} должно быть запрещено`);
-    assert.equal(result.error, FOUNDER_INVULNERABLE);
+test("founder role, block and privilege assignment remain server-runbook only", async () => {
+  const originalDoc = accounts.get("founder-1");
+  for (const data of [{ role: "ADMIN" }, { isBlocked: true }]) {
+    await assert.rejects(protectAccount({ operation: "update", originalDoc, data, req: req("FOUNDER", "founder-1") }), /основателя/);
   }
-  // Даже сам основатель не меняет свою роль через UI.
-  actor = { id: "u-founder", email: "founder@test", role: "FOUNDER" };
-  const self = await updateUserRole("u-founder", "ADMIN");
-  assert.equal(self.ok, false);
-  assert.equal(users.get("u-founder").role, "FOUNDER");
+  await assert.rejects(protectAccount({
+    operation: "update", originalDoc: accounts.get("user-1"), data: { role: "FOUNDER" }, req: req(),
+  }), /FOUNDER/);
+  await assert.rejects(protectAccount({
+    operation: "update", originalDoc: { ...accounts.get("user-1"), role: "ADMIN" }, data: { role: "USER" }, req: req("ADMIN", "user-1"),
+  }), /собственную staff-роль/);
 });
 
-test("основателя нельзя заблокировать", async () => {
-  const result = await toggleUserBlocked("u-founder", true);
-  assert.equal(result.ok, false);
-  assert.equal(result.error, FOUNDER_INVULNERABLE);
-  assert.equal(users.get("u-founder").isBlocked, false);
+test("admin can assign and remove manager role, but not block or demote itself", async () => {
+  const manager = await protectAccount({ operation: "update", originalDoc: accounts.get("user-1"), data: { role: "MANAGER" }, req: req() });
+  assert.equal(manager.role, "MANAGER");
+  const customer = await protectAccount({ operation: "update", originalDoc: { ...accounts.get("user-1"), role: "MANAGER" }, data: { role: "USER" }, req: req() });
+  assert.equal(customer.role, "USER");
+  await assert.rejects(protectAccount({ operation: "update", originalDoc: accounts.get("user-1"), data: { isBlocked: true }, req: req("ADMIN", "user-1") }), /собственный аккаунт/);
+  const blocked = await protectAccount({ operation: "update", originalDoc: accounts.get("user-1"), data: { isBlocked: true }, req: req() });
+  assert.equal(blocked.isBlocked, true);
 });
 
-test("block status rejects non-boolean input instead of coercing it", async () => {
-  for (const value of ["false", 0, 1, null, undefined, {}, []]) {
-    const result = await toggleUserBlocked("u-user", value);
-    assert.equal(result.ok, false);
-    assert.equal(users.get("u-user").isBlocked, false);
+test("security changes revoke Payload auth sessions while profile-only edits do not", async () => {
+  const calls = [];
+  const request = { payload: { update: async (options) => { calls.push(options); return { docs: [] }; } } };
+  for (const [previousDoc, doc] of [
+    [{ role: "USER", isBlocked: false, passwordHash: "a" }, { role: "MANAGER", isBlocked: false, passwordHash: "a" }],
+    [{ role: "USER", isBlocked: false, passwordHash: "a" }, { role: "USER", isBlocked: true, passwordHash: "a" }],
+    [{ role: "USER", isBlocked: false, passwordHash: "a" }, { role: "USER", isBlocked: false, passwordHash: "b" }],
+  ]) {
+    await revokeAccountSessions({ doc: { id: "user-1", ...doc }, previousDoc, operation: "update", req: request });
   }
-  assert.equal(logs.length, 0);
+  assert.equal(calls.length, 3);
+  assert.ok(calls.every((call) => call.collection === "auth-sessions" && call.where.and[0].userId.equals === "user-1"));
+  await revokeAccountSessions({ doc: { id: "user-1", role: "USER", isBlocked: false, passwordHash: "a", firstName: "New" }, previousDoc: { role: "USER", isBlocked: false, passwordHash: "a", firstName: "Old" }, operation: "update", req: request });
+  assert.equal(calls.length, 3);
 });
 
-test("основателю нельзя сбросить пароль (это захват аккаунта)", async () => {
-  const result = await resetUserPassword("u-founder");
-  assert.equal(result.ok, false);
-  assert.equal(result.error, FOUNDER_INVULNERABLE);
-  assert.equal(result.temporaryPassword, undefined);
-  assert.equal(users.get("u-founder").passwordHash, "h", "пароль не тронут");
+test("founder account deletion is blocked before any cascade", async () => {
+  const request = { payload: { find: async () => ({ docs: [{ role: "FOUNDER" }] }) } };
+  await assert.rejects(protectAccountDeletion({ id: "founder-1", req: request }), /нельзя удалить/);
+  request.payload.find = async () => ({ docs: [{ role: "USER" }] });
+  await protectAccountDeletion({ id: "user-1", req: request });
 });
 
-test("роль FOUNDER нельзя выдать через админку", async () => {
-  const result = await updateUserRole("u-user", "FOUNDER");
-  assert.equal(result.ok, false, "основателя назначает только скрипт с доступом к БД");
-  assert.equal(users.get("u-user").role, "USER");
+test("site settings remain founder-only and reject unknown keys", () => {
+  const key = SiteSettings.fields.find((field) => field.name === "key");
+  assert.equal(key.validate("robokassaPassword1"), true);
+  assert.match(key.validate("attackerControlledKey"), /Unknown/);
+  for (const operation of ["read", "create", "update", "delete"]) {
+    assert.equal(SiteSettings.access[operation]({ req: req("ADMIN") }), false);
+    assert.equal(SiteSettings.access[operation]({ req: req("MANAGER") }), false);
+    assert.equal(SiteSettings.access[operation]({ req: req("FOUNDER") }), true);
+  }
+  assert.equal(key.access.update(), false, "keys are stable after creation");
 });
 
-// ---------------------------------------------------------------------------
-// Назначение менеджеров и админов
-// ---------------------------------------------------------------------------
+test("password reset never targets founder, revokes ordinary sessions and returns a one-time secret", async () => {
+  admin = null;
+  assert.equal((await resetUserPassword("user-1")).ok, false);
+  admin = { id: "founder-1", role: "FOUNDER" };
+  assert.equal((await resetUserPassword("founder-1")).ok, false, "founder cannot reset even their own password through the panel");
+  assert.equal(revoked.length, 0);
 
-test("админ назначает менеджера и снимает роль обратно", async () => {
-  const promoted = await updateUserRole("u-user", "MANAGER");
-  assert.equal(promoted.ok, true);
-  assert.equal(users.get("u-user").role, "MANAGER");
-  assert.ok(logs.some((entry) => entry.action === "role changed to MANAGER"), "действие в журнале");
-
-  const demoted = await updateUserRole("u-user", "USER");
-  assert.equal(demoted.ok, true);
-  assert.equal(users.get("u-user").role, "USER");
-});
-
-test("основатель тоже управляет ролями сотрудников", async () => {
-  actor = { id: "u-founder", email: "founder@test", role: "FOUNDER" };
-  const result = await updateUserRole("u-user", "ADMIN");
+  admin = { id: "admin-1", role: "ADMIN" };
+  const result = await resetUserPassword("user-1");
   assert.equal(result.ok, true);
-  assert.equal(users.get("u-user").role, "ADMIN");
-});
-
-test("обычных пользователей блокировка и сброс пароля по-прежнему работают", async () => {
-  const blocked = await toggleUserBlocked("u-user", true);
-  assert.equal(blocked.ok, true);
-  assert.equal(users.get("u-user").isBlocked, true);
-
-  const reset = await resetUserPassword("u-user");
-  assert.equal(reset.ok, true);
-  assert.ok(reset.temporaryPassword, "временный пароль выдан");
-  assert.notEqual(users.get("u-user").passwordHash, "h");
-});
-
-// ---------------------------------------------------------------------------
-// Settings — только основатель
-// ---------------------------------------------------------------------------
-
-test("настройки сайта (включая ключи Робокассы) сохраняет только основатель", async () => {
-  const byAdmin = await updateSiteSettings({ robokassaLogin: "evil-shop" });
-  assert.equal(byAdmin.ok, false, "обычный админ не должен менять ключи оплаты");
-  assert.equal(settings.has("robokassaLogin"), false);
-
-  actor = { id: "u-founder", email: "founder@test", role: "FOUNDER" };
-  const byFounder = await updateSiteSettings({
-    robokassaLogin: "my-shop",
-    robokassaPassword1: "p1",
-    robokassaPassword2: "p2",
-    telegramBotToken: "token",
-  });
-  assert.equal(byFounder.ok, true);
-  assert.equal(settings.get("robokassaLogin"), "my-shop");
-  assert.equal(settings.get("telegramBotToken"), "token");
-});
-
-test("без служебной сессии экшены админки недоступны", async () => {
-  actor = null;
-  assert.equal((await updateUserRole("u-user", "MANAGER")).ok, false);
-  assert.equal((await toggleUserBlocked("u-user", true)).ok, false);
-  assert.equal((await updateSiteSettings({ studioName: "X" })).ok, false);
-});
-
-test("blank secret fields preserve existing values and unknown settings are rejected", async () => {
-  actor = { id: "u-founder", email: "founder@test", role: "FOUNDER" };
-  settings.set("robokassaPassword1", "existing-password");
-  settings.set("telegramBotToken", "existing-token");
-  settings.set("studioName", "Before");
-  const preserved = await updateSiteSettings({
-    studioName: "After",
-    robokassaPassword1: "",
-    telegramBotToken: "",
-  });
-  assert.equal(preserved.ok, true);
-  assert.equal(settings.get("studioName"), "After");
-  assert.equal(settings.get("robokassaPassword1"), "existing-password");
-  assert.equal(settings.get("telegramBotToken"), "existing-token");
-  const rejected = await updateSiteSettings({ studioName: "Changed again", unexpectedSecret: "value" });
-  assert.equal(rejected.ok, false);
-  assert.equal(settings.get("studioName"), "After");
-  assert.equal(settings.has("unexpectedSecret"), false);
-});
-
-test("dedicated Featured action selects one post and can clear the selection", async () => {
-  assert.equal((await setFeaturedPost("post-published")).ok, true);
-  assert.equal(posts.get("post-published").isFeatured, true);
-  assert.equal(posts.get("post-draft").isFeatured, false);
-  assert.equal([...posts.values()].filter((post) => post.isFeatured).length, 1);
-
-  assert.equal((await setFeaturedPost(null)).ok, true);
-  assert.equal([...posts.values()].filter((post) => post.isFeatured).length, 0);
-});
-
-test("settings and featured selection commit together or roll back together", async () => {
-  actor = { id: "u-founder", email: "founder@test", role: "FOUNDER" };
-  settings.set("studioName", "Before");
-  const failed = await updateSiteSettings({ studioName: "After" }, "post-draft");
-  assert.equal(failed.ok, false);
-  assert.equal(settings.get("studioName"), "Before");
-  assert.equal(posts.get("post-draft").isFeatured, true);
-  assert.equal(logs.length, 0);
-
-  const saved = await updateSiteSettings({ studioName: "After" }, "post-published");
-  assert.equal(saved.ok, true);
-  assert.equal(settings.get("studioName"), "After");
-  assert.equal(posts.get("post-published").isFeatured, true);
-  assert.equal(posts.get("post-draft").isFeatured, false);
-  assert.equal(logs.length, 2);
+  assert.ok(result.temporaryPassword);
+  assert.notEqual(result.temporaryPassword, accounts.get("user-1").passwordHash);
+  assert.equal(await bcrypt.compare(result.temporaryPassword, accounts.get("user-1").passwordHash), true);
+  assert.equal(revoked.length, 1);
+  assert.equal(revoked[0].data.revokeReason, "password_reset");
+  assert.equal(logs[0].actorId, "admin-1");
+  assert.equal(JSON.stringify(logs).includes("user@example.test"), false);
 });

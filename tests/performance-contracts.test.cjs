@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
+const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
 
 for (const extension of [".ts", ".tsx"]) {
   require.extensions[extension] = (module, filename) =>
@@ -38,6 +39,11 @@ const db = {
   },
   post: {
     findMany: async (query) => {
+      if (featuredRows.length) {
+        featuredQueries.push(structuredClone(query));
+        const row = featuredRows.shift();
+        return row ? structuredClone([row]) : [];
+      }
       postQueries.push(structuredClone(query));
       return structuredClone(postRows);
     },
@@ -50,7 +56,7 @@ const db = {
 
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/payload-db") return { db };
+  if (name === "@/lib/payload-native") return createNativeModuleMock(db);
   if (name.startsWith("@/")) name = path.resolve(root, name.slice(2));
   return originalLoad.call(this, name, parent, isMain);
 };
@@ -135,7 +141,7 @@ test("sitemap keeps both unbounded reads but selects only URL and date fields", 
   assert.equal(postQueries.length, 1);
   assert.equal(serviceQueries.length, 1);
   assert.deepEqual(postQueries[0].select, { slug: true, publishedAt: true });
-  assert.deepEqual(serviceQueries[0].select, { id: true, slug: true });
+  assert.deepEqual(serviceQueries[0].select, { slug: true });
   assert.equal(postQueries[0].where.isPublished, true);
   assert.equal(postQueries[0].take, undefined);
   assert.deepEqual(serviceQueries[0].where, { isPublished: true, isActive: true });
@@ -153,7 +159,7 @@ test("featured navigation reads only title, slug and cover, including the latest
 
   assert.equal(featuredQueries.length, 2);
   for (const query of featuredQueries) {
-    assert.deepEqual(query.select, { title: true, slug: true, coverImage: true });
+    assert.deepEqual(query.select, { title: true, slug: true, coverImage: true, cover: true });
   }
   assert.deepEqual(post, {
     title: "Latest",
@@ -175,7 +181,7 @@ test("full locale catalogs are separated from browser-safe locale helpers", () =
   }
 });
 
-test("client messages omit server actions but preserve every staff fallback", () => {
+test("client messages omit server actions and legacy staff bundles are gone", () => {
   for (const locale of ["en", "ru"]) {
     const client = getClientMessages(locale);
     assert.equal(Object.hasOwn(client, "actions"), false);
@@ -192,7 +198,7 @@ test("client messages omit server actions but preserve every staff fallback", ()
     "components/admin/inline-price-type.tsx",
     "components/orders/order-price-form.tsx",
   ]) {
-    assert.doesNotMatch(source(file), /useTranslations\("actions"\)/);
+    assert.equal(fs.existsSync(path.join(root, file)), false, file);
   }
 });
 
@@ -229,7 +235,7 @@ test("CI restores only Next incremental cache and never skips verification", () 
     "npm run security:audit",
     "npm run security:dependencies",
     "npm run lint",
-    "npx tsc --noEmit",
+    "npm run typecheck",
     "npm test",
     "npm run build",
   ]) {

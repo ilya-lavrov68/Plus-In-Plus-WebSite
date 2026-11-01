@@ -35,6 +35,10 @@ export function isUploadFilename(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(png|jpe?g|webp|gif|avif)$/.test(value);
 }
 
+export function isMediaFilename(value: string): boolean {
+  return /^[a-z0-9][a-z0-9._-]{0,240}\.(?:png|jpe?g|webp|gif|avif)$/i.test(value);
+}
+
 /** Never request external avatars, including URLs manually placed in the DB. */
 export function localAvatarPath(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -43,7 +47,5 @@ export function localAvatarPath(value: unknown): string | null {
   const mediaPrefix = "/uploads/media/";
   if (!value.startsWith(mediaPrefix)) return null;
   const filename = value.slice(mediaPrefix.length);
-  return /^[a-z0-9][a-z0-9._-]{0,240}\.(?:png|jpe?g|webp|gif|avif)$/i.test(filename)
-    ? value
-    : null;
+  return isMediaFilename(filename) ? value : null;
 }

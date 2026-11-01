@@ -14,6 +14,9 @@ import {
   withPayloadTransaction,
 } from "@/lib/payload-native";
 import { createOrderSchema } from "@/lib/validators";
+import type { Order, OrderService, Service } from "@/payload/payload-types";
+
+type CreatedOrder = Omit<Order, "services"> & { services: OrderService[] };
 
 export interface QuoteActionResult {
   ok: boolean;
@@ -88,7 +91,7 @@ export async function requestQuote(input: {
       overrideAccess: true,
       where: { id: { equals: input.serviceId } },
     });
-    const service = result.docs[0] as any;
+    const service = result.docs[0] as Service | undefined;
     if (!service || !canRequestServiceQuote(service)) return { ok: false, error: t("serviceNotFound") };
     const estimate = calculateServiceSelection(service, input.optionIds ?? []);
     if (!estimate) return { ok: false, error: t("incompleteOptions") };
@@ -204,7 +207,7 @@ export async function createOrder(data: CreateOrderInput) {
     pagination: false,
     where: { and: [{ id: { in: uniqueServiceIds } }, { isActive: { equals: true } }, { isPublished: { equals: true } }] },
   });
-  const services = serviceResult.docs as any[];
+  const services = serviceResult.docs as Service[];
   if (services.length !== uniqueServiceIds.length) throw new Error(t("serviceInactiveOrMissing"));
   const serviceById = new Map(services.map((service) => [service.id, service]));
   const orderedServices = uniqueServiceIds.map((id) => serviceById.get(id)!);
@@ -212,7 +215,7 @@ export async function createOrder(data: CreateOrderInput) {
   const description = typeof data?.description === "string" ? data.description.trim().slice(0, 4000) : "";
   const currency = orderedServices[0]?.currency ?? "RUB";
 
-  let createdOrder: any = null;
+  let createdOrder: CreatedOrder | null = null;
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const orderNumber = await nextOrderNumber(payload, attempt);
     try {
@@ -238,7 +241,7 @@ export async function createOrder(data: CreateOrderInput) {
           overrideAccess: true,
           req,
         });
-        const links: any[] = [];
+        const links: OrderService[] = [];
         for (const service of orderedServices) {
           const link = await payload.create({
             collection: "order-services",
@@ -296,7 +299,7 @@ export async function createOrder(data: CreateOrderInput) {
     estimatedAmount: createdOrder.estimatedAmount,
     total: createdOrder.total,
     finalPrice: createdOrder.finalPrice,
-    services: (createdOrder.services ?? []).map((link: any) => ({
+    services: createdOrder.services.map((link) => ({
       id: link.id,
       serviceId: payloadId(link.serviceId) ?? "",
       quantity: link.quantity,
@@ -337,9 +340,10 @@ export async function cancelMyOrder(input: { orderId: string }): Promise<OrderAc
         req,
         where: { id: { equals: orderId } },
       });
-      const order = result.docs[0] as any;
+      const order = result.docs[0] as Order | undefined;
       if (!order || payloadId(order.userId) !== customer.id || order.status === "cart") return "not-found" as const;
       if (order.status === "cancelled" || order.status === "refunded") return "closed" as const;
+      if (order.status === "paid") return "paid" as const;
       if (!CUSTOMER_CANCELLABLE_STATUSES.includes(order.status)) return "started" as const;
       const paid = await payload.count({
         collection: "payments",
@@ -347,7 +351,7 @@ export async function cancelMyOrder(input: { orderId: string }): Promise<OrderAc
         req,
         where: { and: [{ orderId: { equals: order.id } }, { status: { equals: "succeeded" } }] },
       });
-      if (order.status === "paid" || paid.totalDocs > 0) return "paid" as const;
+      if (paid.totalDocs > 0) return "paid" as const;
       const changed = await payload.update({
         collection: "orders",
         data: { status: "cancelled" },

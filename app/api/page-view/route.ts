@@ -5,7 +5,6 @@ import { checkRateLimitAsync, getClientAddress, hashRateLimitIdentifier, retryAf
 import { isJsonObject, readJsonBody } from "@/lib/request-body";
 import { isSameOriginRequest } from "@/lib/request-origin";
 
-const DEVICES = new Set(["desktop", "mobile", "tablet"]);
 const WINDOW_MS = 10 * 60 * 1000;
 /**
  * Аналитика пишется с браузера без входа, поэтому её можно накрутить — и заодно раздуть
@@ -26,6 +25,11 @@ async function pageViewRateLimit(request: Request, scope: string) {
 
 function clean(value: unknown, max: number): string | null {
   return typeof value === "string" && value.trim() ? value.trim().slice(0, max) : null;
+}
+
+function cleanDevice(value: unknown): "desktop" | "mobile" | "tablet" | null {
+  const device = clean(value, 16);
+  return device === "desktop" || device === "mobile" || device === "tablet" ? device : null;
 }
 
 /**
@@ -51,7 +55,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false }, { status: 400 });
     }
 
-    const device = clean(body?.device, 16);
     const payload = await getPayloadClient();
     const view = await payload.create({
       collection: "page-views",
@@ -59,7 +62,7 @@ export async function POST(request: Request) {
         path,
         referrer: clean(body?.referrer, 200),
         utmSource: clean(body?.utmSource, 100),
-        device: device && DEVICES.has(device) ? device : null,
+        device: cleanDevice(body?.device),
         sessionId: clean(body?.sessionId, 100),
         visitorId: clean(body?.visitorId, 100),
       },

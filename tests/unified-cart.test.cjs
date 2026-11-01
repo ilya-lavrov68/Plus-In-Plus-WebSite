@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
+const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
 
 require.extensions[".ts"] = (module, filename) =>
   module._compile(
@@ -149,7 +150,9 @@ const mockPrisma = {
     findMany: async ({ where = {} } = {}) => {
       return [...ordersMap.values()]
         .filter((o) => {
+          if (where.id && o.id !== where.id) return false;
           if (where.userId && o.userId !== where.userId) return false;
+          if (typeof where.status === "string" && o.status !== where.status) return false;
           if (where.status?.not && o.status === where.status.not) return false;
           return true;
         })
@@ -166,6 +169,9 @@ const mockPrisma = {
         }));
     },
     create: async ({ data, include }) => {
+      if (data.cartKey && [...ordersMap.values()].some((order) => order.cartKey === data.cartKey)) {
+        throw Object.assign(new Error("Unique cartKey"), { code: "P2002" });
+      }
       const id = `ord-${++seq}`;
       const now = new Date();
       const row = {
@@ -239,9 +245,17 @@ const mockPrisma = {
       });
       return found ? structuredClone(found) : null;
     },
-    findMany: async ({ where }) => {
+    findMany: async ({ where = {} } = {}) => {
       return [...orderItemsMap.values()]
-        .filter((i) => i.orderId === where.orderId)
+        .filter((i) => {
+          if (where.id && i.id !== where.id) return false;
+          if (typeof where.orderId === "string" && i.orderId !== where.orderId) return false;
+          if (where.orderId?.in && !where.orderId.in.includes(i.orderId)) return false;
+          if (where.itemType && i.itemType !== where.itemType) return false;
+          if (where.itemId && i.itemId !== where.itemId) return false;
+          if (where.optionsSnapshot !== undefined && i.optionsSnapshot !== where.optionsSnapshot) return false;
+          return true;
+        })
         .map((i) => structuredClone(i));
     },
     create: async ({ data }) => {
@@ -306,16 +320,26 @@ const mockPrisma = {
     },
   },
   orderService: {
+    findMany: async ({ where = {} } = {}) => orderServicesList
+      .filter((row) => (!where.orderId || (typeof where.orderId === "string" ? row.orderId === where.orderId : where.orderId.in?.includes(row.orderId))))
+      .map((row) => structuredClone(row)),
     deleteMany: async ({ where }) => {
-      orderServicesList = orderServicesList.filter(
-        (os) => os.orderId !== where.orderId
-      );
+      const before = orderServicesList.length;
+      orderServicesList = orderServicesList.filter((os) => os.orderId !== where.orderId);
+      return { count: before - orderServicesList.length };
+    },
+    create: async ({ data }) => {
+      const row = { id: `os-${++seq}`, ...structuredClone(data) };
+      orderServicesList.push(row);
+      return structuredClone(row);
     },
     createMany: async ({ data }) => {
-      for (const entry of data) {
-        orderServicesList.push({ id: `os-${++seq}`, ...entry });
-      }
+      for (const entry of data) orderServicesList.push({ id: `os-${++seq}`, ...entry });
     },
+  },
+  payment: {
+    findMany: async () => [],
+    count: async () => 0,
   },
   activityLog: {
     create: async ({ data }) => {
@@ -328,7 +352,7 @@ mockPrisma.transaction = async (cb) => cb(mockPrisma);
 
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/payload-db") return { db: mockPrisma };
+  if (name === "@/lib/payload-native") return createNativeModuleMock(mockPrisma);
   if (name === "@/lib/auth-secret") return { isAuthConfigured: () => true };
   if (name === "@/auth") {
     return {
@@ -364,24 +388,18 @@ beforeEach(() => {
   currentUser = { id: "usr-1", email: "client@example.com", role: "USER" };
 });
 
-test("schema defines single Order model (status default cart), OrderItem.itemType, Product, and no duplicate CartItem model", () => {
-  const schema = fs.readFileSync(
-    path.join(__dirname, "..", "db", "schema.db"),
-    "utf8"
-  );
-  assert.doesNotMatch(schema, /model\s+CartItem\b/);
-  assert.match(schema, /model\s+Product\s*\{/);
-  assert.match(schema, /status\s+String\s+@default\("cart"\)/);
-  assert.match(schema, /orderNumber\s+String\?\s+@unique/);
-  assert.match(schema, /cartKey\s+String\?\s+@unique/);
-  assert.match(schema, /itemType\s+String/);
-  assert.match(schema, /itemId\s+String/);
+test("Payload schema defines one cart-capable Order and unified typed items", () => {
+  const commerce = fs.readFileSync(path.join(__dirname, "..", "payload", "collections", "commerce.ts"), "utf8");
+  const catalog = fs.readFileSync(path.join(__dirname, "..", "payload", "collections", "catalog.ts"), "utf8");
+  assert.doesNotMatch(commerce, /slug: "cart-items"/);
+  assert.match(catalog, /export const Products/);
+  assert.match(commerce, /name: "status",[\s\S]*?defaultValue: "cart"/);
+  assert.match(commerce, /name: "orderNumber", type: "text", unique: true/);
+  assert.match(commerce, /name: "cartKey", type: "text", unique: true/);
+  assert.match(commerce, /name: "itemType"/);
+  assert.match(commerce, /name: "itemId"/);
 
-  // /profile source has zero orders display or /orders links
-  const profileFormSrc = fs.readFileSync(
-    path.join(__dirname, "..", "components", "site", "profile-form.tsx"),
-    "utf8"
-  );
+  const profileFormSrc = fs.readFileSync(path.join(__dirname, "..", "components", "site", "profile-form.tsx"), "utf8");
   assert.doesNotMatch(profileFormSrc, /\/orders/);
 });
 

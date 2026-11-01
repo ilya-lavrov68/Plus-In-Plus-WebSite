@@ -11,11 +11,12 @@ import { revokeOtherAuthSessions } from "@/lib/auth-sessions";
 import { parseJsonArray } from "@/lib/db-helpers";
 import { createTotpSecret, decryptMfaSecret, encryptMfaSecret, generateBackupCodes, totpUri, verifyTotp } from "@/lib/mfa";
 import { readPendingLogin, savePendingWebAuthnChallenge } from "@/lib/pending-login";
-import { getPayloadClient, payloadDate, withPayloadTransaction } from "@/lib/payload-native";
+import { getPayloadClient, payloadDate, type PayloadTransactionRequest, withPayloadTransaction } from "@/lib/payload-native";
 import { checkRateLimitAsync, hashRateLimitIdentifier } from "@/lib/rate-limit";
 import { logSecurityEvent, logServerError } from "@/lib/security-log";
 import { profileName } from "@/lib/user-profile";
 import { webAuthnConfigFromAction } from "@/lib/webauthn-config";
+import type { Account } from "@/payload/payload-types";
 
 class AuthenticationRequired extends Error {}
 class RateLimited extends Error {}
@@ -24,7 +25,7 @@ export interface MfaActionResult { ok: boolean; error?: string; backupCodes?: st
 export interface TotpSetupResult extends MfaActionResult { secret?: string; qrCode?: string; otpauthUri?: string; setupId?: number; setupExpiresIn?: number }
 export interface TotpEnableResult extends MfaActionResult { failureReason?: "invalid-code" | "stale-setup" }
 
-async function writeActivity(payload: any, req: any, action: string, userId: string) {
+async function writeActivity(payload: Awaited<ReturnType<typeof getPayloadClient>>, req: PayloadTransactionRequest, action: string, userId: string) {
   await payload.create({ collection: "activity-logs", data: { action, entityType: "user", entityId: userId, title: "User account", actorId: userId }, overrideAccess: true, req });
 }
 async function requireAccount() {
@@ -32,7 +33,7 @@ async function requireAccount() {
   if (!session?.user?.id) throw new AuthenticationRequired();
   const payload = await getPayloadClient();
   const result = await payload.find({ collection: "accounts", depth: 0, limit: 1, overrideAccess: true, showHiddenFields: true, where: { id: { equals: session.user.id } } });
-  const account = result.docs[0] as any;
+  const account = result.docs[0] as Account | undefined;
   if (!account || account.isBlocked) throw new AuthenticationRequired();
   const credentials = await payload.find({ collection: "webauthn-credentials", depth: 0, pagination: false, overrideAccess: true, where: { userId: { equals: account.id } } });
   return {
@@ -46,8 +47,8 @@ async function mfaRateLimit(userId: string, operation: string, limit = 10): Prom
   const result = await checkRateLimitAsync(hashRateLimitIdentifier(`mfa-${operation}:${userId}`), limit, 10 * 60 * 1000);
   if (!result.allowed) throw new RateLimited();
 }
-async function verifyOwner(account: { passwordHash: string; mfaSecret: string | null }, password: unknown, code: unknown): Promise<"password" | "mfa" | null> {
-  if (typeof password !== "string" || !password || !(await bcrypt.compare(password, account.passwordHash))) return "password";
+async function verifyOwner(account: { passwordHash?: string | null; mfaSecret?: string | null }, password: unknown, code: unknown): Promise<"password" | "mfa" | null> {
+  if (!account.passwordHash || typeof password !== "string" || !password || !(await bcrypt.compare(password, account.passwordHash))) return "password";
   if (account.mfaSecret && !verifyTotp(account.mfaSecret, code)) return "mfa";
   return null;
 }
@@ -62,7 +63,7 @@ export async function beginTotpSetup(): Promise<TotpSetupResult> {
     const cutoff = Date.now() - TOTP_SETUP_TTL_MS;
     const enrollment = await withPayloadTransaction(payload, async (req) => {
       const currentResult = await payload.find({ collection: "accounts", depth: 0, limit: 1, overrideAccess: true, showHiddenFields: true, req, where: { id: { equals: account.id } } });
-      const current = currentResult.docs[0] as any;
+      const current = currentResult.docs[0] as Account | undefined;
       if (!current || current.isBlocked) throw new AuthenticationRequired();
       if (current.mfaSecret) return { already: true as const };
       const pendingAt = payloadDate(current.mfaPendingCreatedAt);

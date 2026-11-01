@@ -10,11 +10,12 @@ import { getActionTranslator } from "@/lib/action-i18n";
 import { isAuthConfigured } from "@/lib/auth-secret";
 import { assertPasswordNotCompromised, CompromisedPasswordError } from "@/lib/password-breach";
 import { readPendingLogin } from "@/lib/pending-login";
-import { getPayloadClient, isPayloadUniqueError, withPayloadTransaction } from "@/lib/payload-native";
+import { getPayloadClient, isPayloadUniqueError, type PayloadTransactionRequest, withPayloadTransaction } from "@/lib/payload-native";
 import { getClientAddress, checkRateLimitAsync, hashRateLimitIdentifier } from "@/lib/rate-limit";
 import { logSecurityEvent, logServerError } from "@/lib/security-log";
 import { cleanupUpload, saveImageUpload, UploadValidationError } from "@/lib/uploads";
 import { firstIssueMessage, loginSchema, profileSchema, registerSchema } from "@/lib/validators";
+import type { Account } from "@/payload/payload-types";
 
 export interface LoginInput {
   email?: string;
@@ -130,7 +131,7 @@ async function recordAuthActivity(action: "login" | "staff login" | "logout", us
   }
 }
 
-async function writeAuthActivity(payload: any, req: any, action: string, userId: string): Promise<void> {
+async function writeAuthActivity(payload: Awaited<ReturnType<typeof getPayloadClient>>, req: PayloadTransactionRequest, action: string, userId: string): Promise<void> {
   await payload.create({
     collection: "activity-logs",
     data: { action, entityType: "user", entityId: userId, title: "User account", actorId: userId },
@@ -180,7 +181,7 @@ export async function loginUser(input: LoginSubmission): Promise<AuthActionResul
         showHiddenFields: true,
         where: { email: { equals: email } },
       });
-      const found = result.docs[0] as any;
+      const found = result.docs[0] as Account | undefined;
       const passkeys = found
         ? await payload.find({ collection: "webauthn-credentials", depth: 0, limit: 1, overrideAccess: true, where: { userId: { equals: found.id } } })
         : { docs: [] };
@@ -375,7 +376,7 @@ export async function updateUserProfile(formData: FormData): Promise<AuthActionR
       await writeAuthActivity(payload, req, "updated profile", existing.id);
     });
     saved = true;
-    if (newAvatar) await cleanupUpload(existing.avatar, "avatars");
+    if (newAvatar) await cleanupUpload(existing.avatar ?? null, "avatars");
   } catch (error) {
     if (newAvatar && !saved) await cleanupUpload(newAvatar, "avatars");
     if (error instanceof UploadValidationError) return { ok: false, success: false, error: error.message };

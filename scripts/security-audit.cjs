@@ -60,7 +60,7 @@ for (const file of files) {
 }
 
 const analytics = fs.readFileSync(path.join(root, "lib/admin-analytics.ts"), "utf8");
-if (!analytics.includes("db.queryRaw")) {
+if (!analytics.includes("queryPayloadRows")) {
   report("lib/admin-analytics.ts", 1, "raw-sql-must-use-bound-parameters");
 }
 const postContent = fs.readFileSync(path.join(root, "lib/post-content.ts"), "utf8");

@@ -1,4 +1,4 @@
-import { db } from "@/lib/payload-db";
+import { queryPayloadRows } from "@/lib/payload-native";
 
 export interface TrafficSummary {
   views: number;
@@ -32,7 +32,15 @@ export interface DayStat {
   visitors: number;
 }
 
+export interface OrderStats {
+  queue: number;
+  revenue: number;
+  paidCount: number;
+  averageOrder: number;
+}
+
 const EMPTY_SUMMARY: TrafficSummary = { views: 0, visitors: 0, sessions: 0, avgSeconds: 0 };
+const EMPTY_ORDER_STATS: OrderStats = { queue: 0, revenue: 0, paidCount: 0, averageOrder: 0 };
 
 /**
  * Даты в SQLite встречаются в двух видах: приложение пишет строки ISO, а
@@ -64,9 +72,8 @@ const DAY_EXPR = `date(
  * (path, created_at).
  */
 async function rows<T>(sql: string, ...args: unknown[]): Promise<T[]> {
-  if (!db) return [];
   try {
-    return db.queryRaw<T>(sql, args);
+    return await queryPayloadRows<T>(sql, args);
   } catch (error) {
     console.error("Analytics query failed:", error);
     return [];
@@ -77,6 +84,32 @@ async function rows<T>(sql: string, ...args: unknown[]): Promise<T[]> {
 function num(value: unknown): number {
   if (typeof value === "bigint") return Number(value);
   return Number(value ?? 0) || 0;
+}
+
+/** Финансовые метрики считаются одним SQL-запросом без загрузки истории платежей. */
+export async function getOrderStats(): Promise<OrderStats> {
+  const result = await rows<Record<string, unknown>>(`
+    SELECT
+      (SELECT COUNT(*) FROM orders
+        WHERE status IN ('pending', 'quote_requested', 'negotiating')) AS queue,
+      (SELECT COALESCE(SUM(amount), 0) FROM payments
+        WHERE status = 'succeeded') AS revenue,
+      (SELECT COUNT(*) FROM orders AS o
+        WHERE EXISTS (
+          SELECT 1 FROM payments AS p
+          WHERE p.order_id_id = o.id AND p.status = 'succeeded'
+        )) AS paidCount
+  `);
+  const row = result[0];
+  if (!row) return EMPTY_ORDER_STATS;
+  const revenue = num(row.revenue);
+  const paidCount = num(row.paidCount);
+  return {
+    queue: num(row.queue),
+    revenue,
+    paidCount,
+    averageOrder: paidCount ? Math.round(revenue / paidCount) : 0,
+  };
 }
 
 export async function getTrafficSummary(days = 30): Promise<TrafficSummary> {

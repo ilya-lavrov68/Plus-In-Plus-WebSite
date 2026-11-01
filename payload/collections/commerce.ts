@@ -3,7 +3,9 @@ import type { CollectionConfig, Field } from "payload";
 import { founderOnly, readSubmittedOrders, serverOnly, staffOnly } from "../access.ts";
 import { activityAfterChange, cascadeOrderDeletion, distributeOrderPrice, prepareOrder } from "../hooks.ts";
 
-const serverUpdated = (field: any): Field => ({
+type NamedField = Extract<Field, { type: "text" | "number" | "date" | "relationship" | "textarea" }>;
+
+const serverUpdated = (field: NamedField): NamedField => ({
   ...field,
   access: { ...(field.access ?? {}), update: () => false },
 });

@@ -69,11 +69,11 @@
 | --- | --- |
 | Маршрут | `app/**/page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`, `not-found.tsx`, route handlers |
 | Публичный UI | Server Components, client boundaries, локализация, states, доступность |
-| Чтение | `lib/*data*.ts`, профильные `lib/*.ts`, Prisma select/include/filter/order/pagination |
+| Чтение | `lib/*data*.ts`, профильные `lib/*.ts`, Payload Local API select/where/sort/pagination |
 | Авторизация | `proxy.ts`, `auth.ts`, `auth.config.ts`, `lib/admin-session.ts`, ownership и role checks у самой операции |
 | Mutation | `app/actions/*.ts`, `app/api/**/route.ts`, client submit/retry/double-submit |
 | Вход | `unknown` → Zod/существующие validators, allowlist полей, bounds, content limits, file type/size |
-| Запись | Prisma transaction, уникальность, идемпотентность, порядок операций, audit log |
+| Запись | Payload transaction helpers, уникальность, идемпотентность, порядок операций, audit log |
 | После записи | `revalidatePath`, `router.refresh`, локальный state, связанные admin/public views |
 | Ошибки | Безопасный result/status, sanitized log, понятный следующий шаг пользователю |
 | Проверки | Unit/component, HTTP integration, negative authorization, browser E2E, production smoke |
@@ -170,7 +170,7 @@ npm run build
 4. Проверить ownership/scope конкретной записи.
 5. Только затем читать или изменять защищённые данные.
 
-Middleware остаётся дополнительным perimeter, а не единственной проверкой. Нельзя сначала выполнять Prisma/provider query и лишь потом вызывать `auth()`.
+Middleware остаётся дополнительным perimeter, а не единственной проверкой. Нельзя сначала выполнять Payload/provider query и лишь потом вызывать `auth()`.
 
 ### 4.3. Валидация и сериализация
 
@@ -268,7 +268,7 @@ Middleware остаётся дополнительным perimeter, а не ед
 | --- | --- | --- |
 | Lint/typecheck | Синтаксис, правила и типы | Runtime, права, визуальную геометрию |
 | Unit/component | Чистую логику, контракт разметки, states | Реальный Next serialization, БД, browser layout |
-| Prisma/repository integration | Query, constraints, transaction на изолированной БД | Тот же регион/нагрузку/production staging |
+| Payload/repository integration | Query, constraints, transaction на изолированной БД | Тот же регион/нагрузку/production staging |
 | Next HTTP integration | Serialization, cookies, redirects, status, route/action boundary | Полный click flow и визуальное качество |
 | Browser E2E | Сценарий, клавиатуру, responsive, console/network, screenshots | Production инфраструктуру без соответствующего окружения |
 | Production build/start smoke | Собираемость и базовые реальные маршруты | Все роли, внешние провайдеры и нагрузку |
@@ -288,7 +288,7 @@ Middleware остаётся дополнительным perimeter, а не ед
 До любой оптимизации прочитать `docs/next-forge-optimization.md` и выполнить короткий цикл:
 
 1. **Измерить:** определить узкий сценарий и baseline.
-2. **Локализовать:** browser, JS, rendering, middleware, server waterfall, Prisma, сеть или внешний provider.
+2. **Локализовать:** browser, JS, rendering, middleware, server waterfall, Payload/БД, сеть или внешний provider.
 3. **Сформулировать гипотезу:** какой механизм и какую метрику изменит diff.
 4. **Изменить одну группу причин:** не смешивать cache, schema, UI и major upgrades без необходимости.
 5. **Проверить корректность:** auth, roles, freshness, mutations, errors, RU/EN и browser flows остаются зелёными.

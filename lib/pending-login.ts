@@ -3,6 +3,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { hashesEqual } from "@/lib/mfa";
 import { getPayloadClient, payloadDate, payloadId, withPayloadTransaction } from "@/lib/payload-native";
 import type { UserRole } from "@/lib/user-profile";
+import type { PendingLogin } from "@/payload/payload-types";
 
 export const PENDING_LOGIN_SECONDS = 5 * 60;
 export const MAX_PENDING_LOGIN_ATTEMPTS = 5;
@@ -18,7 +19,7 @@ export async function createPendingLogin(userId: string, role: UserRole): Promis
     await payload.delete({ collection: "pending-logins", where: { and: [{ userId: { equals: userId } }, { expiresAt: { less_than_equal: now.toISOString() } }] }, overrideAccess: true, req });
     await payload.create({
       collection: "pending-logins",
-      data: { id: pendingLoginId, userId, role, secretHash: hashSecret(pendingLoginSecret), expiresAt: new Date(now.getTime() + PENDING_LOGIN_SECONDS * 1000).toISOString() },
+      data: { id: pendingLoginId, userId, role, secretHash: hashSecret(pendingLoginSecret), attempts: 0, expiresAt: new Date(now.getTime() + PENDING_LOGIN_SECONDS * 1000).toISOString() },
       overrideAccess: true,
       req,
     });
@@ -35,7 +36,7 @@ export async function readPendingLogin(pendingLoginId: unknown, pendingLoginSecr
   if (!ID_PATTERN.test(pendingLoginId) || !ID_PATTERN.test(pendingLoginSecret)) return null;
   const payload = await getPayloadClient();
   const result = await payload.find({ collection: "pending-logins", depth: 1, limit: 1, overrideAccess: true, where: { id: { equals: pendingLoginId } } });
-  const pending = result.docs[0] as any;
+  const pending = result.docs[0] as PendingLogin | undefined;
   const expiresAt = payloadDate(pending?.expiresAt);
   if (!pending || !expiresAt || expiresAt.getTime() <= Date.now() || pending.attempts >= MAX_PENDING_LOGIN_ATTEMPTS) return null;
   const account = pending.userId && typeof pending.userId === "object" ? pending.userId : null;

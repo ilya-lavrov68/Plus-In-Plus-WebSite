@@ -1,5 +1,6 @@
 import type { AuthStrategyFunction } from "payload";
 
+import { roleLevel } from "@/lib/user-profile";
 import { ACCOUNTS_SLUG } from "../access.ts";
 
 /**
@@ -23,11 +24,22 @@ export const authenticateAuthJsStaff: AuthStrategyFunction = async ({ payload })
   const account = result.docs[0];
   if (!account || account.isBlocked) return { user: null };
 
+  // Effective role is the lower of the Auth.js session role and current DB role.
+  const level = Math.min(roleLevel(staff.role), roleLevel(account.role));
+  if (level < 1) return { user: null };
+  const role = level === 3 ? "FOUNDER" : level === 2 ? "ADMIN" : "MANAGER";
   return {
     user: {
-      ...account,
-      // Effective role is the lower of the Auth.js session role and current DB role.
-      role: staff.role,
+      id: account.id,
+      email: account.email,
+      firstName: account.firstName ?? null,
+      lastName: account.lastName ?? null,
+      avatar: account.avatar ?? null,
+      avatarMedia: account.avatarMedia ?? null,
+      isBlocked: false,
+      createdAt: account.createdAt,
+      updatedAt: account.updatedAt,
+      role,
       collection: ACCOUNTS_SLUG,
       _strategy: "authjs-staff",
     },

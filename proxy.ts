@@ -143,9 +143,11 @@ export async function proxy(
   const pathname = requestPathname(request);
 
   // Legacy staff URLs have one destination; no second admin application remains.
-  if (pathname === "/payload" || pathname.startsWith("/payload/") || pathname === "/manager" || pathname.startsWith("/manager/")) {
+  if (pathname === "/admin/dashboard" || pathname === "/payload" || pathname.startsWith("/payload/") || pathname === "/manager" || pathname.startsWith("/manager/")) {
     const targetUrl = publicRequestUrl(request);
-    if (pathname.startsWith("/manager/orders")) {
+    if (pathname === "/admin/dashboard") {
+      targetUrl.pathname = "/admin";
+    } else if (pathname.startsWith("/manager/orders")) {
       targetUrl.pathname = pathname.replace(/^\/manager\/orders/, "/admin/collections/orders");
     } else if (pathname.startsWith("/manager/users")) {
       targetUrl.pathname = pathname.replace(/^\/manager\/users/, "/admin/collections/accounts");

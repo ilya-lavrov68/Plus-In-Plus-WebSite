@@ -2,7 +2,7 @@ import type { CollectionConfig, Field } from "payload";
 
 import { ACCOUNTS_SLUG, adminOnly, founderOnly, readAccounts, visibleToAdmin } from "../access.ts";
 import { authenticateAuthJsStaff } from "../auth/authjs-strategy.ts";
-import { activityAfterChange, cascadeAccountDeletion, protectAccount, revokeAccountSessions } from "../hooks.ts";
+import { activityAfterChange, cascadeAccountDeletion, protectAccount, protectAccountDeletion, revokeAccountSessions } from "../hooks.ts";
 
 const secretField = (name: string, type: "text" | "date" = "text"): Field => ({
   name,
@@ -41,7 +41,7 @@ export const Accounts: CollectionConfig = {
   hooks: {
     beforeChange: [protectAccount],
     afterChange: [revokeAccountSessions, activityAfterChange("user", "email")],
-    beforeDelete: [cascadeAccountDeletion],
+    beforeDelete: [protectAccountDeletion, cascadeAccountDeletion],
   },
   fields: [
     { name: "email", type: "email", required: true, unique: true, index: true, access: { update: () => false } },

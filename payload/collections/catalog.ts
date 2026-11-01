@@ -3,7 +3,7 @@ import path from "node:path";
 import { APIError, type CollectionConfig } from "payload";
 
 import { adminOnly, visibleToAdmin } from "../access.ts";
-import { activityAfterChange, cascadeServiceDeletion, protectServiceDeletion } from "../hooks.ts";
+import { activityAfterChange, cascadeServiceDeletion, mediaPublicUrl, prepareService, protectServiceDeletion, protectServicePricing } from "../hooks.ts";
 
 const contentGroup = { en: "Content", ru: "Контент" };
 const commerceGroup = { en: "Commerce", ru: "Продажи" };
@@ -21,6 +21,7 @@ export const Media: CollectionConfig = {
     hidden: ({ user }) => !visibleToAdmin(user),
   },
   access: { read: adminOnly, create: adminOnly, update: adminOnly, delete: adminOnly },
+  hooks: { afterRead: [mediaPublicUrl] },
   upload: {
     staticDir: path.join(process.cwd(), "public", "uploads", "media"),
     mimeTypes: ["image/png", "image/jpeg", "image/webp", "image/gif", "image/avif"],
@@ -64,6 +65,7 @@ export const Services: CollectionConfig = {
   },
   access: { read: adminOnly, create: adminOnly, update: adminOnly, delete: adminOnly },
   hooks: {
+    beforeChange: [prepareService, protectServicePricing],
     afterChange: [activityAfterChange("service", "title")],
     beforeDelete: [protectServiceDeletion, cascadeServiceDeletion],
   },

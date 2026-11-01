@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { resolveDatabaseConfig } from "@/lib/database";
-import { db } from "@/lib/payload-db";
+import { queryPayloadRows } from "@/lib/payload-native";
 import { logServerError } from "@/lib/security-log";
 
 /** Безопасный deployment check: только booleans и имена отсутствующих таблиц. */
@@ -40,7 +40,7 @@ export async function GET() {
   }
 
   try {
-    const rows = await db.queryRaw<{ name: unknown }>(
+    const rows = await queryPayloadRows<{ name: unknown }>(
       "select name from sqlite_master where type = 'table' and name not like 'sqlite_%'",
     );
     const present = new Set(rows.map((row) => String(row.name)));

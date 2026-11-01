@@ -9,7 +9,12 @@ import {
 export async function getStoryContent(): Promise<StoryContent> {
   try {
     const payload = await getPayloadClient();
-    const story = await payload.findGlobal({ slug: "story", depth: 0, overrideAccess: true });
+    const story = await payload.findGlobal({
+      slug: "story",
+      depth: 0,
+      overrideAccess: true,
+      select: { heading: true, description: true, events: true },
+    });
     return normalizeStoryContent({
       heading: story.heading ?? "",
       description: story.description ?? "",

@@ -7,7 +7,6 @@ const Module = require("node:module");
 const ts = require("typescript");
 const bcrypt = require("bcryptjs");
 const { TOTP, URI } = require("otpauth");
-const { applyOfflineSqliteDdl } = require("../scripts/lib/db-cli.cjs");
 const { createSoftwareAuthenticator } = require("./helpers/software-webauthn.cjs");
 
 const ORIGIN = "http://localhost:3000";
@@ -18,7 +17,8 @@ const originalLoad = Module._load;
 
 let core;
 let authErrors;
-let db;
+let payload;
+let closePayloadClient;
 let loginUser;
 let mfaActions;
 let currentUserId;
@@ -80,6 +80,9 @@ Module._load = function (name, parent, isMain) {
   if (name === "next-auth") {
     return { AuthError: authErrors.AuthError, CredentialsSignin: authErrors.CredentialsSignin };
   }
+  // The MFA integration does not render the Admin rich-text editor; avoiding its
+  // top-level-await ESM graph keeps this plain-Node test on the real Payload DB.
+  if (name === "@payloadcms/richtext-lexical") return { lexicalEditor: () => ({}) };
   if (name === "next/headers") {
     return { headers: async () => requestHeaders(), cookies: async () => cookieJar };
   }
@@ -91,6 +94,7 @@ Module._load = function (name, parent, isMain) {
       signOut: async () => {},
     };
   }
+  if (name === "@payload-config") name = path.resolve(__dirname, "..", "payload.config.ts");
   if (name.startsWith("@/")) name = path.resolve(__dirname, "..", name.slice(2));
   return originalLoad.call(this, name, parent, isMain);
 };
@@ -108,22 +112,29 @@ require.extensions[".ts"] = (module, filename) => {
 before(async () => {
   temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "pip-mfa-ceremony-"));
   process.env.AUTH_SECRET = SECRET;
-  process.env.TURSO_DATABASE_URL = `file:${path.join(temporaryDirectory, "ceremony.db")}`;
+  // Never open Payload's Next HMR WebSocket from a plain Node test process.
+  process.env.NODE_ENV = "test";
+  process.env.DISABLE_PAYLOAD_HMR = "true";
+  process.env.PAYLOAD_DATABASE_URL = `file:${path.join(temporaryDirectory, "ceremony.db")}`;
+  process.env.PAYLOAD_SECRET = SECRET;
   process.env.WEBAUTHN_ORIGIN = ORIGIN;
   process.env.WEBAUTHN_RP_ID = "localhost";
-  delete process.env.TURSO_AUTH_TOKEN;
+  delete process.env.PAYLOAD_DATABASE_AUTH_TOKEN;
   delete process.env.UPSTASH_REDIS_REST_URL;
   delete process.env.UPSTASH_REDIS_REST_TOKEN;
-  await applyOfflineSqliteDdl(process.env);
   core = await import("@auth/core");
   authErrors = await import("@auth/core/errors");
-  ({ db } = require("../lib/db.ts"));
+  const native = require("../lib/payload-native.ts");
+  closePayloadClient = native.closePayloadClient;
+  payload = await native.getPayloadClient();
+  const migration = require("../payload/migrations/20261031_220229.ts");
+  await migration.up({ db: payload.db.drizzle, payload, req: { payload } });
   ({ loginUser } = require("../app/actions/auth.ts"));
   mfaActions = require("../app/actions/mfa.ts");
 });
 
 after(async () => {
-  await db?.$disconnect();
+  await closePayloadClient?.();
   Module._load = originalLoad;
   if (originalTsExtension) require.extensions[".ts"] = originalTsExtension;
   else delete require.extensions[".ts"];
@@ -131,7 +142,8 @@ after(async () => {
 });
 
 async function createAccount(email) {
-  const account = await db.user.create({
+  const account = await payload.create({
+    collection: "accounts",
     data: {
       email,
       passwordHash: await bcrypt.hash(PASSWORD, 12),
@@ -139,9 +151,19 @@ async function createAccount(email) {
       lastName: "User",
       role: "USER",
     },
+    overrideAccess: true,
   });
   currentUserId = account.id;
   return account;
+}
+
+async function findAccount(id) {
+  const result = await payload.find({ collection: "accounts", depth: 0, limit: 1, overrideAccess: true, showHiddenFields: true, where: { id: { equals: id } } });
+  return result.docs[0] ?? null;
+}
+async function findCredential(id) {
+  const result = await payload.find({ collection: "webauthn-credentials", depth: 0, limit: 1, overrideAccess: true, where: { id: { equals: id } } });
+  return result.docs[0] ?? null;
 }
 
 function totpCode(secret) {
@@ -171,22 +193,16 @@ test("real passkey and TOTP ceremonies survive Auth.js serialization and remain 
   assert.match(setup.secret, /^[A-Z2-7]{32}$/);
   assert.match(setup.qrCode, /^data:image\/png;base64,/);
   assert.match(setup.otpauthUri, /^otpauth:\/\/totp\//);
-  const pendingSecret = await db.user.findUnique({
-    where: { id: account.id },
-    select: { mfaPendingSecret: true },
-  });
+  const pendingSecret = await findAccount(account.id);
   assert.notEqual(pendingSecret.mfaPendingSecret, setup.secret, "the database never stores the raw TOTP secret");
 
   const enabled = await mfaActions.enableTotp(totpCode(setup.secret));
   assert.equal(enabled.ok, true, enabled.error);
   assert.equal(enabled.backupCodes, undefined, "adding a second factor does not rotate existing backup codes");
-  const enabledAccount = await db.user.findUnique({
-    where: { id: account.id },
-    select: { mfaSecret: true, mfaPendingSecret: true },
-  });
+  const enabledAccount = await findAccount(account.id);
   assert.ok(enabledAccount.mfaSecret);
   assert.equal(enabledAccount.mfaPendingSecret, null);
-  assert.equal(await db.mfaBackupCode.count({ where: { userId: account.id } }), 10);
+  assert.equal((await payload.count({ collection: "mfa-backup-codes", overrideAccess: true, where: { userId: { equals: account.id } } })).totalDocs, 10);
 
   const passwordStep = await loginUser({ email: account.email, password: PASSWORD, adminMode: false });
   assert.equal(passwordStep.mfaRequired, true);
@@ -206,7 +222,7 @@ test("real passkey and TOTP ceremonies survive Auth.js serialization and remain 
   const rejected = await loginUser({ ...pending, webAuthnResponse: wrongOrigin });
   assert.equal(rejected.ok, false);
   assert.equal(rejected.mfaRequired, true);
-  let credential = await db.webAuthnCredential.findUnique({ where: { id: authenticator.id } });
+  let credential = await findCredential(authenticator.id);
   assert.equal(credential.counter, "0");
 
   // Malformed passkey input must not fall back to a simultaneously valid TOTP.
@@ -223,10 +239,10 @@ test("real passkey and TOTP ceremonies survive Auth.js serialization and remain 
   const assertion = authenticator.authenticationResponse(authentication.options, 1);
   const passkeyLogin = await loginUser({ ...pending, webAuthnResponse: assertion });
   assert.deepEqual(passkeyLogin, { ok: true, success: true, isAdmin: false });
-  credential = await db.webAuthnCredential.findUnique({ where: { id: authenticator.id } });
+  credential = await findCredential(authenticator.id);
   assert.equal(credential.counter, "1");
-  assert.ok(credential.lastUsedAt instanceof Date);
-  assert.equal(await db.pendingLogin.count({ where: { id: pending.pendingLoginId } }), 0);
+  assert.ok(Number.isFinite(new Date(credential.lastUsedAt).getTime()));
+  assert.equal((await payload.count({ collection: "pending-logins", overrideAccess: true, where: { id: { equals: pending.pendingLoginId } } })).totalDocs, 0);
 
   const replay = await loginUser({ ...pending, webAuthnResponse: assertion });
   assert.equal(replay.ok, false);
@@ -274,10 +290,7 @@ test("parallel authenticator setup keeps one stable secret and accepts the scann
   assert.equal(enabled.ok, true, enabled.error);
   assert.equal(enabled.backupCodes.length, 10);
 
-  const enabledAccount = await db.user.findUnique({
-    where: { id: account.id },
-    select: { mfaSecret: true, mfaPendingSecret: true },
-  });
+  const enabledAccount = await findAccount(account.id);
   assert.ok(enabledAccount.mfaSecret);
   assert.equal(enabledAccount.mfaPendingSecret, null);
 });
@@ -287,9 +300,11 @@ test("expired authenticator setup has an explicit stale state and can be renewed
   const setup = await mfaActions.beginTotpSetup();
   assert.equal(setup.ok, true, setup.error);
 
-  await db.user.update({
-    where: { id: account.id },
-    data: { mfaPendingCreatedAt: new Date(Date.now() - 11 * 60 * 1000) },
+  await payload.update({
+    collection: "accounts",
+    id: account.id,
+    data: { mfaPendingCreatedAt: new Date(Date.now() - 11 * 60 * 1000).toISOString() },
+    overrideAccess: true,
   });
   const expired = await mfaActions.enableTotp(URI.parse(setup.otpauthUri).generate(), setup.setupId);
   assert.equal(expired.ok, false);

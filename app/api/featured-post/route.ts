@@ -1,24 +1,27 @@
 import { NextResponse } from "next/server";
+import type { Where } from "payload";
 
 import { getPayloadClient } from "@/lib/payload-native";
+import type { Post } from "@/payload/payload-types";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
     const payload = await getPayloadClient();
-    const published = { and: [{ isPublished: { equals: true } }, { or: [{ publishedAt: { exists: false } }, { publishedAt: { less_than_equal: new Date().toISOString() } }] }] };
+    const publishedClauses: Where[] = [{ isPublished: { equals: true } }, { or: [{ publishedAt: { exists: false } }, { publishedAt: { less_than_equal: new Date().toISOString() } }] }];
+    const published: Where = { and: publishedClauses };
     const find = (featured: boolean) => payload.find({
       collection: "posts",
       depth: 1,
       limit: 1,
       sort: ["-publishedAt", "-createdAt"],
       overrideAccess: true,
-      where: featured ? { and: [{ isFeatured: { equals: true } }, ...published.and] } : published,
+      where: featured ? { and: [{ isFeatured: { equals: true } }, ...publishedClauses] } : published,
     });
     let result = await find(true);
     if (!result.docs.length) result = await find(false);
-    const post = result.docs[0] as any;
+    const post = result.docs[0] as Post | undefined;
     return NextResponse.json({
       post: post ? {
         id: post.id,

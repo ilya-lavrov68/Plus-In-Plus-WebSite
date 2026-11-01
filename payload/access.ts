@@ -29,29 +29,8 @@ export const adminOnly: Access = ({ req }) => hasPayloadAdmin(req);
 export const founderOnly: Access = ({ req }) => hasPayloadFounder(req);
 export const serverOnly: Access = () => false;
 
-/** Managers receive customers only when at least one submitted order links them. */
-export const readAccounts: Access = async ({ req }) => {
-  if (hasPayloadAdmin(req)) return true;
-  if (payloadRole(req) !== "MANAGER") return false;
-
-  const orders = await req.payload.find({
-    collection: "orders",
-    depth: 0,
-    overrideAccess: true,
-    pagination: false,
-    req,
-    select: { userId: true },
-    where: { status: { not_equals: "cart" } },
-  });
-  const ids = [...new Set(orders.docs.map((order) => String(order.userId)).filter(Boolean))];
-  if (ids.length === 0) return { id: { equals: "__no_customer__" } } as any;
-  return {
-    and: [
-      { id: { in: ids } },
-      { role: { equals: "USER" } },
-    ],
-  } as any;
-};
+/** Customer directory is staff-admin only; managers work with submitted orders, not accounts. */
+export const readAccounts: Access = ({ req }) => hasPayloadAdmin(req);
 
 export const readSubmittedOrders: Access = ({ req }) =>
   hasPayloadStaff(req) ? { status: { not_equals: "cart" } } : false;

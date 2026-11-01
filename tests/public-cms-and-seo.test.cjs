@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
+const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
 
 for (const extension of [".ts", ".tsx"]) {
   require.extensions[extension] = (module, filename) =>
@@ -44,7 +45,7 @@ const db = {
 
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/payload-db") return { db };
+  if (name === "@/lib/payload-native") return createNativeModuleMock(db);
   if (name === "@/lib/request-locale") {
     return { getRequestLocale: async () => "en" };
   }
@@ -223,7 +224,7 @@ test("public settings have a server-only loader and are wired to metadata and th
   const footer = fs.readFileSync(path.resolve(__dirname, "../components/site/footer.tsx"), "utf8");
 
   assert.equal(shared.includes("@/lib/payload-db"), false);
-  assert.ok(loader.includes("@/lib/payload-db"));
+  assert.ok(loader.includes("@/lib/payload-native"));
   assert.ok(layout.includes("getPublicSiteSettings"));
   assert.ok(layout.includes("settings.metaTitle"));
   assert.ok(footer.includes("getPublicSiteSettings"));

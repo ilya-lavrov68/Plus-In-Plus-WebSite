@@ -130,7 +130,7 @@ const Signup10 = ({
       ? result.redirectTo || "/profile?mfa=required"
       : callbackUrl ||
         result.redirectTo ||
-        (isLogin && adminMode ? "/admin/dashboard" : "/cart");
+        (isLogin && adminMode ? "/admin" : "/cart");
     setMfaChallenge(null);
     setMfaCode("");
     router.push(destination);

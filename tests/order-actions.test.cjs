@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
+const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
 
 require.extensions[".ts"] = (module, filename) =>
   module._compile(
@@ -30,7 +31,7 @@ const db = {
     // чужого userId в запрос отдала бы чужие заказы.
     findMany: async ({ where = {} } = {}) => {
       const rows = [...orders.values()].filter(
-        (row) => !where.userId || row.userId === where.userId,
+        (row) => (!where.userId || row.userId === where.userId) && (!where.status?.not || row.status !== where.status.not),
       );
       return structuredClone(rows.map((row) => ({ ...row, payments: row.payments ?? [] })));
     },
@@ -45,7 +46,7 @@ const db = {
       const row = orders.get(where.id);
       // Имитация гонки: между чтением и записью заказ успел измениться.
       if (writeRaceLost) return { count: 0 };
-      if (!row || (where.status && row.status !== where.status)) return { count: 0 };
+      if (!row || (where.status && row.status !== where.status) || (where.userId && row.userId !== where.userId)) return { count: 0 };
       const successful = (row.payments ?? []).some((payment) => payment.status === "succeeded");
       if (where.payments?.none && successful) return { count: 0 };
       if (where.payments?.some && !successful) return { count: 0 };
@@ -54,6 +55,9 @@ const db = {
     },
   },
   orderItem: {
+    findMany: async ({ where = {} } = {}) => [...orderItems.values()]
+      .filter((row) => !where.orderId || (typeof where.orderId === "string" ? row.orderId === where.orderId : where.orderId.in?.includes(row.orderId)))
+      .map((row) => structuredClone(row)),
     update: async ({ where, data }) => {
       const row = orderItems.get(where.id);
       if (!row) throw new Error("missing item");
@@ -61,7 +65,21 @@ const db = {
       return structuredClone(row);
     },
   },
+  orderService: { findMany: async () => [] },
   payment: {
+    findMany: async ({ where = {} } = {}) => {
+      const rows = new Map(payments);
+      for (const order of orders.values()) for (const payment of order.payments ?? []) {
+        rows.set(payment.id, { orderId: order.id, ...payment });
+      }
+      return [...rows.values()]
+        .filter((row) => !where.orderId || (typeof where.orderId === "string" ? row.orderId === where.orderId : where.orderId.in?.includes(row.orderId)))
+        .map((row) => structuredClone(row));
+    },
+    count: async ({ where = {} } = {}) => {
+      const rows = await db.payment.findMany({ where });
+      return rows.filter((row) => !where.status || row.status === where.status).length;
+    },
     create: async ({ data }) => {
       const row = { id: `pay-${++sequence}`, ...structuredClone(data) };
       payments.set(row.id, row);
@@ -87,7 +105,7 @@ db.transaction = async (callback) => {
 
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/payload-db") return { db };
+  if (name === "@/lib/payload-native") return createNativeModuleMock(db);
   // Заявки ведёт requireStaff: администратор и менеджер.
   if (name === "@/lib/admin-session") return {
     requireAdmin: async () => (admin && admin.id !== "usr-manager" ? admin : null),
@@ -111,7 +129,7 @@ Module._load = function (name, parent, isMain) {
   return originalLoad.call(this, name, parent, isMain);
 };
 
-const { cancelMyOrder, setOrderLocked, setOrderPrice, updateOrderStatus } = require("../app/actions/orders.ts");
+const { cancelMyOrder } = require("../app/actions/orders.ts");
 const { getCustomerOrders } = require("../lib/customer-orders.ts");
 
 /** Заявка с расчётом 30 000 ₽ и одной позицией. */
@@ -160,198 +178,6 @@ beforeEach(() => {
   invoiceFailure = false;
   writeRaceLost = false;
 });
-
-test("setOrderPrice: фиксирует цену, статус и менеджера", async () => {
-  const id = seedOrder();
-  const result = await setOrderPrice({ orderId: id, amountRub: "35000", managerNote: "Срочность" });
-
-  assert.equal(result.ok, true);
-  const order = orders.get(id);
-  assert.equal(order.total, 3_500_000, "рубли переведены в копейки");
-  assert.equal(order.status, "awaiting_payment");
-  assert.equal(order.managerId, "usr-admin");
-  assert.equal(order.managerNote, "Срочность");
-  assert.ok(order.priceAgreedAt instanceof Date, "время фиксации записано");
-});
-
-test("setOrderPrice: создаёт счёт на согласованную сумму", async () => {
-  const id = seedOrder();
-  await setOrderPrice({ orderId: id, amountRub: "35000" });
-
-  assert.equal(payments.size, 1);
-  const payment = [...payments.values()][0];
-  assert.equal(payment.amount, 3_500_000);
-  assert.equal(payment.status, "pending");
-  assert.equal(payment.orderId, id);
-  // Ссылки пока нет — её даст платёжный провайдер.
-  assert.equal(payment.paymentUrl, null);
-  assert.equal(invoiceClients[0], db, "invoice writes use the order transaction client");
-});
-
-test("setOrderPrice rolls back the price and line writes if the invoice cannot be issued", async () => {
-  const id = seedOrder();
-  const before = structuredClone(orders.get(id));
-  invoiceFailure = true;
-  const oldError = console.error;
-  console.error = () => {};
-  let result;
-  try {
-    result = await setOrderPrice({ orderId: id, amountRub: "35000" });
-  } finally {
-    console.error = oldError;
-  }
-  assert.equal(result.ok, false);
-  assert.deepEqual(orders.get(id), before);
-  assert.equal(orderItems.get("item-1").totalPrice, 0);
-  assert.equal(payments.size, 0);
-  assert.equal(logs.length, 0);
-});
-
-test("setOrderPrice: раскладывает сумму по позициям пропорционально", async () => {
-  const id = seedOrder();
-  // Вторая позиция с таким же расчётом — каждая должна получить половину.
-  orderItems.set("item-2", {
-    id: "item-2", orderId: id, title: "Монтаж", quantity: 1,
-    estimatedUnitPrice: 3_000_000, unitPrice: 0, totalPrice: 0,
-  });
-  orders.get(id).items = [orderItems.get("item-1"), orderItems.get("item-2")];
-
-  // Менеджер поднял цену с 60 000 до 75 000 ₽ (суммарный расчёт двух позиций).
-  await setOrderPrice({ orderId: id, amountRub: "75000" });
-
-  const first = orderItems.get("item-1");
-  const second = orderItems.get("item-2");
-  assert.equal(first.totalPrice, 3_750_000);
-  assert.equal(second.totalPrice, 3_750_000);
-  assert.equal(first.totalPrice + second.totalPrice, 7_500_000, "сумма позиций сходится с итогом");
-});
-
-test("setOrderPrice: пишет действие в журнал", async () => {
-  const id = seedOrder();
-  await setOrderPrice({ orderId: id, amountRub: "35000" });
-
-  assert.equal(logs.length, 1);
-  assert.equal(logs[0].action, "priced");
-  assert.equal(logs[0].entityType, "order");
-  assert.equal(logs[0].actorId, "usr-admin");
-});
-
-test("setOrderPrice: отвергает некорректные суммы", async () => {
-  const id = seedOrder();
-  for (const amountRub of ["", "abc", "-100", "999999999"]) {
-    const result = await setOrderPrice({ orderId: id, amountRub });
-    assert.equal(result.ok, false, `«${amountRub}» не должно проходить`);
-  }
-  // Ничего не изменилось.
-  assert.equal(orders.get(id).total, 0);
-  assert.equal(payments.size, 0);
-});
-
-test("setOrderPrice: принимает запятую как разделитель", async () => {
-  const id = seedOrder();
-  const result = await setOrderPrice({ orderId: id, amountRub: "1234,50" });
-  assert.equal(result.ok, true);
-  assert.equal(orders.get(id).total, 123_450);
-});
-
-test("setOrderPrice: не трогает оплаченные, выполняемые и закрытые заказы", async () => {
-  for (const status of ["paid", "in_progress", "completed", "cancelled", "refunded"]) {
-    orders = new Map(); orderItems = new Map(); payments = new Map(); logs = [];
-    const id = seedOrder({ status });
-    const result = await setOrderPrice({ orderId: id, amountRub: "35000" });
-    assert.equal(result.ok, false, `${status} нельзя переоценить`);
-    assert.equal(orders.get(id).total, 0);
-  }
-});
-
-test("setOrderPrice: недоступен без прав администратора", async () => {
-  admin = null;
-  const id = seedOrder();
-  const result = await setOrderPrice({ orderId: id, amountRub: "35000" });
-  assert.equal(result.ok, false);
-  assert.equal(orders.get(id).total, 0);
-});
-
-test("setOrderPrice: менеджер может согласовать цену", async () => {
-  // Менеджер работает с заявками — это его основная задача.
-  admin = { id: "usr-manager", email: "manager@test" };
-  const id = seedOrder();
-  const result = await setOrderPrice({ orderId: id, amountRub: "35000" });
-
-  assert.equal(result.ok, true);
-  assert.equal(orders.get(id).total, 3_500_000);
-  assert.equal(orders.get(id).managerId, "usr-manager", "в заявке записан согласовавший");
-});
-
-test("setOrderPrice: обычный пользователь не может согласовать цену", async () => {
-  admin = null;
-  customer = { id: "usr-1", email: "user@test" };
-  const id = seedOrder();
-  const result = await setOrderPrice({ orderId: id, amountRub: "35000" });
-  assert.equal(result.ok, false);
-  assert.equal(orders.get(id).total, 0);
-});
-
-test("setOrderPrice: успешный платёж блокирует цену даже при устаревшем статусе", async () => {
-  const id = seedOrder({
-    status: "awaiting_payment",
-    total: 3_000_000,
-    payments: [{ id: "pay-success", status: "succeeded" }],
-  });
-  const result = await setOrderPrice({ orderId: id, amountRub: "1000" });
-  assert.equal(result.ok, false);
-  assert.equal(result.error, "The price cannot be changed after a successful payment.");
-  assert.equal(orders.get(id).total, 3_000_000);
-  assert.equal(payments.size, 0, "новый счёт не создан");
-});
-
-test("updateOrderStatus: переводит оплаченный заказ в работу", async () => {
-  const id = seedOrder({
-    status: "paid",
-    payments: [{ id: "pay-success", status: "succeeded" }],
-  });
-  const result = await updateOrderStatus({ orderId: id, status: "in_progress" });
-  assert.equal(result.ok, true);
-  assert.equal(orders.get(id).status, "in_progress");
-});
-
-test("updateOrderStatus: статус paid без платежа не даёт начать работу", async () => {
-  const id = seedOrder({ status: "paid" });
-  const result = await updateOrderStatus({ orderId: id, status: "in_progress" });
-  assert.equal(result.ok, false);
-  assert.equal(result.error, "A successful payment is required before work can start or be completed.");
-  assert.equal(orders.get(id).status, "paid");
-});
-
-test("updateOrderStatus: запрещает произвольные и обратные переходы", async () => {
-  for (const [from, to] of [
-    ["awaiting_payment", "in_progress"],
-    ["paid", "awaiting_payment"],
-    ["in_progress", "paid"],
-    ["completed", "in_progress"],
-    ["cancelled", "negotiating"],
-  ]) {
-    orders = new Map(); orderItems = new Map(); payments = new Map(); logs = [];
-    const id = seedOrder({ status: from });
-    const result = await updateOrderStatus({ orderId: id, status: to });
-    assert.equal(result.ok, false, `${from} → ${to} должно быть запрещено`);
-    assert.equal(orders.get(id).status, from);
-  }
-});
-
-test("updateOrderStatus: оплаченным может отметить только платёжная система", async () => {
-  const id = seedOrder({ status: "awaiting_payment" });
-  const result = await updateOrderStatus({ orderId: id, status: "paid" });
-  assert.equal(result.ok, false);
-  assert.equal(orders.get(id).status, "awaiting_payment", "статус не изменился");
-});
-
-test("updateOrderStatus: отвергает неизвестный статус", async () => {
-  const id = seedOrder();
-  const result = await updateOrderStatus({ orderId: id, status: "whatever" });
-  assert.equal(result.ok, false);
-});
-
 
 // --- Личный кабинет: видит только свои заказы ---
 
@@ -423,87 +249,6 @@ test("getCustomerOrders: заказ без цены остаётся без кн
   assert.equal(order.invoices.length, 0, "счёт не выставлен");
 });
 
-// ---------------------------------------------------------------------------
-// Блокировка заказа: зафиксированная цена неприкосновенна для всех,
-// кроме основателя.
-// ---------------------------------------------------------------------------
-
-const LOCKED_ERROR = "Order is locked. Only Founder can edit.";
-
-test("менеджер фиксирует цену и блокирует заказ одним действием", async () => {
-  admin = { id: "usr-manager", email: "manager@test" };
-  const id = seedOrder();
-
-  const result = await setOrderPrice({ orderId: id, amountRub: "31000", lock: true });
-  assert.equal(result.ok, true);
-
-  const order = orders.get(id);
-  assert.equal(order.total, 3_100_000);
-  assert.equal(order.isLocked, true, "заказ заблокирован");
-  assert.equal(order.lockedById, "usr-manager", "записан, кто заблокировал");
-  assert.ok(logs.some((entry) => entry.action === "locked"), "блокировка попала в журнал");
-});
-
-test("заблокированный заказ нельзя переценить — ни менеджеру, ни админу", async () => {
-  const id = seedOrder({ status: "awaiting_payment", total: 3_000_000, isLocked: true });
-
-  admin = { id: "usr-manager", email: "manager@test" };
-  const byManager = await setOrderPrice({ orderId: id, amountRub: "1000" });
-  assert.equal(byManager.ok, false);
-  assert.equal(byManager.error, LOCKED_ERROR);
-
-  admin = { id: "usr-admin", email: "admin@test" };
-  const byAdmin = await setOrderPrice({ orderId: id, amountRub: "1000" });
-  assert.equal(byAdmin.ok, false, "обычный админ — не основатель");
-  assert.equal(byAdmin.error, LOCKED_ERROR);
-
-  assert.equal(orders.get(id).total, 3_000_000, "цена не изменилась");
-});
-
-test("основатель может редактировать заблокированный заказ", async () => {
-  const id = seedOrder({ status: "awaiting_payment", total: 3_000_000, isLocked: true });
-  admin = { id: "usr-founder", email: "founder@test", isFounder: true };
-
-  const result = await setOrderPrice({ orderId: id, amountRub: "29000" });
-  assert.equal(result.ok, true);
-  assert.equal(orders.get(id).total, 2_900_000);
-  assert.equal(orders.get(id).isLocked, true, "правка основателя блокировку не снимает");
-});
-
-test("статус заблокированного заказа менеджеру не поменять", async () => {
-  const id = seedOrder({ status: "awaiting_payment", total: 3_000_000, isLocked: true });
-  admin = { id: "usr-manager", email: "manager@test" };
-
-  const result = await updateOrderStatus({ orderId: id, status: "cancelled" });
-  assert.equal(result.ok, false);
-  assert.equal(result.error, LOCKED_ERROR);
-  assert.equal(orders.get(id).status, "awaiting_payment");
-});
-
-test("разблокировать заказ может только основатель", async () => {
-  const id = seedOrder({ status: "awaiting_payment", total: 3_000_000, isLocked: true });
-
-  admin = { id: "usr-manager", email: "manager@test" };
-  const byManager = await setOrderLocked({ orderId: id, locked: false });
-  assert.equal(byManager.ok, false, "менеджер не снимает собственный замок");
-  assert.equal(orders.get(id).isLocked, true);
-
-  admin = { id: "usr-founder", email: "founder@test", isFounder: true };
-  const byFounder = await setOrderLocked({ orderId: id, locked: false });
-  assert.equal(byFounder.ok, true);
-  assert.equal(orders.get(id).isLocked, false);
-  assert.equal(orders.get(id).lockedById, null);
-});
-
-test("заблокировать уже оценённый заказ может любой сотрудник", async () => {
-  const id = seedOrder({ status: "awaiting_payment", total: 3_000_000, isLocked: false });
-  admin = { id: "usr-manager", email: "manager@test" };
-
-  const result = await setOrderLocked({ orderId: id, locked: true });
-  assert.equal(result.ok, true);
-  assert.equal(orders.get(id).isLocked, true);
-});
-
 // ── Отмена заказа клиентом ───────────────────────────────────────────────────
 
 test("cancelMyOrder: клиент отменяет свою неоплаченную заявку", async () => {
@@ -521,8 +266,7 @@ test("cancelMyOrder: клиент отменяет свою неоплаченн
   assert.match(logs[0].title, /ПИП-000099/);
   // Объединённая страница корзины и заказы в админке должны обновиться.
   assert.ok(invalidated.includes("/cart"));
-  assert.ok(invalidated.includes("/admin/orders"));
-  assert.ok(invalidated.includes("/manager/orders"));
+  assert.equal(invalidated.includes("/admin/collections/orders"), false);
 });
 
 test("cancelMyOrder: отменяются все доспешные статусы", async () => {

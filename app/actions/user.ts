@@ -7,7 +7,7 @@ import { auth } from "@/auth";
 import { getActionTranslator } from "@/lib/action-i18n";
 import { isAuthConfigured } from "@/lib/auth-secret";
 import { assertPasswordNotCompromised, CompromisedPasswordError } from "@/lib/password-breach";
-import { getPayloadClient, withPayloadTransaction } from "@/lib/payload-native";
+import { getPayloadClient, type PayloadTransactionRequest, withPayloadTransaction } from "@/lib/payload-native";
 import { checkRateLimitAsync, hashRateLimitIdentifier } from "@/lib/rate-limit";
 import { logServerError } from "@/lib/security-log";
 import { localAvatarPath } from "@/lib/upload-policy";
@@ -20,7 +20,7 @@ export interface ChangePasswordInput { currentPassword: string; newPassword: str
 export interface UpdateUserProfileInput { firstName?: string; lastName?: string; avatar?: string }
 export interface UpdateUserProfileResult { ok: boolean; firstName: string | null; lastName: string | null; avatar: string | null }
 function isFormData(value: unknown): value is FormData { return typeof FormData !== "undefined" && value instanceof FormData; }
-async function writeActivity(payload: any, req: any, action: string, userId: string) {
+async function writeActivity(payload: Awaited<ReturnType<typeof getPayloadClient>>, req: PayloadTransactionRequest, action: string, userId: string) {
   await payload.create({ collection: "activity-logs", data: { action, entityType: "user", entityId: userId, title: "User account", actorId: userId }, overrideAccess: true, req });
 }
 

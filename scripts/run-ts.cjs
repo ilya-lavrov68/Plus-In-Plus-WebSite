@@ -4,6 +4,8 @@ const { spawnSync } = require("node:child_process");
 const { loadDatabaseModule } = require("./lib/database-module.cjs");
 
 const rootDir = path.join(__dirname, "..");
+// CLI scripts have no Next HMR server; do not leave a WebSocket handle open.
+process.env.DISABLE_PAYLOAD_HMR = "true";
 if (!process.env.PAYLOAD_DATABASE_URL) {
   const { resolveDatabaseConfig } = loadDatabaseModule();
   const config = resolveDatabaseConfig({ env: { ...process.env, NODE_ENV: "development" }, rootDir, allowDevelopmentFallback: true });

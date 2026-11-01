@@ -1,6 +1,8 @@
 import type { CollectionConfig, GlobalConfig } from "payload";
 
+import { isSiteSettingKey } from "@/lib/site-settings";
 import { adminOnly, founderOnly, serverOnly, visibleToAdmin } from "../access.ts";
+import { activityAfterChange, activityAfterStoryChange } from "../hooks.ts";
 
 export const ActivityLogs: CollectionConfig = {
   slug: "activity-logs",
@@ -73,8 +75,17 @@ export const SiteSettings: CollectionConfig = {
     },
   },
   access: { read: founderOnly, create: founderOnly, update: founderOnly, delete: founderOnly },
+  hooks: { afterChange: [activityAfterChange("setting", "key")] },
   fields: [
-    { name: "key", type: "text", required: true, unique: true, index: true, admin: { readOnly: true } },
+    {
+      name: "key",
+      type: "text",
+      required: true,
+      unique: true,
+      index: true,
+      access: { update: () => false },
+      validate: (value: unknown) => typeof value === "string" && isSiteSettingKey(value) || "Unknown site setting.",
+    },
     { name: "value", type: "textarea", required: true, maxLength: 5000 },
   ],
 };
@@ -91,6 +102,7 @@ export const Story: GlobalConfig = {
     },
   },
   access: { read: adminOnly, update: adminOnly },
+  hooks: { afterChange: [activityAfterStoryChange] },
   fields: [
     { name: "heading", type: "text", maxLength: 120, label: { en: "Heading", ru: "Заголовок" } },
     { name: "description", type: "textarea", maxLength: 600, label: { en: "Description", ru: "Описание" } },

@@ -17,6 +17,9 @@ import { logSecurityEvent, logServerError } from "@/lib/security-log";
 import { localAvatarPath } from "@/lib/upload-policy";
 import { profileName, type UserRole } from "@/lib/user-profile";
 import { webAuthnConfigFromRequest } from "@/lib/webauthn-config";
+import type { Account, WebauthnCredential } from "@/payload/payload-types";
+
+type CredentialsAccount = Account & { webAuthnCredentials: WebauthnCredential[] };
 
 type AuthenticationResponseJSON = Parameters<typeof verifyAuthenticationResponse>[0]["response"];
 
@@ -83,18 +86,21 @@ type CredentialFields =
 function sessionUser(account: {
   id: string;
   email: string;
-  firstName: string | null;
-  lastName: string | null;
-  avatar: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  avatar?: string | null;
 }, role: UserRole) {
+  const firstName = account.firstName ?? null;
+  const lastName = account.lastName ?? null;
+  const avatar = localAvatarPath(account.avatar ?? null);
   return {
     id: account.id,
     email: account.email,
-    firstName: account.firstName,
-    lastName: account.lastName,
-    avatar: localAvatarPath(account.avatar),
-    name: profileName(account),
-    image: localAvatarPath(account.avatar),
+    firstName,
+    lastName,
+    avatar,
+    name: profileName({ firstName, lastName }),
+    image: avatar,
     role,
   };
 }
@@ -255,7 +261,7 @@ export async function authorizeCredentials(
     return null;
   }
 
-  let account: any;
+  let account: CredentialsAccount | null = null;
   try {
     const payload = await getPayloadClient();
     const result = await payload.find({
@@ -266,11 +272,11 @@ export async function authorizeCredentials(
       showHiddenFields: true,
       where: { email: { equals: email } },
     });
-    const found = result.docs[0] as any;
+    const found = result.docs[0] as Account | undefined;
     const passkeys = found
       ? await payload.find({ collection: "webauthn-credentials", depth: 0, limit: 1, overrideAccess: true, where: { userId: { equals: found.id } } })
       : { docs: [] };
-    account = found ? { ...found, webAuthnCredentials: passkeys.docs } : null;
+    account = found ? { ...found, webAuthnCredentials: passkeys.docs as WebauthnCredential[] } : null;
   } catch (error) {
     logServerError("auth.credentials.lookup_failed", error);
     await bcrypt.compare(password, DUMMY_PASSWORD_HASH);

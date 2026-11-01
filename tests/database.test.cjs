@@ -24,42 +24,53 @@ const { slugify, withNumericSuffix } = require("../lib/slug.ts");
 const { checkRateLimit, hashRateLimitIdentifier } = require("../lib/rate-limit.ts");
 const validators = require("../lib/validators.ts");
 
-const schema = fs.readFileSync(path.join(rootDir, "db", "schema.db"), "utf8");
-const prismaClientSource = fs.readFileSync(path.join(rootDir, "lib", "db.ts"), "utf8");
+const payloadConfig = fs.readFileSync(path.join(rootDir, "payload.config.ts"), "utf8");
+const migration = fs.readFileSync(path.join(rootDir, "payload", "migrations", "20261031_220229.ts"), "utf8");
 const packageJson = JSON.parse(fs.readFileSync(path.join(rootDir, "package.json"), "utf8"));
 
 // ---------------------------------------------------------------------------
 // One database for development and production
 // ---------------------------------------------------------------------------
 
-test("the schema targets libSQL/SQLite with explicit table names and one datasource", () => {
-  assert.match(schema, /datasource\s+db\s*\{[^}]*provider\s*=\s*"sqlite"/s);
-  // A libSQL endpoint is not a PostgreSQL server: PostgreSQL here would be a lie
-  // that only surfaces as "table does not exist" in production.
-  assert.doesNotMatch(schema, /provider\s*=\s*"postgresql"/);
-  assert.doesNotMatch(schema, /enum\s+Role/);
-  assert.doesNotMatch(schema, /\bJson\b/);
-  for (const mapping of ['@@map("users")', '@@map("services")', '@@map("posts")', '@@map("activity_logs")']) {
-    assert.ok(schema.includes(mapping), mapping);
+test("Payload owns one libSQL/Site database with reviewed migrations and UUID documents", () => {
+  assert.match(payloadConfig, /sqliteAdapter\(\{/);
+  assert.match(payloadConfig, /idType: "uuid"/);
+  assert.match(payloadConfig, /allowIDOnCreate: true/);
+  assert.match(payloadConfig, /push: false/);
+  assert.match(payloadConfig, /migrationDir:/);
+  assert.doesNotMatch(payloadConfig, /prisma|postgres/i);
+  for (const table of ["accounts", "services", "posts", "activity_logs", "orders", "payments"]) {
+    assert.ok(migration.includes(table), table);
   }
-  assert.match(schema, /slug\s+String\s+@unique/);
-  assert.match(schema, /includes\s+String/);
-  assert.match(schema, /shapes\s+String/);
-  assert.match(schema, /role\s+String\s+@default\("USER"\)/);
+  assert.ok(migration.includes("DEFAULT 'USER'"));
 });
 
-test("the runtime client uses the libSQL adapter and no PostgreSQL driver remains", () => {
-  assert.match(prismaClientSource, /@db\/adapter-libsql/);
-  assert.doesNotMatch(prismaClientSource, /adapter-pg|PrismaPg/);
-  assert.equal(packageJson.dependencies.pg, undefined);
-  assert.equal(packageJson.dependencies["@db/adapter-pg"], undefined);
-  assert.equal(packageJson.dependencies["@db/adapter-libsql"], "6.19.3");
+test("the native SQLite adapter remains installed without Prisma or PostgreSQL drivers", () => {
+  assert.equal(packageJson.dependencies["@payloadcms/db-sqlite"], "3.92.1");
   assert.ok(packageJson.dependencies["@libsql/client"]);
   assert.ok(packageJson.dependencies.zod);
-  for (const script of ["db:push", "db:check", "db:promote-admin", "db:migrate-from-postgres", "db:load-dump", "deploy:verify"]) {
+  for (const dependency of ["prisma", "@prisma/client", "pg", "@db/adapter-pg", "@db/adapter-libsql"]) {
+    assert.equal(packageJson.dependencies[dependency], undefined, dependency);
+  }
+  for (const script of ["db:check", "db:promote-admin", "deploy:verify"]) {
     assert.ok(packageJson.scripts[script], script);
     assert.ok(fs.existsSync(path.join(rootDir, packageJson.scripts[script].split(" ")[1])), script);
   }
+  assert.equal(packageJson.scripts["payload:migrate"], "node scripts/payload-cli.cjs migrate");
+  assert.ok(fs.existsSync(path.join(rootDir, "scripts/payload-cli.cjs")));
+  assert.equal(packageJson.scripts["db:push"], undefined);
+});
+
+test("staff role runbook uses Payload Local API and lifecycle hooks instead of direct SQL", () => {
+  assert.equal(packageJson.scripts["db:promote-admin"], "node scripts/run-ts.cjs scripts/promote-admin.ts");
+  const filename = path.join(rootDir, "scripts", "promote-admin.ts");
+  const source = fs.readFileSync(filename, "utf8");
+  assert.match(source, /getPayloadClient/);
+  assert.match(source, /payload\.find\(\{/);
+  assert.match(source, /payload\.update\(\{/);
+  assert.match(source, /closePayloadClient/);
+  assert.doesNotMatch(source, /createClient|client\.execute|update\s+accounts/i);
+  assert.equal(fs.existsSync(path.join(rootDir, "scripts", "promote-admin.cjs")), false);
 });
 
 test("database resolution prefers Turso and falls back to the local file in development", () => {
@@ -68,7 +79,7 @@ test("database resolution prefers Turso and falls back to the local file in deve
 
   const development = resolveDatabaseConfig({ env: {}, rootDir: "/app" });
   assert.deepEqual(development, {
-    url: `file:${path.join("/app", "db", "dev.db")}`,
+    url: `file:${path.join("/app", "payload", "pip.db")}`,
     authToken: undefined,
     remote: false,
     ignoredUrl: undefined,
@@ -92,7 +103,7 @@ test("database resolution prefers Turso and falls back to the local file in deve
 test("a leftover PostgreSQL DATABASE_URL is reported, never silently used", () => {
   const legacy = "postgresql://postgres:secret@localhost:5432/plus_in_plus";
   const development = resolveDatabaseConfig({ env: { DATABASE_URL: legacy }, rootDir: "/app" });
-  assert.equal(development.url, `file:${path.join("/app", "db", "dev.db")}`);
+  assert.equal(development.url, `file:${path.join("/app", "payload", "pip.db")}`);
   assert.equal(development.ignoredUrl, legacy);
   assert.match(unsupportedDatabaseUrlMessage({ DATABASE_URL: legacy }), /not a libSQL\/SQLite URL/);
   assert.equal(unsupportedDatabaseUrlMessage({ DATABASE_URL: "file:local.db" }), null);
@@ -107,7 +118,7 @@ test("a leftover PostgreSQL DATABASE_URL is reported, never silently used", () =
 test("log output never exposes credentials", () => {
   assert.equal(describeDatabaseUrl("libsql://db-org.turso.io?authToken=super-secret"), "libsql://db-org.turso.io?authToken=***");
   assert.equal(describeDatabaseUrl("https://user:password@sqld.example"), "https://***@sqld.example/");
-  assert.equal(localDatabaseUrl("/app").endsWith("/db/dev.db"), true);
+  assert.equal(localDatabaseUrl("/app").endsWith("/payload/pip.db"), true);
 });
 
 // ---------------------------------------------------------------------------

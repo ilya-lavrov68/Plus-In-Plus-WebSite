@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
+const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
 
 require.extensions[".ts"] = (module, filename) =>
   module._compile(
@@ -43,7 +44,12 @@ const invoiceDb = {
     payment: {
       findMany: async ({ where = {} } = {}) =>
         [...invoiceDb.payments.values()]
-          .filter((p) => (!where.orderId || p.orderId === where.orderId) && (!where.status || p.status === where.status))
+          .filter((p) =>
+            (!where.id || p.id === where.id) &&
+            (!where.orderId || p.orderId === where.orderId) &&
+            (!where.provider || p.provider === where.provider) &&
+            (!where.externalId || p.externalId === where.externalId) &&
+            (!where.status || p.status === where.status))
           .sort((a, b) => b.createdAt - a.createdAt)
           .map((row) => structuredClone(row)),
       findFirst: async ({ where = {} } = {}) => {
@@ -105,6 +111,16 @@ const invoiceDb = {
         return { count: 1 };
       },
     },
+    siteSetting: { findMany: async () => [] },
+    queryRaw: async () => {
+      const succeeded = [...invoiceDb.payments.values()].filter((payment) => payment.status === "succeeded");
+      const paidOrderIds = new Set(succeeded.map((payment) => payment.orderId));
+      return [{
+        queue: [...invoiceDb.orders.values()].filter((order) => ["pending", "quote_requested", "negotiating"].includes(order.status)).length,
+        revenue: succeeded.reduce((sum, payment) => sum + payment.amount, 0),
+        paidCount: [...invoiceDb.orders.values()].filter((order) => paidOrderIds.has(order.id)).length,
+      }];
+    },
     activityLog: {
       create: async ({ data }) => { invoiceDb.logs.push(structuredClone(data)); return data; },
     },
@@ -117,7 +133,7 @@ Module._load = function (name, parent, isMain) {
   // Сгенерированный Prisma-клиент — ESM, из .cjs его не подключить.
   // invoice.ts всё равно работает только с базой, а здесь проверяется
   // чистая арифметика номера счёта.
-  if (name === "@/lib/payload-db") return { db: invoiceDb.db };
+  if (name === "@/lib/payload-native") return createNativeModuleMock(invoiceDb.db);
   if (name.startsWith("@/")) name = path.resolve(__dirname, "..", name.slice(2));
   return originalLoad.call(this, name, parent, isMain);
 };
@@ -387,8 +403,8 @@ describe("повторное выставление счёта", () => {
 
   test("concurrent invoice requests reuse one unique InvId", async () => {
     const { issueInvoice } = require("../lib/payments/invoice.ts");
-    const schema = fs.readFileSync(path.join(__dirname, "..", "db", "schema.db"), "utf8");
-    assert.match(schema, /@@unique\(\[provider, externalId\]\)/);
+    const collection = fs.readFileSync(path.join(__dirname, "..", "payload", "collections", "commerce.ts"), "utf8");
+    assert.match(collection, /name: "providerKey", type: "text", unique: true/);
     invoiceDb.reset();
     const input = {
       orderId: "ord-7", orderNumber: "ПИП-000007", amount: 1_600_000,
@@ -589,7 +605,7 @@ describe("Result URL: целостность оплаты", () => {
     assert.equal(await first.text(), "OK7000");
     assert.equal(invoiceDb.payments.get("pay-current").status, "succeeded");
     assert.equal(invoiceDb.orders.get("ord-7").status, "paid");
-    assert.ok(invoiceDb.orders.get("ord-7").paidAt instanceof Date);
+    assert.ok(Number.isFinite(new Date(invoiceDb.orders.get("ord-7").paidAt).getTime()));
     assert.equal(invoiceDb.logs.length, 1);
 
     invoiceDb.orders.get("ord-7").status = "in_progress";
@@ -685,7 +701,7 @@ describe("выставление счетов: актуальная попытк
 });
 
 describe("статистика заказов: деньги по успешным платежам", () => {
-  const { getOrderStats } = require("../lib/admin-orders.ts");
+  const { getOrderStats } = require("../lib/admin-analytics.ts");
 
   test("статус paid без платежа не создаёт выручку", async () => {
     invoiceDb.reset();

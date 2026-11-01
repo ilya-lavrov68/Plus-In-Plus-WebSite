@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
+const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
 const sharp = require("sharp");
 const { createHash } = require("node:crypto");
 const { TOTP } = require("otpauth");
@@ -16,16 +17,48 @@ require.extensions[".ts"] = (module, filename) => {
 
 // Test doubles only. These tests never connect to a database or create real accounts.
 let account, session, options, compareCalls, lookupFails, pendingLogin, backupCode;
+const mediaRows = new Map();
 let addressSequence = 1;
 class CredentialsSignin extends Error { code = "credentials"; }
 function nextAuth(config) { options = config; return {}; }
 nextAuth.CredentialsSignin = CredentialsSignin;
 
 const db = {
-  user: { findUnique: async () => {
-    if (lookupFails) throw new Error("simulated DB outage");
-    return account;
-  } },
+  user: {
+    findUnique: async () => {
+      if (lookupFails) throw new Error("simulated DB outage");
+      return account;
+    },
+    findMany: async ({ where = {} } = {}) => {
+      if (lookupFails) throw new Error("simulated DB outage");
+      if (!account || (where.id && account.id !== where.id) || (where.email && account.email !== where.email)) return [];
+      return [structuredClone(account)];
+    },
+  },
+  webAuthnCredential: {
+    findMany: async () => structuredClone(account?.webAuthnCredentials ?? []),
+  },
+  media: {
+    create: async ({ data, file }) => {
+      const id = `media-${mediaRows.size + 1}`;
+      const directory = path.join(process.cwd(), "public", "uploads", "media");
+      await fs.promises.mkdir(directory, { recursive: true });
+      await fs.promises.writeFile(path.join(directory, file.name), file.data);
+      const row = { id, ...data, filename: file.name, url: `/uploads/media/${file.name}` };
+      mediaRows.set(id, row);
+      return structuredClone(row);
+    },
+    findMany: async ({ where = {} } = {}) => [...mediaRows.values()]
+      .filter((row) => (!where.filename || row.filename === where.filename) && (!where.kind || row.kind === where.kind))
+      .map((row) => structuredClone(row)),
+    delete: async ({ where }) => {
+      const row = mediaRows.get(where.id);
+      if (!row) throw new Error("Media not found");
+      mediaRows.delete(where.id);
+      await fs.promises.unlink(path.join(process.cwd(), "public", "uploads", "media", row.filename));
+      return structuredClone(row);
+    },
+  },
   pendingLogin: {
     findUnique: async ({ where }) => pendingLogin?.id === where.id
       ? { ...structuredClone(pendingLogin), user: structuredClone(account) }
@@ -38,6 +71,7 @@ const db = {
     updateMany: async ({ where, data }) => {
       if (!pendingLogin || pendingLogin.id !== where.id || pendingLogin.attempts >= (where.attempts?.lt ?? Infinity)) return { count: 0 };
       if (data.attempts?.increment) pendingLogin.attempts += data.attempts.increment;
+      else if (Number.isInteger(data.attempts)) pendingLogin.attempts = data.attempts;
       return { count: 1 };
     },
   },
@@ -70,7 +104,7 @@ Module._load = function (name, parent, isMain) {
     downgradeAuthSession: async () => {},
     rotateAuthSession: async () => null,
   };
-  if (name === "@/lib/payload-db") return { db };
+  if (name === "@/lib/payload-native") return createNativeModuleMock(db);
   if (name.startsWith("@/")) name = path.resolve(__dirname, "..", name.slice(2));
   return originalLoad.call(this, name, parent, isMain);
 };
@@ -98,6 +132,7 @@ beforeEach(() => {
   lookupFails = false;
   pendingLogin = null;
   backupCode = null;
+  mediaRows.clear();
 });
 
 function seedPendingLogin(role = "ADMIN") {
@@ -165,7 +200,8 @@ test("backup codes are single-use and a failed replay does not consume the pendi
 
   const user = await authorizeCredentials({ ...pending, mfaCode: rawCode }, request());
   assert.equal(user.role, "USER");
-  assert.ok(backupCode.usedAt instanceof Date);
+  assert.ok(backupCode.usedAt);
+  assert.ok(Number.isFinite(new Date(backupCode.usedAt).getTime()));
 
   const replay = seedPendingLogin("USER");
   const originalWarn = console.warn;
@@ -309,19 +345,19 @@ test("uploads reject forged, truncated, oversized, SVG and non-local destination
   for (const kind of ["../assets", "__proto__", "constructor"]) await assert.rejects(saveImageUpload(truncated, kind), /Unknown upload destination/);
 });
 
-test("real images are saved in each local folder and served after startup; cleanup is confined", async () => {
+test("Payload media images are stored locally, served after startup and deleted only in their own kind", async () => {
   const png = await sharp({ create: { width: 400, height: 300, channels: 3, background: "#336699" } }).png().toBuffer();
   for (const kind of ["avatars", "services", "blog"]) {
     const url = await saveImageUpload(new File([png], "image.png", { type: "image/png" }), kind);
     try {
-      assert.match(url, new RegExp(`^/uploads/${kind}/[0-9a-f-]+\\.webp$`));
+      assert.match(url, /^\/uploads\/media\/[0-9a-f-]+\.webp$/);
       const diskPath = path.join(process.cwd(), "public", url);
       const info = await sharp(diskPath).metadata();
       assert.equal(info.format, "webp");
       if (kind === "avatars") assert.equal(info.width, 256);
       await deleteImageUpload(url, kind === "blog" ? "services" : "blog");
       assert.equal(fs.existsSync(diskPath), true);
-      const response = await readUpload(new Request(`http://example.test${url}`), { params: Promise.resolve({ kind, filename: path.basename(url) }) });
+      const response = await readUpload(new Request(`http://example.test${url}`), { params: Promise.resolve({ kind: "media", filename: path.basename(url) }) });
       assert.equal(response.status, 200);
       assert.equal(response.headers.get("content-type"), "image/webp");
       assert.equal(response.headers.get("x-content-type-options"), "nosniff");

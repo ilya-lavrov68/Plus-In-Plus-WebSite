@@ -356,9 +356,9 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
 
   const dashboardHref =
     session?.user?.role === "FOUNDER" || session?.user?.role === "ADMIN"
-      ? "/admin/dashboard"
+      ? "/admin"
       : session?.user?.role === "MANAGER"
-        ? "/manager/orders"
+        ? "/admin/collections/orders"
         : null;
 
   return (

@@ -57,7 +57,7 @@ function AgentSection({
             <span className="font-medium text-muted-foreground">{status}</span>
           </div>
           <div className="mt-6 aspect-[36/23] w-full border-y border-border bg-background text-foreground">
-            <AgentShaderPlayer agent={agent} labels={shaderLabels} />
+            <AgentShaderPlayer key={agent} agent={agent} labels={shaderLabels} />
           </div>
           <figcaption className="sr-only">{visualLabel}</figcaption>
         </figure>

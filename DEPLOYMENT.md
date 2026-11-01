@@ -4,14 +4,14 @@
 
 ## 1. Что потребуется
 
-- Node.js `20.19+` или `22 LTS`; CI использует Node 22.
+- Node.js `24.22.1+`; та же major/minor линия закреплена в `.nvmrc` и CI.
 - Checkout репозитория и `npm ci`.
 - Turso Cloud или совместимый libSQL/sqld endpoint.
 - HTTPS reverse proxy, который перезаписывает `Host`, `X-Forwarded-Host`, `X-Forwarded-Proto`, `X-Real-IP` и `X-Forwarded-For` доверенными значениями.
 - Постоянное хранилище `public/uploads/`: файлы не входят в Git и могут исчезнуть на ephemeral filesystem.
 - Для нескольких инстансов — Upstash или эквивалентный общий rate-limit backend.
 
-Сборка: `npm run build`. Запуск: `npm start`. `postinstall` генерирует Prisma Client по схеме и не требует подключения к БД. Сама сборка не должна применять схему к production.
+Сборка: `npm run build`. Запуск: `npm start`. Prisma и отдельный generated client больше не используются. Сама сборка не применяет схему к production: миграции запускаются только явной командой после backup и review.
 
 ## 2. Создание базы Turso
 
@@ -37,9 +37,10 @@ Windows: installer и shell-команды выполняйте в WSL или Gi
 
 | Переменная | Обязательность | Назначение |
 | --- | --- | --- |
-| `TURSO_DATABASE_URL` | Да | libSQL/SQLite target; в production обычно `libsql://…` |
-| `TURSO_AUTH_TOKEN` | Для Turso Cloud | Token доступа к БД |
+| `PAYLOAD_DATABASE_URL` | Да | Единый Payload SQLite/libSQL target для CMS, auth, заказов и аналитики; в production обычно `libsql://…` |
+| `PAYLOAD_DATABASE_AUTH_TOKEN` | Для Turso Cloud | Token доступа к единой БД |
 | `AUTH_SECRET` | Да | Уникальный секрет не короче 32 символов |
+| `PAYLOAD_SECRET` | Да | Независимый секрет Payload не короче 32 символов; не копировать `AUTH_SECRET` |
 | `AUTH_URL` | Да в production | Реальный HTTPS origin сайта |
 | `NEXT_PUBLIC_SITE_URL` | Рекомендуется | Тот же публичный origin для SEO/sitemap |
 | `WEBAUTHN_ORIGIN` | Для passkeys в production | Например, `https://www.example.com` |
@@ -49,7 +50,9 @@ Windows: installer и shell-команды выполняйте в WSL или Gi
 | `PIP_HIBP_CHECK` / `PIP_HIBP_REQUIRED` | Нет | Политика проверки скомпрометированных паролей |
 | `ROBOKASSA_*` | Только для согласованной интеграции | Настройки платёжного provider |
 
-Генерация `AUTH_SECRET`:
+`TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` поддерживаются только как aliases для существующего secret manager; вторую БД настраивать не нужно. Приоритет у canonical `PAYLOAD_*` переменных.
+
+Генерация `AUTH_SECRET` (повторите отдельно для `PAYLOAD_SECRET`):
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
@@ -61,37 +64,35 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 
 Access/refresh durations и concurrent-session limit не дублируются в env. Их единственный источник — `lib/session-policy.ts`.
 
-## 4. Предупреждение и применение схемы
+## 4. Backup и применение Payload migrations
 
-**Не запускайте эти команды против реальной БД без review, backup и согласования.** В текущем изменении добавлены таблицы `pending_logins`, `auth_sessions`, `mfa_backup_codes`, `webauthn_credentials`, а также nullable `activity_logs.actorPseudonym`. Это additive-изменение, но реальная миграция в ходе репозиторной работы не выполнялась.
-
-В проекте нет актуальных migration files: используется `prisma db push`. SQLite может потребовать пересоздания таблицы для некоторых изменений, поэтому нельзя считать любой `db push` автоматически безопасным. Всегда читайте план и предупреждения Prisma; не подтверждайте data loss ради быстрого deploy.
+**Не запускайте миграции против реальной БД без review, проверенного backup и согласования.** Единая база содержит контент, аккаунты, auth-сессии, заказы, платежи и аналитику. Автоматический schema `push` отключён (`push: false`); старые Prisma/PostgreSQL-миграции не описывают текущую схему и не используются.
 
 Порядок:
 
-1. Сделать и проверить наличие backup БД и `public/uploads/`.
-2. Применить схему к отдельной non-production копии и выполнить smoke tests.
-3. Убедиться, что код и generated Prisma Client соответствуют одному commit.
-4. Только после approval применить к целевой БД:
+1. Сделать и проверить наличие backup БД и `public/uploads/`; для критичного окружения выполнить restore drill на isolated copy.
+2. Проверить все новые файлы в `payload/migrations/`, применить их к non-production копии и выполнить smoke tests.
+3. Убедиться, что код, `payload/payload-types.ts` и migrations соответствуют одному commit.
+4. Проверить pending status и только после approval применить migrations к целевой БД:
 
 ```bash
 set -a; source .env; set +a
-npm run db:push
+npm run payload -- migrate:status
+npm run payload:migrate
 npm run db:check
 ```
 
 PowerShell:
 
 ```powershell
-$env:TURSO_DATABASE_URL="libsql://plus-in-plus-<org>.turso.io"
-$env:TURSO_AUTH_TOKEN="<token>"
-npm run db:push
+$env:PAYLOAD_DATABASE_URL="libsql://plus-in-plus-<org>.turso.io"
+$env:PAYLOAD_DATABASE_AUTH_TOKEN="<token>"
+npm run payload -- migrate:status
+npm run payload:migrate
 npm run db:check
 ```
 
-Health текущей схемы ожидает **17 таблиц**. `seed-demo` не запускать в production.
-
-При последующих изменениях схемы повторять тот же процесс. Старые PostgreSQL-миграции находятся только в архиве `prisma/legacy-postgresql-migrations/` и не описывают текущую libSQL-схему.
+`db:check` только читает БД и проверяет 16 обязательных прикладных таблиц; у Payload также есть служебные таблицы. Не используйте демо-seed и не создавайте аккаунты с известными паролями в production. При последующих изменениях схемы создавайте новую reviewed migration через `npm run payload:migrate:create`, проверяйте её diff и повторяйте весь процесс.
 
 ## 5. Сборка, запуск и HTTPS
 
@@ -117,7 +118,7 @@ curl -fsS https://your-domain.example/api/health
 Ожидаемый health при актуальной схеме:
 
 ```json
-{"status":"ok","database":{"driver":"libsql","remote":true,"tables":17}}
+{"status":"ok","database":{"driver":"payload-sqlite","remote":true,"tables":16}}
 ```
 
 - `503 schema-out-of-date` и `missingTables`: схема не применена к этой БД.
@@ -128,7 +129,7 @@ curl -fsS https://your-domain.example/api/health
 
 1. Регистрация создаёт только `USER`.
 2. Неверный пароль даёт generic credential error без раскрытия наличия аккаунта.
-3. Гость и обычный клиент не попадают в `/admin/dashboard` и `/manager/orders`.
+3. Гость и обычный клиент не попадают в `/admin`; manager видит разрешённые заказы, но не Accounts/customers и carts.
 4. Upload перекодируется в WebP и доступен после restart при persistent storage.
 5. RU/EN, keyboard, responsive и основные client flows проверяются в браузере по `docs/ui-ux-pro-max.md`.
 
@@ -244,7 +245,7 @@ turso db shell plus-in-plus-restore < backup-YYYY-MM-DD.sql
 2. repository security audit и полный `npm audit`;
 3. ESLint и TypeScript;
 4. полный `npm test`;
-5. `db:push`/`db:check` на disposable SQLite;
+5. reviewed `payload:migrate`, `migrate:status` и read-only `db:check` на disposable SQLite;
 6. production build;
 7. HTTP smoke с health и ключевыми страницами.
 
@@ -262,7 +263,7 @@ pm2 restart plus-in-plus
 npm run deploy:verify -- https://your-domain.example
 ```
 
-Перед commit убедитесь, что `.env*`, dumps, `prisma/dev.db`, `public/uploads/` и generated client не попали в Git. При утечке token сначала отзовите/ротируйте его у provider; удаление строки из Git не отзывает секрет.
+Перед commit убедитесь, что реальные `.env`, dumps, локальные `payload/*.db`, `public/uploads/` и временные профили не попали в Git; `.env.example` с пустыми значениями должен оставаться. При утечке token сначала отзовите/ротируйте его у provider; удаление строки из Git не отзывает секрет.
 
 ## Диагностика
 

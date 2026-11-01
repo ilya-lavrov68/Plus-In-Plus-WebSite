@@ -89,8 +89,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const requestedRole = normalizeRole(user.role);
           token.id = account.id;
           token.email = account.email;
-          token.firstName = account.firstName;
-          token.lastName = account.lastName;
+          token.firstName = account.firstName ?? null;
+          token.lastName = account.lastName ?? null;
           token.avatar = localAvatarPath(account.avatar);
           // Staff mode survives refresh only while the DB still has exactly the
           // same staff role. Promotion never elevates an existing USER session.
@@ -126,8 +126,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           // Password reset and server-side session revocation are both immediate.
           if (token.passwordStamp !== passwordStamp(account.passwordHash)) return null;
           token.email = account.email;
-          token.firstName = account.firstName;
-          token.lastName = account.lastName;
+          token.firstName = account.firstName ?? null;
+          token.lastName = account.lastName ?? null;
           token.avatar = localAvatarPath(account.avatar);
           const hadStaffRole = token.role === "FOUNDER" || token.role === "ADMIN" || token.role === "MANAGER";
           token.role =

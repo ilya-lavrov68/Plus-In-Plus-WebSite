@@ -33,38 +33,59 @@ export interface CommerceService {
 
 /** A quote request is the manager-assisted flow and remains available for quote-only services. */
 export function canRequestServiceQuote(
-  service: Pick<CommerceService, "isActive" | "isPublished">,
+  service: { isActive?: boolean | null; isPublished?: boolean | null },
 ): boolean {
-  return service.isActive && service.isPublished;
+  return service.isActive === true && service.isPublished === true;
 }
 
 /** Self-service cart lines require an active, published, explicitly orderable priced service. */
 export function canAddServiceToCart(
-  service: Pick<
-    CommerceService,
-    "isActive" | "isPublished" | "isOrderable" | "priceType"
-  >,
+  service: {
+    isActive?: boolean | null;
+    isPublished?: boolean | null;
+    isOrderable?: boolean | null;
+    priceType: string;
+  },
 ): boolean {
   return (
     canRequestServiceQuote(service) &&
-    service.isOrderable &&
+    service.isOrderable === true &&
     service.priceType !== "quote"
   );
 }
 
 export function canAddProductToCart(
-  product: Pick<{ isActive: boolean; stock: number }, "isActive" | "stock">,
+  product: { isActive?: boolean | null; stock: number },
   quantity = 1,
 ): boolean {
-  return product.isActive && Number.isInteger(quantity) && quantity > 0 && product.stock >= quantity;
+  return product.isActive === true && Number.isInteger(quantity) && quantity > 0 && product.stock >= quantity;
 }
 
 /**
  * Resolves only option IDs owned by this service. Required groups use their configured
  * default when a simple add-to-cart button did not submit a configurator selection.
  */
+interface ServiceSelectionInput {
+  basePrice: number;
+  priceType: string;
+  optionGroups?: Array<{
+    id?: string | null;
+    name: string;
+    required?: boolean | null;
+    sortOrder: number;
+    options?: Array<{
+      id?: string | null;
+      label: string;
+      priceDelta: number;
+      priceFactor: number;
+      isDefault?: boolean | null;
+      sortOrder: number;
+    }> | null;
+  }> | null;
+}
+
 export function calculateServiceSelection(
-  service: Pick<CommerceService, "basePrice" | "priceType" | "optionGroups">,
+  service: ServiceSelectionInput,
   rawOptionIds: unknown,
 ): PriceCalculation | null {
   if (
@@ -79,7 +100,24 @@ export function calculateServiceSelection(
     return null;
   }
 
-  const groups = service.optionGroups ?? [];
+  const groups: CommerceServiceOptionGroup[] = (service.optionGroups ?? []).flatMap((group) => {
+    if (!group.id) return [];
+    const options = (group.options ?? []).flatMap((option) => option.id ? [{
+      id: option.id,
+      label: option.label,
+      priceDelta: option.priceDelta,
+      priceFactor: option.priceFactor,
+      isDefault: option.isDefault === true,
+      sortOrder: option.sortOrder,
+    }] : []);
+    return [{
+      id: group.id,
+      name: group.name,
+      required: group.required === true,
+      sortOrder: group.sortOrder,
+      options,
+    }];
+  });
   const chosenByGroup = new Map<string, string>();
   for (const optionId of optionIds as string[]) {
     const group = groups.find((candidate) =>

@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
+const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
 
 require.extensions[".ts"] = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename, "utf8"), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true, target: ts.ScriptTarget.ES2022 },
@@ -19,14 +20,14 @@ const db = {
     create: async ({ data }) => { creates.push(structuredClone(data)); return { id: "view-1" }; },
     updateMany: async ({ where, data }) => { updates.push({ where: structuredClone(where), data: structuredClone(data) }); return { count: 1 }; },
   },
-  $queryRaw: async () => {
+  queryRaw: async () => {
     if (tableError) throw tableError;
     return structuredClone(tableRows);
   },
 };
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/payload-db") return { db };
+  if (name === "@/lib/payload-native") return createNativeModuleMock(db);
   if (name === "@/lib/database") return { resolveDatabaseConfig: () => ({ remote: true }) };
   if (name.startsWith("@/")) name = path.resolve(__dirname, "..", name.slice(2));
   return originalLoad.call(this, name, parent, isMain);
@@ -37,10 +38,9 @@ const health = require("../app/api/health/route.ts");
 const consent = require("../lib/analytics-consent.ts");
 
 const ALL_TABLES = [
-  "users", "pending_logins", "auth_sessions", "mfa_backup_codes", "webauthn_credentials",
-  "services", "products", "service_option_groups", "service_options",
-  "posts", "activity_logs", "page_views", "orders", "order_services",
-  "order_items", "payments", "site_settings",
+  "accounts", "pending_logins", "auth_sessions", "mfa_backup_codes", "webauthn_credentials",
+  "services", "products", "posts", "media", "orders", "order_services",
+  "order_items", "payments", "activity_logs", "page_views", "site_settings",
 ];
 
 function request(method, body) {

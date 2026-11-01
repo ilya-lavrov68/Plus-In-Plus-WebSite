@@ -22,7 +22,7 @@ export async function resetUserPassword(userId: string): Promise<AccountActionRe
     const result = await payload.find({ collection: "accounts", depth: 0, limit: 1, overrideAccess: true, where: { id: { equals: userId } } });
     const target = result.docs[0];
     if (!target) return { ok: false, error: t("invalidUser") };
-    if (target.role === "FOUNDER" && admin.id !== userId) return { ok: false, error: t("founderInvulnerable") };
+    if (target.role === "FOUNDER") return { ok: false, error: t("founderInvulnerable") };
     const temporaryPassword = randomBytes(9).toString("base64url");
     await withPayloadTransaction(payload, async (req) => {
       await payload.update({

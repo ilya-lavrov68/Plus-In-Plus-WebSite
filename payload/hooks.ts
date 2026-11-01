@@ -1,4 +1,4 @@
-import { APIError, type CollectionAfterChangeHook, type CollectionBeforeChangeHook, type CollectionBeforeDeleteHook } from "payload";
+import { APIError, type CollectionAfterChangeHook, type CollectionAfterReadHook, type CollectionBeforeChangeHook, type CollectionBeforeDeleteHook, type GlobalAfterChangeHook, type PayloadRequest } from "payload";
 
 import { payloadRole } from "./access.ts";
 
@@ -68,6 +68,14 @@ export const revokeAccountSessions: CollectionAfterChangeHook = async ({ doc, op
   return doc;
 };
 
+/** Keep uploaded media on the existing safe, immutable public file route. */
+export const mediaPublicUrl: CollectionAfterReadHook = ({ doc }) => {
+  if (typeof doc.filename === "string" && doc.filename) {
+    doc.url = `/uploads/media/${doc.filename}`;
+  }
+  return doc;
+};
+
 export const preparePost: CollectionBeforeChangeHook = ({ data }) => {
   if (data.isPublished && !data.publishedAt) data.publishedAt = new Date().toISOString();
   return data;
@@ -96,8 +104,10 @@ export const syncFeaturedPost: CollectionAfterChangeHook = async ({ doc, req }) 
 
 export const prepareOrder: CollectionBeforeChangeHook = async ({ data, operation, originalDoc, req }) => {
   if (operation !== "update" || !originalDoc) return data;
-  const original = originalDoc as Record<string, any>;
-  const next = data as Record<string, any>;
+  const original = originalDoc as Record<string, unknown>;
+  const next = data as Record<string, unknown>;
+  const originalStatus = String(original.status ?? "");
+  const originalId = String(original.id);
   const role = payloadRole(req);
   // Native customer workflows intentionally have no req.user; staff requests do,
   // and must never turn the shared cart document into an editable admin record.
@@ -116,10 +126,10 @@ export const prepareOrder: CollectionBeforeChangeHook = async ({ data, operation
   }
 
   const nextStatus = next.status as string | undefined;
-  if (nextStatus && nextStatus !== original.status) {
+  if (nextStatus && nextStatus !== originalStatus) {
     if (nextStatus === "paid") throw new APIError("Оплату подтверждает только webhook Robokassa.", 400);
-    if (!ORDER_TRANSITIONS[original.status]?.includes(nextStatus)) {
-      throw new APIError(`Недопустимый переход ${original.status} → ${nextStatus}.`, 400);
+    if (!ORDER_TRANSITIONS[originalStatus]?.includes(nextStatus)) {
+      throw new APIError(`Недопустимый переход ${originalStatus} → ${nextStatus}.`, 400);
     }
     if (nextStatus === "in_progress" || nextStatus === "completed") {
       const paid = await req.payload.count({
@@ -133,7 +143,7 @@ export const prepareOrder: CollectionBeforeChangeHook = async ({ data, operation
   }
 
   if (changed(next, original, "finalPrice")) {
-    if (CLOSED_ORDER_STATUSES.has(original.status)) throw new APIError("Цена закрытого заказа неизменна.", 400);
+    if (CLOSED_ORDER_STATUSES.has(originalStatus)) throw new APIError("Цена закрытого заказа неизменна.", 400);
     const rubles = Number(next.finalPrice);
     if (!Number.isFinite(rubles) || rubles < 0 || rubles > 100_000_000) {
       throw new APIError("Укажите цену от 0 до 100 000 000 ₽.", 400);
@@ -151,7 +161,7 @@ export const prepareOrder: CollectionBeforeChangeHook = async ({ data, operation
     next.status = "awaiting_payment";
     next.managerId = req.user.id;
     next.priceAgreedAt = new Date().toISOString();
-    req.context.distributeOrderPrice = { orderId: original.id, total };
+    req.context.distributeOrderPrice = { orderId: originalId, total };
   }
   return data;
 };
@@ -173,11 +183,14 @@ export const distributeOrderPrice: CollectionAfterChangeHook = async ({ doc, req
     (sum, item) => sum + Number(item.estimatedUnitPrice || 0) * Number(item.quantity || 0),
     0,
   );
-  for (const item of items.docs) {
+  let allocated = 0;
+  for (const [index, item] of items.docs.entries()) {
     const share = estimatedTotal
       ? (Number(item.estimatedUnitPrice || 0) * Number(item.quantity || 0)) / estimatedTotal
       : 1 / Math.max(1, items.docs.length);
-    const itemTotal = Math.round(pending.total * share);
+    // Последняя позиция получает остаток, чтобы округление не меняло сумму заказа.
+    const itemTotal = index === items.docs.length - 1 ? pending.total - allocated : Math.round(pending.total * share);
+    allocated += itemTotal;
     await req.payload.update({
       id: item.id,
       collection: "order-items",
@@ -189,6 +202,17 @@ export const distributeOrderPrice: CollectionAfterChangeHook = async ({ doc, req
       req,
     });
   }
+
+  // Динамический import не создаёт цикл payload.config → hooks → payload-native.
+  const { issueInvoice } = await import("@/lib/payments/invoice");
+  const invoice = await issueInvoice({
+    orderId: String(doc.id),
+    orderNumber: String(doc.orderNumber ?? doc.number ?? doc.id),
+    amount: pending.total,
+    currency: String(doc.currency ?? "RUB"),
+    customerEmail: doc.userId && typeof doc.userId === "object" ? doc.userId.email ?? null : null,
+  }, req.payload, req);
+  if (!invoice) throw new APIError("Счёт не выставлен: проверьте успешные платежи по заказу.", 409);
   return doc;
 };
 
@@ -211,7 +235,29 @@ export function activityAfterChange(entityType: "service" | "post" | "user" | "s
   };
 }
 
-export const protectServiceDeletion: CollectionBeforeDeleteHook = async ({ id, req }) => {
+export const activityAfterStoryChange: GlobalAfterChangeHook = async ({ doc, req }) => {
+  if (!req.user) return doc;
+  await req.payload.create({
+    collection: "activity-logs",
+    data: {
+      action: "updated",
+      entityType: "setting",
+      entityId: "story",
+      title: String(doc.heading || "Landing story"),
+      actorId: req.user.id,
+    },
+    overrideAccess: true,
+    req,
+  });
+  return doc;
+};
+
+export const prepareService: CollectionBeforeChangeHook = ({ data }) => {
+  if (data.priceType === "quote") data.isOrderable = false;
+  return data;
+};
+
+async function countActiveServiceOrders(id: string | number, req: PayloadRequest): Promise<number> {
   const activeStatuses = ["pending", "quote_requested", "negotiating", "priced", "awaiting_payment", "paid", "in_progress"];
   const [legacy, unified] = await Promise.all([
     req.payload.find({
@@ -234,20 +280,52 @@ export const protectServiceDeletion: CollectionBeforeDeleteHook = async ({ id, r
     }),
   ]);
   const orderIds = [...new Set([...legacy.docs, ...unified.docs].map((row) => String(row.orderId)))];
-  if (orderIds.length) {
-    const active = await req.payload.count({
-      collection: "orders",
-      overrideAccess: true,
-      req,
-      where: { and: [{ id: { in: orderIds } }, { status: { in: activeStatuses } }] },
-    });
-    if (active.totalDocs > 0) throw new APIError("Услугу с активными заказами нельзя удалить.", 400);
+  if (!orderIds.length) return 0;
+  const active = await req.payload.count({
+    collection: "orders",
+    overrideAccess: true,
+    req,
+    where: { and: [{ id: { in: orderIds } }, { status: { in: activeStatuses } }] },
+  });
+  return active.totalDocs;
+}
+
+export const protectServiceDeletion: CollectionBeforeDeleteHook = async ({ id, req }) => {
+  if (await countActiveServiceOrders(id, req) > 0) {
+    throw new APIError("Услугу с активными заказами нельзя удалить.", 400);
   }
+};
+
+export const protectServicePricing: CollectionBeforeChangeHook = async ({ data, operation, originalDoc, req }) => {
+  if (operation !== "update" || !originalDoc || !req.user) return data;
+  const original = originalDoc as Record<string, unknown>;
+  const next = data as Record<string, unknown>;
+  const pricingChanged = ["basePrice", "priceType", "currency"].some((key) => changed(next, original, key)) ||
+    (next.optionGroups !== undefined && JSON.stringify(next.optionGroups) !== JSON.stringify(original.optionGroups));
+  if (pricingChanged && await countActiveServiceOrders(originalDoc.id, req) > 0) {
+    throw new APIError("Цену и варианты услуги с активными заказами нельзя изменить.", 400);
+  }
+  return data;
 };
 
 export const cascadeOrderDeletion: CollectionBeforeDeleteHook = async ({ id, req }) => {
   for (const collection of ["order-items", "order-services", "payments"] as const) {
     await req.payload.delete({ collection, overrideAccess: true, req, where: { orderId: { equals: id } } });
+  }
+};
+
+export const protectAccountDeletion: CollectionBeforeDeleteHook = async ({ id, req }) => {
+  const result = await req.payload.find({
+    collection: "accounts",
+    depth: 0,
+    limit: 1,
+    overrideAccess: true,
+    req,
+    select: { role: true },
+    where: { id: { equals: id } },
+  });
+  if (result.docs[0]?.role === "FOUNDER") {
+    throw new APIError("Аккаунт основателя нельзя удалить из админки.", 403);
   }
 };
 

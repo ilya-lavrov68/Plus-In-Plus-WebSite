@@ -1,30 +1,18 @@
 import { NextResponse } from "next/server";
 
 import { recordActivity } from "@/lib/activity-log";
-import { db } from "@/lib/payload-db";
+import { getPayloadClient, payloadId, withPayloadTransaction } from "@/lib/payload-native";
 import { verifyPaymentHash } from "@/lib/payments/robokassa";
 import { resolveRobokassaConfig } from "@/lib/payments/robokassa-config";
 
-/**
- * Result URL — серверное уведомление от Робокассы. Зачисление денег
- * происходит именно здесь, а не на странице успеха: браузер клиента можно
- * закрыть, а вызов Робокассы всё равно дойдёт.
- *
- * Ответ должен быть ровно «OK{InvId}» — иначе Робокасса будет повторять
- * запрос. Поэтому все ошибки пишем в лог, но отвечаем вежливо.
- *
- * Один обработчик на два адреса: исторический /api/payments/robokassa/result
- * и /api/payment/result из ТЗ. Логика зачисления не должна существовать в
- * двух копиях — деньги такого не прощают.
- */
+/** Единственный writer успешной оплаты — подписанный Result URL Робокассы. */
 export async function handleRobokassaResult(request: Request): Promise<Response> {
   const { config } = await resolveRobokassaConfig();
-  if (!config || !db) {
+  if (!config) {
     console.error("[robokassa] Result URL вызван, но провайдер не настроен");
     return new NextResponse("OK0", { status: 200 });
   }
 
-  // Робокасса шлёт форму, но в тестовом режиме может прислать и query.
   const form = await request.formData().catch(() => null);
   const fromQuery = new URL(request.url).searchParams;
   const read = (key: string): string => {
@@ -47,13 +35,11 @@ export async function handleRobokassaResult(request: Request): Promise<Response>
     return new NextResponse(`OK${invId}`, { status: 200 });
   }
 
-  // Подпись считается по второму паролю — это и есть подтверждение, что
-  // вызов пришёл от Робокассы, а не от кого-то, кто узнал адрес.
   const valid = verifyPaymentHash(config, {
     outSum,
     invId,
     signatureValue: signature,
-    extra: orderId ? { shp_OrderId: orderId } : {},
+    extra: { shp_OrderId: orderId },
   });
   if (!valid) {
     console.error(`[robokassa] Подпись не совпала для счёта ${invId}`);
@@ -62,64 +48,64 @@ export async function handleRobokassaResult(request: Request): Promise<Response>
 
   const amountKopecks = Math.round(Number(outSum.replace(",", ".")) * 100);
   if (!Number.isFinite(amountKopecks) || amountKopecks <= 0) {
-    console.error(`[robokassa] Некорректная сумма «${outSum}» для счёта ${invId}`);
+    console.error(`[robokassa] Некорректная сумма для счёта ${invId}`);
     return new NextResponse(`OK${invId}`, { status: 200 });
   }
 
   try {
-    const payment = await db.payment.findFirst({
-      where: { externalId: invId, provider: "robokassa" },
-      select: { id: true, orderId: true, amount: true, status: true },
+    const payload = await getPayloadClient();
+    const paymentResult = await payload.find({
+      collection: "payments",
+      depth: 0,
+      limit: 1,
+      overrideAccess: true,
+      where: { and: [{ externalId: { equals: invId } }, { provider: { equals: "robokassa" } }] },
     });
-
+    const payment = paymentResult.docs[0];
     if (!payment) {
       console.error(`[robokassa] Счёт ${invId} не найден`);
       return new NextResponse(`OK${invId}`, { status: 200 });
     }
 
-    // Подписанный Shp_OrderId связывает счёт именно с этим заказом. Без этой
-    // проверки валидное уведомление можно было бы применить к другой записи.
-    if (payment.orderId !== orderId) {
+    const paymentOrderId = payloadId(payment.orderId);
+    if (paymentOrderId !== orderId) {
       console.error(`[robokassa] Заказ не совпал для счёта ${invId}`);
       return new NextResponse(`OK${invId}`, { status: 200 });
     }
-
-    // Сумму проверяем обязательно: иначе, подделав OutSum, можно оплатить
-    // заказ за копейку.
     if (payment.amount !== amountKopecks) {
-      console.error(
-        `[robokassa] Сумма не совпала для счёта ${invId}: в уведомлении ${amountKopecks}, у нас ${payment.amount}`,
-      );
+      console.error(`[robokassa] Сумма не совпала для счёта ${invId}`);
       return new NextResponse(`OK${invId}`, { status: 200 });
     }
-
-    // Робокасса повторяет уведомление, пока не получит OK. Повторный вызов
-    // не должен создавать второй заказ или вторую запись в журнале.
     if (payment.status === "succeeded") {
       return new NextResponse(`OK${invId}`, { status: 200 });
     }
-
     if (payment.status !== "pending") {
       console.error(`[robokassa] Счёт ${invId} больше не ожидает оплаты`);
       return new NextResponse(`OK${invId}`, { status: 200 });
     }
 
     const now = new Date();
-    await db.transaction(async (tx) => {
-      const [latestInvoice, order] = await Promise.all([
-        tx.payment.findFirst({
-          where: { orderId: payment.orderId, provider: "robokassa" },
-          orderBy: { createdAt: "desc" },
-          select: { id: true, status: true },
-        }),
-        tx.order.findUnique({
-          where: { id: payment.orderId },
-          select: { id: true, orderNumber: true, number: true, status: true, total: true },
-        }),
-      ]);
+    await withPayloadTransaction(payload, async (req) => {
+      const latestResult = await payload.find({
+        collection: "payments",
+        depth: 0,
+        limit: 1,
+        sort: "-createdAt",
+        overrideAccess: true,
+        req,
+        where: { and: [{ orderId: { equals: paymentOrderId } }, { provider: { equals: "robokassa" } }] },
+      });
+      const orderResult = await payload.find({
+        collection: "orders",
+        depth: 0,
+        limit: 1,
+        overrideAccess: true,
+        req,
+        where: { id: { equals: paymentOrderId } },
+      });
+      const latestInvoice = latestResult.docs[0];
+      const order = orderResult.docs[0];
 
-      // После выставления нового счёта или изменения согласованной цены старое
-      // уведомление не должно оплачивать заказ, даже если старая запись ещё pending.
       if (
         latestInvoice?.id !== payment.id ||
         latestInvoice.status !== "pending" ||
@@ -131,28 +117,37 @@ export async function handleRobokassaResult(request: Request): Promise<Response>
         return;
       }
 
-      const claimed = await tx.payment.updateMany({
-        where: { id: payment.id, status: "pending" },
+      const claimed = await payload.update({
+        collection: "payments",
         data: {
           status: "succeeded",
-          paidAt: now,
+          paidAt: now.toISOString(),
           rawPayload: JSON.stringify({ outSum, invId, orderId, receivedAt: now.toISOString() }),
         },
+        overrideAccess: true,
+        req,
+        where: { and: [{ id: { equals: payment.id } }, { status: { equals: "pending" } }] },
       });
-      if (claimed.count !== 1) return;
+      if (claimed.docs.length !== 1) return;
 
-      const updatedOrder = await tx.order.updateMany({
-        where: { id: order.id, status: "awaiting_payment", total: payment.amount },
-        // Оплаченный заказ ещё предстоит сделать — это статус paid, а не
-        // completed. Завершённым его отметят позже. Блокировка (isLocked)
-        // webhook не останавливает: замок — от ручных правок, а не от денег.
-        data: { status: "paid", paidAt: now },
+      const updatedOrder = await payload.update({
+        collection: "orders",
+        data: { status: "paid", paidAt: now.toISOString() },
+        overrideAccess: true,
+        req,
+        where: {
+          and: [
+            { id: { equals: order.id } },
+            { status: { equals: "awaiting_payment" } },
+            { total: { equals: payment.amount } },
+          ],
+        },
       });
-      if (updatedOrder.count !== 1) {
-        throw new Error(`Order ${order.id} changed while confirming payment ${payment.id}`);
+      if (updatedOrder.docs.length !== 1) {
+        throw new Error("Order changed while confirming payment");
       }
 
-      await recordActivity(tx, {
+      await recordActivity(payload, req, {
         action: "paid",
         entityType: "order",
         entityId: order.id,
@@ -164,12 +159,10 @@ export async function handleRobokassaResult(request: Request): Promise<Response>
     return new NextResponse(`OK${invId}`, { status: 200 });
   } catch (error) {
     console.error("[robokassa] Не удалось обработать уведомление:", error);
-    // Код 200, но без OK — Робокасса повторит запрос позже.
     return new NextResponse("error", { status: 200 });
   }
 }
 
-/** Проверка доступности для GET: Робокасса так проверяет Result URL. */
 export async function robokassaResultHealth(): Promise<Response> {
   const { config, source } = await resolveRobokassaConfig();
   return NextResponse.json({

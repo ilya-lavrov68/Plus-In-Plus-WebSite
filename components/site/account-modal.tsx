@@ -270,7 +270,7 @@ function ProfilePanel({
           {user.role === "FOUNDER" || user.role === "ADMIN" || user.role === "MANAGER" ? (
             <Link
               href={
-                user.role === "MANAGER" ? "/manager/orders" : "/admin/dashboard"
+                user.role === "MANAGER" ? "/admin/collections/orders" : "/admin"
               }
               onClick={onClose}
               className="flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium text-foreground underline-offset-4 hover:underline"

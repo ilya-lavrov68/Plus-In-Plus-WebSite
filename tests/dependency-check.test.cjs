@@ -127,7 +127,7 @@ test("SQL and prose are not mistaken for imports", () => {
     "const sql = `SELECT * FROM \"users\" WHERE id = ?`;",
     "/* import fake from \"not-a-module\"; */",
     'const real = require("zod");',
-    'const lazy = await import("@tiptap/core");',
+    'const lazy = await import("@tiptap' + '/core");',
   ].join("\n");
 
   assert.deepEqual(importSpecifiers(source).sort(), ["@tiptap/core", "zod"]);

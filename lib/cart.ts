@@ -3,11 +3,12 @@ import type { Locale } from "@/i18n";
 import { isAuthConfigured } from "@/lib/auth-secret";
 import { canAddServiceToCart, MAX_CART_QUANTITY } from "@/lib/commerce";
 import { productCover, serviceCover } from "@/lib/content-placeholders";
-import { toPublicServiceItem } from "@/lib/data";
+import { normalizeService, toPublicServiceItem } from "@/lib/data";
 import { calculateEstimate } from "@/lib/pricing";
 import { getPayloadClient, payloadDate, payloadId } from "@/lib/payload-native";
 import { getRequestLocale } from "@/lib/request-locale";
 import { localizePublicServices } from "@/lib/service-localization";
+import type { Order, OrderItem, Product, Service } from "@/payload/payload-types";
 
 export type CartItemType = "service" | "product";
 export interface UnifiedCartItem {
@@ -54,20 +55,6 @@ const EMPTY_CART: CartView = { lines: [], count: 0, totalEstimate: 0, currency: 
 
 type PayloadClient = Awaited<ReturnType<typeof getPayloadClient>>;
 
-function normalizeService(service: any): any {
-  if (!service) return service;
-  const values = (value: unknown) => Array.isArray(value)
-    ? value.map((item) => typeof item === "object" && item !== null && "value" in item ? (item as { value: unknown }).value : item).filter((item) => typeof item === "string")
-    : value;
-  return {
-    ...service,
-    coverImage: service.coverImage ?? (typeof service.cover === "object" ? service.cover?.url : null) ?? "",
-    includes: typeof service.includes === "string" ? service.includes : JSON.stringify(values(service.includes) ?? []),
-    shapes: typeof service.shapes === "string" ? service.shapes : JSON.stringify(values(service.shapes) ?? []),
-    optionGroups: service.optionGroups ?? [],
-  };
-}
-
 async function findCart(payload: PayloadClient, userId: string) {
   const result = await payload.find({
     collection: "orders",
@@ -77,7 +64,7 @@ async function findCart(payload: PayloadClient, userId: string) {
     overrideAccess: true,
     where: { and: [{ userId: { equals: userId } }, { status: { equals: "cart" } }] },
   });
-  return (result.docs[0] as any) ?? null;
+  return (result.docs[0] as Order | undefined) ?? null;
 }
 async function cartItems(payload: PayloadClient, orderId: string) {
   const result = await payload.find({
@@ -88,7 +75,7 @@ async function cartItems(payload: PayloadClient, orderId: string) {
     overrideAccess: true,
     where: { orderId: { equals: orderId } },
   });
-  return result.docs as any[];
+  return result.docs as OrderItem[];
 }
 
 export async function requireActiveCustomer(): Promise<{ id: string; email: string } | null> {
@@ -112,7 +99,7 @@ export async function getOrCreateCartOrder(userId: string) {
   let cart = await findCart(payload, userId);
   if (!cart) {
     try {
-      cart = await payload.create({ collection: "orders", data: { userId, status: "cart", cartKey: userId }, depth: 0, overrideAccess: true });
+      cart = await payload.create({ collection: "orders", data: { userId, status: "cart", cartKey: userId, estimatedAmount: 0, subtotal: 0, discount: 0, total: 0, currency: "RUB" }, depth: 0, overrideAccess: true });
     } catch {
       // Другой первый запрос уже создал уникальный cartKey — читаем его.
       cart = await findCart(payload, userId);
@@ -131,7 +118,7 @@ export async function syncCartEstimatedAmount(orderId: string): Promise<number> 
 }
 
 export async function enrichCartItems(
-  rawItems: Array<{ id: string; orderId: string; itemType: string; itemId: string; serviceId: string | null; productId: string | null; title: string; quantity: number; estimatedUnitPrice: number }>,
+  rawItems: OrderItem[],
   locale: Locale,
 ): Promise<UnifiedCartItem[]> {
   if (rawItems.length === 0) return [];
@@ -142,8 +129,8 @@ export async function enrichCartItems(
     serviceIds.length ? payload.find({ collection: "services", depth: 1, pagination: false, overrideAccess: true, where: { id: { in: serviceIds } } }) : Promise.resolve({ docs: [] }),
     productIds.length ? payload.find({ collection: "products", depth: 1, pagination: false, overrideAccess: true, where: { id: { in: productIds } } }) : Promise.resolve({ docs: [] }),
   ]);
-  const services = (serviceResult.docs as any[]).map(normalizeService);
-  const products = productResult.docs as any[];
+  const services = (serviceResult.docs as Service[]).map(normalizeService);
+  const products = productResult.docs as Product[];
   const localizedServices = localizePublicServices(services.map((service) => toPublicServiceItem(service)), locale);
   const localizedServiceMap = new Map(localizedServices.map((service) => [service.id, service]));
   const rawServiceMap = new Map(services.map((service) => [service.id, service]));
@@ -154,12 +141,12 @@ export async function enrichCartItems(
       const targetId = item.itemId || payloadId(item.productId) || "";
       const product = productMap.get(targetId);
       return {
-        id: item.id, orderId: item.orderId, itemType: "product", itemId: targetId, quantity: item.quantity,
+        id: item.id, orderId: payloadId(item.orderId) ?? "", itemType: "product", itemId: targetId, quantity: item.quantity,
         name: product?.name || item.title || (locale === "ru" ? "Неизвестный товар" : "Unknown Product"),
         price: product?.price ?? (item.estimatedUnitPrice > 0 ? Math.round(item.estimatedUnitPrice / 100) : 0),
         category: product?.category ?? undefined,
         slug: product?.slug ?? undefined,
-        coverImage: product?.coverImage ?? (typeof product?.cover === "object" ? product.cover?.url : undefined),
+        coverImage: product?.coverImage ?? (typeof product?.cover === "object" ? product.cover?.url : null) ?? undefined,
         unavailable: !product || !product.isActive,
         maxQuantity: Math.max(0, Math.min(MAX_CART_QUANTITY, product?.stock ?? 0)),
       };
@@ -168,7 +155,7 @@ export async function enrichCartItems(
     const localized = localizedServiceMap.get(targetId);
     const raw = rawServiceMap.get(targetId);
     return {
-      id: item.id, orderId: item.orderId, itemType: "service", itemId: targetId, quantity: item.quantity,
+      id: item.id, orderId: payloadId(item.orderId) ?? "", itemType: "service", itemId: targetId, quantity: item.quantity,
       name: localized?.name || raw?.title || item.title || (locale === "ru" ? "Неизвестная услуга" : "Unknown Service"),
       price: item.estimatedUnitPrice > 0 ? Math.round(item.estimatedUnitPrice / 100) : localized?.basePrice ?? (raw ? Math.round(raw.basePrice / 100) : 0),
       category: raw?.category ?? undefined,
@@ -198,8 +185,8 @@ export async function getCart(): Promise<CartView> {
       serviceIds.length ? payload.find({ collection: "services", depth: 2, pagination: false, overrideAccess: true, where: { id: { in: serviceIds } } }) : Promise.resolve({ docs: [] }),
       productIds.length ? payload.find({ collection: "products", depth: 1, pagination: false, overrideAccess: true, where: { id: { in: productIds } } }) : Promise.resolve({ docs: [] }),
     ]);
-    const serviceMap = new Map((serviceResult.docs as any[]).map((service) => [service.id, normalizeService(service)]));
-    const productMap = new Map((productResult.docs as any[]).map((product) => [product.id, product]));
+    const serviceMap = new Map((serviceResult.docs as Service[]).map((service) => [service.id, normalizeService(service)]));
+    const productMap = new Map((productResult.docs as Product[]).map((product) => [product.id, product]));
     const lines: CartLine[] = [];
     for (const item of rawItems) {
       const info = enrichedMap.get(item.id);

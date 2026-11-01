@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { getPayloadClient, payloadDate, payloadId } from "@/lib/payload-native";
+import type { Order, OrderItem, OrderService, Payment } from "@/payload/payload-types";
 
 export interface CustomerOrderItem { id: string; itemType: string; itemId: string; title: string; quantity: number; totalPrice: number; estimatedUnitPrice: number }
 export interface CustomerOrderServiceLink { id: string; serviceId: string; quantity: number; service: { id: string; title: string; slug: string; basePrice: number; category: string } }
@@ -22,7 +23,7 @@ export async function getCustomerOrders(): Promise<CustomerOrder[]> {
       collection: "orders", depth: 0, pagination: false, sort: "-createdAt", overrideAccess: true,
       where: { and: [{ userId: { equals: userId } }, { status: { not_equals: "cart" } }] },
     });
-    const orders = result.docs as any[];
+    const orders = result.docs as Order[];
     if (!orders.length) return [];
     const ids = orders.map((order) => order.id);
     const [itemResult, serviceResult, paymentResult] = await Promise.all([
@@ -30,18 +31,18 @@ export async function getCustomerOrders(): Promise<CustomerOrder[]> {
       payload.find({ collection: "order-services", depth: 1, pagination: false, overrideAccess: true, where: { orderId: { in: ids } } }),
       payload.find({ collection: "payments", depth: 0, pagination: false, sort: "-createdAt", overrideAccess: true, where: { orderId: { in: ids } } }),
     ]);
-    const itemsByOrder = new Map<string, any[]>();
-    for (const item of itemResult.docs as any[]) {
+    const itemsByOrder = new Map<string, OrderItem[]>();
+    for (const item of itemResult.docs as OrderItem[]) {
       const id = payloadId(item.orderId)!;
       itemsByOrder.set(id, [...(itemsByOrder.get(id) ?? []), item]);
     }
-    const servicesByOrder = new Map<string, any[]>();
-    for (const link of serviceResult.docs as any[]) {
+    const servicesByOrder = new Map<string, OrderService[]>();
+    for (const link of serviceResult.docs as OrderService[]) {
       const id = payloadId(link.orderId)!;
       servicesByOrder.set(id, [...(servicesByOrder.get(id) ?? []), link]);
     }
-    const paymentsByOrder = new Map<string, any[]>();
-    for (const payment of paymentResult.docs as any[]) {
+    const paymentsByOrder = new Map<string, Payment[]>();
+    for (const payment of paymentResult.docs as Payment[]) {
       const id = payloadId(payment.orderId)!;
       paymentsByOrder.set(id, [...(paymentsByOrder.get(id) ?? []), payment]);
     }

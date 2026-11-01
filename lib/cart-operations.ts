@@ -1,4 +1,4 @@
-import type { PayloadRequest } from "payload";
+import type { PayloadRequest, Where } from "payload";
 
 import {
   MAX_CART_QUANTITY,
@@ -8,6 +8,7 @@ import {
   optionIdsFromSnapshot,
 } from "@/lib/commerce";
 import { getPayloadClient, isPayloadUniqueError, payloadId, withPayloadTransaction } from "@/lib/payload-native";
+import type { Order, OrderItem, Product, Service } from "@/payload/payload-types";
 
 export type CartOperationErrorCode =
   | "cartEmpty"
@@ -53,7 +54,7 @@ async function findOwnedCart(payload: PayloadClient, userId: string, req?: Paylo
     ...(req ? { req } : {}),
     where: { and: [{ userId: { equals: userId } }, { status: { equals: "cart" } }] },
   });
-  return (result.docs[0] as any) ?? null;
+  return (result.docs[0] as Order | undefined) ?? null;
 }
 
 async function findOwnedCartWithItems(payload: PayloadClient, userId: string, req?: PayloadRequest) {
@@ -68,20 +69,28 @@ async function findOwnedCartWithItems(payload: PayloadClient, userId: string, re
     ...(req ? { req } : {}),
     where: { orderId: { equals: cart.id } },
   });
-  return { ...cart, items: items.docs as any[] };
+  return { ...cart, items: items.docs as OrderItem[] };
 }
 
 async function getOrCreateOwnedCart(payload: PayloadClient, req: PayloadRequest, userId: string) {
   const existing = await findOwnedCartWithItems(payload, userId, req);
   if (existing) return existing;
-  const cart = await payload.create({
-    collection: "orders",
-    data: { userId, status: "cart", cartKey: userId },
-    depth: 0,
-    overrideAccess: true,
-    req,
-  });
-  return { ...cart, items: [] as any[] };
+  try {
+    const cart = await payload.create({
+      collection: "orders",
+      data: { userId, status: "cart", cartKey: userId, estimatedAmount: 0, subtotal: 0, discount: 0, total: 0, currency: "RUB" },
+      depth: 0,
+      overrideAccess: true,
+      req,
+    });
+    return { ...cart, items: [] as OrderItem[] };
+  } catch (error) {
+    if (!isPayloadUniqueError(error)) throw error;
+    // Параллельный первый запрос уже создал уникальный cartKey.
+    const cart = await findOwnedCartWithItems(payload, userId, req);
+    if (cart) return cart;
+    throw error;
+  }
 }
 
 async function syncEstimatedAmount(payload: PayloadClient, req: PayloadRequest, orderId: string): Promise<number> {
@@ -93,7 +102,7 @@ async function syncEstimatedAmount(payload: PayloadClient, req: PayloadRequest, 
     req,
     where: { orderId: { equals: orderId } },
   });
-  const items = result.docs as any[];
+  const items = result.docs as OrderItem[];
   const estimatedAmount = items.reduce((sum, item) => sum + item.estimatedUnitPrice * item.quantity, 0);
   await payload.update({ collection: "orders", id: orderId, data: { estimatedAmount }, overrideAccess: true, req });
   return items.reduce((sum, item) => sum + item.quantity, 0);
@@ -108,7 +117,7 @@ async function findService(payload: PayloadClient, req: PayloadRequest, id: stri
     req,
     where: { id: { equals: id } },
   });
-  return (result.docs[0] as any) ?? null;
+  return (result.docs[0] as Service | undefined) ?? null;
 }
 async function findProduct(payload: PayloadClient, req: PayloadRequest, id: string) {
   const result = await payload.find({
@@ -119,18 +128,18 @@ async function findProduct(payload: PayloadClient, req: PayloadRequest, id: stri
     req,
     where: { id: { equals: id } },
   });
-  return (result.docs[0] as any) ?? null;
+  return (result.docs[0] as Product | undefined) ?? null;
 }
-async function findLine(payload: PayloadClient, req: PayloadRequest, where: Record<string, unknown>) {
+async function findLine(payload: PayloadClient, req: PayloadRequest, where: Where) {
   const result = await payload.find({
     collection: "order-items",
     depth: 0,
     limit: 1,
     overrideAccess: true,
     req,
-    where: where as any,
+    where,
   });
-  return (result.docs[0] as any) ?? null;
+  return (result.docs[0] as OrderItem | undefined) ?? null;
 }
 async function writeActivity(payload: PayloadClient, req: PayloadRequest, data: { action: string; entityId: string; title: string; actorId: string }) {
   await payload.create({
@@ -165,7 +174,7 @@ export async function addCartItem(
       } else {
         await payload.create({
           collection: "order-items",
-          data: { orderId: cart.id, itemType: "service", itemId: service.id, serviceId: service.id, title: service.title, quantity, estimatedUnitPrice: estimate.estimatedAmount, optionsSnapshot },
+          data: { orderId: cart.id, itemType: "service", itemId: service.id, serviceId: service.id, title: service.title, quantity, estimatedUnitPrice: estimate.estimatedAmount, unitPrice: 0, totalPrice: 0, optionsSnapshot },
           overrideAccess: true,
           req,
         });
@@ -184,7 +193,7 @@ export async function addCartItem(
       } else {
         await payload.create({
           collection: "order-items",
-          data: { orderId: cart.id, itemType: "product", itemId: product.id, productId: product.id, title: product.name, quantity, estimatedUnitPrice, optionsSnapshot: "[]" },
+          data: { orderId: cart.id, itemType: "product", itemId: product.id, productId: product.id, title: product.name, quantity, estimatedUnitPrice, unitPrice: 0, totalPrice: 0, optionsSnapshot: "[]" },
           overrideAccess: true,
           req,
         });
@@ -262,18 +271,19 @@ export async function checkoutOwnedCart(
       return await withPayloadTransaction(payload, async (req) => {
         const cart = await findOwnedCartWithItems(payload, userId, req);
         if (!cart || cart.items.length === 0) throw new CartOperationError("cartEmpty");
-        const serviceIds = [...new Set(cart.items.filter((item) => item.itemType === "service").map((item) => item.itemId || payloadId(item.serviceId) || "").filter(Boolean))];
-        const productIds = [...new Set(cart.items.filter((item) => item.itemType === "product").map((item) => item.itemId || payloadId(item.productId) || "").filter(Boolean))];
+        const cartItems = cart.items;
+        const serviceIds = [...new Set(cartItems.filter((item) => item.itemType === "service").map((item) => item.itemId || payloadId(item.serviceId) || "").filter(Boolean))];
+        const productIds = [...new Set(cartItems.filter((item) => item.itemType === "product").map((item) => item.itemId || payloadId(item.productId) || "").filter(Boolean))];
         const [serviceResult, productResult] = await Promise.all([
           serviceIds.length ? payload.find({ collection: "services", depth: 2, pagination: false, overrideAccess: true, req, where: { id: { in: serviceIds } } }) : Promise.resolve({ docs: [] }),
           productIds.length ? payload.find({ collection: "products", depth: 0, pagination: false, overrideAccess: true, req, where: { id: { in: productIds } } }) : Promise.resolve({ docs: [] }),
         ]);
-        const services = serviceResult.docs as any[];
-        const products = productResult.docs as any[];
+        const services = serviceResult.docs as Service[];
+        const products = productResult.docs as Product[];
         const serviceMap = new Map(services.map((service) => [service.id, service]));
         const productMap = new Map(products.map((product) => [product.id, product]));
         const productQuantities = new Map<string, number>();
-        for (const line of cart.items) {
+        for (const line of cartItems) {
           if (line.itemType !== "product") continue;
           const id = line.itemId || payloadId(line.productId) || "";
           productQuantities.set(id, (productQuantities.get(id) ?? 0) + line.quantity);
@@ -287,7 +297,7 @@ export async function checkoutOwnedCart(
         let estimatedAmount = 0;
         const serviceQuantities = new Map<string, number>();
         const refreshedTitles: string[] = [];
-        for (const line of cart.items) {
+        for (const line of cartItems) {
           if (!Number.isInteger(line.quantity) || line.quantity < 1 || line.quantity > MAX_CART_QUANTITY) throw new CartOperationError("invalidQuantity");
           if (line.itemType === "service") {
             const id = line.itemId || payloadId(line.serviceId) || "";

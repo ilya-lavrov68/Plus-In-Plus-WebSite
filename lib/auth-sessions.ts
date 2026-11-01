@@ -8,6 +8,7 @@ import { logSecurityEvent } from "@/lib/security-log";
 import { MAX_CONCURRENT_SESSIONS, REFRESH_PRESENT_COOKIE, REFRESH_SESSION_SECONDS } from "@/lib/session-policy";
 import { localAvatarPath } from "@/lib/upload-policy";
 import type { UserRole } from "@/lib/user-profile";
+import type { AuthSession } from "@/payload/payload-types";
 
 const REFRESH_COOKIE = "pip-refresh";
 const DEVICE_COOKIE = "pip-device";
@@ -114,7 +115,7 @@ export async function rotateAuthSession(rawRefreshToken: string, deviceId: strin
     overrideAccess: true,
     where: { id: { equals: parsed.id } },
   });
-  const existing = result.docs[0] as any;
+  const existing = result.docs[0] as AuthSession | undefined;
   const expiresAt = payloadDate(existing?.expiresAt);
   const account = existing?.userId && typeof existing.userId === "object" ? existing.userId : null;
   if (!existing || existing.revokedAt || !expiresAt || expiresAt.getTime() <= Date.now() || !account || account.isBlocked) return null;
@@ -146,7 +147,7 @@ export async function rotateAuthSession(rawRefreshToken: string, deviceId: strin
     sessionId: existing.id,
     deviceHash: existing.deviceHash,
     role,
-    user: { id: account.id, email: account.email, firstName: account.firstName, lastName: account.lastName, avatar: localAvatarPath(account.avatar) },
+    user: { id: account.id, email: account.email, firstName: account.firstName ?? null, lastName: account.lastName ?? null, avatar: localAvatarPath(account.avatar ?? null) },
   };
 }
 

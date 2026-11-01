@@ -1,7 +1,7 @@
 import { sql } from '@payloadcms/db-sqlite'
 import type { MigrateUpArgs, MigrateDownArgs } from '@payloadcms/db-sqlite'
 
-export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
+export async function up({ db }: MigrateUpArgs): Promise<void> {
   await db.run(sql`CREATE TABLE \`accounts\` (
     \`id\` text(36) PRIMARY KEY NOT NULL,
     \`email\` text NOT NULL,
@@ -526,7 +526,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   `)
 }
 
-export async function down({ db, payload, req }: MigrateDownArgs): Promise<void> {
+export async function down({ db }: MigrateDownArgs): Promise<void> {
   await db.run(sql`DROP TABLE \`accounts\`;`)
   await db.run(sql`DROP TABLE \`services_includes\`;`)
   await db.run(sql`DROP TABLE \`services_shapes\`;`)
