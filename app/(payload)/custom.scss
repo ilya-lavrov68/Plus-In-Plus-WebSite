@@ -17,11 +17,30 @@
     --nav-width: 300px;
     --app-header-height: 64px;
     --doc-controls-height: 64px;
+    --pip-admin-canvas: #fafaf8;
+    --pip-admin-surface: #ffffff;
+    --pip-admin-subtle: #f3f3ed;
+    --pip-admin-border: #e3e3db;
+    --pip-admin-accent: #ffff01;
   }
 
   html,
   body {
+    background: var(--pip-admin-canvas);
     font-size: 16px;
+  }
+
+  .template-default__wrap {
+    background: var(--pip-admin-canvas);
+  }
+
+  .app-header__bg {
+    border-bottom: 1px solid var(--pip-admin-border);
+    background: var(--pip-admin-surface);
+  }
+
+  .nav {
+    background: var(--pip-admin-surface);
   }
 
   .template-default__nav-toggler-wrapper,
@@ -40,9 +59,9 @@
     width: 44px;
     height: 44px;
     padding: 0;
-    border: 1px solid var(--theme-elevation-150);
-    border-radius: 6px;
-    background: var(--theme-elevation-0);
+    border: 1px solid var(--pip-admin-border);
+    border-radius: 8px;
+    background: var(--pip-admin-surface);
     color: var(--theme-elevation-800);
     cursor: pointer;
     transition: background-color 160ms ease-out, color 160ms ease-out,
@@ -51,44 +70,35 @@
 
   .pip-admin-menu-button:hover,
   .pip-admin-menu-button--open {
-    border-color: #ffff01;
-    background: #ffff01;
-    color: #171713;
+    border-color: var(--theme-elevation-300);
+    background: var(--pip-admin-subtle);
+    color: var(--theme-elevation-950);
   }
 
   .pip-admin-brand-mark {
-    display: inline-flex;
-    flex-shrink: 0;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    border: 1px solid #3a3a32;
-    border-radius: 6px;
-    background: #191916;
-  }
-
-  .pip-admin-brand-mark img {
     display: block;
-    width: 29px;
+    flex-shrink: 0;
+    width: 32px;
     height: auto;
+    overflow: visible;
+    color: var(--theme-elevation-900);
   }
 
   .pip-admin-login-logo {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 18px 22px;
-    border: 1px solid #3a3a32;
-    border-radius: 8px;
-    background: #191916;
-  }
-
-  .pip-admin-login-logo img {
     display: block;
     width: 189px;
     max-width: 100%;
     height: auto;
+    overflow: visible;
+    color: var(--theme-elevation-900);
+  }
+
+  .pip-admin-nav-brand__logo {
+    display: block;
+    width: 154px;
+    max-width: 100%;
+    height: auto;
+    overflow: visible;
   }
 
   .nav__scroll {
@@ -103,32 +113,13 @@
     display: flex;
     align-items: center;
     align-self: stretch;
-    gap: 12px;
+    width: 100%;
     min-height: 60px;
-    margin: 0 0 20px 44px;
-    padding: 4px 0 16px;
-    border-bottom: 1px solid var(--theme-elevation-150);
+    margin: 0 0 16px;
+    padding: 4px 0 16px 44px;
+    border-bottom: 1px solid var(--pip-admin-border);
     color: var(--theme-elevation-900);
     text-decoration: none;
-  }
-
-  .pip-admin-nav-brand__copy {
-    display: flex;
-    min-width: 0;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .pip-admin-nav-brand__copy strong {
-    font-size: 0.9375rem;
-    font-weight: 650;
-    letter-spacing: 0.01em;
-  }
-
-  .pip-admin-nav-brand__copy > span {
-    color: var(--theme-elevation-600);
-    font-size: 0.75rem;
-    line-height: 1.35;
   }
 
   .pip-admin-nav-group {
@@ -195,7 +186,7 @@
 
   .pip-admin-nav__link:hover,
   .pip-admin-nav__link--active {
-    background: var(--theme-elevation-50);
+    background: var(--pip-admin-subtle);
     color: var(--theme-elevation-1000);
     text-decoration: none;
   }
@@ -209,7 +200,7 @@
     inset-inline-start: -12px;
     width: 3px;
     height: 24px;
-    background: #ffff01;
+    background: var(--pip-admin-accent);
   }
 
   .pip-admin-nav-icon {
@@ -225,7 +216,7 @@
   .pip-admin-nav__controls {
     width: 100%;
     padding-top: 16px;
-    border-top: 1px solid var(--theme-elevation-150);
+    border-top: 1px solid var(--pip-admin-border);
   }
 
   .pip-admin-nav__controls > :first-child {
@@ -240,7 +231,7 @@
     gap: 10px;
     min-height: 44px;
     padding: 8px 10px;
-    border: 1px solid var(--theme-elevation-150);
+    border: 1px solid var(--pip-admin-border);
     border-radius: 4px;
     background: transparent;
     color: var(--theme-elevation-800);
@@ -249,7 +240,7 @@
   }
 
   .pip-admin-logout:hover {
-    background: var(--theme-elevation-50);
+    background: var(--pip-admin-subtle);
   }
 
   .pip-admin-logout:disabled {
@@ -261,16 +252,62 @@
     font-size: 0.9375rem;
   }
 
+  .step-nav__home,
+  .step-nav__home > span {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .step-nav__home .pip-admin-brand-mark {
+    width: 30px;
+  }
+
+  .app-header__controls-wrapper {
+    gap: 8px;
+  }
+
+  .app-header__step-nav-wrapper {
+    margin-left: 4px;
+  }
+
+  .app-header__localizer {
+    inset-inline-end: 108px;
+  }
+
   .app-header__account {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     min-width: 40px;
     min-height: 40px;
+    border: 1px solid transparent;
+    border-radius: 50%;
+  }
+
+  .app-header__account:hover {
+    border-color: var(--pip-admin-border);
+    background: var(--pip-admin-subtle);
+  }
+
+  .app-header .popup-button--background {
+    background: transparent;
+  }
+
+  .app-header .popup-button {
+    min-height: 40px;
   }
 
   .localizer-button {
     min-height: 40px;
+    padding: 0 8px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+  }
+
+  .localizer-button:hover {
+    border-color: var(--pip-admin-border);
+    background: var(--pip-admin-subtle);
   }
 
   .btn {
@@ -291,13 +328,62 @@
       --doc-controls-height: 60px;
     }
 
-    .pip-admin-nav-brand {
+    .app-header__step-nav-wrapper {
       margin-left: 48px;
+    }
+
+    .app-header__localizer {
+      inset-inline-end: 64px;
+    }
+
+    .app-header__account {
+      position: absolute;
+      inset-inline-end: 16px;
+      top: 10px;
+    }
+
+    .pip-admin-nav-brand {
+      padding-left: 48px;
+    }
+
+    .step-nav__home + span {
+      display: none;
+    }
+
+    .step-nav__home .pip-admin-brand-mark {
+      width: 26px;
+    }
+
+    .localizer-button__current-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    .localizer-button::before {
+      content: attr(data-locale);
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-transform: uppercase;
     }
 
     .template-default--nav-open .template-default__wrap {
       min-width: 0;
       overflow: hidden;
+    }
+  }
+
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .app-header__step-nav-wrapper {
+      margin-left: 16px;
+    }
+
+    .pip-admin-nav-brand {
+      padding-left: 54px;
     }
   }
 
@@ -309,13 +395,13 @@
   }
 
   .localizer-button__label {
-    color: var(--theme-elevation-800);
+    display: none;
   }
 
   .pip-admin-overview {
     margin-block-end: 2rem;
     padding-block-end: 2rem;
-    border-bottom: 1px solid var(--theme-elevation-150);
+    border-bottom: 1px solid var(--pip-admin-border);
   }
 
   .pip-admin-overview__heading {
@@ -332,8 +418,21 @@
   }
 
   .pip-admin-overview__heading > a {
+    flex-shrink: 0;
+    padding: 0 12px;
+    border: 1px solid var(--pip-admin-border);
+    border-radius: 6px;
+    background: var(--pip-admin-surface);
     color: var(--theme-elevation-800);
-    text-underline-offset: 0.2em;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .pip-admin-overview__heading > a:hover {
+    border-color: var(--theme-elevation-300);
+    background: var(--pip-admin-subtle);
   }
 
   .pip-admin-eyebrow {
@@ -351,14 +450,14 @@
     gap: 1px;
     margin: 0 0 1.75rem;
     overflow: hidden;
-    border: 1px solid var(--theme-elevation-150);
+    border: 1px solid var(--pip-admin-border);
     border-radius: 4px;
-    background: var(--theme-elevation-150);
+    background: var(--pip-admin-border);
   }
 
   .pip-admin-metrics > div {
     padding: 1rem;
-    background: var(--theme-elevation-0);
+    background: var(--pip-admin-surface);
   }
 
   .pip-admin-metrics dt {
@@ -386,7 +485,7 @@
   .pip-admin-list {
     margin: 0;
     padding: 0;
-    border-top: 1px solid var(--theme-elevation-150);
+    border-top: 1px solid var(--pip-admin-border);
     list-style: none;
   }
 
@@ -402,7 +501,7 @@
     justify-content: space-between;
     gap: 1rem;
     padding: 0.7rem 0;
-    border-bottom: 1px solid var(--theme-elevation-150);
+    border-bottom: 1px solid var(--pip-admin-border);
   }
 
   .pip-admin-list li > a {
@@ -452,14 +551,24 @@
 
   .pip-temporary-password code {
     padding: 0.2rem 0.35rem;
-    border: 1px solid var(--theme-elevation-150);
+    border: 1px solid var(--pip-admin-border);
     border-radius: 3px;
-    background: var(--theme-elevation-50);
+    background: var(--pip-admin-subtle);
   }
 
   @media (max-width: 1200px) {
     .pip-admin-metrics {
       grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 360px) {
+    .step-nav__home {
+      display: none;
+    }
+
+    .dashboard-breadcrumb-select {
+      min-width: 96px;
     }
   }
 
@@ -473,8 +582,9 @@
     }
 
     .pip-admin-overview__heading {
-      align-items: start;
-      flex-direction: column;
+      align-items: end;
+      flex-direction: row;
+      gap: 0.75rem;
     }
 
     .pip-admin-list li > a,
@@ -488,4 +598,9 @@
       flex-shrink: 1;
     }
   }
+}
+
+/* Emotion у Payload breadcrumb не входит в layer и иначе возвращает wrap на узком header. */
+.dashboard-breadcrumb-select .rs__control {
+  flex-wrap: nowrap;
 }

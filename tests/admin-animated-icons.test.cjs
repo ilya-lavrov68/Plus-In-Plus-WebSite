@@ -75,6 +75,26 @@ test("admin styling is larger, shadow-free and keeps the exact PIP accent", () =
   assert.match(styles, /prefers-reduced-motion:\s*reduce/);
 });
 
+test("brand artwork is unframed, uncropped and responsive controls keep their places", () => {
+  const brand = read("payload/components/admin-brand.tsx");
+  const styles = read("app/(payload)/custom.scss");
+  assert.match(brand, /viewBox="0 0 189 42"/);
+  assert.match(brand, /fill="currentColor"/);
+  assert.match(brand, /fill="#FFFF01"/);
+  assert.match(brand, /<AdminLogo className="pip-admin-nav-brand__logo"/);
+  assert.doesNotMatch(brand, /<img/);
+
+  const mark = styles.match(/\.pip-admin-brand-mark\s*\{([^}]*)\}/);
+  assert.ok(mark);
+  assert.doesNotMatch(mark[1], /border|background|border-radius/);
+  assert.match(mark[1], /overflow:\s*visible/);
+  assert.doesNotMatch(styles, /\.pip-admin-brand-mark img/);
+  assert.match(styles, /--pip-admin-canvas:\s*#fafaf8/);
+  assert.match(styles, /\.pip-admin-overview__heading\s*\{[^}]*flex-direction:\s*row/);
+  assert.match(styles, /\.dashboard-breadcrumb-select \.rs__control\s*\{[^}]*flex-wrap:\s*nowrap/);
+  assert.match(styles, /@media \(max-width: 360px\)[\s\S]*?min-width:\s*96px/);
+});
+
 test("only key public interactions opt into animated icons", () => {
   for (const file of [
     "components/site/cart-icon.tsx",
