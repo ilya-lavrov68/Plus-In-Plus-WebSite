@@ -246,7 +246,6 @@
     --pip-accent-strong: #afb8fd;
     --pip-accent-wash: #eaedfe;
     --pip-accent-deep: #1e2238;
-    --pip-hairline: hsl(var(--border));
     --pip-grid-line: hsl(var(--foreground) / 0.045);
 
     --mobile-bottom-nav-height: 4.5rem;

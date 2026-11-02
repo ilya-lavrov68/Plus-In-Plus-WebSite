@@ -55,7 +55,7 @@ const Hero138 = ({
   return (
     <section
       className={cn(
-        "motion-section relative isolate overflow-hidden bg-background pt-16 pb-44 sm:pb-56 md:pt-24 md:pb-64",
+        "motion-section relative isolate overflow-hidden bg-background pt-16 pb-24 sm:pb-56 md:pt-24 md:pb-64",
         className
       )}
     >

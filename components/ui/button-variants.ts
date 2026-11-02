@@ -24,9 +24,9 @@ export const buttonVariants = cva(
         destructive:
           "border border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/85",
         secondary:
-          "rounded-full border border-border bg-transparent text-muted-foreground hover:border-foreground/30 hover:bg-white/[0.06] hover:text-foreground",
+          "rounded-full border border-foreground/20 bg-transparent text-foreground/80 hover:border-foreground/40 hover:bg-white/[0.06] hover:text-foreground",
         outline:
-          "rounded-full border border-foreground/30 bg-transparent text-foreground hover:border-primary hover:bg-primary/10 hover:text-primary",
+          "rounded-full border border-foreground/40 bg-transparent text-foreground hover:border-primary hover:bg-primary/10 hover:text-primary",
         ghost:
           "text-muted-foreground hover:bg-white/[0.07] hover:text-foreground",
         link: "text-primary underline-offset-4 hover:underline",
@@ -51,7 +51,7 @@ export const headerButtonVariants = cva(
     variants: {
       variant: {
         outline:
-          "rounded-full border border-border bg-transparent text-muted-foreground hover:border-foreground/30 hover:bg-white/[0.06] hover:text-foreground",
+          "rounded-full border border-foreground/20 bg-transparent text-foreground/80 hover:border-foreground/40 hover:bg-white/[0.06] hover:text-foreground",
         primary:
           "pip-cursor-fill rounded-none border border-signal-strong/40 bg-primary text-primary-foreground",
       },
