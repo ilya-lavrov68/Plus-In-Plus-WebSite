@@ -1,13 +1,13 @@
 import Link from "next/link";
 
 import {
-  PlCases,
   PlFeatures,
   PlManifesto,
   PlSplit,
   PlStatement,
   type PlLink,
 } from "@/components/payload/home-sections";
+import { PwCardGrid } from "@/components/pw/blocks/card-grid";
 import { PwHero } from "@/components/pw/hero";
 import { localizeBlogPosts } from "@/lib/blog-localization";
 import { getPublishedPosts } from "@/lib/data";
@@ -103,12 +103,18 @@ export default async function HomePage() {
         panels={content.panels}
       />
 
-      <PlCases
+      <PwCardGrid
         locale={locale}
         eyebrow={content.cases.eyebrow}
         heading={content.cases.heading}
-        items={content.cases.items}
         cta={{ label: content.cases.cta, href: "/contact" }}
+        cards={content.cases.items.map((item) => ({
+          category: item.category,
+          title: item.title,
+          body: item.body,
+          meta: item.meta,
+          href: item.href,
+        }))}
       />
 
       <PlStatement
