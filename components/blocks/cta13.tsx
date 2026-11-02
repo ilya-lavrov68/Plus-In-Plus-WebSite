@@ -1,7 +1,5 @@
 import Link from "next/link";
 
-import { SignalBlocks } from "@/components/site/brand-geometry";
-import { DecryptText } from "@/components/site/motion/decrypt-text";
 import { Button } from "@/components/ui/button";
 
 export interface Cta13Props {
@@ -18,55 +16,41 @@ export interface Cta13Props {
 }
 
 /**
- * Финальный CTA — острый сигнальный блок: прямоугольная поверхность,
- * hairline-граница, ряд квадратных сигналов и две кнопки разной формы
- * (острая основная + pill-вторичная).
+ * Финальный CTA в структуре payloadcms.com: простая полоса с крупным
+ * заголовком по центру и двумя pill-кнопками. Без карточки, без орнаментов
+ * и без второго визуального центра — экран остаётся спокойным.
  */
 const Cta13 = ({
-  heading = "Order a design",
-  description = "Tell us about your idea and we will package it in a clear, memorable visual system—from storefront signage to large-format outdoor media.",
+  heading = "Соберём форму вашей идеи.",
+  description = "Расскажите о задаче — соберём айдентику, макет или вывеску.",
   primaryButton = {
-    text: "Order",
-    url: "/services",
-  },
-  secondaryButton = {
-    text: "Contact us",
+    text: "Обсудить проект",
     url: "/contact",
   },
+  secondaryButton,
 }: Cta13Props) => {
   return (
-    <section className="motion-section py-20 md:py-28">
+    <section className="motion-section border-t border-border/70 py-24 md:py-32">
       <div className="container">
         <div
           data-reveal=""
-          className="glass-surface relative overflow-hidden rounded-none border border-border bg-card/80 p-8 md:p-14"
+          className="mx-auto flex max-w-2xl flex-col items-center text-center"
         >
-          <div
-            aria-hidden="true"
-            className="absolute top-0 left-0 h-1 w-full bg-primary/70"
-          />
-          <SignalBlocks className="absolute top-6 right-6 opacity-80" count={7} />
-
-          <div className="relative z-10 flex flex-col justify-between gap-10 pt-4 lg:flex-row lg:items-end">
-            <div className="max-w-2xl">
-              <p className="pip-eyebrow">Plus In Plus</p>
-              <h2 className="mt-5 text-3xl font-semibold tracking-[-0.02em] md:text-5xl">
-                <DecryptText text={heading} seed={43} />
-              </h2>
-              <p className="mt-4 text-base leading-relaxed text-muted-foreground md:text-lg">
-                {description}
-              </p>
-            </div>
-            <div className="flex shrink-0 flex-wrap gap-3">
-              <Button size="lg" asChild>
-                <Link href={primaryButton.url}>{primaryButton.text}</Link>
+          <h2 className="text-3xl leading-[1.05] font-semibold tracking-[-0.03em] text-balance sm:text-4xl md:text-[2.75rem]">
+            {heading}
+          </h2>
+          <p className="mt-5 max-w-xl text-sm leading-relaxed text-muted-foreground md:text-base">
+            {description}
+          </p>
+          <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+            <Button size="lg" asChild>
+              <Link href={primaryButton.url}>{primaryButton.text}</Link>
+            </Button>
+            {secondaryButton ? (
+              <Button size="lg" variant="outline" asChild>
+                <Link href={secondaryButton.url}>{secondaryButton.text}</Link>
               </Button>
-              {secondaryButton && (
-                <Button size="lg" variant="outline" asChild>
-                  <Link href={secondaryButton.url}>{secondaryButton.text}</Link>
-                </Button>
-              )}
-            </div>
+            ) : null}
           </div>
         </div>
       </div>

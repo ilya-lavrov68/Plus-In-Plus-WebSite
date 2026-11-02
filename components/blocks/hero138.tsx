@@ -1,19 +1,24 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 
-import { DotLattice, GridField, PixelMosaic } from "@/components/site/brand-geometry";
-import { DecryptText } from "@/components/site/motion/decrypt-text";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+export interface HeroQuickLink {
+  label: string;
+  href: string;
+  hint?: string;
+}
+
 export interface Hero138Props {
-  /** Верхняя строка заголовка: нейтральная, задаёт масштаб. */
-  headingMuted?: string;
-  /** Вторая строка заголовка: основной off-white текст. */
-  headingPrimary?: string;
-  /** Короткий сигнальный хвост второй строки: акцент, не более одного слова. */
-  headingAccent?: string;
+  /** Mono-подпись над заголовком. */
   eyebrow?: string;
+  /** Нейтральная первая строка заголовка. */
+  headingMuted?: string;
+  /** Основная строка заголовка. */
+  headingPrimary?: string;
+  /** Одно акцентное слово в конце заголовка. */
+  headingAccent?: string;
   descriptionLead?: string;
   descriptionStrong?: string;
   primaryCta?: {
@@ -24,131 +29,148 @@ export interface Hero138Props {
     label: string;
     href: string;
   };
+  /** Статусная строка под кнопками: короткая, техничная. */
   footnote?: string;
+  /** Правая колонка быстрых переходов, как список действий в структуре Payload. */
+  quickLinks?: HeroQuickLink[];
   className?: string;
 }
 
+const DEFAULT_QUICK_LINKS: HeroQuickLink[] = [
+  { label: "Каталог услуг", href: "/services", hint: "13 позиций" },
+  { label: "ИИ-агенты", href: "/ai", hint: "Lumi Q1 · Kairo" },
+  { label: "Обсудить проект", href: "/contact", hint: "Бриф за 5 минут" },
+];
+
 /**
- * Hero бренда «сигнальная форма»: симметричная композиция по центру, крупная
- * двухстрочная типографика с одним акцентным словом, острая основная кнопка и
- * pill-кнопка вторичного действия. По нижним углам — детерминированные
- * пиксельная мозаика и полудроп-решётка; они декоративны и скрыты от AT.
+ * Hero в структуре payloadcms.com: mono-подпись, крупный заголовок слева,
+ * короткое описание и две pill-кнопки. Справа — узкая колонка быстрых
+ * переходов вместо декоративных орнаментов. Медиа-кадр добавляется отдельной
+ * секцией ниже, поэтому первый экран остаётся типографическим и быстрым.
  */
 const Hero138 = ({
-  headingMuted = "Where an idea",
-  headingPrimary = "takes",
-  headingAccent = "shape",
-  eyebrow = "Plus In Plus — design + AI",
-  descriptionLead = "A studio for brand systems, signage and outdoor media. ",
-  descriptionStrong = "Lumi Q1 and Kairo — specialised AI agents for code and law.",
+  headingMuted = "Дизайн, который",
+  headingPrimary = "работает",
+  headingAccent = "на улице",
+  eyebrow = "Plus In Plus · design + AI",
+  descriptionLead = "Студия визуальных систем, вывесок и наружной рекламы. ",
+  descriptionStrong = "Lumi Q1 и Kairo — ИИ-агенты для кода и права.",
   primaryCta = {
-    label: "Order a design",
-    href: "/services",
+    label: "Обсудить проект",
+    href: "/contact",
   },
   secondaryCta = {
-    label: "Explore AI",
-    href: "/ai",
+    label: "Смотреть услуги",
+    href: "/services",
   },
-  footnote = "Plus In Plus · form, code and meaning",
+  footnote = "Открыт бриф · ответ в течение дня",
+  quickLinks = DEFAULT_QUICK_LINKS,
   className,
 }: Hero138Props) => {
   return (
     <section
       className={cn(
-        "motion-section relative isolate overflow-hidden bg-background pt-16 pb-24 sm:pb-56 md:pt-24 md:pb-64",
+        "motion-section relative border-b border-border/70 bg-background",
         className
       )}
     >
-      {/* Крупная сетка держит геройский блок: линии читаются как каркас, а не фон. */}
-      <GridField
-        className="absolute inset-0 opacity-75 [mask-image:linear-gradient(to_bottom,black,transparent_85%)]"
-        cols={16}
-        rows={10}
-        seed={9}
-        tone="violet"
-        linesOnly
-      />
+      <div className="container grid items-start gap-14 pt-16 pb-14 md:pt-24 md:pb-20 lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-16">
+        <div>
+          <p className="pip-mono" data-reveal="" data-reveal-delay={0}>
+            {eyebrow}
+          </p>
 
-      <div className="container relative z-10 flex flex-col items-center text-center">
-        <p className="pip-eyebrow" data-reveal="" data-reveal-delay={0}>
-          {eyebrow}
-        </p>
-
-        <h1 className="mt-8 max-w-4xl text-[clamp(2.5rem,7.2vw,5.75rem)] leading-[0.98] font-bold tracking-[-0.035em]">
-          {headingMuted ? (
-            <span className="block text-muted-foreground">
-              <DecryptText text={headingMuted} trigger="mount" seed={3} />
-            </span>
-          ) : null}
-          <span className="block text-foreground">
-            <DecryptText text={headingPrimary} trigger="mount" seed={5} />
-            {headingAccent ? (
-              <>
-                {" "}
-                <span className="text-primary">
-                  <DecryptText text={headingAccent} trigger="mount" seed={7} />
-                </span>
-              </>
+          <h1 className="mt-7 text-[clamp(2.55rem,6.2vw,5rem)] leading-[0.96] font-semibold tracking-[-0.045em]">
+            {headingMuted ? (
+              <span className="block text-muted-foreground">{headingMuted}</span>
             ) : null}
-          </span>
-        </h1>
+            <span className="block text-foreground">
+              {headingPrimary}
+              {headingAccent ? (
+                <>
+                  {" "}
+                  <span className="text-primary">{headingAccent}</span>
+                </>
+              ) : null}
+            </span>
+          </h1>
 
-        <p
-          data-reveal=""
-          data-reveal-delay={90}
-          className="mt-7 max-w-xl text-base leading-relaxed text-muted-foreground md:text-lg"
-        >
-          {descriptionLead}
-          {descriptionStrong ? (
-            <strong className="font-medium text-foreground">
-              {descriptionStrong}
-            </strong>
-          ) : null}
-        </p>
+          <p
+            data-reveal=""
+            data-reveal-delay={80}
+            className="mt-8 max-w-xl text-base leading-relaxed text-muted-foreground md:text-lg"
+          >
+            {descriptionLead}
+            {descriptionStrong ? (
+              <span className="text-foreground">{descriptionStrong}</span>
+            ) : null}
+          </p>
 
-        <div
-          data-reveal=""
-          data-reveal-delay={140}
-          className="mt-9 flex w-full flex-col items-stretch justify-center gap-3 sm:w-auto sm:flex-row sm:items-center"
-        >
-          {primaryCta ? (
-            <Button size="lg" asChild>
-              <Link href={primaryCta.href}>{primaryCta.label}</Link>
-            </Button>
-          ) : null}
-          {secondaryCta ? (
-            <Button variant="outline" size="lg" asChild>
-              <Link href={secondaryCta.href} className="group">
-                {secondaryCta.label}
-                <ArrowRight className="size-4 transition-transform duration-200 ease-out group-hover:translate-x-1" />
-              </Link>
-            </Button>
+          <div
+            data-reveal=""
+            data-reveal-delay={140}
+            className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center"
+          >
+            {primaryCta ? (
+              <Button size="lg" asChild>
+                <Link href={primaryCta.href}>{primaryCta.label}</Link>
+              </Button>
+            ) : null}
+            {secondaryCta ? (
+              <Button variant="outline" size="lg" asChild>
+                <Link href={secondaryCta.href}>{secondaryCta.label}</Link>
+              </Button>
+            ) : null}
+          </div>
+
+          {footnote ? (
+            <p className="pip-mono mt-10 flex items-center gap-2">
+              <span className="inline-block size-1.5 bg-primary" aria-hidden="true" />
+              {footnote}
+            </p>
           ) : null}
         </div>
 
-        {footnote ? (
-          <p className="mt-8 text-[11px] font-medium tracking-[0.18em] text-muted-foreground/80 uppercase">
-            {footnote}
-          </p>
+        {quickLinks.length > 0 ? (
+          <aside
+            data-reveal=""
+            data-reveal-delay={180}
+            className="hidden lg:block"
+            aria-label={eyebrow}
+          >
+            <p className="pip-mono border-b border-border/70 pb-3">
+              Быстрый доступ
+            </p>
+            <ul className="divide-y divide-border/70">
+              {quickLinks.map((link, index) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="group flex items-baseline justify-between gap-4 py-4 transition-colors duration-150 hover:text-primary focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  >
+                    <span className="flex items-baseline gap-3">
+                      <span className="pip-mono text-[10px] text-muted-foreground/60">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <span className="text-sm font-medium">{link.label}</span>
+                    </span>
+                    <span className="flex items-center gap-2">
+                      {link.hint ? (
+                        <span className="pip-mono text-[10px] opacity-70">
+                          {link.hint}
+                        </span>
+                      ) : null}
+                      <ArrowUpRight
+                        aria-hidden="true"
+                        className="size-4 text-muted-foreground transition-transform duration-150 group-hover:-translate-y-0.5 group-hover:text-primary"
+                      />
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </aside>
         ) : null}
-      </div>
-
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 -z-0 hidden h-32 overflow-hidden opacity-75 sm:block sm:h-44 md:h-56"
-      >
-        <PixelMosaic
-          className="absolute bottom-0 left-0 h-full w-[38%] max-w-[20rem]"
-          cols={16}
-          rows={14}
-          seed={11}
-        />
-        <DotLattice
-          className="absolute right-0 bottom-0 h-full w-[34%] max-w-[22rem]"
-          cols={20}
-          rows={14}
-          seed={23}
-        />
       </div>
     </section>
   );
