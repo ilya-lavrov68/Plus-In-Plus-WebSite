@@ -86,7 +86,7 @@ export default async function RootLayout({
           />
         ) : null}
       </head>
-      <body className="flex min-h-screen flex-col bg-background pb-[var(--mobile-bottom-nav-clearance)] text-foreground antialiased lg:pb-0">
+      <body className="flex min-h-screen flex-col pb-[var(--mobile-bottom-nav-clearance)] antialiased lg:pb-0">
         <NextIntlClientProvider locale={locale} messages={getClientMessages(locale)}>
           <Providers>
             <Navbar />

@@ -77,9 +77,9 @@ export function PwHero({
         </div>
 
         <div className={`cols-8 start-8 start-m-1 ${classes.graphicWrapper}`}>
-          <div className={logo.logoGrid}>
+          <div className={`grid ${classes.secondaryContent}`} style={{ rowGap: "1rem" }}>
             {panels.map((panel) => (
-              <div key={panel.title} className="pl-media" style={{ minHeight: "180px" }}>
+              <div key={panel.title} className="cols-8 pl-media" style={{ minHeight: "220px" }}>
                 <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%", padding: "1.25rem" }}>
                   <span className="pl-mono">{panel.label}</span>
                   <div>

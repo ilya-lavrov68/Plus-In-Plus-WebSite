@@ -5,6 +5,12 @@
  */
 
 :root {
+  /* Их CSS ждёт эти переменные от next/font (Untitled Sans / Geist Mono).
+     Шрифты Payload не распространяются, поэтому ставим метрически близкий
+     гротеск — иначе font-family падает в Times и вся вёрстка «плывёт». */
+  --font-body: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, monospace;
+
   --pl-bg: var(--theme-bg);
   --pl-panel: var(--theme-elevation-50);
   --pl-text: var(--theme-text);
@@ -238,4 +244,11 @@
   .pl-btn::before {
     display: none;
   }
+}
+
+/* Их app.scss красит только html; возвращаем фон темы и на body,
+   чтобы не просвечивал наш прежний графит. */
+body {
+  background: var(--theme-bg);
+  color: var(--theme-text);
 }
