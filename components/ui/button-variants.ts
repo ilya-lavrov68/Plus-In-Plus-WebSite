@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority";
  * Геометрия кнопок бренда Plus In Plus.
  *
  * Основные действия — строго прямоугольные (rounded-none), с сигнальной
- * periwinkle-заливкой и тёмным текстом. Светлый сигнальный круг при точном
+ * жёлтой заливкой и тёмным текстом. Светлый сигнальный круг при точном
  * hover растёт из точки входа указателя через общий .pip-cursor-fill controller.
  *
  * Вторичные действия — pill (rounded-full) с прозрачным фоном и hairline-обводкой:
@@ -18,9 +18,9 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "pip-cursor-fill border border-signal-strong/40 bg-primary text-primary-foreground",
-        primary: "pip-cursor-fill border border-signal-strong/40 bg-primary text-primary-foreground",
-        cta: "pip-cursor-fill border border-signal-strong/40 bg-primary text-primary-foreground",
+        default: "pip-cursor-fill border border-brand-signal-strong/60 bg-primary text-primary-foreground",
+        primary: "pip-cursor-fill border border-brand-signal-strong/60 bg-primary text-primary-foreground",
+        cta: "pip-cursor-fill border border-brand-signal-strong/60 bg-primary text-primary-foreground",
         destructive:
           "border border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/85",
         secondary:
@@ -53,7 +53,7 @@ export const headerButtonVariants = cva(
         outline:
           "rounded-full border border-foreground/20 bg-transparent text-foreground/80 hover:border-foreground/40 hover:bg-white/[0.06] hover:text-foreground",
         primary:
-          "pip-cursor-fill rounded-none border border-signal-strong/40 bg-primary text-primary-foreground",
+          "pip-cursor-fill rounded-none border border-brand-signal-strong/60 bg-primary text-primary-foreground",
       },
     },
     defaultVariants: {

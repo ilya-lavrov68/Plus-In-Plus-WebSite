@@ -11,6 +11,7 @@ import {
   type ServiceCardData,
 } from "@/components/site/service-card";
 import { AnimatedIcon } from "@/components/ui/animated-icon";
+import { ServicesGridBand } from "@/components/site/page-geometry";
 import { Button } from "@/components/ui/button";
 
 export interface ServicesCatalogViewProps {
@@ -56,7 +57,8 @@ export function ServicesCatalogView({
   };
 
   return (
-    <div className="container py-24 md:py-32">
+    <div className="container relative isolate overflow-hidden py-24 md:py-32">
+      <ServicesGridBand />
       <div className="flex flex-col justify-between gap-6 border-b border-border/60 pb-10 md:flex-row md:items-end">
         <div>
           <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">

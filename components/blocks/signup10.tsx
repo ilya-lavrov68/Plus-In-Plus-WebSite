@@ -10,6 +10,7 @@ import { loginUser, registerUser } from "@/app/actions/auth";
 import type { AuthActionResult } from "@/app/actions/auth";
 import { getMfaPasskeyOptions } from "@/app/actions/mfa";
 import { BrandMark } from "@/components/site/logo";
+import { AuthMosaicField } from "@/components/site/page-geometry";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -164,7 +165,8 @@ const Signup10 = ({
   };
 
   return (
-    <section className="pip-hairline-grid flex min-h-[calc(100dvh-5rem)] items-center justify-center bg-background px-4 py-12 sm:px-6 sm:py-16">
+    <section className="pip-tech-grid relative isolate flex min-h-[calc(100dvh-5rem)] items-center justify-center overflow-hidden bg-background px-4 py-12 sm:px-6 sm:py-16">
+      <AuthMosaicField />
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center text-center">
           <Link

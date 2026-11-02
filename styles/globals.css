@@ -173,10 +173,15 @@
   --color-destructive: hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
   --color-destructive-text: hsl(var(--destructive-text));
-  --color-signal: var(--primary);
-  --color-signal-strong: var(--pip-accent-strong);
-  --color-signal-wash: var(--pip-accent-wash);
-  --color-signal-deep: var(--pip-accent-deep);
+  /* Основной сигнал бренда — жёлтый; пурпур из референса остаётся вторичным. */
+  --color-brand-signal: var(--pip-signal);
+  --color-brand-signal-strong: var(--pip-signal-strong);
+  --color-brand-signal-wash: var(--pip-signal-wash);
+  --color-brand-signal-deep: var(--pip-signal-deep);
+  --color-brand-violet: var(--pip-violet);
+  --color-brand-violet-strong: var(--pip-violet-strong);
+  --color-brand-violet-wash: var(--pip-violet-wash);
+  --color-brand-violet-deep: var(--pip-violet-deep);
 
   /*
    * Геометрия бренда: несущие поверхности, карточки, поля и основные кнопки —
@@ -224,8 +229,8 @@
     --card-foreground: 60 5% 95.3%;
     --popover: 240 3% 12.5%;
     --popover-foreground: 60 5% 95.3%;
-    /* Фирменный акцент Plus In Plus: periwinkle #8F9CFC с тёмным текстом. */
-    --primary: #8F9CFC;
+    /* Фирменный акцент Plus In Plus: жёлтый #FFFF01 с тёмным текстом. */
+    --primary: #FFFF01;
     --primary-foreground: #12131b;
     --secondary: 240 5% 15.7%;
     --secondary-foreground: 60 5% 95.3%;
@@ -238,24 +243,34 @@
     --destructive-text: 0 85% 68%;
     --border: 240 3% 17.5%;
     --input: 240 4% 21%;
-    --ring: 233 95% 77%;
+    --ring: 60 100% 50%;
     --radius: 0;
 
-    /* Оттенки сигнального цвета: заливка, hover, wash и глубокая подложка. */
-    --pip-accent: #8f9cfc;
-    --pip-accent-strong: #afb8fd;
-    --pip-accent-wash: #eaedfe;
-    --pip-accent-deep: #1e2238;
-    --pip-grid-line: hsl(var(--foreground) / 0.045);
+    /*
+     * Две шкалы одного языка форм.
+     * signal — главный жёлтый: действия, активный статус, signal-пиксели.
+     * violet — вторичный пурпур из референса: крупные сетки, орнаменты,
+     * направления ИИ, hover-заливка основных кнопок.
+     */
+    --pip-signal: #ffff01;
+    --pip-signal-strong: #ffffa3;
+    --pip-signal-wash: #f7f7cc;
+    --pip-signal-deep: #23230d;
+    --pip-violet: #8f9cfc;
+    --pip-violet-strong: #afb8fd;
+    --pip-violet-wash: #eaedfe;
+    --pip-violet-deep: #1e2238;
+    --pip-grid-line: hsl(var(--foreground) / 0.06);
+    --pip-grid-line-strong: hsl(var(--foreground) / 0.12);
 
     --mobile-bottom-nav-height: 4.5rem;
     --mobile-bottom-nav-clearance: 0px;
 
-    --spectrum-primary: #8f9cfc;
-    --spectrum-primary-hover: #afb8fd;
+    --spectrum-primary: #ffff01;
+    --spectrum-primary-hover: #e6e601;
     --spectrum-secondary: #26262a;
     --spectrum-secondary-hover: #303036;
-    --spectrum-accent: #1e2238;
+    --spectrum-accent: #23230d;
     --spectrum-background: #181819;
     --spectrum-text: #f4f4f2;
     --spectrum-muted: #a6a6ae;
@@ -538,12 +553,24 @@
    * 3. Chip — единственная узаконенная «мягкая» форма рядом с pill-кнопками.
    * 4. Frame — несущая прямоугольная поверхность с hairline-границей.
    */
-  .pip-hairline-grid {
+  .pip-tech-grid {
+    --pip-grid-cell: 96px;
     background-image:
       linear-gradient(var(--pip-grid-line) 1px, transparent 1px),
       linear-gradient(90deg, var(--pip-grid-line) 1px, transparent 1px);
-    background-size: 72px 72px;
+    background-size: var(--pip-grid-cell) var(--pip-grid-cell);
     background-position: center;
+  }
+
+  .pip-tech-grid--fine {
+    --pip-grid-cell: 24px;
+  }
+
+  .pip-tech-grid--bold {
+    --pip-grid-cell: 144px;
+    background-image:
+      linear-gradient(var(--pip-grid-line-strong) 1px, transparent 1px),
+      linear-gradient(90deg, var(--pip-grid-line-strong) 1px, transparent 1px);
   }
 
   .pip-eyebrow {
@@ -563,7 +590,7 @@
     width: 0.5rem;
     height: 0.5rem;
     flex: none;
-    background-color: var(--pip-accent);
+    background-color: var(--pip-signal);
     content: "";
   }
 
@@ -583,8 +610,13 @@
   }
 
   .pip-chip--signal {
-    border-color: var(--pip-accent);
+    border-color: var(--pip-signal);
     color: var(--primary);
+  }
+
+  .pip-chip--violet {
+    border-color: color-mix(in oklab, var(--pip-violet) 70%, transparent);
+    color: var(--pip-violet-strong);
   }
 
   .pip-frame {
@@ -768,8 +800,9 @@
   }
 }
 
-/* Основные кнопки бренда: острые, periwinkle-заливка. При точном hover
- * светлый сигнальный круг растёт из фактической точки входа указателя. */
+/* Основные кнопки бренда: острые, жёлтая заливка. При точном hover из
+ * фактической точки входа указателя растёт пурпурная волна из референса:
+ * фиолетовый остаётся вторичным состоянием, а не основным цветом бренда. */
 .pip-cursor-fill {
   --cursor-fill-x: 50%;
   --cursor-fill-y: 50%;
@@ -777,7 +810,7 @@
   isolation: isolate;
   overflow: hidden;
   border-radius: 0;
-  background-color: var(--pip-accent);
+  background-color: var(--pip-signal);
   color: var(--primary-foreground);
 }
 
@@ -789,7 +822,7 @@
   width: 250%;
   aspect-ratio: 1;
   border-radius: 50%;
-  background: var(--pip-accent-wash);
+  background: var(--pip-violet);
   content: "";
   pointer-events: none;
   transform: translate(-50%, -50%) scale(0);

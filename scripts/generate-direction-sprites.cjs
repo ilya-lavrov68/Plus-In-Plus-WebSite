@@ -21,7 +21,7 @@ const PALETTE = Object.freeze({
   ink: Object.freeze([244, 244, 242, 255]),
   neutral: Object.freeze([166, 166, 174, 255]),
   dim: Object.freeze([96, 96, 104, 255]),
-  accent: Object.freeze([143, 156, 252, 255]),
+  accent: Object.freeze([255, 255, 1, 255]),
 });
 
 function createFrame() {

@@ -81,9 +81,11 @@ test("brand ornaments are decorative, sharp-edged and use brand tokens", () => {
   assert.match(mosaicSource, /shapeRendering="crispEdges"/);
   assert.doesNotMatch(mosaicCode, /Math\.random|rounded-(?:sm|md|lg|xl|2xl|3xl)/);
   assert.doesNotMatch(mosaicSource, /#FFFF01|#ffff01/i);
-  assert.match(mosaicSource, /var\(--pip-accent\)/);
-  assert.match(mosaicSource, /var\(--pip-accent-wash\)/);
-  assert.match(mosaicSource, /var\(--pip-accent-deep\)/);
+  // Жёлтый — главный сигнал, пурпур из референса — вторичный слой.
+  assert.match(mosaicSource, /var\(--pip-signal\b/);
+  assert.match(mosaicSource, /var\(--pip-signal-wash\)/);
+  assert.match(mosaicSource, /var\(--pip-signal-deep\)/);
+  assert.match(mosaicSource, /var\(--pip-violet\)/);
 
   const squares = mosaic.root.findAll((node) => node.type === "rect");
   assert.ok(squares.length > 0, "the mosaic renders square cells");
@@ -111,15 +113,17 @@ test("hero uses only brand geometry instead of glow, media frames or placeholder
   assert.doesNotMatch(hero, /blur-3xl|radial-gradient|hero-pillar|MediaPlaceholder/);
   assert.match(hero, /overflow-hidden bg-background/);
   assert.match(hero, /headingAccent/);
+  assert.match(hero, /GridField/);
 
   const globals = fs.readFileSync(path.resolve(__dirname, "../styles/globals.css"), "utf8");
-  assert.match(globals, /--primary:\s*#8F9CFC;/);
+  assert.match(globals, /--primary:\s*#FFFF01;/);
   assert.match(globals, /--radius-lg:\s*0;/);
   assert.match(globals, /--radius-2xl:\s*0;/);
-  assert.match(globals, /\.pip-hairline-grid\s*\{/);
+  assert.match(globals, /\.pip-tech-grid\s*\{/);
+  assert.match(globals, /\.pip-tech-grid--bold\s*\{/);
   assert.match(globals, /\.pip-eyebrow::before\s*\{/);
   assert.doesNotMatch(globals, /hero-media-frame|hero-pillar/);
-  assert.doesNotMatch(globals, /#FFFF01|#ffff01/i);
+  assert.doesNotMatch(globals, /--pip-accent/);
 });
 
 test("design system documentation records the rebrand contract", () => {
@@ -127,7 +131,15 @@ test("design system documentation records the rebrand contract", () => {
     path.resolve(__dirname, "../docs/brand-rebrand.md"),
     "utf8"
   );
-  for (const token of ["#8F9CFC", "#181819", "#EAEDFE", "PixelMosaic", "DotLattice"]) {
+  for (const token of [
+    "#FFFF01",
+    "#8F9CFC",
+    "#181819",
+    "#EAEDFE",
+    "PixelMosaic",
+    "DotLattice",
+    "GridField",
+  ]) {
     assert.ok(doc.includes(token), `brand documentation must mention ${token}`);
   }
   assert.match(doc, /rounded-none/);
@@ -136,4 +148,58 @@ test("design system documentation records the rebrand contract", () => {
     fs.existsSync(path.resolve(__dirname, "../docs/brand/hero-preview.svg")),
     "the brand sheet must ship with the repository"
   );
+});
+
+test("public routes get distinct page geometry instead of one repeated block", () => {
+  const pageGeometry = require("../components/site/page-geometry.tsx");
+  const variants = [
+    "ServicesGridBand",
+    "ShopSideGrid",
+    "BlogLatticeField",
+    "ContactGridColumn",
+    "AuthMosaicField",
+    "LegalLineBand",
+    "AiGridBand",
+    "StorySignalRule",
+  ];
+  const signatures = new Map();
+
+  for (const name of variants) {
+    assert.equal(typeof pageGeometry[name], "function", `${name} must be exported`);
+    const view = render(React.createElement(pageGeometry[name]));
+    const tree = view.toJSON();
+    assert.ok(tree, `${name} must render a decorative layer`);
+    assert.equal(tree.props["aria-hidden"], "true");
+    assert.match(String(tree.props.className), /pointer-events-none/);
+    assert.doesNotMatch(JSON.stringify(tree), /rounded-(?:sm|md|lg|xl|2xl|3xl)/);
+    signatures.set(name, JSON.stringify(tree));
+    act(() => view.unmount());
+  }
+  assert.equal(
+    new Set(signatures.values()).size,
+    variants.length,
+    "every route composition must look different"
+  );
+
+  const wiring = {
+    "components/site/services-catalog-view.tsx": "ServicesGridBand",
+    "components/site/shop-catalog-view.tsx": "ShopSideGrid",
+    "components/blocks/blog11.tsx": "BlogLatticeField",
+    "components/blocks/contact29.tsx": "ContactGridColumn",
+    "components/site/contact-order-form.tsx": "ContactGridColumn",
+    "components/blocks/signup10.tsx": "AuthMosaicField",
+    "app/(site)/privacy/page.tsx": "LegalLineBand",
+    "app/(site)/terms/page.tsx": "LegalLineBand",
+    "components/ai/ai-page-view.tsx": "AiGridBand",
+    "components/site/story-timeline.tsx": "StorySignalRule",
+  };
+  for (const [file, component] of Object.entries(wiring)) {
+    const source = fs.readFileSync(path.resolve(__dirname, "..", file), "utf8");
+    assert.match(source, new RegExp(`\\b${component}\\b`), `${file} must mount ${component}`);
+  }
+
+  for (const file of ["components/blocks/hero138.tsx", "app/(site)/layout.tsx"]) {
+    const source = fs.readFileSync(path.resolve(__dirname, "..", file), "utf8");
+    assert.doesNotMatch(source, /pip-hairline-grid/, `${file} must use .pip-tech-grid`);
+  }
 });

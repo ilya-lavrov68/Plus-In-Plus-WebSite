@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, CircuitBoard, Code2, PenTool, Scale, type LucideIcon } from "lucide-react";
 
 import { AgentShaderPlayer } from "@/components/ai/agent-shader-player";
+import { AiGridBand } from "@/components/site/page-geometry";
 import { Button } from "@/components/ui/button";
 import { getRequestTranslations } from "@/lib/server-i18n";
 import { cn } from "@/lib/utils";
@@ -110,10 +111,7 @@ export async function AiPageView() {
   return (
     <>
       <section className="relative isolate overflow-hidden bg-background pt-20 pb-24 md:pt-28 md:pb-32">
-        <div
-          aria-hidden="true"
-          className="pip-hairline-grid pointer-events-none absolute inset-0 opacity-70"
-        />
+        <AiGridBand />
         <div className="container relative z-10">
           <div className="grid gap-12 lg:grid-cols-[1.15fr_0.85fr] lg:items-end lg:gap-20">
             <div>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
-import { DotLattice, PixelMosaic } from "@/components/site/brand-geometry";
+import { DotLattice, GridField, PixelMosaic } from "@/components/site/brand-geometry";
 import { DecryptText } from "@/components/site/motion/decrypt-text";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -59,9 +59,14 @@ const Hero138 = ({
         className
       )}
     >
-      <div
-        aria-hidden="true"
-        className="pip-hairline-grid pointer-events-none absolute inset-0 opacity-80"
+      {/* Крупная сетка держит геройский блок: линии читаются как каркас, а не фон. */}
+      <GridField
+        className="absolute inset-0 opacity-75 [mask-image:linear-gradient(to_bottom,black,transparent_85%)]"
+        cols={16}
+        rows={10}
+        seed={9}
+        tone="violet"
+        linesOnly
       />
 
       <div className="container relative z-10 flex flex-col items-center text-center">

@@ -42,8 +42,8 @@ test("square primary variants share cursor-fill while pill secondaries stay neut
 
   const css = fs.readFileSync("styles/globals.css", "utf8");
   assert.match(css, /\.pip-cursor-fill::before/);
-  assert.match(css, /\.pip-cursor-fill \{[^}]*background-color: var\(--pip-accent\)/s);
-  assert.match(css, /\.pip-cursor-fill::before \{[^}]*background: var\(--pip-accent-wash\)/s);
+  assert.match(css, /\.pip-cursor-fill \{[^}]*background-color: var\(--pip-signal\)/s);
+  assert.match(css, /\.pip-cursor-fill::before \{[^}]*background: var\(--pip-violet\)/s);
   assert.match(css, /prefers-reduced-motion: reduce[\s\S]*\.pip-cursor-fill::before[\s\S]*transition: none/);
 });
 

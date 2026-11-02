@@ -411,7 +411,7 @@ test("Brand accent and shader implementation keep the approved visual and motion
     path.resolve(__dirname, "../components/ai/agent-diagram.tsx"),
     "utf8"
   );
-  assert.match(globals, /--primary:\s*#8F9CFC;/);
+  assert.match(globals, /--primary:\s*#FFFF01;/);
   assert.match(globals, /--radius-lg:\s*0;/);
   assert.match(tailwind, /DEFAULT:\s*"var\(--primary\)"/);
   assert.equal(AGENT_SHADER_CYCLE_SECONDS, 4.5);

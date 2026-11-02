@@ -20,6 +20,7 @@ import {
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 
+import { ContactGridColumn } from "@/components/site/page-geometry";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -164,7 +165,8 @@ const Contact29 = ({
   };
 
   return (
-    <section className="py-24 md:py-32">
+    <section className="relative isolate overflow-hidden py-24 md:py-32">
+      <ContactGridColumn />
       <div className="container">
         <AnimatePresence mode="wait">
           {step === "select" && (
