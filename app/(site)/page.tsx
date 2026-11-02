@@ -103,7 +103,7 @@ export default async function HomePage() {
         headingStrong={content.split.strong}
         body={content.split.body}
         bullets={content.split.bullets}
-        link={{ label: content.split.link, href: "/story" }}
+        link={{ label: content.split.link, href: "/services" }}
         panels={content.panels}
       />
 

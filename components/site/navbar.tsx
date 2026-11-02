@@ -23,7 +23,6 @@ export async function Navbar() {
         { label: t("nav.shop"), href: "/shop" },
         { label: t("nav.blog"), href: "/blog" },
         { label: t("nav.ai"), href: "/ai" },
-        { label: t("nav.studio"), href: "/story" },
         { label: t("nav.contact"), href: "/contact" },
       ]}
       utility={[

@@ -37,9 +37,9 @@ export async function Footer() {
         {
           title: t("footer.studio"),
           links: [
-            { label: t("nav.studio"), href: "/story" },
             { label: t("nav.blog"), href: "/blog" },
             { label: t("nav.contact"), href: "/contact" },
+            { label: t("utility.cart"), href: "/cart" },
           ],
         },
         {
