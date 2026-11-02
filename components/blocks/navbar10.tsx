@@ -485,17 +485,32 @@ const DesktopMenuItem = ({ item, index }: DesktopMenuItemProps) => {
   // Locale-префикс не участвует в сравнении: /ru/ai и /en/ai — один активный пункт.
   const normalizedPath = (pathname.replace(/^\/(?:ru|en)(?=\/|$)/, "") || "/").replace(/\/+$/, "") || "/";
   const isDirectLink = !item.links && !item.featuredLinks && !item.groupLinks;
-  const isActive =
-    isDirectLink &&
-    Boolean(item.url) &&
-    (item.url === "/"
+  const matchesPath = (url?: string) =>
+    Boolean(url) &&
+    (url === "/"
       ? normalizedPath === "/"
-      : normalizedPath === item.url || normalizedPath.startsWith(`${item.url}/`));
+      : normalizedPath === url || normalizedPath.startsWith(`${url}/`));
+  // Активная пилюля работает и для выпадающих разделов: если текущая
+  // страница лежит внутри группы, пункт меню тоже подсвечивается.
+  const isActive =
+    isDirectLink
+      ? matchesPath(item.url)
+      : [...(item.links ?? []), ...(item.featuredLinks ?? []), ...(item.groupLinks ?? []).flatMap((group) => group.links)].some(
+          (link) => matchesPath(link.url)
+        );
 
   if (item.links || item.featuredLinks || item.groupLinks) {
     return (
       <NavigationMenuItem key={`desktop-menu-item-${index}`} value={`${index}`}>
-        <NavigationMenuTrigger className="h-fit rounded-none bg-transparent font-normal text-muted-foreground hover:text-foreground data-[state=open]:text-foreground">
+        <NavigationMenuTrigger
+          aria-current={isActive ? "page" : undefined}
+          className={cn(
+            "h-fit rounded-full px-4 font-normal data-[state=open]:text-foreground",
+            isActive
+              ? "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground"
+              : "bg-transparent text-muted-foreground hover:text-foreground"
+          )}
+        >
           {item.title}
         </NavigationMenuTrigger>
         <NavigationMenuContent className="hidden !rounded-none !border-0 !p-0 lg:block">
