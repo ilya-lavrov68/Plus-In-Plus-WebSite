@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
-import { DotLattice, PixelMosaic } from "@/components/site/brand-geometry";
+import { DotLattice, GridField, PixelMosaic } from "@/components/site/brand-geometry";
 import { DecryptText } from "@/components/site/motion/decrypt-text";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -55,18 +55,18 @@ const Hero138 = ({
   return (
     <section
       className={cn(
-        "motion-section relative isolate overflow-hidden bg-background pt-24 pb-40 sm:pb-56 md:pt-32 md:pb-64",
+        "motion-section relative isolate overflow-hidden bg-background pt-16 pb-24 sm:pb-56 md:pt-24 md:pb-64",
         className
       )}
     >
-      {/*
-       * Фон повторяет референс: редкая сетка точек на весь экран.
-       * Линии крупной сетки остаются другим разделам — так главная не
-       * выглядит как шаблон, а орнаменты в углах читаются отдельно.
-       */}
-      <div
-        aria-hidden="true"
-        className="pip-dot-field pointer-events-none absolute inset-0 opacity-60 [mask-image:linear-gradient(to_bottom,black,transparent_92%)]"
+      {/* Крупная сетка держит геройский блок: линии читаются как каркас, а не фон. */}
+      <GridField
+        className="absolute inset-0 opacity-75 [mask-image:linear-gradient(to_bottom,black,transparent_85%)]"
+        cols={16}
+        rows={10}
+        seed={9}
+        tone="violet"
+        linesOnly
       />
 
       <div className="container relative z-10 flex flex-col items-center text-center">
@@ -85,7 +85,7 @@ const Hero138 = ({
             {headingAccent ? (
               <>
                 {" "}
-                <span className="pip-mark text-primary">
+                <span className="text-primary">
                   <DecryptText text={headingAccent} trigger="mount" seed={7} />
                 </span>
               </>
@@ -96,7 +96,7 @@ const Hero138 = ({
         <p
           data-reveal=""
           data-reveal-delay={90}
-          className="mt-8 max-w-md text-sm leading-relaxed text-muted-foreground sm:text-base"
+          className="mt-7 max-w-xl text-base leading-relaxed text-muted-foreground md:text-lg"
         >
           {descriptionLead}
           {descriptionStrong ? (
@@ -135,21 +135,18 @@ const Hero138 = ({
 
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 -z-0 hidden h-72 overflow-hidden opacity-95 [mask-image:linear-gradient(to_top,black_72%,transparent)] sm:block sm:h-80 md:h-[26rem]"
+        className="pointer-events-none absolute inset-x-0 bottom-0 -z-0 hidden h-32 overflow-hidden opacity-75 sm:block sm:h-44 md:h-56"
       >
-        {/* Волны окутывают нижние углы: пиксельная масса слева, решётка
-            окружностей справа. Гребень мягко растворяется, поэтому текст и
-            кнопки всегда читаются поверх. */}
         <PixelMosaic
-          className="absolute bottom-0 left-0 h-full w-[34%] max-w-[22rem]"
-          cols={18}
-          rows={16}
+          className="absolute bottom-0 left-0 h-full w-[38%] max-w-[20rem]"
+          cols={16}
+          rows={14}
           seed={11}
         />
         <DotLattice
-          className="absolute right-0 bottom-0 h-full w-[32%] max-w-[22rem]"
-          cols={22}
-          rows={16}
+          className="absolute right-0 bottom-0 h-full w-[34%] max-w-[22rem]"
+          cols={20}
+          rows={14}
           seed={23}
         />
       </div>

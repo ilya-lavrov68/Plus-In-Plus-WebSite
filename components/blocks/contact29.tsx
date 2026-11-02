@@ -380,7 +380,7 @@ const Contact29 = ({
                   )}
 
                   {requiresAuth ? (
-                    <Button asChild variant="outline" className="mb-3 w-full sm:w-auto">
+                    <Button asChild className="mb-3 w-full sm:w-auto">
                       <Link href="/login">{t("loginToSend")}</Link>
                     </Button>
                   ) : null}

@@ -44,12 +44,9 @@ export function ShopCatalogView({
             <Button asChild>
               <Link href="/services">{tCart("browseServices")}</Link>
             </Button>
-            <Link
-              href="/"
-              className="inline-flex items-center self-center px-2 text-sm font-medium text-muted-foreground underline-offset-8 transition-colors duration-150 hover:text-foreground hover:underline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
-            >
-              {tShop("comingSoonBack")}
-            </Link>
+            <Button asChild variant="outline">
+              <Link href="/">{tShop("comingSoonBack")}</Link>
+            </Button>
           </div>
         </div>
       </div>

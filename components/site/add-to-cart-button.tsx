@@ -17,7 +17,7 @@ export interface AddToCartButtonProps {
   itemType: "service" | "product";
   itemId: string;
   itemName: string;
-  variant?: "default" | "outline" | "secondary" | "ghost";
+  variant?: "default" | "outline" | "secondary";
   size?: "default" | "sm" | "lg";
   className?: string;
 }

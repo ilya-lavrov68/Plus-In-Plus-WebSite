@@ -88,7 +88,7 @@ export default async function RootLayout({
         <NextIntlClientProvider locale={locale} messages={getClientMessages(locale)}>
           <Providers>
             <Navbar />
-            <main className="flex-1 pt-24 sm:pt-28">{children}</main>
+            <main className="flex-1 pt-20">{children}</main>
             <Footer />
             {/* Уведомление о cookie: один раз, пока посетитель не сделает выбор. */}
             <CookieBanner />

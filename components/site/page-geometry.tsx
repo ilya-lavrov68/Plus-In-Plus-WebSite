@@ -23,15 +23,15 @@ export function ServicesGridBand() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-40 overflow-hidden [mask-image:linear-gradient(to_bottom,black,transparent)] md:h-48"
+      className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[36rem] overflow-hidden [mask-image:linear-gradient(to_bottom,black,transparent)]"
     >
       <GridField
-        className="absolute inset-0 opacity-30"
+        className="absolute inset-0 opacity-70"
         cols={18}
         rows={10}
         blocks={7}
         seed={17}
-        tone="signal"
+        tone="mixed"
       />
       <span className="absolute top-24 right-6 hidden h-24 w-24 border border-foreground/10 lg:block" />
     </div>
@@ -46,12 +46,12 @@ export function ShopSideGrid() {
       className="pointer-events-none absolute inset-y-0 right-0 -z-10 hidden w-40 overflow-hidden lg:block"
     >
       <GridField
-        className="absolute inset-0 opacity-40"
+        className="absolute inset-0 opacity-60"
         cols={4}
         rows={16}
         blocks={3}
         seed={41}
-        tone="signal"
+        tone="violet"
       />
       <PixelMosaic
         className="absolute right-0 bottom-0 h-32 w-24 opacity-70"
@@ -78,7 +78,7 @@ export function BlogLatticeField() {
         rows={12}
         seed={29}
         corner="top-right"
-        tone="signal"
+        tone="mixed"
       />
     </div>
   );
@@ -92,12 +92,12 @@ export function ContactGridColumn() {
       className="pointer-events-none absolute inset-y-0 left-0 -z-10 hidden w-24 overflow-hidden xl:block"
     >
       <GridField
-        className="absolute inset-0 opacity-45"
+        className="absolute inset-0 opacity-70"
         cols={3}
         rows={12}
         blocks={4}
         seed={13}
-        tone="signal"
+        tone="mixed"
         linesOnly={false}
       />
       <SignalBlocks className="absolute top-28 left-6" count={6} tone="signal" />
@@ -124,6 +124,25 @@ export function AuthMosaicField() {
   );
 }
 
+/** Правовые документы: только линии, чтобы текст оставался главным. */
+export function LegalLineBand() {
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 overflow-hidden [mask-image:linear-gradient(to_bottom,black,transparent)]"
+    >
+      <GridField
+        className="absolute inset-0 opacity-60"
+        cols={12}
+        rows={8}
+        seed={3}
+        tone="violet"
+        linesOnly
+      />
+    </div>
+  );
+}
+
 /** Страницы ИИ: плотная крупная сетка с жёлтыми вкраплениями. */
 export function AiGridBand() {
   return (
@@ -132,12 +151,12 @@ export function AiGridBand() {
       className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[28rem] overflow-hidden [mask-image:linear-gradient(to_bottom,black,transparent)]"
     >
       <GridField
-        className="absolute inset-0 opacity-50"
+        className="absolute inset-0 opacity-80"
         cols={16}
         rows={9}
         blocks={6}
         seed={53}
-        tone="signal"
+        tone="mixed"
       />
     </div>
   );
@@ -150,7 +169,7 @@ export function StorySignalRule() {
       aria-hidden="true"
       className="pointer-events-none absolute top-10 right-0 -z-10 hidden items-center gap-2 md:flex"
     >
-      <SignalBlocks count={9} tone="signal" />
+      <SignalBlocks count={9} tone="violet" />
       <span className="h-px w-24 bg-border" />
       <SignalBlocks count={2} tone="signal" />
     </div>

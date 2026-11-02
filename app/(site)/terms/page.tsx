@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { LegalLineBand } from "@/components/site/page-geometry";
 import { Separator } from "@/components/ui/separator";
 import { getRequestLocale } from "@/lib/request-locale";
 import { createPageMetadata } from "@/lib/seo";
@@ -26,7 +27,8 @@ export default async function TermsPage() {
   const isRu = locale === "ru";
 
   return (
-    <section className="py-24 md:py-32">
+    <section className="relative isolate overflow-hidden py-24 md:py-32">
+      <LegalLineBand />
       <div className="container max-w-3xl">
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           {isRu ? "Правовая информация" : "Legal"}

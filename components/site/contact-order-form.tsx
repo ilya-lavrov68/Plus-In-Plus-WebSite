@@ -108,14 +108,13 @@ export function ContactOrderForm({
             {t("orderSubtitle")}
           </p>
         </div>
-        <Link
-          href="/services"
-          className="inline-flex w-fit shrink-0 items-center gap-1.5 text-sm font-medium text-muted-foreground underline-offset-8 transition-colors duration-150 hover:text-foreground hover:underline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
-        >
-          <Layers aria-hidden="true" className="h-4 w-4" />
-          {t("browseCatalog")}
-          <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" />
-        </Link>
+        <Button asChild variant="outline" size="sm" className="w-fit shrink-0">
+          <Link href="/services" className="gap-1.5">
+            <Layers aria-hidden="true" className="h-4 w-4" />
+            {t("browseCatalog")}
+            <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" />
+          </Link>
+        </Button>
       </div>
 
       {status === "unauthenticated" ? (
