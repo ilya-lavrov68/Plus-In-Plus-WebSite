@@ -97,11 +97,7 @@ export function PwHeader({ locale, topBar, menuLabel, closeLabel, links, utility
 
             <div className={`cols-5 ${desktop.secondaryNavItems}`}>
               {user ? (
-                <PwAvatar
-                  name={user.name}
-                  email={user.email}
-                  href={href(locale, "/profile")}
-                />
+                <PwAvatar name={user.name} email={user.email} href={href(locale, "/profile")} />
               ) : null}
               {utility.map((item) => (
                 <Link
