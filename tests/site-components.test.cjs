@@ -260,7 +260,7 @@ const textOf = (node) =>
     .map((child) => (typeof child === "string" ? child : textOf(child)))
     .join("");
 
-test("Hero138 renders exact title, subtitle, Order & Contact us actions, and showcase frame", () => {
+test("Hero138 renders exact copy, actions, and deterministic flat graphic fields", () => {
   let view;
   act(() => {
     view = create(React.createElement(Hero138));
@@ -277,7 +277,38 @@ test("Hero138 renders exact title, subtitle, Order & Contact us actions, and sho
   }));
   assert.ok(links.some((l) => l.href === "/services" && l.text.includes("Order")));
   assert.ok(links.some((l) => l.href === "/contact" && l.text.includes("Contact us")));
-  act(() => view.unmount());
+  assert.match(view.root.findByType("h1").props.className, /text-balance/);
+  assert.ok(view.root.findAllByType("rect").length > 100);
+  assert.ok(view.root.findAllByType("circle").length > 100);
+
+  const graphics = view.root.findAll(
+    (node) => typeof node.props?.["data-hero-graphic"] === "string",
+  );
+  assert.deepEqual(
+    graphics.map((node) => node.props["data-hero-graphic"]),
+    ["pixels", "dots"],
+  );
+  for (const graphic of graphics) {
+    assert.equal(graphic.props.focusable, "false");
+    assert.equal(graphic.parent.props["aria-hidden"], "true");
+  }
+
+  let repeated;
+  act(() => {
+    repeated = create(React.createElement(Hero138));
+  });
+  assert.deepEqual(
+    repeated.root.findAllByType("rect").map((node) => node.props),
+    view.root.findAllByType("rect").map((node) => node.props),
+  );
+  assert.deepEqual(
+    repeated.root.findAllByType("circle").map((node) => node.props),
+    view.root.findAllByType("circle").map((node) => node.props),
+  );
+  act(() => {
+    repeated.unmount();
+    view.unmount();
+  });
 });
 
 test("Home directions and AI page present two announced agents without a fabricated integration", async () => {
@@ -1046,7 +1077,7 @@ test("Feature314, Community3, and Cta13 render exact studio advantages, SVG logo
   });
 });
 
-test("public UI uses neutral media slots and keeps ambient glow only in the hero", () => {
+test("public UI uses neutral media slots and flat deterministic hero graphics", () => {
   const artworkFreeFiles = [
     "components/site/hero.tsx",
     "components/site/features.tsx",
@@ -1104,10 +1135,16 @@ test("public UI uses neutral media slots and keeps ambient glow only in the hero
     path.resolve(__dirname, "../components/blocks/hero138.tsx"),
     "utf8",
   );
-  assert.match(heroSource, /hero-media-frame/);
-  assert.doesNotMatch(heroSource, /glass-surface/);
-  assert.match(heroSource, /hero-pillar-1/);
-  assert.match(heroSource, /blur-3xl/);
+  assert.match(heroSource, /HeroGraphicField/);
+  assert.doesNotMatch(heroSource, /glass-surface|blur-3xl|MediaPlaceholder|showMediaStage/);
+
+  const graphicSource = fs.readFileSync(
+    path.resolve(__dirname, "../components/site/hero-graphic-field.tsx"),
+    "utf8",
+  );
+  assert.match(graphicSource, /data-hero-graphic="pixels"/);
+  assert.match(graphicSource, /data-hero-graphic="dots"/);
+  assert.doesNotMatch(graphicSource, /Math\.random|linearGradient|radialGradient|filter|animate/);
 
   for (const file of [
     "public/assets/placeholders/service-cover.svg",
@@ -1119,8 +1156,13 @@ test("public UI uses neutral media slots and keeps ambient glow only in the hero
 
   const styles = fs.readFileSync(path.resolve(__dirname, "../styles/globals.css"), "utf8");
   assert.match(styles, /\.glass-surface\s*\{[^}]*border:\s*0;[^}]*backdrop-filter:/s);
-  assert.match(styles, /\.hero-media-frame\s*\{[^}]*border: 1px solid hsl\(var\(--border\)\)/s);
-  assert.doesNotMatch(styles, /\.hero-media-frame\s*\{[^}]*backdrop-filter:/s);
+  assert.match(styles, /--hero-graphic-primary:\s*#FFFF01/);
+  assert.match(styles, /--hero-graphic-mid:\s*#E6E600/);
+  assert.match(styles, /--hero-graphic-deep:\s*#B9B900/);
+  assert.match(styles, /--hero-graphic-soft:\s*#FFFF73/);
+  assert.match(styles, /--hero-graphic-pale:\s*#FFFFB8/);
+  assert.match(styles, /\.hero-reference\s*\{[^}]*100svh[^}]*background-size: 24px 24px/s);
+  assert.doesNotMatch(styles, /\.hero-reference[^{]*\{[^}]*(?:box-shadow|text-shadow|backdrop-filter)/s);
   assert.doesNotMatch(styles, /box-shadow:|text-shadow:/);
 
   const placeholders = require("../lib/content-placeholders.ts");

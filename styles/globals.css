@@ -228,10 +228,13 @@
     --mobile-bottom-nav-height: 4.5rem;
     --mobile-bottom-nav-clearance: 0px;
 
-    --hero-pillar-1: 60 100% 50%;
-    --hero-pillar-2: 0 0% 32%;
-    --hero-pillar-3: 0 0% 62%;
-    --hero-pillar-4: 0 0% 22%;
+    /* Плоская жёлтая рампа главного hero: роли аналогичны светлому,
+     * среднему и глубокому lavender референса, но построены вокруг #FFFF01. */
+    --hero-graphic-primary: #FFFF01;
+    --hero-graphic-mid: #E6E600;
+    --hero-graphic-deep: #B9B900;
+    --hero-graphic-soft: #FFFF73;
+    --hero-graphic-pale: #FFFFB8;
 
     --spectrum-primary: #FFFF01;
     --spectrum-primary-hover: #E6E601;
@@ -513,10 +516,64 @@
     backdrop-filter: blur(24px) saturate(135%);
   }
 
-  /* Тонкая нейтральная граница сохраняет силуэт hero без тени и без
-   * full-width backdrop blur на каждом scroll-кадре. */
-  .hero-media-frame {
-    border: 1px solid hsl(var(--border));
+  /* Микросетка и периметральная графика главного hero. Плоские SVG-формы
+   * остаются статичными; компоновка не зависит от JS или внешних assets. */
+  .hero-reference {
+    min-height: calc(100vh - 5rem);
+    min-height: calc(100svh - 5rem);
+    background-image: radial-gradient(
+      circle at 1px 1px,
+      hsl(var(--foreground) / 0.055) 1px,
+      transparent 1.25px
+    );
+    background-size: 24px 24px;
+    background-position: center top;
+  }
+
+  .hero-reference__pixels,
+  .hero-reference__dots {
+    position: absolute;
+    bottom: 0;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .hero-reference__pixels {
+    left: 0;
+    width: min(58vw, 56rem);
+  }
+
+  .hero-reference__dots {
+    right: 0;
+    width: min(60vw, 60rem);
+  }
+
+  @media (width < 1024px) {
+    .hero-reference__pixels,
+    .hero-reference__dots {
+      width: 72vw;
+    }
+  }
+
+  @media (width < 640px) {
+    .hero-reference__pixels {
+      bottom: 1rem;
+      left: -10vw;
+      width: 100vw;
+    }
+
+    .hero-reference__dots {
+      bottom: 1rem;
+      right: -16vw;
+      width: 110vw;
+    }
+  }
+
+  @media (width < 380px) {
+    .hero-reference__pixels,
+    .hero-reference__dots {
+      bottom: 4rem;
+    }
   }
 
   /* Timeline cards сохраняют glass без дополнительных теней и без

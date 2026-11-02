@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 
-import { MediaPlaceholder } from "@/components/site/media-placeholder";
+import { HeroGraphicField } from "@/components/site/hero-graphic-field";
 import { DecryptText } from "@/components/site/motion/decrypt-text";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -20,11 +19,6 @@ export interface Hero138Props {
     href: string;
   };
   footnote?: string;
-  image?: {
-    src: string;
-    alt: string;
-  };
-  showMediaStage?: boolean;
   className?: string;
 }
 
@@ -42,123 +36,92 @@ const Hero138 = ({
     href: "/contact",
   },
   footnote = "Plus In Plus Design Studio",
-  image,
-  showMediaStage = true,
   className,
 }: Hero138Props) => {
   return (
     <section
       className={cn(
-        "motion-section relative overflow-hidden bg-background pt-16 pb-24 md:pt-24 md:pb-32",
-        className
+        "hero-reference motion-section relative isolate overflow-hidden bg-background",
+        className,
       )}
+      aria-labelledby="hero-heading"
     >
-      <div className="container relative z-10">
-        <h1 className="max-w-5xl text-4xl font-medium tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+      <HeroGraphicField />
+
+      <div className="container relative z-10 flex min-h-[inherit] flex-col items-center justify-center px-5 pb-72 pt-16 text-center sm:px-8 sm:pb-64 md:pt-20 lg:pb-48">
+        <p
+          data-reveal
+          className="mb-6 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground sm:text-xs"
+        >
+          {footnote}
+        </p>
+
+        <h1
+          id="hero-heading"
+          className="max-w-5xl text-balance text-[clamp(2.5rem,5.6vw,5.5rem)] font-medium leading-[1.02] tracking-[-0.02em]"
+        >
           {headingMuted ? (
             <>
               <DecryptText
                 text={headingMuted}
                 trigger="mount"
-                seed={3}
-                className="text-muted-foreground"
-              />{" "}
+                seed={11}
+                className="text-primary"
+              />
               <DecryptText
                 text={headingPrimary}
                 trigger="mount"
-                seed={5}
-                className="block text-foreground"
+                seed={29}
+                className="mt-1 block text-foreground sm:mt-2"
               />
             </>
           ) : (
             <DecryptText
               text={headingPrimary}
               trigger="mount"
-              seed={5}
+              seed={29}
               className="text-foreground"
             />
           )}
         </h1>
 
-        <div className="mt-10 flex flex-col justify-between gap-8 lg:mt-14 lg:flex-row lg:items-start">
-          <div data-reveal="" data-reveal-delay={80}>
-            <div className="flex flex-wrap items-center gap-3">
-              {primaryCta && (
-                <Button size="lg" asChild>
-                  <Link href={primaryCta.href}>{primaryCta.label}</Link>
-                </Button>
-              )}
-              {secondaryCta && (
-                <Button variant="ghost" size="lg" asChild>
-                  <Link href={secondaryCta.href} className="group">
-                    {secondaryCta.label}
-                    <ArrowRight className="ml-1 size-4 transition-transform duration-200 ease-out group-hover:translate-x-1" />
-                  </Link>
-                </Button>
-              )}
-            </div>
-            {footnote && (
-              <p className="mt-3 text-xs text-muted-foreground">{footnote}</p>
-            )}
-          </div>
+        <p
+          data-reveal
+          className="mt-6 max-w-xl text-pretty text-sm leading-relaxed text-muted-foreground sm:mt-7 sm:text-base"
+        >
+          {descriptionLead}
+          {descriptionStrong ? (
+            <strong className="font-medium text-foreground/85">
+              {descriptionStrong}
+            </strong>
+          ) : null}
+        </p>
 
-          <p
-            data-reveal=""
-            data-reveal-delay={140}
-            className="max-w-md text-base leading-relaxed text-muted-foreground md:text-lg"
-          >
-            {descriptionLead}
-            {descriptionStrong && (
-              <strong className="font-semibold text-foreground">
-                {descriptionStrong}
-              </strong>
-            )}
-          </p>
+        <div
+          data-reveal
+          className="mt-8 flex w-full flex-col items-stretch justify-center gap-3 sm:mt-9 sm:w-auto sm:flex-row sm:items-center"
+        >
+          {primaryCta ? (
+            <Button
+              asChild
+              size="lg"
+              className="h-11 rounded-full px-7"
+            >
+              <Link href={primaryCta.href}>{primaryCta.label}</Link>
+            </Button>
+          ) : null}
+          {secondaryCta ? (
+            <Button
+              asChild
+              size="lg"
+              variant="outline"
+              className="h-11 rounded-full border-foreground/20 px-7"
+            >
+              <Link href={secondaryCta.href}>{secondaryCta.label}</Link>
+            </Button>
+          ) : null}
         </div>
       </div>
-
-      {showMediaStage && (
-        <div data-reveal="" data-reveal-delay={180} className="relative mt-16 md:mt-24">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -top-12 right-0 left-0 mx-auto grid h-80 max-w-6xl grid-cols-4 gap-8 px-8 opacity-25 blur-3xl"
-          >
-            <div
-              className="h-full rounded-full"
-              style={{ backgroundColor: "hsl(var(--hero-pillar-1))" }}
-            />
-            <div
-              className="h-full rounded-full"
-              style={{ backgroundColor: "hsl(var(--hero-pillar-2))" }}
-            />
-            <div
-              className="h-full rounded-full"
-              style={{ backgroundColor: "hsl(var(--hero-pillar-3))" }}
-            />
-            <div
-              className="h-full rounded-full"
-              style={{ backgroundColor: "hsl(var(--hero-pillar-4))" }}
-            />
-          </div>
-
-          <div className="container relative z-10">
-            <div className="hero-media-frame relative overflow-hidden rounded-[1.75rem] bg-white/[0.055] p-1.5 sm:p-2.5">
-              {image?.src ? (
-                <img
-                  src={image.src}
-                  alt={image.alt}
-                  className="aspect-[16/9] w-full rounded-[1.35rem] object-cover object-center"
-                />
-              ) : (
-                <MediaPlaceholder
-                  className="aspect-[16/9] rounded-[1.35rem]"
-                  markClassName="h-16 sm:h-20"
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </section>
   );
 };
