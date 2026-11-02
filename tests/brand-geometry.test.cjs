@@ -113,7 +113,9 @@ test("hero uses only brand geometry instead of glow, media frames or placeholder
   assert.doesNotMatch(hero, /blur-3xl|radial-gradient|hero-pillar|MediaPlaceholder/);
   assert.match(hero, /overflow-hidden bg-background/);
   assert.match(hero, /headingAccent/);
-  assert.match(hero, /GridField/);
+  assert.match(hero, /pip-dot-field/);
+  assert.match(hero, /pip-mark/);
+  assert.doesNotMatch(hero, /tone="violet"/);
 
   const globals = fs.readFileSync(path.resolve(__dirname, "../styles/globals.css"), "utf8");
   assert.match(globals, /--primary:\s*#FFFF01;/);
@@ -158,7 +160,6 @@ test("public routes get distinct page geometry instead of one repeated block", (
     "BlogLatticeField",
     "ContactGridColumn",
     "AuthMosaicField",
-    "LegalLineBand",
     "AiGridBand",
     "StorySignalRule",
   ];
@@ -188,8 +189,6 @@ test("public routes get distinct page geometry instead of one repeated block", (
     "components/blocks/contact29.tsx": "ContactGridColumn",
     "components/site/contact-order-form.tsx": "ContactGridColumn",
     "components/blocks/signup10.tsx": "AuthMosaicField",
-    "app/(site)/privacy/page.tsx": "LegalLineBand",
-    "app/(site)/terms/page.tsx": "LegalLineBand",
     "components/ai/ai-page-view.tsx": "AiGridBand",
     "components/site/story-timeline.tsx": "StorySignalRule",
   };

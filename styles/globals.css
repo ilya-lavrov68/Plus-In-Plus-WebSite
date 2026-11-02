@@ -260,8 +260,8 @@
     --pip-violet-strong: #afb8fd;
     --pip-violet-wash: #eaedfe;
     --pip-violet-deep: #1e2238;
-    --pip-grid-line: hsl(var(--foreground) / 0.06);
-    --pip-grid-line-strong: hsl(var(--foreground) / 0.12);
+    --pip-grid-line: hsl(var(--foreground) / 0.05);
+    --pip-grid-line-strong: hsl(var(--foreground) / 0.09);
 
     --mobile-bottom-nav-height: 4.5rem;
     --mobile-bottom-nav-clearance: 0px;
@@ -562,6 +562,15 @@
     background-position: center;
   }
 
+  /* Точечное поле референса: редкая сетка точек, а не линии.
+   * Работает как текстура фона и никогда не спорит с текстом. */
+  .pip-dot-field {
+    --pip-dot-gap: 26px;
+    background-image: radial-gradient(hsl(var(--foreground) / 0.14) 1px, transparent 1px);
+    background-size: var(--pip-dot-gap) var(--pip-dot-gap);
+    background-position: center;
+  }
+
   .pip-tech-grid--fine {
     --pip-grid-cell: 24px;
   }
@@ -800,12 +809,11 @@
   }
 }
 
-/* Основные кнопки бренда: острые, жёлтая заливка. При точном hover из
- * фактической точки входа указателя растёт пурпурная волна из референса:
- * фиолетовый остаётся вторичным состоянием, а не основным цветом бренда. */
+/* Основные кнопки бренда: острые, жёлтая заливка. Наведение включает
+ * быструю пиксельную заливку: крупные клетки проявляются шагами слева
+ * направо, без волны из точки курсора и без пурпура — жёлтая шкала
+ * остаётся главной, а движение читается как «заполнение пикселями». */
 .pip-cursor-fill {
-  --cursor-fill-x: 50%;
-  --cursor-fill-y: 50%;
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -817,20 +825,34 @@
 .pip-cursor-fill::before {
   position: absolute;
   z-index: -1;
-  top: var(--cursor-fill-y);
-  left: var(--cursor-fill-x);
-  width: 250%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: var(--pip-violet);
+  inset: 0;
+  background-color: var(--pip-signal-strong);
   content: "";
   pointer-events: none;
-  transform: translate(-50%, -50%) scale(0);
-  transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
+  /* Шахматная маска из крупных клеток: по четыре квадрата на тайл. */
+  -webkit-mask-image: repeating-conic-gradient(#000 0 25%, transparent 0 50%);
+  mask-image: repeating-conic-gradient(#000 0 25%, transparent 0 50%);
+  -webkit-mask-size: 24px 24px;
+  mask-size: 24px 24px;
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 220ms steps(6, end);
 }
 
-.pip-cursor-fill:hover::before {
-  transform: translate(-50%, -50%) scale(3);
+.pip-cursor-fill:hover::before,
+.pip-cursor-fill:focus-visible::before {
+  clip-path: inset(0 0 0 0);
+}
+
+/* Одно слово заголовка как сигнальная плашка из референса: подсветка
+ * держится на жёлтом и не спорит с крупной типографикой. */
+.pip-mark {
+  display: inline-block;
+  padding: 0.03em 0.18em 0.07em;
+  border-radius: 0.08em;
+  background-color: color-mix(in oklab, var(--pip-signal) 18%, transparent);
+  color: var(--pip-signal);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 }
 
 @media (prefers-reduced-motion: reduce) {

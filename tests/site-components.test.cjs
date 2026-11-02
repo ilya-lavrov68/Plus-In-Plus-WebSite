@@ -270,7 +270,19 @@ test("Hero138 renders the centred brand statement, square primary plus pill seco
   // а не по точной строке: eyebrow, две строки h1 и акцентный хвост.
   assert.match(text, /Plus In Plus — design \+ AI/);
   assert.equal(view.root.findAllByType("h1").length, 1);
-  assert.ok(view.root.findAll((node) => node.props?.className === "text-primary").length >= 1);
+  assert.ok(
+    view.root.findAll(
+      (node) =>
+        typeof node.props?.className === "string" && node.props.className.includes("text-primary")
+    ).length >= 1
+  );
+  assert.ok(
+    view.root.findAll(
+      (node) =>
+        typeof node.props?.className === "string" && node.props.className.includes("pip-mark")
+    ).length >= 1,
+    "hero must highlight a single word with the signal mark"
+  );
   assert.match(text, /A studio for brand systems, signage and outdoor media/);
   const links = view.root.findAllByType("a").map((a) => ({
     href: a.props.href,

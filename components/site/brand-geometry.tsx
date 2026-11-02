@@ -98,7 +98,7 @@ export function PixelMosaic({
   rows = 18,
   seed = 11,
   corner = "bottom-left",
-  tone = "violet",
+  tone = "signal",
 }: OrnamentProps) {
   const { flipX, flipY } = cornerWeights(corner);
   const cells: Array<{ x: number; y: number; fill: string; key: string }> = [];
@@ -161,7 +161,7 @@ export function DotLattice({
   rows = 18,
   seed = 23,
   corner = "bottom-right",
-  tone = "violet",
+  tone = "signal",
 }: OrnamentProps) {
   const { flipX, flipY } = cornerWeights(corner);
   const dots: Array<{ cx: number; cy: number; r: number; fill: string; key: string }> = [];
@@ -237,7 +237,7 @@ export function GridField({
   rows = 8,
   blocks = 5,
   seed = 5,
-  tone = "violet",
+  tone = "signal",
   linesOnly = false,
 }: GridFieldProps) {
   const palette =
