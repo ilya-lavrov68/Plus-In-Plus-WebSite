@@ -7,6 +7,7 @@ import { Newspaper } from "lucide-react";
 
 import { EmptyState } from "@/components/site/empty-state";
 import { DecryptText } from "@/components/site/motion/decrypt-text";
+import { BlogLatticeField } from "@/components/site/page-geometry";
 import { Separator } from "@/components/ui/separator";
 import type { BlogCardData } from "@/lib/blog-card";
 
@@ -53,7 +54,8 @@ const Blog11 = ({
   const HeadingTag = asPageHeading ? "h1" : "h2";
 
   return (
-    <section id={id} className="motion-section py-32">
+    <section id={id} className="motion-section relative isolate overflow-hidden py-32">
+      <BlogLatticeField />
       <div className="container">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-12">
           <div className="lg:col-span-4">
@@ -127,7 +129,7 @@ const Blog11 = ({
                 >
                   <Link
                     href={`/blog/${post.slug}`}
-                    className="group relative flex h-80 flex-col justify-between overflow-hidden rounded-xl bg-muted p-6 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    className="group relative flex h-80 flex-col justify-between overflow-hidden rounded-none border border-border bg-muted p-6 transition-colors duration-200 hover:border-primary/50 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                   >
                     <div
                       aria-hidden="true"

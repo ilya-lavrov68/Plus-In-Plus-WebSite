@@ -108,7 +108,8 @@ const Footer7 = ({
   ];
 
   return (
-    <footer className="border-t border-border bg-background py-20">
+    <footer className="relative border-t border-border bg-background py-20">
+      <div aria-hidden="true" className="absolute inset-x-0 top-0 h-px bg-primary/60" />
       <div className="container">
         <div className="flex flex-col justify-between gap-12 lg:flex-row lg:items-start">
           <div className="flex max-w-xs flex-col gap-5">
@@ -151,7 +152,7 @@ const Footer7 = ({
                   target="_blank"
                   rel="noreferrer"
                   aria-label={label}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors duration-200 hover:border-foreground/25 hover:text-foreground"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-none border border-border text-muted-foreground transition-colors duration-200 hover:border-primary hover:text-primary"
                 >
                   <Icon aria-hidden="true" className="h-4 w-4" />
                 </a>
@@ -162,7 +163,7 @@ const Footer7 = ({
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:grid-cols-5 lg:gap-12">
             {footerSections.map((section) => (
               <div key={section.title}>
-                <h3 className="mb-4 text-sm font-semibold text-foreground">
+                <h3 className="mb-4 text-[11px] font-semibold tracking-[0.16em] text-foreground uppercase">
                   {section.title}
                 </h3>
                 <ul className="space-y-3 text-sm text-muted-foreground">

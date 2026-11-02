@@ -10,6 +10,7 @@ import { loginUser, registerUser } from "@/app/actions/auth";
 import type { AuthActionResult } from "@/app/actions/auth";
 import { getMfaPasskeyOptions } from "@/app/actions/mfa";
 import { BrandMark } from "@/components/site/logo";
+import { AuthMosaicField } from "@/components/site/page-geometry";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -164,16 +165,17 @@ const Signup10 = ({
   };
 
   return (
-    <section className="flex min-h-[calc(100dvh-5rem)] items-center justify-center bg-background px-4 py-12 sm:px-6 sm:py-16">
+    <section className="pip-tech-grid relative isolate flex min-h-[calc(100dvh-5rem)] items-center justify-center overflow-hidden bg-background px-4 py-12 sm:px-6 sm:py-16">
+      <AuthMosaicField />
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center text-center">
           <Link
             href="/"
-            className="mx-auto inline-flex items-center justify-center rounded-lg p-1.5 transition-opacity duration-200 hover:opacity-80 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className="mx-auto inline-flex items-center justify-center rounded-none p-1.5 transition-opacity duration-200 hover:opacity-80 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             <BrandMark className="h-9" label="Plus In Plus" />
           </Link>
-          <h1 className="mt-6 text-center text-3xl font-semibold tracking-tight">
+          <h1 className="mt-6 text-center text-3xl font-semibold tracking-[-0.02em]">
             {isLogin ? t("login") : t("register")}
           </h1>
           <p className="mx-auto mt-2 max-w-sm text-center text-sm leading-relaxed text-muted-foreground">
@@ -181,7 +183,7 @@ const Signup10 = ({
           </p>
         </div>
 
-        <div className="mt-8 rounded-lg bg-muted p-6 sm:p-8">
+        <div className="mt-8 rounded-none border border-border bg-card p-6 sm:p-8">
           <form
             aria-label={isLogin ? t("login") : t("register")}
             onSubmit={handleSubmit}
@@ -197,7 +199,7 @@ const Signup10 = ({
                     value={firstName}
                     onChange={(event) => setFirstName(event.target.value)}
                     placeholder={t("firstNamePlaceholder")}
-                    className="h-11 rounded-md border-transparent bg-white px-3 text-[#171717] placeholder:text-neutral-500"
+                    className="h-11 rounded-none border border-border bg-background px-3 text-foreground placeholder:text-muted-foreground hover:border-foreground/35"
                     required
                   />
                 </div>
@@ -209,7 +211,7 @@ const Signup10 = ({
                     value={lastName}
                     onChange={(event) => setLastName(event.target.value)}
                     placeholder={t("lastNamePlaceholder")}
-                    className="h-11 rounded-md border-transparent bg-white px-3 text-[#171717] placeholder:text-neutral-500"
+                    className="h-11 rounded-none border border-border bg-background px-3 text-foreground placeholder:text-muted-foreground hover:border-foreground/35"
                     required
                   />
                 </div>
@@ -228,7 +230,7 @@ const Signup10 = ({
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     placeholder="you@example.com"
-                    className="h-11 rounded-md border-transparent bg-white px-3 text-[#171717] placeholder:text-neutral-500"
+                    className="h-11 rounded-none border border-border bg-background px-3 text-foreground placeholder:text-muted-foreground hover:border-foreground/35"
                     required
                   />
                 </div>
@@ -243,7 +245,7 @@ const Signup10 = ({
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                     placeholder="••••••••"
-                    className="h-11 rounded-md border-transparent bg-white px-3 text-[#171717] placeholder:text-neutral-500"
+                    className="h-11 rounded-none border border-border bg-background px-3 text-foreground placeholder:text-muted-foreground hover:border-foreground/35"
                     required
                   />
                 </div>
@@ -259,7 +261,7 @@ const Signup10 = ({
                       value={confirmPassword}
                       onChange={(event) => setConfirmPassword(event.target.value)}
                       placeholder="••••••••"
-                      className="h-11 rounded-md border-transparent bg-white px-3 text-[#171717] placeholder:text-neutral-500"
+                      className="h-11 rounded-none border border-border bg-background px-3 text-foreground placeholder:text-muted-foreground hover:border-foreground/35"
                       required
                     />
                   </div>
@@ -267,7 +269,7 @@ const Signup10 = ({
 
                 {isLogin && (
                   <div
-                    className={`flex items-center justify-between rounded-md border bg-card px-4 py-3 transition-colors duration-200 ${
+                    className={`flex items-center justify-between rounded-none border bg-background px-4 py-3 transition-colors duration-200 ${
                       adminMode ? "border-primary" : "border-border"
                     }`}
                   >
@@ -300,7 +302,7 @@ const Signup10 = ({
                     onChange={(event) => setMfaCode(event.target.value)}
                     required={mfaChallenge.hasTotp}
                     maxLength={64}
-                    className="h-11 rounded-md border-transparent bg-white px-3 text-[#171717] placeholder:text-neutral-500"
+                    className="h-11 rounded-none border border-border bg-background px-3 text-foreground placeholder:text-muted-foreground hover:border-foreground/35"
                   />
                   <p className="text-xs leading-relaxed text-muted-foreground">
                     {mfaChallenge.hasTotp ? t("mfaCodeHelp") : t("passkeyOrBackupHelp")}
@@ -334,7 +336,7 @@ const Signup10 = ({
             {error && (
               <p
                 role="alert"
-                className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-center text-sm text-red-300"
+                className="rounded-none border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-center text-sm text-red-300"
               >
                 {error}
               </p>
@@ -343,7 +345,7 @@ const Signup10 = ({
             <Button
               type="submit"
               disabled={loading}
-              className="mt-2 h-11 w-full rounded-md"
+              className="mt-2 h-11 w-full rounded-none"
             >
               {loading
                 ? isLogin

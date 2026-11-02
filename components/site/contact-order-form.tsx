@@ -8,6 +8,7 @@ import { ArrowUpRight, Calendar, Layers, LogIn } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
 import { createOrder } from "@/app/actions/orders";
+import { ContactGridColumn } from "@/components/site/page-geometry";
 import { ServiceSelector } from "@/components/site/service-selector";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -96,7 +97,8 @@ export function ContactOrderForm({
   };
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-24 md:py-32">
+    <div className="relative isolate mx-auto max-w-4xl overflow-hidden px-6 py-24 md:py-32">
+      <ContactGridColumn />
       <div className="mb-10 flex flex-col justify-between gap-4 border-b border-border/60 pb-8 sm:flex-row sm:items-end">
         <div>
           <h1 className="text-3xl font-bold tracking-tight md:text-4xl">

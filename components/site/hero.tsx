@@ -6,8 +6,10 @@ export async function Hero() {
   const hero = await getRequestTranslations("hero");
   return (
     <Hero138
+      eyebrow={t("heroEyebrow")}
       headingMuted={t("heroMuted")}
       headingPrimary={t("heroPrimary")}
+      headingAccent={t("heroAccent")}
       descriptionLead={t("heroDescriptionLead")}
       descriptionStrong={t("heroDescriptionStrong")}
       primaryCta={{ label: hero("orderDesign"), href: "/services" }}

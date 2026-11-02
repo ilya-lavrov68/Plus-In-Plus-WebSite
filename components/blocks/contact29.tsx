@@ -20,6 +20,7 @@ import {
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 
+import { ContactGridColumn } from "@/components/site/page-geometry";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -164,7 +165,8 @@ const Contact29 = ({
   };
 
   return (
-    <section className="py-24 md:py-32">
+    <section className="relative isolate overflow-hidden py-24 md:py-32">
+      <ContactGridColumn />
       <div className="container">
         <AnimatePresence mode="wait">
           {step === "select" && (
@@ -195,9 +197,9 @@ const Contact29 = ({
                       key={option.id}
                       type="button"
                       onClick={() => setSelectedTopic(option.id)}
-                      className={`flex flex-col items-start gap-3 rounded-xl border p-6 text-left transition-colors duration-200 ease-out hover:border-foreground/25 hover:bg-white/[0.05] ${
+                      className={`flex flex-col items-start gap-3 rounded-none border p-6 text-left transition-colors duration-200 ease-out hover:border-foreground/25 hover:bg-foreground/[0.04] ${
                         selected
-                          ? "border-primary bg-white/[0.06]"
+                          ? "border-primary bg-primary/[0.07]"
                           : "border-border bg-card/60"
                       }`}
                     >
@@ -226,9 +228,9 @@ const Contact29 = ({
                         key={option.id}
                         type="button"
                         onClick={() => setSelectedTopic(option.id)}
-                        className={`flex flex-col items-start gap-2 rounded-xl border p-4 text-left transition-colors duration-200 ease-out hover:border-foreground/25 hover:bg-white/[0.05] ${
+                        className={`flex flex-col items-start gap-2 rounded-none border p-4 text-left transition-colors duration-200 ease-out hover:border-foreground/25 hover:bg-foreground/[0.04] ${
                           selected
-                            ? "border-primary bg-white/[0.06]"
+                            ? "border-primary bg-primary/[0.07]"
                             : "border-border bg-card/45"
                         }`}
                       >
@@ -290,7 +292,7 @@ const Contact29 = ({
                     {t("projectDescription")}
                   </p>
 
-                  <div className="mt-8 rounded-xl border border-border bg-card p-5">
+                  <div className="mt-8 rounded-none border border-border bg-card p-5">
                     <div className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
                       {t("selectedService")}
                     </div>
@@ -317,7 +319,7 @@ const Contact29 = ({
               <div className="lg:col-span-7">
                 <form
                   onSubmit={handleSubmit}
-                  className="space-y-6 rounded-2xl border border-border bg-card p-6 md:p-10"
+                  className="space-y-6 rounded-none border border-border bg-card p-6 md:p-10"
                 >
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <div className="space-y-2">
@@ -403,7 +405,7 @@ const Contact29 = ({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="mx-auto max-w-lg rounded-2xl border border-border bg-card p-10 text-center"
+              className="mx-auto max-w-lg rounded-none border border-border bg-card p-10 text-center"
             >
               <CheckCircle2 className="mx-auto size-12 text-foreground" />
               <h2 className="mt-5 text-3xl font-semibold tracking-tight">

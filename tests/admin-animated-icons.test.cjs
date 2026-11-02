@@ -66,7 +66,7 @@ test("admin styling has light/dark themes, no shadows and the exact PIP accent",
   const styles = read("app/(payload)/custom.scss");
   assert.match(styles, /--base-body-size:\s*16/);
   assert.match(styles, /--nav-width:\s*300px/);
-  assert.match(styles, /#ffff01/i);
+  assert.match(styles, /--pip-admin-accent:\s*#ffff01/i);
   assert.match(styles, /:focus-visible[\s\S]*?outline:\s*2px/);
   const shadows = styles
     .split("\n")

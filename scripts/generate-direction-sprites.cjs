@@ -18,9 +18,9 @@ const FRAME_COUNT = 24;
 const OUTPUT_DIRECTORY = path.resolve(__dirname, "../public/assets/pixels");
 
 const PALETTE = Object.freeze({
-  ink: Object.freeze([250, 250, 250, 255]),
-  neutral: Object.freeze([163, 163, 163, 255]),
-  dim: Object.freeze([82, 82, 82, 255]),
+  ink: Object.freeze([244, 244, 242, 255]),
+  neutral: Object.freeze([166, 166, 174, 255]),
+  dim: Object.freeze([96, 96, 104, 255]),
   accent: Object.freeze([255, 255, 1, 255]),
 });
 
