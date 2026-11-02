@@ -3,12 +3,12 @@ import Link from "next/link";
 import {
   PlCases,
   PlFeatures,
-  PlHero,
   PlManifesto,
   PlSplit,
   PlStatement,
   type PlLink,
 } from "@/components/payload/home-sections";
+import { PwHero } from "@/components/pw/hero";
 import { localizeBlogPosts } from "@/lib/blog-localization";
 import { getPublishedPosts } from "@/lib/data";
 import { getRequestLocale } from "@/lib/request-locale";
@@ -77,15 +77,12 @@ export default async function HomePage() {
 
   return (
     <>
-      <PlHero
+      <PwHero
         locale={locale}
         announcement={content.announcement}
         eyebrow={content.eyebrow}
-        title={
-          <>
-            {t("heroMuted")} {t("heroPrimary")} {t("heroAccent")}
-          </>
-        }
+        title={`${t("heroMuted")} ${t("heroPrimary")}`}
+        accent={t("heroAccent")}
         description={content.description}
         primary={{ label: content.primary, href: "/contact" }}
         secondary={{ label: content.secondary, href: "/services" }}
