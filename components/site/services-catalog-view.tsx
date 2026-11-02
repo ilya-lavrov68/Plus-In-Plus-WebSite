@@ -68,12 +68,14 @@ export function ServicesCatalogView({
             {t("subtitle")}
           </p>
         </div>
-        <Button asChild variant="outline">
-          <Link href="/contact" className="gap-2" data-pip-icon-trigger>
-            {t("proceedToOrder")}
-            <AnimatedIcon icon={ArrowRightIcon} size={16} />
-          </Link>
-        </Button>
+        <Link
+          href="/contact"
+          className="group inline-flex w-fit items-center gap-2 text-sm font-medium text-muted-foreground underline-offset-8 transition-colors duration-150 hover:text-foreground hover:underline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+          data-pip-icon-trigger
+        >
+          {t("proceedToOrder")}
+          <AnimatedIcon icon={ArrowRightIcon} size={16} />
+        </Link>
       </div>
 
       <section className="mt-12">
