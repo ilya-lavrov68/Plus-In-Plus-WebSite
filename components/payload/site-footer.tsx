@@ -34,7 +34,6 @@ export function SiteFooter({
         <div className="grid gap-10 pb-12 lg:grid-cols-[1fr_1.2fr]">
           <div>
             <div className="flex items-center gap-2">
-              <span aria-hidden="true" className="block h-3 w-3 bg-[var(--pl-accent)]" />
               <span className="text-[15px] font-medium">Plus In Plus</span>
             </div>
             <p className="pl-small mt-5 max-w-sm">{description}</p>
@@ -57,7 +56,7 @@ export function SiteFooter({
                     href={item.href}
                     target="_blank"
                     rel="noreferrer"
-                    className="pl-mono text-[11px] text-[var(--pl-muted)] transition-colors hover:text-[var(--pl-accent)]"
+                    className="pl-mono text-[11px] text-[var(--pl-muted)] transition-colors hover:text-[var(--pl-text)]"
                   >
                     {item.label}
                   </a>
@@ -80,7 +79,7 @@ export function SiteFooter({
                     <li key={`${group.title}-${link.label}`}>
                       <Link
                         href={`/${locale}${link.href === "/" ? "" : link.href}`}
-                        className="text-[15px] text-[var(--pl-text)]/85 transition-colors duration-150 hover:text-[var(--pl-accent)]"
+                        className="text-[15px] text-[var(--pl-text)]/85 transition-colors duration-150 hover:text-[var(--pl-text)]"
                       >
                         {link.label}
                       </Link>

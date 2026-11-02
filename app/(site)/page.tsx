@@ -83,8 +83,7 @@ export default async function HomePage() {
         eyebrow={content.eyebrow}
         title={
           <>
-            {t("heroMuted")} {t("heroPrimary")}{" "}
-            <span className="text-[var(--pl-accent)]">{t("heroAccent")}</span>
+            {t("heroMuted")} {t("heroPrimary")} {t("heroAccent")}
           </>
         }
         description={content.description}

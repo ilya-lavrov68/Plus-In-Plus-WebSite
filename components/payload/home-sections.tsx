@@ -29,7 +29,6 @@ function MediaPanel({
       <div className="flex h-full flex-col justify-between p-5">
         <div className="flex items-center justify-between">
           <span className="pl-mono text-[10px] text-[var(--pl-muted)]">{label}</span>
-          <span aria-hidden="true" className="block h-2 w-2 bg-[var(--pl-accent)]" />
         </div>
         <div>
           <p className="text-[15px] leading-snug font-medium tracking-[-0.01em]">{title}</p>
@@ -72,9 +71,8 @@ export function PlHero({
           <div className="lg:col-span-5">
             <Link
               href={localeHref(locale, primary.href)}
-              className="inline-flex items-center gap-2 border border-[var(--pl-border)] px-3 py-1.5 text-[13px] text-[var(--pl-text)]/85 transition-colors hover:border-[var(--pl-accent)] hover:text-[var(--pl-accent)]"
+              className="inline-flex items-center gap-2 border border-[var(--pl-border)] px-3 py-1.5 text-[13px] text-[var(--pl-text)]/85 transition-colors hover:border-[var(--pl-border-strong)]"
             >
-              <span aria-hidden="true" className="block h-1.5 w-1.5 bg-[var(--pl-accent)]" />
               {announcement}
               <span aria-hidden="true">→</span>
             </Link>
@@ -84,7 +82,7 @@ export function PlHero({
             <p className="pl-body mt-6 max-w-[46ch]">{description}</p>
 
             <div className="mt-9 flex flex-col gap-2">
-              <Link href={localeHref(locale, primary.href)} className="pl-btn pl-btn--accent">
+              <Link href={localeHref(locale, primary.href)} className="pl-btn">
                 {primary.label}
                 <span aria-hidden="true">→</span>
               </Link>
@@ -160,9 +158,7 @@ export function PlSplit({
                   className="flex items-start justify-between gap-6 border-t border-[var(--pl-border)] py-4 text-[16px]"
                 >
                   {bullet}
-                  <span aria-hidden="true" className="text-[var(--pl-accent)]">
-                    ●
-                  </span>
+
                 </li>
               ))}
             </ul>
@@ -327,7 +323,7 @@ export function PlManifesto({
               </p>
             ))}
             <div className="mt-8 flex flex-col gap-2 sm:flex-row">
-              <Link href={cta.href} className="pl-btn pl-btn--accent sm:max-w-[240px]">
+              <Link href={cta.href} className="pl-btn sm:max-w-[240px]">
                 {cta.label}
                 <span aria-hidden="true">→</span>
               </Link>

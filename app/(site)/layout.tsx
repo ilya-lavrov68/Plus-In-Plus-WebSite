@@ -13,6 +13,7 @@ import { getClientMessages } from "@/i18n-catalog";
 
 import "@/styles/globals.css";
 import "@/styles/payload.css";
+import "@/styles/pw/app.scss";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -59,7 +60,7 @@ export default async function RootLayout({
   const locale = await getRequestLocale();
 
   return (
-    <html lang={locale} data-locale={locale} className="dark">
+    <html lang={locale} data-locale={locale} data-theme="dark">
       <head>
         <link
           rel="preload"

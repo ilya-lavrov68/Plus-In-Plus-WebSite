@@ -35,7 +35,7 @@ export function SiteHeader({ links, utility, cta, topBar, menuLabel, closeLabel,
 
   return (
     <div className="fixed inset-x-0 top-0 z-50">
-      <div className="flex h-[var(--pl-topbar)] items-center justify-center border-b border-white/10 bg-[var(--pl-accent)] px-4 text-[var(--pl-accent-ink)]">
+      <div className="flex h-[var(--pl-topbar)] items-center justify-center border-b border-[var(--pl-border)] bg-[var(--pl-panel)] px-4 text-[var(--pl-text)]">
         <span className="pl-mono text-[11px] tracking-[0.18em]">{topBar}</span>
       </div>
 
@@ -46,7 +46,6 @@ export function SiteHeader({ links, utility, cta, topBar, menuLabel, closeLabel,
             className="flex items-center gap-2 text-[var(--pl-text)]"
             aria-label="Plus In Plus"
           >
-            <span aria-hidden="true" className="block h-3 w-3 bg-[var(--pl-accent)]" />
             <span className="text-[15px] font-medium tracking-[-0.01em] whitespace-nowrap">
               Plus In Plus
             </span>
@@ -58,7 +57,7 @@ export function SiteHeader({ links, utility, cta, topBar, menuLabel, closeLabel,
                 <li key={link.href}>
                   <Link
                     href={withLocale(locale, link.href)}
-                    className="text-[15px] text-[var(--pl-text)]/85 transition-colors duration-150 hover:text-[var(--pl-accent)]"
+                    className="text-[15px] text-[var(--pl-text)]/85 transition-colors duration-150 hover:text-[var(--pl-text)]"
                   >
                     {link.label}
                   </Link>
@@ -90,7 +89,7 @@ export function SiteHeader({ links, utility, cta, topBar, menuLabel, closeLabel,
 
             <Link
               href={withLocale(locale, cta.href)}
-              className="hidden border border-[var(--pl-border-strong)] px-4 py-2 text-[14px] font-medium text-[var(--pl-text)] transition-colors duration-150 hover:border-[var(--pl-accent)] hover:text-[var(--pl-accent)] sm:block"
+              className="hidden border border-[var(--pl-border-strong)] px-4 py-2 text-[14px] font-medium text-[var(--pl-text)] transition-colors duration-150 hover:text-[var(--pl-text)] sm:block"
             >
               {cta.label}
             </Link>
@@ -131,7 +130,7 @@ export function SiteHeader({ links, utility, cta, topBar, menuLabel, closeLabel,
                     className="flex items-center justify-between py-5 text-[22px] tracking-[-0.02em]"
                   >
                     {link.label}
-                    <span aria-hidden="true" className="text-[var(--pl-accent)]">
+                    <span aria-hidden="true" className="text-[var(--pl-text)]">
                       ↗
                     </span>
                   </Link>

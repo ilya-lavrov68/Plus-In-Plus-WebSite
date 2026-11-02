@@ -1,117 +1,122 @@
 /*
- * Дизайн-слой payloadcms.com (схема, метрики и типы — по официальному сайту
- * Payload, MIT). Палитра заменена на бренд Plus In Plus: графит + жёлтый.
- * Классы с префиксом pl- живут рядом с Tailwind и не конфликтуют с ним.
+ * Дизайн-слой payloadcms.com: метрики, палитра и типографика взяты из
+ * официального сайта Payload (MIT). Наша палитра НЕ применяется —
+ * используются их theme-переменные из styles/pw/theme.scss.
  */
 
 :root {
-  --pl-bg: #181819;
-  --pl-panel: #1d1d20;
-  --pl-text: #f4f4f2;
-  --pl-muted: #a3a3ab;
-  --pl-border: rgba(244, 244, 242, 0.14);
-  --pl-border-strong: rgba(244, 244, 242, 0.34);
-  --pl-accent: #ffff01;
-  --pl-accent-ink: #12131b;
-  --pl-gutter: max(1rem, calc(50vw - 50rem));
-  --pl-header: 90px;
-  --pl-topbar: 3rem;
-  --pl-block: 7rem;
+  --pl-bg: var(--theme-bg);
+  --pl-panel: var(--theme-elevation-50);
+  --pl-text: var(--theme-text);
+  --pl-muted: var(--theme-elevation-600);
+  --pl-border: var(--theme-border-color);
+  --pl-border-strong: var(--theme-elevation-500);
+  --pl-accent: var(--theme-success-500);
+  --pl-accent-ink: var(--theme-elevation-0);
+  --pl-gutter: var(--gutter-h);
+  --pl-header: var(--header-height);
+  --pl-topbar: var(--top-bar-height);
+  --pl-block: var(--block-spacing);
   --pl-ease: cubic-bezier(0.165, 0.84, 0.44, 1);
 }
 
-@media (max-width: 1440px) {
-  :root {
-    --pl-gutter: 8rem;
-  }
-}
-
-@media (max-width: 1024px) {
-  :root {
-    --pl-gutter: 4rem;
-    --pl-header: 76px;
-    --pl-block: 5rem;
-  }
-}
-
-@media (max-width: 768px) {
-  :root {
-    --pl-gutter: 2rem;
-    --pl-block: 3.5rem;
-  }
-}
-
-@media (max-width: 480px) {
-  :root {
-    --pl-gutter: 1rem;
-    --pl-block: 2rem;
-  }
-}
-
-/* Типографика: тот же масштаб, что у Payload (h1 4rem/500/-0.05em при базе 20px). */
+/* Типографика: значения из type.scss официального сайта. */
 .pl-h1 {
-  font-size: clamp(2.5rem, 6vw, 5rem);
-  line-height: 0.98;
-  font-weight: 500;
-  letter-spacing: -0.05em;
-  text-wrap: balance;
-}
-
-.pl-h2 {
-  font-size: clamp(1.75rem, 3.6vw, 3.125rem);
+  margin: 0;
+  font-size: 4rem;
   line-height: 1;
   font-weight: 500;
   letter-spacing: -0.05em;
-  text-wrap: balance;
+}
+
+.pl-h2 {
+  margin: 0;
+  font-size: 2.5rem;
+  line-height: 1;
+  font-weight: 500;
+  letter-spacing: -0.05em;
 }
 
 .pl-h3 {
-  font-size: clamp(1.5rem, 2.6vw, 2.5rem);
-  line-height: 1.02;
+  margin: 0;
+  font-size: 2rem;
+  line-height: 1;
   font-weight: 500;
-  letter-spacing: -0.045em;
-  text-wrap: balance;
+  letter-spacing: -0.05em;
 }
 
 .pl-h4 {
-  font-size: clamp(1.125rem, 1.6vw, 1.75rem);
-  line-height: 1.15;
+  margin: 0;
+  font-size: 1.4rem;
+  line-height: 1.2;
   font-weight: 500;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.05em;
 }
 
 .pl-h5 {
-  font-size: 1.25rem;
+  margin: 0;
+  font-size: 1rem;
   line-height: 1.2;
   font-weight: 500;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.05em;
 }
 
 .pl-h6 {
+  margin: 0;
   font-size: 13px;
-  line-height: 1.2;
+  line-height: 1;
   font-weight: 400;
   letter-spacing: 0.25em;
   text-transform: uppercase;
 }
 
 .pl-body {
-  font-size: 1.125rem;
-  line-height: 1.45;
-  color: var(--pl-muted);
+  font-size: var(--font-body-size);
+  line-height: 1.5;
+  color: var(--theme-elevation-750);
 }
 
 .pl-small {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   line-height: 1.4;
-  color: var(--pl-muted);
+  color: var(--theme-elevation-650);
 }
 
 .pl-mono {
-  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
-  font-size: 0.8125rem;
-  letter-spacing: 0.18em;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+@media (max-width: 1024px) {
+  .pl-h1 {
+    font-size: 3rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .pl-h2 {
+    font-size: 2rem;
+  }
+  .pl-h3 {
+    font-size: 1.6rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .pl-h1 {
+    font-size: 2.5rem;
+  }
+  .pl-h2 {
+    font-size: 1.75rem;
+  }
+  .pl-h3 {
+    font-size: 1.5rem;
+  }
+  .pl-h4 {
+    font-size: 1.125rem;
+  }
 }
 
 /* Ссылки подчёркиваются, как на payloadcms.com: тонкая линия с отступом. */
@@ -170,28 +175,8 @@
   transform: translateY(0);
 }
 
-.pl-btn--accent {
-  border-color: var(--pl-accent);
-  color: var(--pl-accent-ink);
-}
-
-.pl-btn--accent::before {
-  background: var(--pl-accent);
-  transform: translateY(0);
-}
-
-.pl-btn--accent:hover,
-.pl-btn--accent:focus-visible {
-  color: var(--pl-accent-ink);
-}
-
-.pl-btn--accent:hover::before {
-  background: #fff;
-  transform: translateY(0);
-}
-
 .pl-btn:focus-visible {
-  outline: 2px solid var(--pl-accent);
+  outline: 2px solid var(--theme-success-500);
   outline-offset: 2px;
 }
 
