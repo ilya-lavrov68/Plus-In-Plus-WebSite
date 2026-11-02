@@ -1,18 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { ArrowRightIcon } from "lucide-animated";
 import { useLocale, useTranslations } from "next-intl";
 
 import {
   ServiceCard,
   type ServiceCardData,
 } from "@/components/site/service-card";
-import { AnimatedIcon } from "@/components/ui/animated-icon";
-import { ServicesGridBand } from "@/components/site/page-geometry";
-import { Button } from "@/components/ui/button";
 
 export interface ServicesCatalogViewProps {
   smallServices: ServiceCardData[];
@@ -57,26 +52,9 @@ export function ServicesCatalogView({
   };
 
   return (
-    <div className="container relative isolate overflow-hidden py-24 md:py-32">
-      <ServicesGridBand />
-      <div className="flex flex-col justify-between gap-6 border-b border-border/60 pb-10 md:flex-row md:items-end">
-        <div>
-          <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
-            {t("title")}
-          </h1>
-          <p className="mt-3 max-w-2xl text-lg text-muted-foreground">
-            {t("subtitle")}
-          </p>
-        </div>
-        <Button asChild variant="outline">
-          <Link href="/contact" className="gap-2" data-pip-icon-trigger>
-            {t("proceedToOrder")}
-            <AnimatedIcon icon={ArrowRightIcon} size={16} />
-          </Link>
-        </Button>
-      </div>
+    <div style={{ paddingLeft: "var(--gutter-h)", paddingRight: "var(--gutter-h)", paddingBottom: "var(--block-spacing)" }}>
 
-      <section className="mt-12">
+      <section style={{ marginTop: "2rem" }}>
         <div className="mb-6">
           <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
             {t("smallDesigns")}
@@ -87,24 +65,21 @@ export function ServicesCatalogView({
         </div>
 
         {smallServices.length > 0 ? (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid" style={{ rowGap: "1.5rem" }}>
             {smallServices.map((service) => (
-              <ServiceCard
-                key={service.id}
-                service={service}
-                selected={selectedIds.includes(service.id)}
-                onSelect={toggleService}
-              />
+              <div key={service.id} className="cols-4 cols-m-4">
+                <ServiceCard service={service} selected={selectedIds.includes(service.id)} onSelect={toggleService} />
+              </div>
             ))}
           </div>
         ) : (
-          <p className="rounded-xl border border-border bg-card/50 p-6 text-sm text-muted-foreground">
+          <p style={{ border: "1px solid var(--theme-border-color)", padding: "1.5rem" }}>
             {t("emptyCategory")}
           </p>
         )}
       </section>
 
-      <section className="mt-16">
+      <section style={{ marginTop: "4rem" }}>
         <div className="mb-6">
           <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
             {t("largeDesigns")}
@@ -115,25 +90,22 @@ export function ServicesCatalogView({
         </div>
 
         {largeServices.length > 0 ? (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid" style={{ rowGap: "1.5rem" }}>
             {largeServices.map((service) => (
-              <ServiceCard
-                key={service.id}
-                service={service}
-                selected={selectedIds.includes(service.id)}
-                onSelect={toggleService}
-              />
+              <div key={service.id} className="cols-4 cols-m-4">
+                <ServiceCard service={service} selected={selectedIds.includes(service.id)} onSelect={toggleService} />
+              </div>
             ))}
           </div>
         ) : (
-          <p className="rounded-xl border border-border bg-card/50 p-6 text-sm text-muted-foreground">
+          <p style={{ border: "1px solid var(--theme-border-color)", padding: "1.5rem" }}>
             {t("emptyCategory")}
           </p>
         )}
       </section>
 
       {selectedIds.length > 0 ? (
-        <div className="glass-panel sticky bottom-[var(--mobile-bottom-nav-clearance)] z-30 mt-12 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-background/65 p-4 sm:px-6 lg:bottom-6">
+        <div className="bottom-[var(--mobile-bottom-nav-clearance)] lg:bottom-[1.5rem]" style={{ position: "sticky", zIndex: 30, marginTop: "3rem", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "1rem", border: "1px solid var(--theme-border-color)", background: "var(--theme-bg)", padding: "1rem 1.5rem" }}>
           <div className="flex flex-wrap items-center gap-4">
             <span className="text-sm font-semibold text-foreground">
               {t("selectedSummary", { count: selectedIds.length })}
@@ -144,19 +116,31 @@ export function ServicesCatalogView({
               })}
             </span>
           </div>
-          <div className="flex items-center gap-3">
-            <Button
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <button
               type="button"
-              variant="ghost"
-              size="sm"
               onClick={() => setSelectedIds([])}
+              style={{
+                background: "none",
+                border: 0,
+                color: "var(--theme-elevation-650)",
+                cursor: "pointer",
+                padding: 0,
+                textDecoration: "underline",
+                textUnderlineOffset: "4px",
+              }}
             >
               {t("clearSelection")}
-            </Button>
-            <Button type="button" onClick={handleProceed} className="gap-2" data-pip-icon-trigger>
+            </button>
+            <button
+              type="button"
+              onClick={handleProceed}
+              className="pl-btn"
+              style={{ width: "auto", padding: "0.75rem 1.25rem" }}
+            >
               {t("proceedToOrder")}
-              <AnimatedIcon icon={ArrowRightIcon} size={16} />
-            </Button>
+              <span aria-hidden="true">→</span>
+            </button>
           </div>
         </div>
       ) : null}

@@ -4,10 +4,8 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 
 import { AddToCartButton } from "@/components/site/add-to-cart-button";
-import { Badge } from "@/components/ui/badge";
-import { ShopSideGrid } from "@/components/site/page-geometry";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import block from "@/components/pw/blocks/block-wrapper.module.scss";
+import card from "@/components/pw/blocks/square-card.module.scss";
 
 export interface ShopProductCardData {
   id: string;
@@ -20,33 +18,41 @@ export interface ShopProductCardData {
   stock: number;
 }
 
-export function ShopCatalogView({
-  products,
-}: {
-  products: ShopProductCardData[];
-}) {
+/**
+ * Каталог магазина в структуре payloadcms.com: шапка страницы в их сетке,
+ * товары — их карточками SquareCard, цены и кнопка заказа внизу карточки.
+ */
+export function ShopCatalogView({ products }: { products: ShopProductCardData[] }) {
   const tShop = useTranslations("shop");
   const tCart = useTranslations("cart");
   const numberLocale = useLocale() === "ru" ? "ru-RU" : "en-GB";
 
+  const header = (
+    <div className={block.blockWrapper} style={{ paddingBottom: "3rem" }}>
+      <div className="grid" style={{ paddingLeft: "var(--gutter-h)", paddingRight: "var(--gutter-h)" }}>
+        <div className="cols-8 cols-m-8">
+          <p className="pl-h6">Plus In Plus</p>
+          <h1 className="pl-h1">{products.length === 0 ? tShop("comingSoonTitle") : tShop("pageTitle")}</h1>
+          <p>{products.length === 0 ? tShop("comingSoonBody") : tShop("catalogDescription")}</p>
+        </div>
+      </div>
+    </div>
+  );
+
   if (products.length === 0) {
     return (
-      <div className="relative isolate flex min-h-[60vh] items-center justify-center overflow-hidden px-4 py-24">
-        <ShopSideGrid />
-        <div className="text-center">
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-            {tShop("comingSoonTitle")}
-          </h1>
-          <p className="mx-auto mt-4 max-w-md text-lg text-muted-foreground">
-            {tShop("comingSoonBody")}
-          </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Button asChild>
-              <Link href="/services">{tCart("browseServices")}</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/">{tShop("comingSoonBack")}</Link>
-            </Button>
+      <div>
+        {header}
+        <div className="grid" style={{ paddingLeft: "var(--gutter-h)", paddingRight: "var(--gutter-h)" }}>
+          <div className="cols-12 cols-m-8" style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+            <Link className="pl-btn" href="/services" style={{ maxWidth: "260px" }}>
+              {tCart("browseServices")}
+              <span aria-hidden="true">→</span>
+            </Link>
+            <Link className="pl-btn" href="/" style={{ maxWidth: "260px" }}>
+              {tShop("comingSoonBack")}
+              <span aria-hidden="true">→</span>
+            </Link>
           </div>
         </div>
       </div>
@@ -54,67 +60,36 @@ export function ShopCatalogView({
   }
 
   return (
-    <div className="container relative isolate py-24 md:py-32">
-      <ShopSideGrid />
-      <div className="border-b border-border/60 pb-10">
-        <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
-          {tShop("pageTitle")}
-        </h1>
-      </div>
-
-      <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+    <div>
+      {header}
+      <div
+        className="grid"
+        style={{
+          paddingLeft: "var(--gutter-h)",
+          paddingRight: "var(--gutter-h)",
+          rowGap: "2rem",
+          paddingBottom: "var(--block-spacing)",
+        }}
+      >
         {products.map((product) => (
-          <Card
-            key={product.id}
-            className="flex h-full flex-col justify-between overflow-hidden border-border bg-card"
-          >
-            <div>
-              {product.coverImage ? (
-                <div className="aspect-[4/3] w-full overflow-hidden border-b border-border bg-muted/50">
-                  <img
-                    src={product.coverImage}
-                    alt={product.name}
-                    className="size-full object-contain p-2"
-                  />
-                </div>
-              ) : null}
-
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-2">
-                  <CardTitle className="text-lg leading-snug">
-                    {product.name}
-                  </CardTitle>
-                  {product.category ? (
-                    <Badge variant="secondary" className="shrink-0">
-                      {product.category}
-                    </Badge>
-                  ) : null}
-                </div>
-              </CardHeader>
+          <article key={product.id} className={`cols-4 cols-m-4 ${card.card}`}>
+            <Link className={card.titleWrapper} href={`/shop/${product.slug}`}>
+              <h3 className={card.title}>{product.name}</h3>
+            </Link>
+            <div className={card.descriptionWrapper}>
+              {product.description ? <p>{product.description}</p> : null}
+              <span className="pl-h6">{product.price.toLocaleString(numberLocale)} ₽</span>
             </div>
-
-            <CardContent className="flex flex-1 flex-col justify-between pt-0">
-              {product.description ? (
-                <p className="mb-5 text-sm leading-relaxed text-muted-foreground">
-                  {product.description}
-                </p>
-              ) : (
-                <div className="mb-5" />
-              )}
-
-              <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-4">
-                <div className="text-lg font-bold tabular-nums">
-                  {product.price.toLocaleString(numberLocale)} ₽
-                </div>
-                <AddToCartButton
-                  itemType="product"
-                  itemId={product.id}
-                  itemName={product.name}
-                  size="sm"
-                />
-              </div>
-            </CardContent>
-          </Card>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem" }}>
+              <span className={card.leader}>{product.category ?? "Plus In Plus"}</span>
+              <AddToCartButton
+                itemType="product"
+                itemId={product.id}
+                itemName={product.name}
+                size="sm"
+              />
+            </div>
+          </article>
         ))}
       </div>
     </div>
