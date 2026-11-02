@@ -28,7 +28,7 @@ export function PwHeader({ locale, topBar, menuLabel, closeLabel, links, utility
 
   return (
     <div className={classes.wrapper}>
-      <div className={classes.topBar}>
+      <div className={classes.topBar} style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
         <span className="pl-h6">{topBar}</span>
       </div>
 
@@ -36,14 +36,14 @@ export function PwHeader({ locale, topBar, menuLabel, closeLabel, links, utility
         <div className={desktop.desktopNav}>
           <div
             className={`${desktop.container} grid`}
-            style={{ paddingLeft: "var(--gutter-h)", paddingRight: "var(--gutter-h)" }}
+            style={{ paddingLeft: "var(--gutter-h)", paddingRight: "var(--gutter-h)", alignItems: "center", height: "100%" }}
           >
             <Link href={href(locale, "/")} className={`cols-3 ${desktop.logo}`}>
               Plus In Plus
             </Link>
 
             <nav className={`cols-8 ${desktop.tabs}`} aria-label="Main">
-              <ul className={desktop.linkList}>
+              <ul style={{ display: "flex", alignItems: "center", gap: "1.5rem", listStyle: "none", margin: 0, padding: 0 }}>
                 {links.map((link) => (
                   <li key={link.href}>
                     <Link href={href(locale, link.href)} className={desktop.tab}>
