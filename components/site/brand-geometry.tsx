@@ -34,8 +34,6 @@ const SIGNAL_TINTS = [
   "var(--pip-signal-deep)",
 ] as const;
 
-const LATTICE_NEUTRAL = "hsl(var(--muted-foreground) / 0.55)";
-
 /** 32-битный хеш без состояния: одинаковые координаты дают одинаковый кадр. */
 function hash2d(x: number, y: number, seed: number): number {
   let h = Math.imul(x + 0x1f123bb5, 0x27d4eb2d) ^ Math.imul(y + 0x165667b1, 0x9e3779b1);
@@ -46,25 +44,46 @@ function hash2d(x: number, y: number, seed: number): number {
   return (h >>> 0) / 0xffffffff;
 }
 
-function pixelTint(value: number, tone: OrnamentTone): string {
-  const palette = tone === "signal" ? SIGNAL_TINTS : VIOLET_TINTS;
-  if (value < 0.52) return palette[0];
-  if (value < 0.72) return palette[1];
-  if (value < 0.9) return palette[2];
-  return palette[3];
+/**
+ * Профиль волны: высота массы в точке u (0 — у якорного края, 1 — на дальнем).
+ * Две низкочастотные синусоиды рисуют плавный гребень, третья добавляет рябь.
+ * Масса тает к дальнему краю, поэтому волна именно окутывает угол, а не
+ * заливает половину экрана.
+ */
+function waveHeight(u: number, seed: number): number {
+  const phase = (seed % 13) / 13;
+  const envelope = Math.max(0, 1 - u * 0.55);
+  const ripple =
+    0.11 * Math.sin(u * Math.PI * 2.4 + phase * Math.PI * 2) +
+    0.04 * Math.sin(u * Math.PI * 5.1 + phase * Math.PI * 3);
+  return Math.max(0, Math.min(1, (0.58 + ripple) * envelope));
 }
 
-function latticeTint(value: number, tone: OrnamentTone): string {
-  if (tone === "signal") {
-    if (value < 0.44) return SIGNAL_TINTS[0];
-    if (value < 0.66) return SIGNAL_TINTS[1];
-    if (value < 0.82) return SIGNAL_TINTS[2];
-    return LATTICE_NEUTRAL;
-  }
-  if (value < 0.44) return VIOLET_TINTS[0];
-  if (value < 0.66) return VIOLET_TINTS[1];
-  if (value < 0.82) return VIOLET_TINTS[2];
-  return LATTICE_NEUTRAL;
+/** Координаты в системе якорного угла: u вдоль края, v от якорного края вверх. */
+function cornerCoords(
+  x: number,
+  y: number,
+  cols: number,
+  rows: number,
+  corner: OrnamentProps["corner"]
+) {
+  const xr = (x + 0.5) / cols;
+  const yr = (y + 0.5) / rows;
+  const anchorTop = corner === "top-left" || corner === "top-right";
+  const anchorRight = corner === "top-right" || corner === "bottom-right";
+  return {
+    u: anchorRight ? 1 - xr : xr,
+    v: anchorTop ? yr : 1 - yr,
+  };
+}
+
+/** Тон клетки волны: светлые и глубокие оттенки, чистый сигнал — редко. */
+function waveTint(value: number, tone: OrnamentTone): string {
+  const accent = tone === "violet" ? VIOLET_TINTS : SIGNAL_TINTS;
+  if (value > 0.96) return accent[0];
+  if (value > 0.45) return accent[1];
+  if (value > 0.15) return accent[2];
+  return "hsl(var(--foreground) / 0.82)";
 }
 
 export interface OrnamentProps {
@@ -75,9 +94,9 @@ export interface OrnamentProps {
   rows?: number;
   /** Сдвиг рисунка: одинаковый seed даёт одинаковый орнамент. */
   seed?: number;
-  /** Угол, в котором рисунок набирает плотность. */
+  /** Угол, из которого поднимается волна. */
   corner?: "bottom-left" | "bottom-right" | "top-left" | "top-right";
-  /** Пурпур (референс), жёлтый (главный сигнал) или микс. */
+  /** Жёлтый сигнал (по умолчанию) или резервный пурпур. */
   tone?: OrnamentTone;
 }
 
@@ -89,8 +108,9 @@ function cornerWeights(corner: OrnamentProps["corner"]) {
 }
 
 /**
- * Пиксельная мозаика: ступенчатая масса квадратов, которая набирает плотность
- * к выбранному углу. Каждая ячейка — один острый квадрат без скругления.
+ * Пиксельная волна: масса квадратов с плавным ступенчатым гребнем, которая
+ * поднимается из угла и окутывает край экрана. Над гребнем — редкие
+ * отдельные пиксели, как брызги; они держат силуэт живым, но не шумным.
  */
 export function PixelMosaic({
   className,
@@ -105,23 +125,23 @@ export function PixelMosaic({
 
   for (let y = 0; y < rows; y += 1) {
     for (let x = 0; x < cols; x += 1) {
-      const nx = flipX ? 1 - x / cols : x / cols;
-      const ny = flipY ? y / rows : 1 - y / rows;
-      const depth = nx + ny;
+      const { u, v } = cornerCoords(x, y, cols, rows, corner);
+      const height = waveHeight(u, seed);
       const noise = hash2d(x, y, seed);
-      const inside = depth > 1.02 - noise * 0.22;
-      const speck = !inside && noise > 0.965;
+      const edge = height + (noise - 0.5) * 0.02;
+      const inside = v <= edge;
+      const spray = !inside && v < height + 0.18 && noise > 0.895;
 
-      if (!inside && !speck) continue;
+      if (!inside && !spray) continue;
+
       const tintValue = hash2d(x + 41, y + 97, seed);
       cells.push({
         x,
         y,
-        // В миксе редкая яркая сигнальная клетка ставит жёлтый акцент в пурпур.
         fill:
-          tone === "mixed" && tintValue > 0.93
+          tone === "mixed" && tintValue > 0.94
             ? SIGNAL_TINTS[0]
-            : pixelTint(tintValue, tone === "mixed" ? "violet" : tone),
+            : waveTint(tintValue, tone === "mixed" ? "signal" : tone),
         key: `${x}-${y}`,
       });
     }
@@ -150,10 +170,19 @@ export function PixelMosaic({
   );
 }
 
+/** Тон точки: нейтральная основа, редкие жёлтые акценты. */
+function waveDotTint(value: number, tone: OrnamentTone): string {
+  const accent = tone === "violet" ? VIOLET_TINTS : SIGNAL_TINTS;
+  if (value > 0.93) return accent[0];
+  if (value > 0.55) return accent[1];
+  if (value > 0.3) return accent[2];
+  return "hsl(var(--foreground) / 0.85)";
+}
+
 /**
- * Полудроп-решётка: окружности в шахматном смещении, плотность растёт к углу.
- * Круги — вторая половина геометрического контраста бренда: острое рядом с
- * круглым, но исключительно в декоративном слое.
+ * Решётка окружностей с той же волновой границей: полудроп-шаг, ровные
+ * круги, плотность и размер растут к якорному углу. Круглое рядом с острым —
+ * вторая половина геометрического контраста бренда.
  */
 export function DotLattice({
   className,
@@ -169,26 +198,26 @@ export function DotLattice({
   for (let y = 0; y < rows; y += 1) {
     for (let x = 0; x < cols; x += 1) {
       const offset = y % 2 === 0 ? 0.5 : 0;
-      const baseX = x + 0.5 + offset;
-      const cx = flipX ? cols + 0.5 - baseX : baseX;
-      const cy = flipY ? rows - (y + 0.5) : y + 0.5;
-      const nx = flipX ? 1 - baseX / cols : baseX / cols;
-      const ny = flipY ? 1 - cy / rows : cy / rows;
-      const depth = nx + ny;
+      const cx = x + 0.5 + offset;
+      const cy = y + 0.5;
+      const { u, v } = cornerCoords(x, y, cols, rows, corner);
+      const height = waveHeight(u, seed + 7);
       const noise = hash2d(x, y, seed);
-      const inside = depth > 0.98 - noise * 0.3;
-      const speck = !inside && noise > 0.94;
+      const inside = v <= height + (noise - 0.5) * 0.015;
+      const spray = !inside && v < height + 0.1 && noise > 0.93;
 
-      if (!inside && !speck) continue;
+      if (!inside && !spray) continue;
+
+      const depth = Math.min(1, Math.max(0, (height - v) / Math.max(height, 0.001)));
       const tintValue = hash2d(x + 13, y + 29, seed);
       dots.push({
         cx,
         cy,
-        r: 0.3 + noise * 0.16,
+        r: 0.38 + depth * 0.05,
         fill:
           tone === "mixed" && tintValue > 0.95
             ? SIGNAL_TINTS[0]
-            : latticeTint(tintValue, tone === "mixed" ? "violet" : tone),
+            : waveDotTint(tintValue, tone === "mixed" ? "signal" : tone),
         key: `${x}-${y}`,
       });
     }

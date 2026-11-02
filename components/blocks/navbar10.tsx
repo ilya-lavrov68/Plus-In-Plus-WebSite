@@ -366,11 +366,11 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
 
   return (
     <Fragment>
-      {/* Плавающая pill-панель: шапка живёт отдельным слоем над холстом,
-          как в референсе, и не срастается с фоном страницы. */}
-      <section className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center px-3 pt-3 sm:px-4 sm:pt-4">
-        <NavigationMenu className="pointer-events-auto h-16 w-full max-w-[76rem] rounded-2xl border border-border bg-background/85 px-3 backdrop-blur-xl after:absolute after:inset-0 after:z-40 after:block after:size-full after:bg-transparent after:content-[''] sm:px-5 lg:rounded-full [&>div:last-child>div]:mt-0 [&>div:last-child>div]:rounded-none [&>div:last-child>div]:border-0 [&>div:last-child>div]:border-b-0">
-          <div className="relative z-50 grid w-full grid-cols-2 items-center justify-between gap-3 lg:grid-cols-3 lg:gap-6">
+      {/* Шапка как в референсе: прозрачный слой без рамки и без «коробки».
+          Пункты меню — обычный текст, активный — жёлтая пилюля, действие — pill. */}
+      <section className="pointer-events-auto fixed top-0 z-50 flex w-full items-center justify-center bg-background/55 backdrop-blur-md">
+        <NavigationMenu className="h-20 max-w-full after:absolute after:inset-0 after:z-40 after:block after:size-full after:bg-transparent after:content-[''] [&>div:last-child>div]:mt-0 [&>div:last-child>div]:rounded-none [&>div:last-child>div]:border-0 [&>div:last-child>div]:border-b-0">
+          <div className="container relative z-50 grid w-full grid-cols-2 items-center justify-between gap-4 lg:grid-cols-3 lg:gap-8">
             <Link
               href="/"
               onClick={() => setOpen(false)}
@@ -528,7 +528,7 @@ const DesktopMenuItem = ({ item, index }: DesktopMenuItemProps) => {
         aria-current={isActive ? "page" : undefined}
         className={cn(
           navigationMenuTriggerStyle(),
-          "h-fit rounded-none px-3 font-normal",
+          "h-fit rounded-full px-4 font-normal",
           isActive
             ? "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground"
             : "bg-transparent text-muted-foreground hover:bg-white/[0.06] hover:text-foreground"

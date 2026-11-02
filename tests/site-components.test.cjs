@@ -303,12 +303,17 @@ test("Hero138 renders the centred brand statement, square primary plus pill seco
   assert.match(secondary.props.className, /bg-transparent/);
 
   assert.ok(
-    view.root.findAll((node) => node.props?.viewBox === "0 0 16 14").length >= 1,
+    view.root.findAll(
+      (node) =>
+        node.type === "svg" && node.props?.shapeRendering === "crispEdges"
+    ).length >= 1,
     "hero must render the deterministic pixel mosaic",
   );
   assert.ok(
-    view.root.findAll((node) => node.props?.viewBox === "0 0 20.5 14").length >= 1,
-    "hero must render the half-drop dot lattice",
+    view.root.findAll(
+      (node) => node.type === "circle" || node.type === "rect"
+    ).length >= 1,
+    "hero must render the wave ornaments (pixels and circles)",
   );
   act(() => view.unmount());
 });

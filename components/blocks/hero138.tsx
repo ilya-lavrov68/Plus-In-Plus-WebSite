@@ -135,18 +135,21 @@ const Hero138 = ({
 
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 -z-0 hidden h-40 overflow-hidden opacity-90 sm:block sm:h-56 md:h-72"
+        className="pointer-events-none absolute inset-x-0 bottom-0 -z-0 hidden h-72 overflow-hidden opacity-95 [mask-image:linear-gradient(to_top,black_72%,transparent)] sm:block sm:h-80 md:h-[26rem]"
       >
+        {/* Волны окутывают нижние углы: пиксельная масса слева, решётка
+            окружностей справа. Гребень мягко растворяется, поэтому текст и
+            кнопки всегда читаются поверх. */}
         <PixelMosaic
-          className="absolute bottom-0 left-0 h-full w-[42%] max-w-[24rem]"
-          cols={16}
-          rows={14}
+          className="absolute bottom-0 left-0 h-full w-[34%] max-w-[22rem]"
+          cols={18}
+          rows={16}
           seed={11}
         />
         <DotLattice
-          className="absolute right-0 bottom-0 h-full w-[38%] max-w-[26rem]"
-          cols={20}
-          rows={14}
+          className="absolute right-0 bottom-0 h-full w-[32%] max-w-[22rem]"
+          cols={22}
+          rows={16}
           seed={23}
         />
       </div>
