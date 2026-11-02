@@ -1,13 +1,13 @@
 import Link from "next/link";
 
 import {
-  PlFeatures,
-  PlManifesto,
   type PlLink,
 } from "@/components/payload/home-sections";
 import { PwCardGrid } from "@/components/pw/blocks/card-grid";
 import { PwMediaContent } from "@/components/pw/blocks/media-content";
+import { PwCta } from "@/components/pw/blocks/cta";
 import { PwStatement } from "@/components/pw/blocks/statement";
+import { PwSteps } from "@/components/pw/blocks/steps";
 import { PwHero } from "@/components/pw/hero";
 import { localizeBlogPosts } from "@/lib/blog-localization";
 import { getPublishedPosts } from "@/lib/data";
@@ -123,10 +123,10 @@ export default async function HomePage() {
         role={content.statement.role}
       />
 
-      <PlFeatures
+      <PwSteps
         eyebrow={content.features.eyebrow}
         heading={content.features.heading}
-        items={content.features.items}
+        steps={content.features.items.map((item) => ({ title: item.title, body: item.body }))}
       />
 
       {posts.length > 0 ? (
@@ -160,15 +160,12 @@ export default async function HomePage() {
         </section>
       ) : null}
 
-      <PlManifesto
-        eyebrow={content.manifesto.eyebrow}
+      <PwCta
+        locale={locale}
         heading={content.manifesto.heading}
-        paragraphs={content.manifesto.paragraphs}
-        links={content.manifesto.links.map((link) => ({
-          label: link.label,
-          href: localized(locale, link.href),
-        }))}
-        cta={{ label: content.secondary, href: localized(locale, "/services") }}
+        body={content.manifesto.paragraphs.join(" ")}
+        primary={{ label: content.secondary, href: "/services" }}
+        links={content.manifesto.links}
       />
     </>
   );
