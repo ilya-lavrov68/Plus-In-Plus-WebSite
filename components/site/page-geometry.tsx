@@ -23,10 +23,10 @@ export function ServicesGridBand() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-64 overflow-hidden [mask-image:linear-gradient(to_bottom,black,transparent)] md:h-72"
+      className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-40 overflow-hidden [mask-image:linear-gradient(to_bottom,black,transparent)] md:h-48"
     >
       <GridField
-        className="absolute inset-0 opacity-45"
+        className="absolute inset-0 opacity-30"
         cols={18}
         rows={10}
         blocks={7}

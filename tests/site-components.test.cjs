@@ -2025,3 +2025,28 @@ test("reduced motion resolves decrypt text and bypasses Lenis without hiding con
     scrollView.unmount();
   });
 });
+
+test("services catalog keeps two numbered registries, airy grid and one action per card", () => {
+  const catalog = fs.readFileSync(
+    path.resolve(__dirname, "../components/site/services-catalog-view.tsx"),
+    "utf8"
+  );
+  const card = fs.readFileSync(
+    path.resolve(__dirname, "../components/site/service-card.tsx"),
+    "utf8"
+  );
+
+  // Заголовки реестров нумерованы, композиция секций различается номером и содержанием.
+  assert.match(catalog, /index="01"/);
+  assert.match(catalog, /index="02"/);
+  assert.match(catalog, /xl:grid-cols-3/);
+  assert.doesNotMatch(catalog, /lg:grid-cols-4/);
+  assert.match(catalog, /catalogCountLabel/);
+  assert.match(catalog, /catalogFromLabel/);
+
+  // Одна видимая кнопка действия на карточку: корзина уходит в тихий ghost-контрол.
+  assert.equal((card.match(/<Button/g) || []).length, 1, "card exposes a single button");
+  assert.match(card, /variant="ghost"/);
+  assert.doesNotMatch(card, /<Badge/, "category is a micro-label, not a duplicate badge");
+  assert.match(card, /line-clamp-3/);
+});
