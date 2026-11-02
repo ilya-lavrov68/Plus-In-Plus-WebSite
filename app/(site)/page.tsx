@@ -3,11 +3,11 @@ import Link from "next/link";
 import {
   PlFeatures,
   PlManifesto,
-  PlSplit,
-  PlStatement,
   type PlLink,
 } from "@/components/payload/home-sections";
 import { PwCardGrid } from "@/components/pw/blocks/card-grid";
+import { PwMediaContent } from "@/components/pw/blocks/media-content";
+import { PwStatement } from "@/components/pw/blocks/statement";
 import { PwHero } from "@/components/pw/hero";
 import { localizeBlogPosts } from "@/lib/blog-localization";
 import { getPublishedPosts } from "@/lib/data";
@@ -92,15 +92,14 @@ export default async function HomePage() {
         logos={content.logos}
       />
 
-      <PlSplit
+      <PwMediaContent
         locale={locale}
         eyebrow={content.split.eyebrow}
-        headingMuted={content.split.muted}
-        headingStrong={content.split.strong}
+        heading={`${content.split.muted} ${content.split.strong}`}
         body={content.split.body}
         bullets={content.split.bullets}
         link={{ label: content.split.link, href: "/services" }}
-        panels={content.panels}
+        media={content.panels}
       />
 
       <PwCardGrid
@@ -117,7 +116,7 @@ export default async function HomePage() {
         }))}
       />
 
-      <PlStatement
+      <PwStatement
         eyebrow={content.statement.eyebrow}
         quote={content.statement.quote}
         author={content.statement.author}
