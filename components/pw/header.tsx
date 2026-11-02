@@ -12,7 +12,11 @@ export interface PwHeaderProps {
   topBar: string;
   menuLabel: string;
   closeLabel: string;
-  links: { label: string; href: string }[];
+  links: {
+    label: string;
+    href: string;
+    children?: { label: string; href: string; description: string }[];
+  }[];
   utility: { label: string; href: string }[];
   cta: { label: string; href: string };
 }
@@ -25,6 +29,7 @@ const href = (locale: string, path: string) => `/${locale}${path === "/" ? "" : 
  */
 export function PwHeader({ locale, topBar, menuLabel, closeLabel, links, utility, cta }: PwHeaderProps) {
   const [open, setOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
   return (
     <div className={classes.wrapper}>
@@ -45,10 +50,43 @@ export function PwHeader({ locale, topBar, menuLabel, closeLabel, links, utility
             <nav className={`cols-8 ${desktop.tabs}`} aria-label="Main">
               <ul style={{ display: "flex", alignItems: "center", gap: "1.5rem", listStyle: "none", margin: 0, padding: 0 }}>
                 {links.map((link) => (
-                  <li key={link.href}>
-                    <Link href={href(locale, link.href)} className={desktop.tab}>
+                  <li
+                    key={link.href}
+                    className={desktop.dropdownWrap}
+                    onMouseEnter={() => setOpenDropdown(link.children ? link.href : null)}
+                    onMouseLeave={() => setOpenDropdown(null)}
+                  >
+                    <Link
+                      href={href(locale, link.href)}
+                      className={`${desktop.tab} ${openDropdown === link.href ? desktop.active : ""}`}
+                      aria-expanded={link.children ? openDropdown === link.href : undefined}
+                      onFocus={() => setOpenDropdown(link.children ? link.href : null)}
+                    >
                       {link.label}
+                      {link.children ? <span aria-hidden="true"> ▾</span> : null}
                     </Link>
+                    {link.children ? (
+                      <div className={`${desktop.dropdown} ${openDropdown === link.href ? desktop.show : ""}`}>
+                        <div className={desktop.background} style={{ height: "100%" }} aria-hidden="true" />
+                        <div className="grid">
+                          {link.children.map((child) => (
+                            <div
+                              key={child.href}
+                              className={`cols-4 ${desktop.dropdownItem} ${openDropdown === link.href ? desktop.show : ""}`}
+                            >
+                              <Link
+                                href={href(locale, child.href)}
+                                className={desktop.descriptionLink}
+                                onClick={() => setOpenDropdown(null)}
+                              >
+                                <span className={desktop.listLabel}>{child.label}</span>
+                                <span className={desktop.description}>{child.description}</span>
+                              </Link>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
                   </li>
                 ))}
               </ul>
@@ -89,7 +127,7 @@ export function PwHeader({ locale, topBar, menuLabel, closeLabel, links, utility
         {open ? (
           <nav className={`${mobile.mobileNav} ${mobile.hamburgerOpen}`} aria-label="Mobile">
             <ul className={mobile.linkWrap}>
-              {[...links, ...utility].map((link) => (
+              {[...links.flatMap((link) => [link, ...(link.children ?? [])]), ...utility].map((link) => (
                 <li key={`${link.href}-${link.label}`}>
                   <Link href={href(locale, link.href)} className={mobile.link} onClick={() => setOpen(false)}>
                     {link.label}

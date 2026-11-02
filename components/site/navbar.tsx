@@ -19,10 +19,24 @@ export async function Navbar() {
       menuLabel={t("menu")}
       closeLabel={t("close")}
       links={[
-        { label: t("nav.services"), href: "/services" },
+        {
+          label: t("nav.services"),
+          href: "/services",
+          children: [
+            { label: t("nav.services"), href: "/services", description: "Айдентика, макеты и вывески под ключ." },
+            { label: t("nav.shop"), href: "/shop", description: "Каталог носителей и заказ производства." },
+          ],
+        },
         { label: t("nav.shop"), href: "/shop" },
         { label: t("nav.blog"), href: "/blog" },
-        { label: t("nav.ai"), href: "/ai" },
+        {
+          label: t("nav.ai"),
+          href: "/ai",
+          children: [
+            { label: "Lumi Q1", href: "/ai/lumi", description: "Агент для кода и инженерных задач." },
+            { label: "Kairo", href: "/ai/kairo", description: "Агент для документов и права." },
+          ],
+        },
         { label: t("nav.contact"), href: "/contact" },
       ]}
       utility={[
