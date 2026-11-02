@@ -189,13 +189,13 @@
    * chips (rounded-full) и круглых иконок. Поэтому радиусы темы обнулены:
    * любой rounded-xl/rounded-2xl в унаследованных блоках становится острым.
    */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 18px;
-  --radius-2xl: 24px;
-  --radius-3xl: 28px;
-  --radius-4xl: 32px;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
+  --radius-4xl: 0;
 
   --duration-200: 200ms;
   --duration-250: 250ms;
@@ -225,7 +225,7 @@
     --background: 240 2% 9.6%;
     /* #F4F4F2 — тёплый off-white вместо стерильного белого. */
     --foreground: 60 5% 95.3%;
-    --card: 240 3% 11.5%;
+    --card: 240 3% 12.5%;
     --card-foreground: 60 5% 95.3%;
     --popover: 240 3% 12.5%;
     --popover-foreground: 60 5% 95.3%;
@@ -244,7 +244,7 @@
     --border: 240 3% 17.5%;
     --input: 240 4% 21%;
     --ring: 60 100% 50%;
-    --radius: 14px;
+    --radius: 0;
 
     /*
      * Две шкалы одного языка форм.
@@ -800,43 +800,37 @@
   }
 }
 
-/* Кнопки: жёлтая заливка и pill-форма. Наведение — короткая смена
- * тона, без волн, без теней и без пурпура. */
+/* Основные кнопки бренда: острые, жёлтая заливка. При точном hover из
+ * фактической точки входа указателя растёт пурпурная волна из референса:
+ * фиолетовый остаётся вторичным состоянием, а не основным цветом бренда. */
 .pip-cursor-fill {
+  --cursor-fill-x: 50%;
+  --cursor-fill-y: 50%;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 0;
   background-color: var(--pip-signal);
   color: var(--primary-foreground);
-  transition: background-color 160ms ease-out;
 }
 
-.pip-cursor-fill:hover,
-.pip-cursor-fill:focus-visible {
-  background-color: var(--pip-signal-strong);
+.pip-cursor-fill::before {
+  position: absolute;
+  z-index: -1;
+  top: var(--cursor-fill-y);
+  left: var(--cursor-fill-x);
+  width: 250%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--pip-violet);
+  content: "";
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Mono-подпись: техничный тон Payload для eyebrow, индексов и метаданных. */
-.pip-mono {
-  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
-  font-size: 0.6875rem;
-  font-weight: 500;
-  letter-spacing: 0.16em;
-  line-height: 1.2;
-  text-transform: uppercase;
-  color: hsl(var(--muted-foreground));
-}
-
-/* Несущая поверхность карточки: только hairline и фон, без теней. */
-.pip-card {
-  border: 1px solid hsl(var(--border));
-  border-radius: var(--radius-lg);
-  background-color: hsl(var(--card));
-}
-
-/* Медиа-кадр: честная рамка под будущий скриншот или видео. */
-.pip-media-frame {
-  border: 1px solid hsl(var(--border));
-  border-radius: var(--radius-lg);
-  background-color: hsl(var(--card));
-  overflow: hidden;
+.pip-cursor-fill:hover::before {
+  transform: translate(-50%, -50%) scale(3);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -844,7 +838,7 @@
     scroll-behavior: auto;
   }
 
-  .pip-cursor-fill {
+  .pip-cursor-fill::before {
     transition: none;
   }
 

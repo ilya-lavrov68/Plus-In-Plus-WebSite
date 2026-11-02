@@ -191,24 +191,10 @@ test("empty CMS content shows an honest empty state rather than a preset timelin
 
 test("landing order and native protected Story global are explicit", () => {
   const page = fs.readFileSync(path.resolve(__dirname, "../app/(site)/page.tsx"), "utf8");
-  // Порядок повторяет структуру payloadcms.com: hero → лента → две практики →
-  // сценарии → процесс → манифест → блог → финальный CTA.
-  const order = [
-    "<Hero />",
-    "<DirectionMarquee",
-    "<SplitDirections",
-    "<UseCases",
-    "<Process",
-    "<Manifesto",
-    "<BlogSection",
-    "<CtaSection />",
-  ];
-  let cursor = -1;
-  for (const section of order) {
-    const index = page.indexOf(section);
-    assert.ok(index > cursor, `landing order must keep ${section}`);
-    cursor = index;
-  }
+  const hero = page.indexOf("<Hero />");
+  const story = page.indexOf("<Story />");
+  const features = page.indexOf("<Features />");
+  assert.ok(hero >= 0 && hero < story && story < features, "Hero → Story → Features");
 
   const system = fs.readFileSync(path.resolve(__dirname, "../payload/collections/system.ts"), "utf8");
   assert.match(system, /export const Story: GlobalConfig/);

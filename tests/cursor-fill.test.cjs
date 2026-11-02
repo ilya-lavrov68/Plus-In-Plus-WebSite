@@ -1,48 +1,106 @@
 const assert = require("node:assert/strict");
 const { test } = require("node:test");
 const fs = require("node:fs");
-const path = require("node:path");
+const ts = require("typescript");
+const React = require("react");
+const { act, create } = require("react-test-renderer");
 
+for (const extension of [".ts", ".tsx"]) {
+  require.extensions[extension] = (module, filename) =>
+    module._compile(
+      ts.transpileModule(fs.readFileSync(filename, "utf8"), {
+        compilerOptions: {
+          module: ts.ModuleKind.CommonJS,
+          jsx: ts.JsxEmit.ReactJSX,
+          esModuleInterop: true,
+          target: ts.ScriptTarget.ES2022,
+        },
+      }).outputText,
+      filename
+    );
+}
+
+const { CursorFillController } = require("../components/site/cursor-fill-controller.tsx");
 const {
   buttonVariants,
   headerButtonVariants,
 } = require("../components/ui/button-variants.ts");
 
-test("primary actions are yellow pills, secondary actions are outlined pills", () => {
+test("square primary variants share cursor-fill while pill secondaries stay neutral", () => {
   for (const variant of ["default", "primary", "cta"]) {
-    const classes = buttonVariants({ variant });
-    assert.match(classes, /rounded-full/);
-    assert.match(classes, /bg-primary/);
-    assert.match(classes, /hover:bg-brand-signal-strong/);
-    assert.doesNotMatch(classes, /rounded-none/);
+    assert.match(buttonVariants({ variant }), /pip-cursor-fill/);
+    assert.match(buttonVariants({ variant }), /bg-primary/);
+    assert.match(buttonVariants({ variant }), /rounded-none/);
   }
-  assert.match(headerButtonVariants({ variant: "primary" }), /rounded-full/);
+  assert.match(headerButtonVariants({ variant: "primary" }), /pip-cursor-fill/);
   for (const variant of ["outline", "secondary"]) {
-    const classes = buttonVariants({ variant });
-    assert.match(classes, /rounded-full/);
-    assert.match(classes, /bg-transparent/);
-    assert.match(classes, /border-border|border-foreground/);
+    assert.doesNotMatch(buttonVariants({ variant }), /pip-cursor-fill/);
+    assert.match(buttonVariants({ variant }), /rounded-full/);
+    assert.match(buttonVariants({ variant }), /bg-transparent/);
+    assert.match(buttonVariants({ variant }), /border-border|border-foreground/);
   }
+
+  const css = fs.readFileSync("styles/globals.css", "utf8");
+  assert.match(css, /\.pip-cursor-fill::before/);
+  assert.match(css, /\.pip-cursor-fill \{[^}]*background-color: var\(--pip-signal\)/s);
+  assert.match(css, /\.pip-cursor-fill::before \{[^}]*background: var\(--pip-violet\)/s);
+  assert.match(css, /prefers-reduced-motion: reduce[\s\S]*\.pip-cursor-fill::before[\s\S]*transition: none/);
 });
 
-test("design tokens follow the payloadcms.com structure without shadows", () => {
-  const css = fs.readFileSync(path.resolve(__dirname, "../styles/globals.css"), "utf8");
+test("cursor-fill records the entry point once, including when children are hovered", () => {
+  const previous = Object.fromEntries(
+    ["window", "document", "Element", "HTMLElement", "Node"].map((name) => [name, global[name]])
+  );
+  const listeners = new Map();
 
-  // Формы: мягкие радиусы вместо прямых углов, pill у кнопок.
-  assert.match(css, /--radius-lg: 14px;/);
-  assert.match(css, /--radius: 14px;/);
-  assert.match(css, /\.pip-mono \{/);
-  assert.match(css, /\.pip-card \{[^}]*border-radius: var\(--radius-lg\)/s);
-  assert.match(css, /\.pip-media-frame \{/);
+  class ElementStub {}
+  class HTMLElementStub extends ElementStub {}
+  class NodeStub {}
+  const style = new Map();
+  const control = new HTMLElementStub();
+  control.getBoundingClientRect = () => ({ left: 10, top: 5 });
+  control.contains = (node) => node instanceof NodeStub;
+  control.style = { setProperty: (name, value) => style.set(name, value) };
+  const target = new ElementStub();
+  target.closest = (selector) => {
+    assert.equal(selector, ".pip-cursor-fill");
+    return control;
+  };
 
-  // Жёлтый — единственный акцент; пурпур остаётся в резерве и не красит кнопки.
-  assert.match(css, /--primary: #FFFF01;/);
-  const buttonBlock = css.slice(css.indexOf(".pip-cursor-fill {"));
-  assert.doesNotMatch(buttonBlock.slice(0, buttonBlock.indexOf("@media")), /--pip-violet/);
+  global.Element = ElementStub;
+  global.HTMLElement = HTMLElementStub;
+  global.Node = NodeStub;
+  global.window = { matchMedia: () => ({ matches: true }) };
+  global.document = {
+    addEventListener: (name, listener) => listeners.set(name, listener),
+    removeEventListener: (name) => listeners.delete(name),
+  };
 
-  // Тени остаются запрещены.
-  const shadowLines = css
-    .split("\n")
-    .filter((line) => /(?:box|text)-shadow/.test(line) && !/:\s*none/.test(line));
-  assert.deepEqual(shadowLines, []);
+  let view;
+  let mounted = false;
+  try {
+    act(() => {
+      view = create(React.createElement(CursorFillController));
+      mounted = true;
+    });
+    const pointerOver = listeners.get("pointerover");
+    assert.equal(typeof pointerOver, "function");
+    pointerOver({ target, relatedTarget: null, clientX: 37, clientY: 19 });
+    assert.equal(style.get("--cursor-fill-x"), "27px");
+    assert.equal(style.get("--cursor-fill-y"), "14px");
+
+    pointerOver({ target, relatedTarget: new NodeStub(), clientX: 99, clientY: 99 });
+    assert.equal(style.get("--cursor-fill-x"), "27px", "child transitions must not reset origin");
+    assert.equal(style.get("--cursor-fill-y"), "14px");
+
+    act(() => view.unmount());
+    mounted = false;
+    assert.equal(listeners.has("pointerover"), false);
+  } finally {
+    if (mounted) view.unmount();
+    for (const [name, value] of Object.entries(previous)) {
+      if (value === undefined) delete global[name];
+      else global[name] = value;
+    }
+  }
 });

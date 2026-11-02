@@ -1,32 +1,34 @@
 import { cva, type VariantProps } from "class-variance-authority";
 
 /**
- * Формы кнопок повторяют структуру payloadcms.com: мягкие pill-кнопки,
- * hairline-обводка и жёлтая заливка только у главного действия.
+ * Геометрия кнопок бренда Plus In Plus.
  *
- * Основное действие — жёлтый pill с тёмным текстом и короткой сменой тона
- * на hover. Вторичное — прозрачный pill с обводкой, без заливки в покое.
- * Тени не используются: границу и фон задаёт тема.
+ * Основные действия — строго прямоугольные (rounded-none), с сигнальной
+ * жёлтой заливкой и тёмным текстом. Светлый сигнальный круг при точном
+ * hover растёт из точки входа указателя через общий .pip-cursor-fill controller.
+ *
+ * Вторичные действия — pill (rounded-full) с прозрачным фоном и hairline-обводкой:
+ * пустая поверхность, граница и текст, без заливки в покое.
+ *
+ * Список данных (size) радиусы не задаёт, чтобы не перебивать форму варианта.
  */
 
 export const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-medium tracking-[-0.01em] transition-[background-color,color,border-color,outline-color] duration-150 ease-out focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-none text-sm font-medium tracking-[-0.01em] transition-[background-color,color,border-color,outline-color] duration-200 ease-out focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default:
-          "bg-primary text-primary-foreground hover:bg-brand-signal-strong",
-        primary:
-          "bg-primary text-primary-foreground hover:bg-brand-signal-strong",
-        cta: "bg-primary text-primary-foreground hover:bg-brand-signal-strong",
+        default: "pip-cursor-fill border border-brand-signal-strong/60 bg-primary text-primary-foreground",
+        primary: "pip-cursor-fill border border-brand-signal-strong/60 bg-primary text-primary-foreground",
+        cta: "pip-cursor-fill border border-brand-signal-strong/60 bg-primary text-primary-foreground",
         destructive:
           "border border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/85",
         secondary:
-          "border border-border bg-transparent text-foreground hover:border-foreground/35 hover:bg-white/[0.05]",
+          "rounded-full border border-foreground/20 bg-transparent text-foreground/80 hover:border-foreground/40 hover:bg-white/[0.06] hover:text-foreground",
         outline:
-          "border border-foreground/35 bg-transparent text-foreground hover:border-foreground/60 hover:bg-white/[0.06]",
+          "rounded-full border border-foreground/40 bg-transparent text-foreground hover:border-primary hover:bg-primary/10 hover:text-primary",
         ghost:
-          "text-muted-foreground hover:bg-white/[0.06] hover:text-foreground",
+          "text-muted-foreground hover:bg-white/[0.07] hover:text-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
@@ -44,14 +46,14 @@ export const buttonVariants = cva(
 );
 
 export const headerButtonVariants = cva(
-  "inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-medium tracking-[-0.01em] transition-[background-color,color,border-color,outline-color] duration-150 ease-out focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap px-4 text-sm font-medium tracking-[-0.01em] transition-[background-color,color,border-color,outline-color] duration-200 ease-out focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
         outline:
-          "border border-border bg-transparent text-foreground hover:border-foreground/35 hover:bg-white/[0.05]",
+          "rounded-full border border-foreground/20 bg-transparent text-foreground/80 hover:border-foreground/40 hover:bg-white/[0.06] hover:text-foreground",
         primary:
-          "bg-primary text-primary-foreground hover:bg-brand-signal-strong",
+          "pip-cursor-fill rounded-none border border-brand-signal-strong/60 bg-primary text-primary-foreground",
       },
     },
     defaultVariants: {

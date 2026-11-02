@@ -260,49 +260,44 @@ const textOf = (node) =>
     .map((child) => (typeof child === "string" ? child : textOf(child)))
     .join("");
 
-test("Hero138 follows the payloadcms.com structure with mono label, quick links and pill CTAs", () => {
+test("Hero138 renders the centred brand statement, square primary plus pill secondary and geometry ornaments", () => {
   let view;
   act(() => {
     view = create(React.createElement(Hero138));
   });
   const text = textOf(view.root);
-  assert.match(text, /Plus In Plus · design \+ AI/);
+  // DecryptText рисует скрэмбл-слой, поэтому заголовок проверяем по структуре,
+  // а не по точной строке: eyebrow, две строки h1 и акцентный хвост.
+  assert.match(text, /Plus In Plus — design \+ AI/);
   assert.equal(view.root.findAllByType("h1").length, 1);
-  assert.ok(
-    view.root.findAll(
-      (node) =>
-        typeof node.props?.className === "string" && node.props.className.includes("text-primary")
-    ).length >= 1,
-    "hero must keep exactly one accent word"
-  );
-  assert.match(text, /Студия визуальных систем, вывесок и наружной рекламы/);
-
+  assert.ok(view.root.findAll((node) => node.props?.className === "text-primary").length >= 1);
+  assert.match(text, /A studio for brand systems, signage and outdoor media/);
   const links = view.root.findAllByType("a").map((a) => ({
     href: a.props.href,
     text: textOf(a),
   }));
-  assert.ok(links.some((l) => l.href === "/contact" && l.text.includes("Обсудить проект")));
-  assert.ok(links.some((l) => l.href === "/services" && l.text.includes("Смотреть услуги")));
-
-  // Правая колонка быстрых переходов — структура, а не декор.
-  assert.ok(links.some((l) => l.href === "/ai" && l.text.includes("ИИ-агенты")));
-  assert.match(text, /Быстрый доступ/);
+  assert.ok(links.some((l) => l.href === "/services" && l.text.includes("Order a design")));
+  assert.ok(links.some((l) => l.href === "/ai" && l.text.includes("Explore AI")));
 
   const primary = view.root
     .findAllByType("a")
-    .find((link) => link.props.href === "/contact");
+    .find((link) => link.props.href === "/services");
   assert.match(primary.props.className, /bg-primary/);
-  assert.match(primary.props.className, /rounded-full/);
+  assert.match(primary.props.className, /pip-cursor-fill/);
   const secondary = view.root
     .findAllByType("a")
-    .find((link) => link.props.href === "/services" && textOf(link).includes("Смотреть услуги"));
+    .find((link) => link.props.href === "/ai");
   assert.match(secondary.props.className, /rounded-full/);
   assert.match(secondary.props.className, /bg-transparent/);
 
-  const ornamentViewBoxes = view.root.findAll(
-    (node) => node.props?.viewBox === "0 0 16 14" || node.props?.viewBox === "0 0 20.5 14"
+  assert.ok(
+    view.root.findAll((node) => node.props?.viewBox === "0 0 16 14").length >= 1,
+    "hero must render the deterministic pixel mosaic",
   );
-  assert.equal(ornamentViewBoxes.length, 0, "hero no longer carries pixel ornaments");
+  assert.ok(
+    view.root.findAll((node) => node.props?.viewBox === "0 0 20.5 14").length >= 1,
+    "hero must render the half-drop dot lattice",
+  );
   act(() => view.unmount());
 });
 
@@ -417,7 +412,7 @@ test("Brand accent and shader implementation keep the approved visual and motion
     "utf8"
   );
   assert.match(globals, /--primary:\s*#FFFF01;/);
-  assert.match(globals, /--radius-lg:\s*14px;/);
+  assert.match(globals, /--radius-lg:\s*0;/);
   assert.match(tailwind, /DEFAULT:\s*"var\(--primary\)"/);
   assert.equal(AGENT_SHADER_CYCLE_SECONDS, 4.5);
   assert.equal(AGENT_SHADER_DURATION_MS, 4500);
@@ -1065,7 +1060,7 @@ test("Feature314, Community3, and Cta13 render exact studio advantages, SVG logo
   assert.ok(cText.includes("Plus In Plus"));
   assert.ok(cText.includes("TS Connect"));
 
-  assert.ok(textOf(ctaView.root).includes("Соберём форму вашей идеи."));
+  assert.ok(textOf(ctaView.root).includes("Order a design"));
   act(() => {
     fView.unmount();
     cView.unmount();
@@ -1115,6 +1110,7 @@ test("public UI uses neutral media slots and adds no ambient glow anywhere", () 
   for (const file of [
     "components/blocks/feature314.tsx",
     "components/blocks/community3.tsx",
+    "components/blocks/cta13.tsx",
   ]) {
     const source = fs.readFileSync(path.resolve(__dirname, "..", file), "utf8");
     assert.match(source, /glass-surface/);
@@ -1130,8 +1126,8 @@ test("public UI uses neutral media slots and adds no ambient glow anywhere", () 
     path.resolve(__dirname, "../components/blocks/hero138.tsx"),
     "utf8",
   );
-  assert.match(heroSource, /pip-mono/);
-  assert.doesNotMatch(heroSource, /PixelMosaic|DotLattice/);
+  assert.match(heroSource, /PixelMosaic/);
+  assert.match(heroSource, /DotLattice/);
   assert.doesNotMatch(heroSource, /glass-surface|hero-pillar|blur-3xl|radial-gradient/);
   assert.doesNotMatch(heroSource, /MediaPlaceholder|mockup/i);
 

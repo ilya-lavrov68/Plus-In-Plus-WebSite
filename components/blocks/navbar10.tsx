@@ -366,8 +366,8 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
 
   return (
     <Fragment>
-      <section className="pointer-events-auto fixed top-0 z-50 flex w-full items-center justify-center border-b border-border/70 bg-background/85 backdrop-blur-xl">
-        <NavigationMenu className="h-16 max-w-full after:absolute after:inset-0 after:z-40 after:block after:size-full after:bg-transparent after:content-[''] [&>div:last-child>div]:mt-0 [&>div:last-child>div]:rounded-none [&>div:last-child>div]:border-0 [&>div:last-child>div]:border-b-0">
+      <section className="pointer-events-auto fixed top-0 z-50 flex w-full items-center justify-center border-b border-border bg-background/80 backdrop-blur-xl">
+        <NavigationMenu className="h-20 max-w-full after:absolute after:inset-0 after:z-40 after:block after:size-full after:bg-transparent after:content-[''] [&>div:last-child>div]:mt-0 [&>div:last-child>div]:rounded-none [&>div:last-child>div]:border-0 [&>div:last-child>div]:border-b-0">
           <div className="container relative z-50 grid w-full grid-cols-2 items-center justify-between gap-4 lg:grid-cols-3 lg:gap-8">
             <Link
               href="/"

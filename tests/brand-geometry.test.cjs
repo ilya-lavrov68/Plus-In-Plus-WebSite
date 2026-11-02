@@ -103,56 +103,27 @@ test("brand ornaments are decorative, sharp-edged and use brand tokens", () => {
   });
 });
 
-test("hero follows the payloadcms.com structure: mono label, quick links, pill CTAs", () => {
+test("hero uses only brand geometry instead of glow, media frames or placeholders", () => {
   const hero = fs.readFileSync(
     path.resolve(__dirname, "../components/blocks/hero138.tsx"),
     "utf8"
   );
-
-  assert.match(hero, /pip-mono/);
-  assert.match(hero, /quickLinks/);
-  assert.match(hero, /headingAccent/);
-  // Декоративные орнаменты ушли из hero: структура важнее пиксельных узоров.
-  assert.doesNotMatch(hero, /PixelMosaic|DotLattice|GridField|DecryptText/);
+  assert.match(hero, /PixelMosaic/);
+  assert.match(hero, /DotLattice/);
   assert.doesNotMatch(hero, /blur-3xl|radial-gradient|hero-pillar|MediaPlaceholder/);
+  assert.match(hero, /overflow-hidden bg-background/);
+  assert.match(hero, /headingAccent/);
+  assert.match(hero, /GridField/);
 
   const globals = fs.readFileSync(path.resolve(__dirname, "../styles/globals.css"), "utf8");
   assert.match(globals, /--primary:\s*#FFFF01;/);
-  assert.match(globals, /--radius-lg:\s*14px;/);
-  assert.match(globals, /\.pip-mono\s*\{/);
-  assert.match(globals, /\.pip-card\s*\{/);
-  assert.doesNotMatch(globals, /hero-media-frame|hero-pillar|--pip-accent/);
-});
-
-test("home page mirrors the payloadcms.com section order", () => {
-  const page = fs.readFileSync(path.resolve(__dirname, "../app/(site)/page.tsx"), "utf8");
-  const sections = [
-    "<Hero />",
-    "<DirectionMarquee",
-    "<SplitDirections",
-    "<UseCases",
-    "<Process",
-    "<Manifesto",
-    "<BlogSection",
-    "<CtaSection />",
-  ];
-  let cursor = -1;
-  for (const section of sections) {
-    const index = page.indexOf(section);
-    assert.ok(index > cursor, `${section} must keep the reference order`);
-    cursor = index;
-  }
-
-  const structure = fs.readFileSync(
-    path.resolve(__dirname, "../components/blocks/home-sections.tsx"),
-    "utf8"
-  );
-  assert.match(structure, /export function DirectionMarquee/);
-  assert.match(structure, /export function SplitDirections/);
-  assert.match(structure, /export function UseCases/);
-  assert.match(structure, /export function Process/);
-  assert.match(structure, /export function Manifesto/);
-  assert.doesNotMatch(structure, /Math\.random/);
+  assert.match(globals, /--radius-lg:\s*0;/);
+  assert.match(globals, /--radius-2xl:\s*0;/);
+  assert.match(globals, /\.pip-tech-grid\s*\{/);
+  assert.match(globals, /\.pip-tech-grid--bold\s*\{/);
+  assert.match(globals, /\.pip-eyebrow::before\s*\{/);
+  assert.doesNotMatch(globals, /hero-media-frame|hero-pillar/);
+  assert.doesNotMatch(globals, /--pip-accent/);
 });
 
 test("design system documentation records the rebrand contract", () => {
