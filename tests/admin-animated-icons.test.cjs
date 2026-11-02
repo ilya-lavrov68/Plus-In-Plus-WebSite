@@ -66,7 +66,7 @@ test("admin styling has light/dark themes, no shadows and the exact PIP accent",
   const styles = read("app/(payload)/custom.scss");
   assert.match(styles, /--base-body-size:\s*16/);
   assert.match(styles, /--nav-width:\s*300px/);
-  assert.match(styles, /#ffff01/i);
+  assert.match(styles, /--pip-admin-accent:\s*#8f9cfc/i);
   assert.match(styles, /:focus-visible[\s\S]*?outline:\s*2px/);
   const shadows = styles
     .split("\n")
@@ -80,7 +80,7 @@ test("brand artwork is unframed, uncropped and responsive controls keep their pl
   const styles = read("app/(payload)/custom.scss");
   assert.match(brand, /viewBox="0 0 189 42"/);
   assert.match(brand, /fill="currentColor"/);
-  assert.match(brand, /fill="#FFFF01"/);
+  assert.match(brand, /fill="#8F9CFC"/);
   assert.match(brand, /<AdminLogo className="pip-admin-nav-brand__logo"/);
   assert.doesNotMatch(brand, /<img/);
 
@@ -89,9 +89,9 @@ test("brand artwork is unframed, uncropped and responsive controls keep their pl
   assert.doesNotMatch(mark[1], /border|background|border-radius/);
   assert.match(mark[1], /overflow:\s*visible/);
   assert.doesNotMatch(styles, /\.pip-admin-brand-mark img/);
-  assert.match(styles, /--pip-admin-canvas:\s*#f6f6f1/);
-  assert.match(styles, /html\[data-theme="dark"\]\s*\{[^}]*--pip-admin-canvas:\s*#141512/);
-  assert.match(styles, /html\[data-theme="dark"\]\s*\{[^}]*--pip-admin-surface:\s*#1d1f1a/);
+  assert.match(styles, /--pip-admin-canvas:\s*#f4f4f2/);
+  assert.match(styles, /html\[data-theme="dark"\]\s*\{[^}]*--pip-admin-canvas:\s*#181819/);
+  assert.match(styles, /html\[data-theme="dark"\]\s*\{[^}]*--pip-admin-surface:\s*#1f1f21/);
   assert.match(styles, /\.pip-admin-overview__heading\s*\{[^}]*flex-direction:\s*row/);
   assert.match(styles, /\.dashboard-breadcrumb-select \.rs__control\s*\{[^}]*flex-wrap:\s*nowrap/);
   assert.match(styles, /@media \(max-width: 360px\)[\s\S]*?min-width:\s*96px/);

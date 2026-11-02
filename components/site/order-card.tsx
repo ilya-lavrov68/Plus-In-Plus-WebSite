@@ -286,7 +286,7 @@ export function OrderCard({ order }: OrderCardProps) {
             {payable && paymentHref ? (
               <Button
                 asChild
-                className="w-fit border border-primary-foreground/20 bg-white px-4 py-2 text-primary-foreground hover:bg-white/90 hover:text-primary-foreground"
+                className="w-fit rounded-none border border-primary-foreground/20 bg-primary-foreground px-4 py-2 text-primary hover:bg-primary-foreground/85 hover:text-primary"
               >
                 <a href={paymentHref}>
                   {t("pay")} {formatKopecks(payable.amount, currency, locale)}
@@ -297,7 +297,7 @@ export function OrderCard({ order }: OrderCardProps) {
                 <input type="hidden" name="orderId" value={order.id} />
                 <Button
                   type="submit"
-                  className="w-fit border border-primary-foreground/20 bg-white px-4 py-2 text-primary-foreground hover:bg-white/90 hover:text-primary-foreground"
+                  className="w-fit rounded-none border border-primary-foreground/20 bg-primary-foreground px-4 py-2 text-primary hover:bg-primary-foreground/85 hover:text-primary"
                 >
                   {t("pay")} {formatKopecks(payable.amount, currency, locale)}
                 </Button>

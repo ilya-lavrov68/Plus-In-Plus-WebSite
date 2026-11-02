@@ -27,7 +27,7 @@ function StoryMoment({ event, index }: { event: StoryEvent; index: number }) {
         data-reveal-delay={Math.min(index, 5) * 60}
         aria-labelledby={`story-event-${event.id}`}
         className={cn(
-          "story-card col-start-1 row-start-1 rounded-[1.5rem] bg-white/[0.045] p-6 sm:p-7",
+          "story-card col-start-1 row-start-1 rounded-none bg-card/70 p-6 sm:p-7",
           isLeft ? "md:col-start-1" : "md:col-start-2",
         )}
       >
@@ -58,7 +58,7 @@ function StoryMoment({ event, index }: { event: StoryEvent; index: number }) {
           y="0"
           width="100%"
           height="100%"
-          rx="24"
+          rx="0"
           pathLength={1}
           fill="none"
           stroke="currentColor"
@@ -95,7 +95,7 @@ function StoryMoment({ event, index }: { event: StoryEvent; index: number }) {
 
 /**
  * Server-rendered content with one progressive CSS scroll-timeline for the
- * spine. Connectors, rounded card traces and markers use the existing one-shot
+ * spine. Connectors, square card traces and markers use the existing one-shot
  * reveal observer instead of keeping more scroll timelines alive. Unsupported
  * browsers simply show the complete line and traces without hiding content.
  */
@@ -105,15 +105,14 @@ export function StoryTimeline({ heading, description, events, labels }: StoryTim
       <div className="container">
         <div className="grid gap-6 lg:grid-cols-12 lg:items-end lg:gap-8">
           <div className="lg:col-span-7">
-            <p data-reveal="" className="flex items-center gap-3 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-              <span aria-hidden="true" className="h-px w-8 bg-foreground/40" />
+            <p data-reveal="" className="pip-eyebrow">
               {labels.eyebrow}
             </p>
             <h2
               id="story-heading"
               data-reveal=""
               data-reveal-delay={60}
-              className="mt-5 max-w-3xl text-3xl font-medium tracking-tight sm:text-4xl md:text-5xl"
+              className="mt-5 max-w-3xl text-3xl font-semibold tracking-[-0.02em] sm:text-4xl md:text-5xl"
             >
               {heading}
             </h2>
@@ -131,7 +130,7 @@ export function StoryTimeline({ heading, description, events, labels }: StoryTim
           {events.length === 0 ? (
             <div
               data-reveal=""
-              className="glass-surface mt-14 flex max-w-3xl flex-col items-start gap-5 rounded-[1.5rem] bg-white/[0.04] p-7 sm:flex-row sm:items-center md:mt-20 md:p-8"
+              className="glass-surface mt-14 flex max-w-3xl flex-col items-start gap-5 rounded-none bg-card/60 p-7 sm:flex-row sm:items-center md:mt-20 md:p-8"
             >
               <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-secondary text-muted-foreground">
                 <History aria-hidden="true" className="size-5" />

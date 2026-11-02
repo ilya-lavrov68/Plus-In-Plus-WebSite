@@ -26,16 +26,24 @@ const {
   headerButtonVariants,
 } = require("../components/ui/button-variants.ts");
 
-test("white primary variants share cursor-fill while outline remains neutral", () => {
+test("square primary variants share cursor-fill while pill secondaries stay neutral", () => {
   for (const variant of ["default", "primary", "cta"]) {
     assert.match(buttonVariants({ variant }), /pip-cursor-fill/);
-    assert.match(buttonVariants({ variant }), /bg-white/);
+    assert.match(buttonVariants({ variant }), /bg-primary/);
+    assert.match(buttonVariants({ variant }), /rounded-none/);
   }
   assert.match(headerButtonVariants({ variant: "primary" }), /pip-cursor-fill/);
-  assert.doesNotMatch(buttonVariants({ variant: "outline" }), /pip-cursor-fill/);
+  for (const variant of ["outline", "secondary"]) {
+    assert.doesNotMatch(buttonVariants({ variant }), /pip-cursor-fill/);
+    assert.match(buttonVariants({ variant }), /rounded-full/);
+    assert.match(buttonVariants({ variant }), /bg-transparent/);
+    assert.match(buttonVariants({ variant }), /border-border|border-foreground/);
+  }
 
   const css = fs.readFileSync("styles/globals.css", "utf8");
   assert.match(css, /\.pip-cursor-fill::before/);
+  assert.match(css, /\.pip-cursor-fill \{[^}]*background-color: var\(--pip-accent\)/s);
+  assert.match(css, /\.pip-cursor-fill::before \{[^}]*background: var\(--pip-accent-wash\)/s);
   assert.match(css, /prefers-reduced-motion: reduce[\s\S]*\.pip-cursor-fill::before[\s\S]*transition: none/);
 });
 

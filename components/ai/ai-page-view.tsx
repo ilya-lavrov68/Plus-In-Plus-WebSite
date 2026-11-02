@@ -109,15 +109,19 @@ export async function AiPageView() {
 
   return (
     <>
-      <section className="relative overflow-hidden bg-background pb-24 pt-20 md:pb-32 md:pt-28">
-        <div className="container">
+      <section className="relative isolate overflow-hidden bg-background pt-20 pb-24 md:pt-28 md:pb-32">
+        <div
+          aria-hidden="true"
+          className="pip-hairline-grid pointer-events-none absolute inset-0 opacity-70"
+        />
+        <div className="container relative z-10">
           <div className="grid gap-12 lg:grid-cols-[1.15fr_0.85fr] lg:items-end lg:gap-20">
             <div>
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">{t("eyebrow")}</p>
+                <p className="pip-eyebrow">{t("eyebrow")}</p>
                 <span className="text-xs text-muted-foreground">{t("announcement")}</span>
               </div>
-              <h1 className="mt-8 max-w-4xl text-4xl font-medium tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+              <h1 className="mt-8 max-w-4xl text-4xl font-semibold tracking-[-0.03em] sm:text-5xl md:text-6xl lg:text-7xl">
                 {t("title")}
               </h1>
             </div>

@@ -260,23 +260,44 @@ const textOf = (node) =>
     .map((child) => (typeof child === "string" ? child : textOf(child)))
     .join("");
 
-test("Hero138 renders exact title, subtitle, Order & Contact us actions, and showcase frame", () => {
+test("Hero138 renders the centred brand statement, square primary plus pill secondary and geometry ornaments", () => {
   let view;
   act(() => {
     view = create(React.createElement(Hero138));
   });
   const text = textOf(view.root);
-  assert.match(text, /A next-generation.*design studio/s);
-  assert.match(
-    text,
-    /Have an idea but don't know how to showcase it\? We'll package it in a stylish, clear design/
-  );
+  // DecryptText рисует скрэмбл-слой, поэтому заголовок проверяем по структуре,
+  // а не по точной строке: eyebrow, две строки h1 и акцентный хвост.
+  assert.match(text, /Plus In Plus — design \+ AI/);
+  assert.equal(view.root.findAllByType("h1").length, 1);
+  assert.ok(view.root.findAll((node) => node.props?.className === "text-primary").length >= 1);
+  assert.match(text, /A studio for brand systems, signage and outdoor media/);
   const links = view.root.findAllByType("a").map((a) => ({
     href: a.props.href,
     text: textOf(a),
   }));
-  assert.ok(links.some((l) => l.href === "/services" && l.text.includes("Order")));
-  assert.ok(links.some((l) => l.href === "/contact" && l.text.includes("Contact us")));
+  assert.ok(links.some((l) => l.href === "/services" && l.text.includes("Order a design")));
+  assert.ok(links.some((l) => l.href === "/ai" && l.text.includes("Explore AI")));
+
+  const primary = view.root
+    .findAllByType("a")
+    .find((link) => link.props.href === "/services");
+  assert.match(primary.props.className, /bg-primary/);
+  assert.match(primary.props.className, /pip-cursor-fill/);
+  const secondary = view.root
+    .findAllByType("a")
+    .find((link) => link.props.href === "/ai");
+  assert.match(secondary.props.className, /rounded-full/);
+  assert.match(secondary.props.className, /bg-transparent/);
+
+  assert.ok(
+    view.root.findAll((node) => node.props?.viewBox === "0 0 16 14").length >= 1,
+    "hero must render the deterministic pixel mosaic",
+  );
+  assert.ok(
+    view.root.findAll((node) => node.props?.viewBox === "0 0 20.5 14").length >= 1,
+    "hero must render the half-drop dot lattice",
+  );
   act(() => view.unmount());
 });
 
@@ -390,7 +411,8 @@ test("Brand accent and shader implementation keep the approved visual and motion
     path.resolve(__dirname, "../components/ai/agent-diagram.tsx"),
     "utf8"
   );
-  assert.match(globals, /--primary:\s*#FFFF01;/);
+  assert.match(globals, /--primary:\s*#8F9CFC;/);
+  assert.match(globals, /--radius-lg:\s*0;/);
   assert.match(tailwind, /DEFAULT:\s*"var\(--primary\)"/);
   assert.equal(AGENT_SHADER_CYCLE_SECONDS, 4.5);
   assert.equal(AGENT_SHADER_DURATION_MS, 4500);
@@ -1046,7 +1068,7 @@ test("Feature314, Community3, and Cta13 render exact studio advantages, SVG logo
   });
 });
 
-test("public UI uses neutral media slots and keeps ambient glow only in the hero", () => {
+test("public UI uses neutral media slots and adds no ambient glow anywhere", () => {
   const artworkFreeFiles = [
     "components/site/hero.tsx",
     "components/site/features.tsx",
@@ -1104,10 +1126,10 @@ test("public UI uses neutral media slots and keeps ambient glow only in the hero
     path.resolve(__dirname, "../components/blocks/hero138.tsx"),
     "utf8",
   );
-  assert.match(heroSource, /hero-media-frame/);
-  assert.doesNotMatch(heroSource, /glass-surface/);
-  assert.match(heroSource, /hero-pillar-1/);
-  assert.match(heroSource, /blur-3xl/);
+  assert.match(heroSource, /PixelMosaic/);
+  assert.match(heroSource, /DotLattice/);
+  assert.doesNotMatch(heroSource, /glass-surface|hero-pillar|blur-3xl|radial-gradient/);
+  assert.doesNotMatch(heroSource, /MediaPlaceholder|mockup/i);
 
   for (const file of [
     "public/assets/placeholders/service-cover.svg",
@@ -1119,8 +1141,7 @@ test("public UI uses neutral media slots and keeps ambient glow only in the hero
 
   const styles = fs.readFileSync(path.resolve(__dirname, "../styles/globals.css"), "utf8");
   assert.match(styles, /\.glass-surface\s*\{[^}]*border:\s*0;[^}]*backdrop-filter:/s);
-  assert.match(styles, /\.hero-media-frame\s*\{[^}]*border: 1px solid hsl\(var\(--border\)\)/s);
-  assert.doesNotMatch(styles, /\.hero-media-frame\s*\{[^}]*backdrop-filter:/s);
+  assert.doesNotMatch(styles, /hero-media-frame/);
   assert.doesNotMatch(styles, /box-shadow:|text-shadow:/);
 
   const placeholders = require("../lib/content-placeholders.ts");

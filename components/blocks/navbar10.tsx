@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import {
@@ -60,6 +61,7 @@ import {
 } from "@/components/ui/navigation-menu";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
 
 export interface MenuLink {
   label?: string;
@@ -364,7 +366,7 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
 
   return (
     <Fragment>
-      <section className="pointer-events-auto fixed top-0 z-50 flex w-full items-center justify-center border-b-0 bg-background/65 backdrop-blur-2xl">
+      <section className="pointer-events-auto fixed top-0 z-50 flex w-full items-center justify-center border-b border-border bg-background/80 backdrop-blur-xl">
         <NavigationMenu className="h-20 max-w-full after:absolute after:inset-0 after:z-40 after:block after:size-full after:bg-transparent after:content-[''] [&>div:last-child>div]:mt-0 [&>div:last-child>div]:rounded-none [&>div:last-child>div]:border-0 [&>div:last-child>div]:border-b-0">
           <div className="container relative z-50 grid w-full grid-cols-2 items-center justify-between gap-4 lg:grid-cols-3 lg:gap-8">
             <Link
@@ -376,7 +378,7 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
             </Link>
 
             <div className="hidden justify-self-center lg:flex">
-              <NavigationMenuList>
+              <NavigationMenuList className="gap-1">
                 {navigation.map((item, index) => (
                   <DesktopMenuItem
                     key={`desktop-link-${index}`}
@@ -477,13 +479,24 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
 };
 
 const DesktopMenuItem = ({ item, index }: DesktopMenuItemProps) => {
+  const pathname = usePathname() || "/";
+  // Locale-префикс не участвует в сравнении: /ru/ai и /en/ai — один активный пункт.
+  const normalizedPath = (pathname.replace(/^\/(?:ru|en)(?=\/|$)/, "") || "/").replace(/\/+$/, "") || "/";
+  const isDirectLink = !item.links && !item.featuredLinks && !item.groupLinks;
+  const isActive =
+    isDirectLink &&
+    Boolean(item.url) &&
+    (item.url === "/"
+      ? normalizedPath === "/"
+      : normalizedPath === item.url || normalizedPath.startsWith(`${item.url}/`));
+
   if (item.links || item.featuredLinks || item.groupLinks) {
     return (
       <NavigationMenuItem key={`desktop-menu-item-${index}`} value={`${index}`}>
-        <NavigationMenuTrigger className="h-fit bg-transparent font-normal text-foreground/70 hover:text-foreground">
+        <NavigationMenuTrigger className="h-fit rounded-none bg-transparent font-normal text-muted-foreground hover:text-foreground data-[state=open]:text-foreground">
           {item.title}
         </NavigationMenuTrigger>
-        <NavigationMenuContent className="hidden !rounded-xl !border-0 !p-0 lg:block">
+        <NavigationMenuContent className="hidden !rounded-none !border-0 !p-0 lg:block">
           <div className="w-dvw animate-[fade-in-slide-down_0.24s_cubic-bezier(0.22,1,0.36,1)_forwards] px-8 pt-6 pb-12">
             <div className="container">
               {item.id === 1 && <DropdownMenu1 links={item.links} />}
@@ -510,7 +523,14 @@ const DesktopMenuItem = ({ item, index }: DesktopMenuItemProps) => {
     <NavigationMenuItem key={`desktop-menu-item-${index}`} value={`${index}`}>
       <NavigationMenuLink
         href={item.url}
-        className={`${navigationMenuTriggerStyle()} h-fit bg-transparent font-normal text-foreground/70`}
+        aria-current={isActive ? "page" : undefined}
+        className={cn(
+          navigationMenuTriggerStyle(),
+          "h-fit rounded-none px-3 font-normal",
+          isActive
+            ? "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground"
+            : "bg-transparent text-muted-foreground hover:bg-white/[0.06] hover:text-foreground"
+        )}
       >
         {item.title}
       </NavigationMenuLink>
@@ -572,14 +592,14 @@ const DropdownMenu1 = ({ links }: { links?: MenuLink[] }) => {
           </li>
         ))}
       </ul>
-      <div className="glass-surface relative !h-[16rem] w-full overflow-hidden rounded-2xl bg-white/[0.05]">
+      <div className="glass-surface relative !h-[16rem] w-full overflow-hidden rounded-none border border-border bg-card/70">
         {links.map((link, index) => (
           <div
             key={`default-nav-link-img-${index}`}
             ref={(el) => {
               if (el) imageRefs.current[index] = el;
             }}
-            className={`absolute top-12 left-12 aspect-video w-[40rem] overflow-hidden rounded-[1.25rem] transition-[transform,opacity] duration-300 ease-out will-change-[transform,opacity] ${
+            className={`absolute top-12 left-12 aspect-video w-[40rem] overflow-hidden rounded-none transition-[transform,opacity] duration-300 ease-out will-change-[transform,opacity] ${
               index === 0
                 ? "z-10 translate-y-0 opacity-100"
                 : "pointer-events-none z-0 translate-y-12 opacity-0"
@@ -702,7 +722,7 @@ const FeaturedImageLink = ({ link }: { link?: MenuLink }) => {
       <Link href={link.url} className="group block w-full max-w-[36.875rem]">
         <AspectRatio
           ratio={1.77245509}
-          className="glass-surface overflow-hidden rounded-2xl bg-white/[0.05]"
+          className="glass-surface overflow-hidden rounded-none border border-border bg-card/70"
         >
           <div className="size-full">
             <Badge className="absolute top-2 left-2">{tAdmin("new")}</Badge>
@@ -711,7 +731,7 @@ const FeaturedImageLink = ({ link }: { link?: MenuLink }) => {
               <div className="w-[80%]">
                 <AspectRatio
                   ratio={1.5}
-                  className="overflow-hidden rounded-xl bg-slate-950/25"
+                  className="overflow-hidden rounded-none border border-border bg-background/60"
                 >
                   {link.image ? (
                     <img
@@ -738,17 +758,17 @@ const FeaturedLink = ({ link }: { link: MenuLink }) => {
       href={link.url}
       target={link.external ? "_blank" : undefined}
       rel={link.external ? "noopener noreferrer" : undefined}
-      className="glass-surface group relative flex w-full overflow-hidden rounded-2xl bg-white/[0.055] px-8 py-7"
+      className="glass-surface group relative flex w-full overflow-hidden rounded-none border border-border bg-card/70 px-8 py-7 transition-colors duration-200 hover:border-primary/50"
     >
       <div className="relative z-10 flex w-full items-center gap-6">
-        <div className="flex size-12 shrink-0 rounded-lg bg-background">
+        <div className="flex size-12 shrink-0 rounded-none border border-border bg-background">
           {link.icon && (
             <link.icon className="m-auto size-5 stroke-foreground" />
           )}
         </div>
         <div className="flex flex-col gap-2">
-          <div className="text-lg font-semibold text-white">{link.label}</div>
-          <div className="font-medium text-white/80">{link.description}</div>
+          <div className="text-lg font-semibold text-foreground">{link.label}</div>
+          <div className="font-medium text-muted-foreground">{link.description}</div>
         </div>
       </div>
       {link.background && (

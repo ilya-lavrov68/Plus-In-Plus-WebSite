@@ -26,6 +26,7 @@ export interface Feature314BigCard {
 
 export interface Feature314Props {
   id?: string;
+  eyebrow?: string;
   heading?: string;
   button?: {
     text: string;
@@ -60,6 +61,7 @@ const DEFAULT_BIG_CARD: Feature314BigCard = {
 
 const Feature314 = ({
   id = "features",
+  eyebrow = "How we work",
   heading = "Explore our creative\nstudio.",
   button = {
     text: "Contact us",
@@ -69,21 +71,26 @@ const Feature314 = ({
   bigCard = DEFAULT_BIG_CARD,
 }: Feature314Props) => {
   return (
-    <section id={id} className="motion-section bg-muted py-32">
+    <section id={id} className="motion-section border-y border-border bg-background py-24 md:py-32">
       <div className="container">
         <div className="flex flex-col gap-12">
-          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end md:gap-8">
-            <h2 className="max-w-lg flex-1 whitespace-pre-line text-3xl font-bold md:text-5xl">
+          <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end md:gap-8">
+            <div className="max-w-xl flex-1">
+              <p className="pip-eyebrow" data-reveal="">
+                {eyebrow}
+              </p>
+              <h2 className="mt-5 whitespace-pre-line text-3xl font-semibold tracking-[-0.02em] md:text-5xl">
               {heading.split("\n").map((line, index, lines) => (
                 <Fragment key={`${index}-${line}`}>
                   <DecryptText text={line} seed={17 + index} className="block" />
                   {index < lines.length - 1 ? " " : null}
                 </Fragment>
               ))}
-            </h2>
+              </h2>
+            </div>
             <Button
               asChild
-              className="group w-fit rounded-xl"
+              className="group w-fit rounded-none"
               data-reveal=""
               data-reveal-delay={80}
             >
@@ -100,13 +107,13 @@ const Feature314 = ({
                 key={card.title}
                 data-reveal=""
                 data-reveal-delay={index * 70}
-                className="glass-surface group col-span-1 rounded-[1.5rem] border-0 bg-white/[0.065] p-4 transition-[background-color] duration-200 ease-out hover:bg-white/[0.09]"
+                className="glass-surface group col-span-1 rounded-none border border-border/70 bg-card/60 p-3 transition-[background-color,border-color] duration-200 ease-out hover:border-primary/50 hover:bg-card"
               >
                 <Link
                   href={card.url}
                   className="flex h-full w-full flex-col justify-between gap-6"
                 >
-                  <div className="relative h-40 overflow-hidden rounded-[1.15rem]">
+                  <div className="relative h-40 overflow-hidden rounded-none border border-border/60">
                     {card.image ? (
                       <img
                         src={card.image}
@@ -121,14 +128,14 @@ const Feature314 = ({
                     )}
                     <Plus
                       size={20}
-                      className="absolute top-3 right-3 rounded-full bg-secondary p-0.5 transition-[transform,background-color,color] duration-200 ease-out group-hover:rotate-90 group-hover:bg-primary group-hover:text-primary-foreground"
+                      className="absolute top-3 right-3 rounded-none bg-secondary p-0.5 transition-[transform,background-color,color] duration-200 ease-out group-hover:rotate-90 group-hover:bg-primary group-hover:text-primary-foreground"
                     />
                   </div>
                   <div className="flex flex-col gap-4 px-1 pb-1">
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">
                       {card.topNote}
                     </span>
-                    <h3 className="text-xl font-medium">{card.title}</h3>
+                    <h3 className="text-xl font-medium tracking-[-0.01em]">{card.title}</h3>
                     <p className="text-sm text-muted-foreground">
                       {card.summary}
                     </p>
@@ -140,10 +147,10 @@ const Feature314 = ({
             <Card
               data-reveal=""
               data-reveal-delay={120}
-              className="glass-surface group min-h-[30rem] rounded-[1.75rem] border-0 bg-white/[0.065] p-2 md:col-span-2"
+              className="glass-surface group min-h-[30rem] rounded-none border border-border/70 bg-card/60 p-2 transition-colors duration-200 ease-out hover:border-primary/50 md:col-span-2"
             >
               <Link href={bigCard.url} className="flex h-full flex-col">
-                <div className="relative min-h-[24rem] flex-1 overflow-hidden rounded-[1.35rem]">
+                <div className="relative min-h-[24rem] flex-1 overflow-hidden rounded-none border border-border/60">
                   {bigCard.image ? (
                     <img
                       src={bigCard.image}
@@ -153,11 +160,11 @@ const Feature314 = ({
                   ) : (
                     <MediaPlaceholder className="h-full min-h-[24rem]" />
                   )}
-                  <div className="pointer-events-none absolute top-0 flex w-full items-center justify-between p-8">
+                  <div className="pointer-events-none absolute top-0 flex w-full items-center justify-between p-6">
                     <BrandMark className="h-7" />
                     <Plus
                       size={20}
-                      className="rounded-full bg-secondary p-0.5 transition-[transform,background-color,color] duration-200 ease-out group-hover:rotate-90 group-hover:bg-primary group-hover:text-primary-foreground"
+                      className="rounded-none bg-secondary p-0.5 transition-[transform,background-color,color] duration-200 ease-out group-hover:rotate-90 group-hover:bg-primary group-hover:text-primary-foreground"
                     />
                   </div>
                 </div>

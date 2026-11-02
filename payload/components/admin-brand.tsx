@@ -17,7 +17,7 @@ export function AdminIcon() {
         <rect x="12.0039" width="5.99992" height="5.99992" />
         <rect x="12.0039" y="23.9995" width="5.99992" height="5.99992" />
       </g>
-      <g fill="#FFFF01">
+      <g fill="#8F9CFC">
         <rect x="36" y="12" width="5.99992" height="17.9997" />
         <rect x="36" y="27" width="6" height="15" />
         <rect x="39" y="30" width="6" height="15" transform="rotate(-90 39 30)" />
@@ -75,7 +75,7 @@ export function AdminLogo({
         <rect x="12.0039" width="5.99992" height="5.99992" />
         <rect x="12.0039" y="23.9995" width="5.99992" height="5.99992" />
       </g>
-      <g fill="#FFFF01">
+      <g fill="#8F9CFC">
         <rect x="36" y="12" width="5.99992" height="17.9997" />
         <rect x="36" y="27" width="6" height="15" />
         <rect x="39" y="30" width="6" height="15" transform="rotate(-90 39 30)" />

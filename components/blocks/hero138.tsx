@@ -1,14 +1,19 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
-import { MediaPlaceholder } from "@/components/site/media-placeholder";
+import { DotLattice, PixelMosaic } from "@/components/site/brand-geometry";
 import { DecryptText } from "@/components/site/motion/decrypt-text";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export interface Hero138Props {
+  /** Верхняя строка заголовка: нейтральная, задаёт масштаб. */
   headingMuted?: string;
+  /** Вторая строка заголовка: основной off-white текст. */
   headingPrimary?: string;
+  /** Короткий сигнальный хвост второй строки: акцент, не более одного слова. */
+  headingAccent?: string;
+  eyebrow?: string;
   descriptionLead?: string;
   descriptionStrong?: string;
   primaryCta?: {
@@ -20,145 +25,126 @@ export interface Hero138Props {
     href: string;
   };
   footnote?: string;
-  image?: {
-    src: string;
-    alt: string;
-  };
-  showMediaStage?: boolean;
   className?: string;
 }
 
+/**
+ * Hero бренда «сигнальная форма»: симметричная композиция по центру, крупная
+ * двухстрочная типографика с одним акцентным словом, острая основная кнопка и
+ * pill-кнопка вторичного действия. По нижним углам — детерминированные
+ * пиксельная мозаика и полудроп-решётка; они декоративны и скрыты от AT.
+ */
 const Hero138 = ({
-  headingMuted = "A next-generation",
-  headingPrimary = "design studio",
-  descriptionLead = "Have an idea but don't know how to showcase it? ",
-  descriptionStrong = "We'll package it in a stylish, clear design—from website mockups to posters and event collateral.",
+  headingMuted = "Where an idea",
+  headingPrimary = "takes",
+  headingAccent = "shape",
+  eyebrow = "Plus In Plus — design + AI",
+  descriptionLead = "A studio for brand systems, signage and outdoor media. ",
+  descriptionStrong = "Lumi Q1 and Kairo — specialised AI agents for code and law.",
   primaryCta = {
-    label: "Order",
+    label: "Order a design",
     href: "/services",
   },
   secondaryCta = {
-    label: "Contact us",
-    href: "/contact",
+    label: "Explore AI",
+    href: "/ai",
   },
-  footnote = "Plus In Plus Design Studio",
-  image,
-  showMediaStage = true,
+  footnote = "Plus In Plus · form, code and meaning",
   className,
 }: Hero138Props) => {
   return (
     <section
       className={cn(
-        "motion-section relative overflow-hidden bg-background pt-16 pb-24 md:pt-24 md:pb-32",
+        "motion-section relative isolate overflow-hidden bg-background pt-16 pb-44 sm:pb-56 md:pt-24 md:pb-64",
         className
       )}
     >
-      <div className="container relative z-10">
-        <h1 className="max-w-5xl text-4xl font-medium tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+      <div
+        aria-hidden="true"
+        className="pip-hairline-grid pointer-events-none absolute inset-0 opacity-80"
+      />
+
+      <div className="container relative z-10 flex flex-col items-center text-center">
+        <p className="pip-eyebrow" data-reveal="" data-reveal-delay={0}>
+          {eyebrow}
+        </p>
+
+        <h1 className="mt-8 max-w-4xl text-[clamp(2.5rem,7.2vw,5.75rem)] leading-[0.98] font-bold tracking-[-0.035em]">
           {headingMuted ? (
-            <>
-              <DecryptText
-                text={headingMuted}
-                trigger="mount"
-                seed={3}
-                className="text-muted-foreground"
-              />{" "}
-              <DecryptText
-                text={headingPrimary}
-                trigger="mount"
-                seed={5}
-                className="block text-foreground"
-              />
-            </>
-          ) : (
-            <DecryptText
-              text={headingPrimary}
-              trigger="mount"
-              seed={5}
-              className="text-foreground"
-            />
-          )}
+            <span className="block text-muted-foreground">
+              <DecryptText text={headingMuted} trigger="mount" seed={3} />
+            </span>
+          ) : null}
+          <span className="block text-foreground">
+            <DecryptText text={headingPrimary} trigger="mount" seed={5} />
+            {headingAccent ? (
+              <>
+                {" "}
+                <span className="text-primary">
+                  <DecryptText text={headingAccent} trigger="mount" seed={7} />
+                </span>
+              </>
+            ) : null}
+          </span>
         </h1>
 
-        <div className="mt-10 flex flex-col justify-between gap-8 lg:mt-14 lg:flex-row lg:items-start">
-          <div data-reveal="" data-reveal-delay={80}>
-            <div className="flex flex-wrap items-center gap-3">
-              {primaryCta && (
-                <Button size="lg" asChild>
-                  <Link href={primaryCta.href}>{primaryCta.label}</Link>
-                </Button>
-              )}
-              {secondaryCta && (
-                <Button variant="ghost" size="lg" asChild>
-                  <Link href={secondaryCta.href} className="group">
-                    {secondaryCta.label}
-                    <ArrowRight className="ml-1 size-4 transition-transform duration-200 ease-out group-hover:translate-x-1" />
-                  </Link>
-                </Button>
-              )}
-            </div>
-            {footnote && (
-              <p className="mt-3 text-xs text-muted-foreground">{footnote}</p>
-            )}
-          </div>
+        <p
+          data-reveal=""
+          data-reveal-delay={90}
+          className="mt-7 max-w-xl text-base leading-relaxed text-muted-foreground md:text-lg"
+        >
+          {descriptionLead}
+          {descriptionStrong ? (
+            <strong className="font-medium text-foreground">
+              {descriptionStrong}
+            </strong>
+          ) : null}
+        </p>
 
-          <p
-            data-reveal=""
-            data-reveal-delay={140}
-            className="max-w-md text-base leading-relaxed text-muted-foreground md:text-lg"
-          >
-            {descriptionLead}
-            {descriptionStrong && (
-              <strong className="font-semibold text-foreground">
-                {descriptionStrong}
-              </strong>
-            )}
-          </p>
+        <div
+          data-reveal=""
+          data-reveal-delay={140}
+          className="mt-9 flex w-full flex-col items-stretch justify-center gap-3 sm:w-auto sm:flex-row sm:items-center"
+        >
+          {primaryCta ? (
+            <Button size="lg" asChild>
+              <Link href={primaryCta.href}>{primaryCta.label}</Link>
+            </Button>
+          ) : null}
+          {secondaryCta ? (
+            <Button variant="outline" size="lg" asChild>
+              <Link href={secondaryCta.href} className="group">
+                {secondaryCta.label}
+                <ArrowRight className="size-4 transition-transform duration-200 ease-out group-hover:translate-x-1" />
+              </Link>
+            </Button>
+          ) : null}
         </div>
+
+        {footnote ? (
+          <p className="mt-8 text-[11px] font-medium tracking-[0.18em] text-muted-foreground/80 uppercase">
+            {footnote}
+          </p>
+        ) : null}
       </div>
 
-      {showMediaStage && (
-        <div data-reveal="" data-reveal-delay={180} className="relative mt-16 md:mt-24">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -top-12 right-0 left-0 mx-auto grid h-80 max-w-6xl grid-cols-4 gap-8 px-8 opacity-25 blur-3xl"
-          >
-            <div
-              className="h-full rounded-full"
-              style={{ backgroundColor: "hsl(var(--hero-pillar-1))" }}
-            />
-            <div
-              className="h-full rounded-full"
-              style={{ backgroundColor: "hsl(var(--hero-pillar-2))" }}
-            />
-            <div
-              className="h-full rounded-full"
-              style={{ backgroundColor: "hsl(var(--hero-pillar-3))" }}
-            />
-            <div
-              className="h-full rounded-full"
-              style={{ backgroundColor: "hsl(var(--hero-pillar-4))" }}
-            />
-          </div>
-
-          <div className="container relative z-10">
-            <div className="hero-media-frame relative overflow-hidden rounded-[1.75rem] bg-white/[0.055] p-1.5 sm:p-2.5">
-              {image?.src ? (
-                <img
-                  src={image.src}
-                  alt={image.alt}
-                  className="aspect-[16/9] w-full rounded-[1.35rem] object-cover object-center"
-                />
-              ) : (
-                <MediaPlaceholder
-                  className="aspect-[16/9] rounded-[1.35rem]"
-                  markClassName="h-16 sm:h-20"
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-0 -z-0 hidden h-32 overflow-hidden opacity-75 sm:block sm:h-44 md:h-56"
+      >
+        <PixelMosaic
+          className="absolute bottom-0 left-0 h-full w-[38%] max-w-[20rem]"
+          cols={16}
+          rows={14}
+          seed={11}
+        />
+        <DotLattice
+          className="absolute right-0 bottom-0 h-full w-[34%] max-w-[22rem]"
+          cols={20}
+          rows={14}
+          seed={23}
+        />
+      </div>
     </section>
   );
 };
