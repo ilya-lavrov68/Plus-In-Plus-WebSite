@@ -1,4 +1,4 @@
-import { SiteFooter } from "@/components/payload/site-footer";
+import { PwFooter } from "@/components/pw/footer";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getRequestTranslations } from "@/lib/server-i18n";
 import { getPublicSiteSettings } from "@/lib/public-site-settings";
@@ -15,9 +15,8 @@ export async function Footer() {
   ]);
 
   return (
-    <SiteFooter
+    <PwFooter
       locale={locale === "en" ? "en" : "ru"}
-      description={settings.studioDescription ?? "Студия ИИ и дизайна: агенты, айдентика, макеты, вывески и оформление мероприятий."}
       contactEmail={settings.contactEmail}
       contactPhone={settings.contactPhone}
       social={[
