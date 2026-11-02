@@ -1,19 +1,36 @@
-import { Navbar10 } from "@/components/blocks/navbar10";
-import { getFeaturedPost } from "@/lib/data";
+import { SiteHeader } from "@/components/payload/site-header";
+import { getRequestLocale } from "@/lib/request-locale";
+import { getRequestTranslations } from "@/lib/server-i18n";
 
 /**
- * Шапка сайта.
- *
- * Раздел SHOP временно скрыт из навигации до появления мерча, поэтому услуги
- * из базы сюда больше не подгружаются. Страницы услуг (/shop/[slug]) остаются
- * доступны по прямым ссылкам — через них создаётся заявка на расчёт.
+ * Шапка сайта в структуре payloadcms.com: строка-объявление, панель навигации,
+ * утилиты (корзина, вход) и CTA. SHOP остаётся в меню как каталог услуг.
  */
 export async function Navbar() {
-  const post = await getFeaturedPost();
+  const [t, locale] = await Promise.all([
+    getRequestTranslations("shell"),
+    getRequestLocale(),
+  ]);
 
   return (
-    <Navbar10
-      featuredPost={post ? { title: post.title, slug: post.slug, coverImage: post.coverImage } : null}
+    <SiteHeader
+      locale={locale === "en" ? "en" : "ru"}
+      topBar={t("topBar")}
+      menuLabel={t("menu")}
+      closeLabel={t("close")}
+      links={[
+        { label: t("nav.services"), href: "/services" },
+        { label: t("nav.shop"), href: "/shop" },
+        { label: t("nav.blog"), href: "/blog" },
+        { label: t("nav.ai"), href: "/ai" },
+        { label: t("nav.studio"), href: "/story" },
+        { label: t("nav.contact"), href: "/contact" },
+      ]}
+      utility={[
+        { label: t("utility.cart"), href: "/cart" },
+        { label: t("utility.login"), href: "/login" },
+      ]}
+      cta={{ label: t("cta"), href: "/contact" }}
     />
   );
 }

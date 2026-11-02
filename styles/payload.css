@@ -1,0 +1,256 @@
+/*
+ * Дизайн-слой payloadcms.com (схема, метрики и типы — по официальному сайту
+ * Payload, MIT). Палитра заменена на бренд Plus In Plus: графит + жёлтый.
+ * Классы с префиксом pl- живут рядом с Tailwind и не конфликтуют с ним.
+ */
+
+:root {
+  --pl-bg: #181819;
+  --pl-panel: #1d1d20;
+  --pl-text: #f4f4f2;
+  --pl-muted: #a3a3ab;
+  --pl-border: rgba(244, 244, 242, 0.14);
+  --pl-border-strong: rgba(244, 244, 242, 0.34);
+  --pl-accent: #ffff01;
+  --pl-accent-ink: #12131b;
+  --pl-gutter: max(1rem, calc(50vw - 50rem));
+  --pl-header: 90px;
+  --pl-topbar: 3rem;
+  --pl-block: 7rem;
+  --pl-ease: cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+@media (max-width: 1440px) {
+  :root {
+    --pl-gutter: 8rem;
+  }
+}
+
+@media (max-width: 1024px) {
+  :root {
+    --pl-gutter: 4rem;
+    --pl-header: 76px;
+    --pl-block: 5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --pl-gutter: 2rem;
+    --pl-block: 3.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --pl-gutter: 1rem;
+    --pl-block: 2rem;
+  }
+}
+
+/* Типографика: тот же масштаб, что у Payload (h1 4rem/500/-0.05em при базе 20px). */
+.pl-h1 {
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  line-height: 0.98;
+  font-weight: 500;
+  letter-spacing: -0.05em;
+  text-wrap: balance;
+}
+
+.pl-h2 {
+  font-size: clamp(1.75rem, 3.6vw, 3.125rem);
+  line-height: 1;
+  font-weight: 500;
+  letter-spacing: -0.05em;
+  text-wrap: balance;
+}
+
+.pl-h3 {
+  font-size: clamp(1.5rem, 2.6vw, 2.5rem);
+  line-height: 1.02;
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+
+.pl-h4 {
+  font-size: clamp(1.125rem, 1.6vw, 1.75rem);
+  line-height: 1.15;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.pl-h5 {
+  font-size: 1.25rem;
+  line-height: 1.2;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.pl-h6 {
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 400;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+}
+
+.pl-body {
+  font-size: 1.125rem;
+  line-height: 1.45;
+  color: var(--pl-muted);
+}
+
+.pl-small {
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--pl-muted);
+}
+
+.pl-mono {
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  font-size: 0.8125rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* Ссылки подчёркиваются, как на payloadcms.com: тонкая линия с отступом. */
+.pl-link {
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  text-decoration-color: var(--pl-border-strong);
+  transition: color 150ms var(--pl-ease), text-decoration-color 150ms var(--pl-ease);
+}
+
+.pl-link:hover {
+  color: var(--pl-text);
+  text-decoration-color: var(--pl-accent);
+}
+
+/* Кнопка Payload: рамка на всю ширину, при наведении заливка «перетекает» снизу. */
+.pl-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  border: 1px solid var(--pl-border);
+  background: transparent;
+  color: var(--pl-text);
+  padding: 1.25rem 1rem;
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  overflow: hidden;
+  isolation: isolate;
+  transition: color 320ms var(--pl-ease), border-color 320ms var(--pl-ease);
+}
+
+.pl-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--pl-text);
+  transform: translateY(101%);
+  transition: transform 420ms var(--pl-ease);
+}
+
+.pl-btn:hover,
+.pl-btn:focus-visible {
+  color: var(--pl-bg);
+  border-color: var(--pl-text);
+}
+
+.pl-btn:hover::before,
+.pl-btn:focus-visible::before {
+  transform: translateY(0);
+}
+
+.pl-btn--accent {
+  border-color: var(--pl-accent);
+  color: var(--pl-accent-ink);
+}
+
+.pl-btn--accent::before {
+  background: var(--pl-accent);
+  transform: translateY(0);
+}
+
+.pl-btn--accent:hover,
+.pl-btn--accent:focus-visible {
+  color: var(--pl-accent-ink);
+}
+
+.pl-btn--accent:hover::before {
+  background: #fff;
+  transform: translateY(0);
+}
+
+.pl-btn:focus-visible {
+  outline: 2px solid var(--pl-accent);
+  outline-offset: 2px;
+}
+
+/* Полоса-«шапка» блока: тонкая линия, как разделители у Payload. */
+.pl-rule {
+  border-top: 1px solid var(--pl-border);
+}
+
+.pl-cell {
+  border-top: 1px solid var(--pl-border);
+}
+
+/* Медиа-слот: рамка и панель без теней и без внешних картинок. */
+.pl-media {
+  position: relative;
+  border: 1px solid var(--pl-border);
+  background:
+    linear-gradient(180deg, rgba(244, 244, 242, 0.04), transparent 45%),
+    var(--pl-panel);
+  overflow: hidden;
+}
+
+.pl-field {
+  width: 100%;
+  border: 1px solid var(--pl-border);
+  background: transparent;
+  color: var(--pl-text);
+  padding: 0.875rem 1rem;
+  font-size: 1rem;
+  transition: border-color 150ms var(--pl-ease);
+}
+
+.pl-field::placeholder {
+  color: var(--pl-muted);
+}
+
+.pl-field:focus-visible {
+  outline: 2px solid var(--pl-accent);
+  outline-offset: 2px;
+  border-color: var(--pl-border-strong);
+}
+
+/* Мобильное меню Payload: полноэкранная панель на фоне страницы. */
+.pl-drawer {
+  position: fixed;
+  inset: var(--pl-header) 0 0 0;
+  background: var(--pl-bg);
+  z-index: 60;
+  overflow-y: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pl-btn,
+  .pl-btn::before,
+  .pl-link {
+    transition: none;
+  }
+
+  .pl-btn::before {
+    display: none;
+  }
+}

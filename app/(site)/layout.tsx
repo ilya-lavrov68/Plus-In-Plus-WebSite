@@ -12,6 +12,7 @@ import { getRequestTranslations } from "@/lib/server-i18n";
 import { getClientMessages } from "@/i18n-catalog";
 
 import "@/styles/globals.css";
+import "@/styles/payload.css";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -88,7 +89,7 @@ export default async function RootLayout({
         <NextIntlClientProvider locale={locale} messages={getClientMessages(locale)}>
           <Providers>
             <Navbar />
-            <main className="flex-1 pt-20">{children}</main>
+            <main className="flex-1 pt-[calc(var(--pl-topbar)+var(--pl-header))]">{children}</main>
             <Footer />
             {/* Уведомление о cookie: один раз, пока посетитель не сделает выбор. */}
             <CookieBanner />
