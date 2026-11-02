@@ -1,4 +1,4 @@
-import { SiteHeader } from "@/components/payload/site-header";
+import { PwHeader } from "@/components/pw/header";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getRequestTranslations } from "@/lib/server-i18n";
 
@@ -13,7 +13,7 @@ export async function Navbar() {
   ]);
 
   return (
-    <SiteHeader
+    <PwHeader
       locale={locale === "en" ? "en" : "ru"}
       topBar={t("topBar")}
       menuLabel={t("menu")}
