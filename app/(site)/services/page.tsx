@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import block from "@/components/pw/blocks/block-wrapper.module.scss";
 import { ServicesCatalogView } from "@/components/site/services-catalog-view";
 import { getActiveServices } from "@/lib/data";
 import { getRequestLocale } from "@/lib/request-locale";
@@ -23,9 +24,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ServicesPage() {
-  const [rawServices, locale] = await Promise.all([
+  const [rawServices, locale, t] = await Promise.all([
     getActiveServices(),
     getRequestLocale(),
+    getRequestTranslations("metadata"),
   ]);
   const services = localizePublicServices(rawServices, locale);
 
@@ -33,9 +35,20 @@ export default async function ServicesPage() {
   const largeServices = services.filter((s) => s.category === "large");
 
   return (
-    <ServicesCatalogView
-      smallServices={smallServices}
-      largeServices={largeServices}
-    />
+    <>
+      <div className={block.blockWrapper} style={{ paddingTop: "calc(var(--header-height) * 0.6)", paddingBottom: "2rem" }}>
+        <div className="grid" style={{ paddingLeft: "var(--gutter-h)", paddingRight: "var(--gutter-h)" }}>
+          <div className="cols-8 cols-m-8">
+            <p className="pl-h6">Plus In Plus</p>
+            <h1 className="pl-h1">{t("services")}</h1>
+            <p>{t("servicesDescription")}</p>
+          </div>
+        </div>
+      </div>
+      <ServicesCatalogView
+        smallServices={smallServices}
+        largeServices={largeServices}
+      />
+    </>
   );
 }

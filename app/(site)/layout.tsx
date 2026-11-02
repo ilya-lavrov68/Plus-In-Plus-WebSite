@@ -12,6 +12,8 @@ import { getRequestTranslations } from "@/lib/server-i18n";
 import { getClientMessages } from "@/i18n-catalog";
 
 import "@/styles/globals.css";
+import "@/styles/payload.css";
+import "@/styles/pw/app.scss";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -58,7 +60,7 @@ export default async function RootLayout({
   const locale = await getRequestLocale();
 
   return (
-    <html lang={locale} data-locale={locale} className="dark">
+    <html lang={locale} data-locale={locale} data-theme="dark">
       <head>
         <link
           rel="preload"
@@ -84,11 +86,11 @@ export default async function RootLayout({
           />
         ) : null}
       </head>
-      <body className="flex min-h-screen flex-col bg-background pb-[var(--mobile-bottom-nav-clearance)] text-foreground antialiased lg:pb-0">
+      <body className="flex min-h-screen flex-col pb-[var(--mobile-bottom-nav-clearance)] antialiased lg:pb-0">
         <NextIntlClientProvider locale={locale} messages={getClientMessages(locale)}>
           <Providers>
             <Navbar />
-            <main className="flex-1 pt-20">{children}</main>
+            <main className="flex-1 pt-[calc(var(--pl-topbar)+var(--pl-header))]">{children}</main>
             <Footer />
             {/* Уведомление о cookie: один раз, пока посетитель не сделает выбор. */}
             <CookieBanner />

@@ -1411,7 +1411,138 @@
     "communityHeading": "Our partners and neighbors",
     "communityDescription": "We closely collaborate with TS Connect, an IT firm in Tambov, delivering reliable design and digital infrastructure for brands and organizations.",
     "pipDescription": "AI and design studio: agents, identity, mockups, signage, and event collateral.",
-    "tsConnectDescription": "Regional IT engineering and digital infrastructure partner in Tambov."
+    "tsConnectDescription": "Regional IT engineering and digital infrastructure partner in Tambov.",
+    "pl": {
+      "announcement": "November brief is open",
+      "eyebrow": "Plus In Plus · design + AI",
+      "description": "A studio for visual systems, signage and outdoor media. Lumi Q1 and Kairo are AI agents for code and law.",
+      "primary": "Start a project",
+      "secondary": "See services",
+      "note": "Reply within a day · no obligation",
+      "logoLabel": "The studio works with brands, product teams and city projects",
+      "logos": [
+        "Identity",
+        "Signage",
+        "Outdoor media",
+        "Packaging",
+        "Lumi Q1",
+        "Kairo"
+      ],
+      "panels": [
+        {
+          "label": "Case 01",
+          "title": "Entrance signage set",
+          "meta": "Production · install"
+        },
+        {
+          "label": "Case 02",
+          "title": "Identity for a chain",
+          "meta": "Mark · guide"
+        },
+        {
+          "label": "Case 03",
+          "title": "Lumi Q1 · coding agent",
+          "meta": "AI · beta"
+        }
+      ],
+      "split": {
+        "eyebrow": "Two practices",
+        "muted": "Design for the street.",
+        "strong": "AI for the pace.",
+        "body": "One team covers the visual system and the digital tooling: from a sign on a facade to an agent that helps write code and read documents.",
+        "bullets": [
+          "Identity and media",
+          "Signage, billboards, facades",
+          "Lumi Q1 and Kairo for teams"
+        ],
+        "link": "How we work"
+      },
+      "cases": {
+        "eyebrow": "Scenarios",
+        "heading": "Four jobs we take end to end.",
+        "items": [
+          {
+            "category": "01 · Signage",
+            "title": "Entrance and facade",
+            "body": "Survey, construction, approvals and installation.",
+            "href": "/services",
+            "meta": "7–14 days"
+          },
+          {
+            "category": "02 · Identity",
+            "title": "Logo and guidelines",
+            "body": "Mark, grids, typography and rules for media.",
+            "href": "/services",
+            "meta": "3 concepts"
+          },
+          {
+            "category": "03 · AI",
+            "title": "Lumi Q1 and Kairo",
+            "body": "Agents for code and documents wired to your data.",
+            "href": "/ai",
+            "meta": "Beta"
+          },
+          {
+            "category": "04 · Catalog",
+            "title": "Order and production",
+            "body": "Material choice, quote and production launch.",
+            "href": "/shop",
+            "meta": "13 items"
+          }
+        ],
+        "cta": "Discuss a job"
+      },
+      "statement": {
+        "eyebrow": "Principle",
+        "quote": "Form has to work on the street and inside the interface: one scale, one logic, one owner.",
+        "author": "Plus In Plus",
+        "role": "Design and AI studio"
+      },
+      "features": {
+        "eyebrow": "Grid. Type. Speed.",
+        "heading": "We build form that scales.",
+        "items": [
+          {
+            "title": "Identity on a 16-column grid",
+            "body": "A system that holds up across new media.",
+            "panel": "Mark · grid · palette"
+          },
+          {
+            "title": "Signage as media",
+            "body": "Composition that reads from distance and on a phone screen.",
+            "panel": "Facade · sign · light"
+          },
+          {
+            "title": "AI in the process",
+            "body": "Lumi Q1 writes code, Kairo reads documents.",
+            "panel": "Lumi Q1 · agent"
+          },
+          {
+            "title": "One owner of the form",
+            "body": "Source files, guides and rights handed over.",
+            "panel": "Rights · sources"
+          }
+        ]
+      },
+      "manifesto": {
+        "eyebrow": "Position",
+        "heading": "We build form you can own.",
+        "paragraphs": [
+          "Studios often leave clients with a picture and no system. We hand over the grid, the files and the rules.",
+          "Design and AI move together here: a sign on a facade and an agent in a terminal belong to one practice."
+        ],
+        "links": [
+          {
+            "label": "Services",
+            "href": "/services"
+          },
+          {
+            "label": "AI",
+            "href": "/ai"
+          }
+        ]
+      }
+    }
   },
   "navigation": {
     "orderDesign": "Order a design",
@@ -1774,5 +1905,34 @@
       "cautionText": "Responses are informational and do not replace a lawyer or individual legal advice. Current law and the circumstances of each case must be checked separately.",
       "nextTitle": "Code, tools, and safer repository work"
     }
+  },
+  "shell": {
+    "topBar": "Brief is open · reply within a day",
+    "menu": "Open menu",
+    "close": "Close menu",
+    "cta": "Start a project",
+    "nav": {
+      "services": "Services",
+      "shop": "Shop",
+      "blog": "Blog",
+      "ai": "AI",
+      "studio": "Studio",
+      "contact": "Contact"
+    },
+    "utility": {
+      "cart": "Cart",
+      "login": "Log in"
+    },
+    "footer": {
+      "services": "Services",
+      "studio": "Studio",
+      "resources": "Resources",
+      "legal": "Legal"
+    },
+    "legal": {
+      "privacy": "Privacy policy",
+      "terms": "Terms of use"
+    },
+    "blog": "All articles"
   }
 }

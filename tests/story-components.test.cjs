@@ -191,10 +191,14 @@ test("empty CMS content shows an honest empty state rather than a preset timelin
 
 test("landing order and native protected Story global are explicit", () => {
   const page = fs.readFileSync(path.resolve(__dirname, "../app/(site)/page.tsx"), "utf8");
-  const hero = page.indexOf("<Hero />");
-  const story = page.indexOf("<Story />");
-  const features = page.indexOf("<Features />");
-  assert.ok(hero >= 0 && hero < story && story < features, "Hero → Story → Features");
+  // Порядок повторяет главную payloadcms.com.
+  const order = ["<PwHero", "<PwMediaContent", "<PwCardGrid", "<PwStatement", "<PwSteps", "<PwCta"];
+  let cursor = -1;
+  for (const section of order) {
+    const index = page.indexOf(section);
+    assert.ok(index > cursor, `landing order must keep ${section}`);
+    cursor = index;
+  }
 
   const system = fs.readFileSync(path.resolve(__dirname, "../payload/collections/system.ts"), "utf8");
   assert.match(system, /export const Story: GlobalConfig/);

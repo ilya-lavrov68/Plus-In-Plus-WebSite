@@ -94,6 +94,7 @@
     "minimatch-upstream": "npm:minimatch@11.0.3",
     "postcss": "8.5.29",
     "react-test-renderer": "19.3.1",
+    "sass": "^1.107.1",
     "tailwindcss": "4.3.3",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5"

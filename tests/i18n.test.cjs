@@ -167,7 +167,7 @@ test("blog empty states use the existing nested catalog messages", () => {
     assert.equal(typeof lookup(catalogs[locale], "blog.empty.title"), "string");
     assert.equal(typeof lookup(catalogs[locale], "blog.empty.description"), "string");
   }
-  for (const file of ["app/(site)/page.tsx", "app/(site)/blog/(index)/page.tsx", "app/(site)/shop/[slug]/content.tsx"]) {
+  for (const file of ["app/(site)/blog/(index)/page.tsx", "app/(site)/shop/[slug]/content.tsx"]) {
     const source = fs.readFileSync(path.join(rootDir, file), "utf8");
     assert.ok(source.includes('empty.title'), `${file} must read blog.empty.title`);
     assert.ok(source.includes('empty.description'), `${file} must read blog.empty.description`);
