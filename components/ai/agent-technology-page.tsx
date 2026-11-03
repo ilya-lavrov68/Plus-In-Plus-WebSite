@@ -96,7 +96,7 @@ export async function AgentTechnologyPage({ agent }: { agent: AgentKind }) {
         </div>
       </section>
 
-      <section className="border-t border-border py-24 md:py-32" aria-labelledby={`${agent}-benefits`}>
+      <section className="border-t border-border section-y-tight" aria-labelledby={`${agent}-benefits`}>
         <div className="container">
           <div className="max-w-2xl" data-reveal="">
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">02 / {t("advantages")}</p>
@@ -119,7 +119,7 @@ export async function AgentTechnologyPage({ agent }: { agent: AgentKind }) {
       </section>
 
       {content.sections.map((section, index) => (
-        <section id={section.id} key={section.id} className="border-t border-border py-24 md:py-32">
+        <section id={section.id} key={section.id} className="border-t border-border section-y-tight">
           <div className="container grid items-center gap-14 lg:grid-cols-[0.82fr_1.18fr] lg:gap-24 xl:gap-32">
             <div
               data-reveal=""
@@ -152,7 +152,7 @@ export async function AgentTechnologyPage({ agent }: { agent: AgentKind }) {
         </section>
       ))}
 
-      <section className="border-t border-border py-24 md:py-32">
+      <section className="border-t border-border section-y-tight">
         <div className="container grid gap-14 lg:grid-cols-2 lg:gap-24 xl:gap-32">
           <div data-reveal="">
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">06 / {t("boundaries")}</p>

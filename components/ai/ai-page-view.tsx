@@ -184,7 +184,7 @@ export async function AiPageView() {
         reverse
       />
 
-      <section className="border-t border-border py-24 md:py-32">
+      <section className="border-t border-border section-y-tight">
         <div className="container">
           <div
             data-reveal=""

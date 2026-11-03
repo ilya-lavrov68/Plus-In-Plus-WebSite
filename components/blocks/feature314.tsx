@@ -69,10 +69,10 @@ const Feature314 = ({
   bigCard = DEFAULT_BIG_CARD,
 }: Feature314Props) => {
   return (
-    <section id={id} className="motion-section bg-muted py-32">
+    <section id={id} className="motion-section bg-muted section-y">
       <div className="container">
-        <div className="flex flex-col gap-12">
-          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end md:gap-8">
+        <div className="flex flex-col gap-14 md:gap-16">
+          <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end md:gap-10">
             <h2 className="max-w-lg flex-1 whitespace-pre-line text-3xl font-bold md:text-5xl">
               {heading.split("\n").map((line, index, lines) => (
                 <Fragment key={`${index}-${line}`}>
@@ -94,7 +94,7 @@ const Feature314 = ({
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-4">
             {smallCards.map((card, index) => (
               <Card
                 key={card.title}
@@ -104,7 +104,7 @@ const Feature314 = ({
               >
                 <Link
                   href={card.url}
-                  className="flex h-full w-full flex-col justify-between gap-6"
+                  className="flex h-full w-full flex-col justify-between gap-7"
                 >
                   <div className="relative h-40 overflow-hidden rounded-[1.15rem]">
                     {card.image ? (
@@ -124,7 +124,7 @@ const Feature314 = ({
                       className="absolute top-3 right-3 rounded-full bg-secondary p-0.5 transition-[transform,background-color,color] duration-200 ease-out group-hover:rotate-90 group-hover:bg-primary group-hover:text-primary-foreground"
                     />
                   </div>
-                  <div className="flex flex-col gap-4 px-1 pb-1">
+                  <div className="flex flex-col gap-4 px-1.5 pb-1.5">
                     <span className="text-xs text-muted-foreground">
                       {card.topNote}
                     </span>

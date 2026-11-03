@@ -44,7 +44,7 @@ const ProductDetail1 = ({
       : labels?.smallDesigns ?? "Small designs";
 
   return (
-    <section className="py-24 md:py-32">
+    <section className="section-y">
       <div className="container">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
           <div className="space-y-4 lg:col-span-6">
@@ -89,7 +89,7 @@ const ProductDetail1 = ({
               {service.title}
             </h1>
 
-            <p className="mt-6 text-base leading-relaxed text-muted-foreground">
+            <p className="mt-6 max-w-[60ch] text-base leading-[1.75] text-muted-foreground">
               {service.fullDesc}
             </p>
 

@@ -96,7 +96,7 @@ export function ContactOrderForm({
   };
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-24 md:py-32">
+    <div className="mx-auto max-w-4xl px-6 section-y">
       <div className="mb-10 flex flex-col justify-between gap-4 border-b border-border/60 pb-8 sm:flex-row sm:items-end">
         <div>
           <h1 className="text-3xl font-bold tracking-tight md:text-4xl">

@@ -55,13 +55,13 @@ export function ServicesCatalogView({
   };
 
   return (
-    <div className="container py-24 md:py-32">
+    <div className="container section-y">
       <div className="flex flex-col justify-between gap-6 border-b border-border/60 pb-10 md:flex-row md:items-end">
         <div>
           <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
             {t("title")}
           </h1>
-          <p className="mt-3 max-w-2xl text-lg text-muted-foreground">
+          <p className="mt-4 max-w-2xl text-lg leading-[1.7] text-muted-foreground">
             {t("subtitle")}
           </p>
         </div>
@@ -73,12 +73,12 @@ export function ServicesCatalogView({
         </Button>
       </div>
 
-      <section className="mt-12">
-        <div className="mb-6">
+      <section className="mt-14">
+        <div className="mb-8">
           <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
             {t("smallDesigns")}
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-2 text-sm text-muted-foreground">
             {t("smallDesignsDesc")}
           </p>
         </div>
@@ -101,12 +101,12 @@ export function ServicesCatalogView({
         )}
       </section>
 
-      <section className="mt-16">
-        <div className="mb-6">
+      <section className="mt-20">
+        <div className="mb-8">
           <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
             {t("largeDesigns")}
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-2 text-sm text-muted-foreground">
             {t("largeDesignsDesc")}
           </p>
         </div>

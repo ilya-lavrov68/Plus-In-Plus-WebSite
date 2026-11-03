@@ -38,7 +38,7 @@ export default async function CartPage() {
   const orders = await getCustomerOrders();
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-24 md:py-32">
+    <div className="mx-auto max-w-4xl px-6 section-y">
       <header className="mb-10">
         <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
           {t("title")}

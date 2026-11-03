@@ -101,7 +101,7 @@ function StoryMoment({ event, index }: { event: StoryEvent; index: number }) {
  */
 export function StoryTimeline({ heading, description, events, labels }: StoryTimelineProps) {
   return (
-    <section id="story" aria-labelledby="story-heading" className="motion-section bg-background py-24 md:py-32">
+    <section id="story" aria-labelledby="story-heading" className="motion-section bg-background section-y">
       <div className="container">
         <div className="grid gap-6 lg:grid-cols-12 lg:items-end lg:gap-8">
           <div className="lg:col-span-7">

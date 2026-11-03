@@ -49,7 +49,7 @@ const Hero138 = ({
   return (
     <section
       className={cn(
-        "motion-section relative overflow-hidden bg-background pt-16 pb-24 md:pt-24 md:pb-32",
+        "motion-section relative overflow-hidden bg-background pt-20 pb-24 md:pt-28 md:pb-32",
         className
       )}
     >
@@ -80,7 +80,7 @@ const Hero138 = ({
           )}
         </h1>
 
-        <div className="mt-10 flex flex-col justify-between gap-8 lg:mt-14 lg:flex-row lg:items-start">
+        <div className="mt-12 flex flex-col justify-between gap-10 lg:mt-16 lg:flex-row lg:items-start">
           <div data-reveal="" data-reveal-delay={80}>
             <div className="flex flex-wrap items-center gap-3">
               {primaryCta && (
@@ -105,7 +105,7 @@ const Hero138 = ({
           <p
             data-reveal=""
             data-reveal-delay={140}
-            className="max-w-md text-base leading-relaxed text-muted-foreground md:text-lg"
+            className="max-w-lg text-base leading-[1.75] text-muted-foreground md:text-lg"
           >
             {descriptionLead}
             {descriptionStrong && (
@@ -118,7 +118,7 @@ const Hero138 = ({
       </div>
 
       {showMediaStage && (
-        <div data-reveal="" data-reveal-delay={180} className="relative mt-16 md:mt-24">
+        <div data-reveal="" data-reveal-delay={180} className="relative mt-16 md:mt-28">
           <div
             aria-hidden="true"
             className="pointer-events-none absolute -top-12 right-0 left-0 mx-auto grid h-80 max-w-6xl grid-cols-4 gap-8 px-8 opacity-25 blur-3xl"

@@ -37,7 +37,7 @@ const Services11Catalog = ({
   return (
     <section
       id={id}
-      className={cn("border-t border-border/60 py-24 md:py-32", className)}
+      className={cn("border-t border-border/60 section-y", className)}
     >
       <div className="container">
         <div className="grid grid-cols-1 gap-8 pb-14 lg:grid-cols-12 lg:items-end">
@@ -51,7 +51,7 @@ const Services11Catalog = ({
               {heading}
             </h2>
             {subtitle && (
-              <p className="mt-3 text-xl font-medium text-foreground/90">
+              <p className="mt-4 text-xl font-medium leading-snug text-foreground/90">
                 {subtitle}
               </p>
             )}
@@ -59,7 +59,7 @@ const Services11Catalog = ({
 
           <div className="lg:col-span-5">
             {description && (
-              <p className="text-base leading-relaxed text-muted-foreground">
+              <p className="max-w-[60ch] text-base leading-[1.75] text-muted-foreground">
                 {description}
               </p>
             )}

@@ -25,7 +25,7 @@ const Community3 = ({
   partnerDescription = "Regional IT engineering and digital infrastructure partner in Tambov.",
 }: Community3Props) => {
   return (
-    <section id={id} className="motion-section py-32">
+    <section id={id} className="motion-section section-y">
       <div className="container">
         <div className="flex flex-col items-center text-center">
           <Badge
@@ -35,18 +35,18 @@ const Community3 = ({
           >
             {badge}
           </Badge>
-          <h2 className="mt-4 text-4xl font-semibold tracking-tight md:text-5xl">
+          <h2 className="mt-5 text-4xl font-semibold tracking-tight md:text-5xl">
             <DecryptText text={heading} seed={29} />
           </h2>
           <p
             data-reveal=""
             data-reveal-delay={60}
-            className="mt-4 max-w-2xl text-lg text-muted-foreground"
+            className="mt-5 max-w-2xl text-lg leading-[1.75] text-muted-foreground"
           >
             {description}
           </p>
 
-          <div className="mt-12 grid w-full max-w-2xl grid-cols-1 gap-6 sm:grid-cols-2">
+          <div className="mt-16 grid w-full max-w-2xl grid-cols-1 gap-7 sm:grid-cols-2">
             <Card
               data-reveal=""
               data-reveal-delay={100}

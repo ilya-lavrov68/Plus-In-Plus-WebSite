@@ -108,9 +108,9 @@ const Footer7 = ({
   ];
 
   return (
-    <footer className="border-t border-border bg-background py-20">
+    <footer className="border-t border-border bg-background py-24 md:py-28">
       <div className="container">
-        <div className="flex flex-col justify-between gap-12 lg:flex-row lg:items-start">
+        <div className="flex flex-col justify-between gap-14 lg:flex-row lg:items-start lg:gap-16">
           <div className="flex max-w-xs flex-col gap-5">
             <Link
               href="/"
@@ -159,13 +159,13 @@ const Footer7 = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:grid-cols-5 lg:gap-12">
+          <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 md:grid-cols-5 lg:gap-14">
             {footerSections.map((section) => (
               <div key={section.title}>
-                <h3 className="mb-4 text-sm font-semibold text-foreground">
+                <h3 className="mb-5 text-sm font-semibold text-foreground">
                   {section.title}
                 </h3>
-                <ul className="space-y-3 text-sm text-muted-foreground">
+                <ul className="space-y-3.5 text-sm text-muted-foreground">
                   {section.links.map((link) => (
                     <li key={link.name}>
                       <Link
@@ -182,7 +182,7 @@ const Footer7 = ({
           </div>
         </div>
 
-        <div className="mt-16 flex flex-col justify-between gap-4 border-t border-border pt-8 text-xs text-muted-foreground md:flex-row md:items-center">
+        <div className="mt-20 flex flex-col justify-between gap-4 border-t border-border pt-8 text-xs text-muted-foreground md:flex-row md:items-center">
           <p>© 2026 Plus In Plus</p>
           <div className="flex items-center gap-6">
             <Link

@@ -164,7 +164,7 @@ const Contact29 = ({
   };
 
   return (
-    <section className="py-24 md:py-32">
+    <section className="section-y">
       <div className="container">
         <AnimatePresence mode="wait">
           {step === "select" && (
@@ -180,13 +180,13 @@ const Contact29 = ({
                 <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
                   {title}
                 </h1>
-                <p className="mt-4 text-lg text-muted-foreground">
+                <p className="mt-5 text-lg leading-[1.75] text-muted-foreground">
                   {t("chooseService")}
                 </p>
               </div>
 
               {/* 4 основных карточки услуг сверху (2 колонки) */}
-              <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2">
                 {primaryOptions.map((option) => {
                   const Icon = option.icon;
                   const selected = option.id === activeOption?.id;
@@ -217,7 +217,7 @@ const Contact29 = ({
 
               {/* Остальные услуги из БД в компактных карточках поменьше в 3 колонки снизу */}
               {secondaryOptions.length > 0 && (
-                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {secondaryOptions.map((option) => {
                     const Icon = option.icon;
                     const selected = option.id === activeOption?.id;

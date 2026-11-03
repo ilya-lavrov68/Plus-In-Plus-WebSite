@@ -52,14 +52,14 @@ export function ShopCatalogView({
   }
 
   return (
-    <div className="container py-24 md:py-32">
+    <div className="container section-y">
       <div className="border-b border-border/60 pb-10">
         <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
           {tShop("pageTitle")}
         </h1>
       </div>
 
-      <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-14 grid grid-cols-1 gap-7 md:grid-cols-2 lg:grid-cols-4">
         {products.map((product) => (
           <Card
             key={product.id}
@@ -92,7 +92,7 @@ export function ShopCatalogView({
 
             <CardContent className="flex flex-1 flex-col justify-between pt-0">
               {product.description ? (
-                <p className="mb-5 text-sm leading-relaxed text-muted-foreground">
+                <p className="mb-6 text-sm leading-[1.65] text-muted-foreground">
                   {product.description}
                 </p>
               ) : (

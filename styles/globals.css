@@ -194,9 +194,35 @@
   @media (width >= 640px) {
     padding-inline: 2rem;
   }
+  @media (width >= 1024px) {
+    padding-inline: 2.5rem;
+  }
   @media (width >= 1400px) {
     max-width: 1400px;
   }
+}
+
+/*
+ * Вертикальный ритм публичных страниц.
+ * Один шаг на все секции: воздух растёт вместе с шириной экрана,
+ * поэтому блоки не слипаются на ноутбуке и не тонут на большом мониторе.
+ */
+@utility section-y {
+  padding-block: clamp(6rem, 4rem + 7vw, 9.5rem);
+}
+
+/* Для секций внутри страницы (после общего section-y) — шаг поменьше. */
+@utility section-y-tight {
+  padding-block: clamp(3.5rem, 2.5rem + 4vw, 6rem);
+}
+
+/* Комфортная длина строки для длинных текстов: ~70 символов. */
+@utility measure {
+  max-width: 68ch;
+}
+
+@utility measure-wide {
+  max-width: 78ch;
 }
 
 @layer base {
@@ -323,6 +349,15 @@
   h6 {
     font-family: var(--font-heading);
     font-weight: 600;
+    /* Заголовки переносятся по смысловым группам, а не по одному слову. */
+    text-wrap: balance;
+  }
+
+  p,
+  li,
+  dd {
+    /* Абзацы не оставляют «сирот» в конце строки. */
+    text-wrap: pretty;
   }
 
   button,
@@ -590,7 +625,10 @@
   }
 
   .article-content {
-    @apply text-base leading-relaxed text-muted-foreground;
+    @apply text-base text-muted-foreground;
+    /* Длинный текст читается строкой ~70 символов, а не во всю колонку. */
+    max-width: 68ch;
+    line-height: 1.8;
   }
 
   .article-content h1 {
@@ -610,7 +648,8 @@
   }
 
   .article-content p {
-    @apply mt-4 leading-7;
+    @apply mt-5;
+    line-height: 1.8;
   }
 
   .article-content ul {

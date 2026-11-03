@@ -35,7 +35,7 @@ function DirectionCard({
       <div className="relative h-40 shrink-0 overflow-hidden border-b border-border bg-background sm:h-48">
         <PixelDirectionSprite variant={pattern} className="absolute inset-0 size-full" />
       </div>
-      <div className="flex flex-1 flex-col p-6 sm:p-8">
+      <div className="flex flex-1 flex-col p-7 sm:p-9">
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
           <span className="font-medium tracking-[0.16em] text-muted-foreground uppercase">{index}</span>
           <span
@@ -48,10 +48,10 @@ function DirectionCard({
             {status}
           </span>
         </div>
-        <h3 className="mt-6 text-3xl font-medium tracking-tight sm:text-4xl">{title}</h3>
-        <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground">{description}</p>
-        <p className="mt-5 text-sm text-foreground/80">{meta}</p>
-        <span className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-foreground">
+        <h3 className="mt-8 text-3xl font-medium tracking-tight sm:text-4xl">{title}</h3>
+        <p className="mt-5 max-w-xl text-base leading-[1.75] text-muted-foreground">{description}</p>
+        <p className="mt-6 text-sm leading-relaxed text-foreground/80">{meta}</p>
+        <span className="mt-10 inline-flex items-center gap-2 text-sm font-medium text-foreground">
           {linkLabel}
           <ArrowUpRight
             aria-hidden="true"
@@ -68,7 +68,7 @@ export async function BrandDirections() {
   const t = await getRequestTranslations("directions");
 
   return (
-    <section id="directions" className="border-y border-border bg-background py-20 md:py-28">
+    <section id="directions" className="border-y border-border bg-background section-y">
       <div className="container">
         <div data-reveal="" className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
           <div>
@@ -82,7 +82,7 @@ export async function BrandDirections() {
           </p>
         </div>
 
-        <div className="mt-10 grid gap-5 md:grid-cols-2 md:items-stretch">
+        <div className="mt-14 grid gap-6 md:grid-cols-2 md:items-stretch">
           <div data-reveal="" data-reveal-delay={80}>
             <DirectionCard
               href="/ai"
