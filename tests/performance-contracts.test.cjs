@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
-const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
+const { createSqlRowsMock, dbModuleWith } = require("./helpers/sql-db-mock.cjs");
 
 for (const extension of [".ts", ".tsx"]) {
   require.extensions[extension] = (module, filename) =>
@@ -23,40 +23,12 @@ for (const extension of [".ts", ".tsx"]) {
 
 const root = path.resolve(__dirname, "..");
 const source = (file) => fs.readFileSync(path.join(root, file), "utf8");
-let postRows = [];
-let featuredRows = [];
-let serviceRows = [];
-let postQueries = [];
-let featuredQueries = [];
-let serviceQueries = [];
-
-const db = {
-  service: {
-    findMany: async (query) => {
-      serviceQueries.push(structuredClone(query));
-      return structuredClone(serviceRows);
-    },
-  },
-  post: {
-    findMany: async (query) => {
-      if (featuredRows.length) {
-        featuredQueries.push(structuredClone(query));
-        const row = featuredRows.shift();
-        return row ? structuredClone([row]) : [];
-      }
-      postQueries.push(structuredClone(query));
-      return structuredClone(postRows);
-    },
-    findFirst: async (query) => {
-      featuredQueries.push(structuredClone(query));
-      return structuredClone(featuredRows.shift() ?? null);
-    },
-  },
-};
+const mock = createSqlRowsMock();
 
 const originalLoad = Module._load;
+const realDb = originalLoad.call(module, path.join(root, "lib", "db.ts"), module, false);
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/payload-native") return createNativeModuleMock(db);
+  if (name === "@/lib/db") return dbModuleWith(realDb, mock);
   if (name.startsWith("@/")) name = path.resolve(root, name.slice(2));
   return originalLoad.call(this, name, parent, isMain);
 };
@@ -71,12 +43,9 @@ const {
 const { getClientMessages, messages } = require("../i18n-catalog.ts");
 
 beforeEach(() => {
-  postRows = [];
-  featuredRows = [];
-  serviceRows = [];
-  postQueries = [];
-  featuredQueries = [];
-  serviceQueries = [];
+  mock.setServices([]);
+  mock.setPosts([]);
+  mock.queries.length = 0;
 });
 
 test("blog cards exclude article bodies, sections, excerpts and navigation-only fields", () => {
@@ -116,36 +85,42 @@ test("blog cards exclude article bodies, sections, excerpts and navigation-only 
 });
 
 test("latest-post readers apply the database limit before mapping card content", async () => {
-  postRows = [{
+  mock.setPosts([{
     id: "post-1", title: "Title", slug: "post-1", excerpt: "Excerpt", content: "<p>Body</p>",
     coverImage: "/uploads/blog/cover.webp", images: null, readTime: 4, source: "manual",
     sourceUrl: null, isFeatured: false, publishedAt: null, createdAt: new Date("2026-01-01T00:00:00Z"),
-  }];
+  }]);
 
-  await getPublishedPosts(3);
-  assert.equal(postQueries.length, 1);
-  assert.equal(postQueries[0].take, 3);
-  assert.equal(postQueries[0].where.isPublished, true);
+  const posts = await getPublishedPosts(3);
+  assert.equal(posts.length, 1);
+  assert.equal(posts[0].content, "<p>Body</p>");
+
+  const query = mock.queries.find((item) => item.sql.includes("from posts p"));
+  assert.ok(query);
+  assert.match(query.sql, /p\.is_published = 1/);
+  assert.match(query.sql, /limit \?/);
+  assert.equal(query.args[query.args.length - 1], 3);
   assert.match(source("app/(site)/page.tsx"), /getPublishedPosts\(3\)/);
   assert.match(source("app/(site)/shop/[slug]/content.tsx"), /getPublishedPosts\(3\)/);
 });
 
 test("sitemap keeps both unbounded reads but selects only URL and date fields", async () => {
   const publishedAt = new Date("2026-10-20T12:00:00.000Z");
-  postRows = [{ slug: "studio-news", publishedAt }];
-  serviceRows = [{ id: "service-1", slug: "sign-design" }];
+  mock.setPosts([{ slug: "studio-news", publishedAt }]);
+  mock.setServices([{ id: "service-1", slug: "sign-design" }]);
 
   const [posts, services] = await Promise.all([getSitemapPosts(), getSitemapServices()]);
   assert.deepEqual(posts, [{ slug: "studio-news", publishedAt }]);
   assert.deepEqual(services, [{ id: "service-1", slug: "sign-design" }]);
-  assert.equal(postQueries.length, 1);
-  assert.equal(serviceQueries.length, 1);
-  assert.deepEqual(postQueries[0].select, { slug: true, publishedAt: true });
-  assert.deepEqual(serviceQueries[0].select, { slug: true });
-  assert.equal(postQueries[0].where.isPublished, true);
-  assert.equal(postQueries[0].take, undefined);
-  assert.deepEqual(serviceQueries[0].where, { isPublished: true, isActive: true });
-  assert.deepEqual(serviceQueries[0].orderBy, { createdAt: "asc" });
+
+  const postQuery = mock.queries.find((item) => item.sql.includes("from posts p"));
+  const serviceQuery = mock.queries.find((item) => item.sql.includes("from services s"));
+  assert.ok(postQuery && serviceQuery);
+  assert.doesNotMatch(postQuery.sql, /limit \?/);
+  assert.match(postQuery.sql, /p\.is_published = 1/);
+  assert.match(serviceQuery.sql, /s\.is_active = 1/);
+  assert.match(serviceQuery.sql, /s\.is_published = 1/);
+  assert.match(serviceQuery.sql, /order by s\.created_at asc/);
 
   const sitemapSource = source("app/(site)/sitemap.ts");
   assert.match(sitemapSource, /getSitemapPosts\(\)/);
@@ -153,14 +128,13 @@ test("sitemap keeps both unbounded reads but selects only URL and date fields", 
   assert.doesNotMatch(sitemapSource, /getPublishedPosts|getPublishedServices/);
 });
 
-test("featured navigation reads only title, slug and cover, including the latest-post fallback", async () => {
-  featuredRows = [null, { title: "Latest", slug: "latest", coverImage: "/assets/shop/retired.jpg" }];
-  const post = await getFeaturedPost();
+test("featured navigation falls back to the latest post and keeps only navigation fields", async () => {
+  mock.setPosts([{ title: "Latest", slug: "latest", coverImage: "/assets/shop/retired.jpg" }]);
 
-  assert.equal(featuredQueries.length, 2);
-  for (const query of featuredQueries) {
-    assert.deepEqual(query.select, { title: true, slug: true, coverImage: true, cover: true });
-  }
+  const post = await getFeaturedPost();
+  const postQueries = mock.queries.filter((item) => item.sql.includes("from posts p"));
+  assert.equal(postQueries.length, 2);
+  assert.match(postQueries[0].sql, /p\.is_featured = 1/);
   assert.deepEqual(post, {
     title: "Latest",
     slug: "latest",

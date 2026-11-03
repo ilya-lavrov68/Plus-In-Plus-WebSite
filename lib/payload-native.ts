@@ -1,5 +1,6 @@
-import type { Client, InValue } from "@libsql/client";
 import { getPayload, type Payload, type PayloadRequest } from "payload";
+
+import { rows } from "@/lib/db";
 
 import config from "@payload-config";
 
@@ -91,17 +92,15 @@ export function isPayloadUniqueError(error: unknown): boolean {
 }
 
 /** Низкоуровневые агрегаты и health-check используют тот же native Payload adapter. */
+/**
+ * Прямой параметризованный запрос в ту же базу, но без CMS-слоя: соединение
+ * берётся из `lib/db.ts`. Админка и аналитика работают на этом пути.
+ */
 export async function queryPayloadRows<T = Record<string, unknown>>(
   sql: string,
   args: unknown[] = [],
 ): Promise<T[]> {
-  const payload = await getPayloadClient();
-  const client = (payload.db as unknown as { client: Client }).client;
-  const result = await client.execute({
-    sql,
-    args: args.map((value) => value instanceof Date ? value.toISOString() : value) as InValue[],
-  });
-  return result.rows as T[];
+  return rows<T>(sql, args);
 }
 
 /** Скрипты корректно освобождают libSQL connection после завершения работы. */

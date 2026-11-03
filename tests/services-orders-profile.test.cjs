@@ -250,6 +250,40 @@ Module._load = function (name, parent, isMain) {
     hash: async (password) => `hash:${password}`,
   };
   if (name === "@/lib/payload-native") return createNativeModuleMock(db);
+  if (name === "@/lib/db") {
+    // Публичные чтения услуг идут через собственный SQL-слой: отдаём фикстуры
+    // по тем же правилам фильтрации, что и настоящий запрос.
+    const real = originalLoad.call(this, path.join(__dirname, "..", "lib", "db.ts"), parent, isMain);
+    return {
+      ...real,
+      rows: async (sql) => {
+        const query = String(sql).replace(/\s+/g, " ");
+        if (!query.includes("from services s")) return [];
+        return [...services.values()]
+          .filter((service) => service.isActive && service.isPublished)
+          .map((service) => ({
+            id: service.id,
+            title: service.title,
+            slug: service.slug,
+            category: service.category,
+            short_desc: service.shortDesc ?? "",
+            full_desc: service.fullDesc ?? "",
+            result_text: service.resultText ?? "",
+            cover_image: service.coverImage ?? null,
+            cover_url: null,
+            base_price: service.basePrice ?? 0,
+            price_type: service.priceType ?? "quote",
+            currency: service.currency ?? "RUB",
+            is_orderable: service.isOrderable ? 1 : 0,
+            is_published: service.isPublished ? 1 : 0,
+            is_active: service.isActive ? 1 : 0,
+            sort_order: service.sortOrder ?? 0,
+            created_at: "2026-01-01T00:00:00.000Z",
+            updated_at: "2026-01-02T00:00:00.000Z",
+          }));
+      },
+    };
+  }
   if (name === "@/lib/password-breach") return {
     CompromisedPasswordError: class CompromisedPasswordError extends Error {},
     assertPasswordNotCompromised: async () => {},
