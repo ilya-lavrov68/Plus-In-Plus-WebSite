@@ -46,6 +46,20 @@ const db = {
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
   if (name === "@/lib/payload-native") return createNativeModuleMock(db);
+  if (name === "@/lib/db") {
+    const real = originalLoad.call(this, path.join(__dirname, "..", "lib", "db.ts"), parent, isMain);
+    return {
+      ...real,
+      // Настройки читаются SQL-запросом с allowlist в параметрах.
+      rows: async (sql, args = []) => {
+        const query = String(sql).replace(/\s+/g, " ");
+        if (!query.includes("from site_settings")) return [];
+        settingQueries.push({ sql: query, args });
+        const allowed = new Set(args.map(String));
+        return structuredClone(settingRows.filter((row) => allowed.has(row.key)));
+      },
+    };
+  }
   if (name === "@/lib/request-locale") {
     return { getRequestLocale: async () => "en" };
   }
@@ -206,8 +220,9 @@ test("public site settings apply only validated non-secret values", async () => 
   assert.equal(settings.vkUrl, "https://vk.com/plusinplus");
   assert.equal(settings.telegramUrl, undefined);
   assert.equal(JSON.stringify(settings).includes("must-not-leak"), false);
-  assert.deepEqual(settingQueries[0].where.key.in, [...PUBLIC_SITE_SETTING_KEYS]);
-  assert.deepEqual(settingQueries[0].select, { key: true, value: true });
+  assert.match(settingQueries[0].sql, /from site_settings/);
+  assert.deepEqual(settingQueries[0].args, [...PUBLIC_SITE_SETTING_KEYS]);
+  assert.equal(settingQueries[0].args.includes("robokassaPassword1"), false);
 
   const normalized = normalizePublicSiteSettings([
     { key: "contactEmail", value: "not-an-email" },
@@ -224,7 +239,9 @@ test("public settings have a server-only loader and are wired to metadata and th
   const footer = fs.readFileSync(path.resolve(__dirname, "../components/site/footer.tsx"), "utf8");
 
   assert.equal(shared.includes("@/lib/payload-db"), false);
-  assert.ok(loader.includes("@/lib/payload-native"));
+  // Загрузчик читает SQLite напрямую и не зависит от CMS-слоя.
+  assert.ok(loader.includes("@/lib/db"));
+  assert.equal(loader.includes("@/lib/payload-native"), false);
   assert.ok(layout.includes("getPublicSiteSettings"));
   assert.ok(layout.includes("settings.metaTitle"));
   assert.ok(footer.includes("getPublicSiteSettings"));
