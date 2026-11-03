@@ -252,3 +252,29 @@ body {
   background: var(--theme-bg);
   color: var(--theme-text);
 }
+
+/* Формы: поля в токенах Payload (тёмная подложка, hairline, без скруглений). */
+.pw-form input,
+.pw-form textarea,
+.pw-form select {
+  width: 100%;
+  border: 1px solid var(--theme-border-color);
+  border-radius: 0;
+  background: var(--theme-input-bg);
+  color: var(--theme-text);
+  padding: 0.75rem 1rem;
+  font-family: var(--font-body);
+  font-size: 1rem;
+}
+
+.pw-form input::placeholder,
+.pw-form textarea::placeholder {
+  color: var(--theme-elevation-500);
+}
+
+.pw-form input:focus-visible,
+.pw-form textarea:focus-visible,
+.pw-form select:focus-visible {
+  outline: 2px solid var(--theme-success-500);
+  outline-offset: 2px;
+}
