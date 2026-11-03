@@ -73,11 +73,11 @@ function collectFindings({ env = process.env, versions = process.versions.node }
   }
 
   const payloadTypes = path.join(rootDir, "payload", "payload-types.ts");
-  const importMap = path.join(rootDir, "app", "(payload)", "admin", "importMap.js");
-  if (fs.existsSync(payloadTypes) && fs.existsSync(importMap)) {
-    add("ok", "db", "Payload types and admin import map are generated.");
+  const adminPage = path.join(rootDir, "app", "(admin)", "admin", "page.tsx");
+  if (fs.existsSync(payloadTypes) && fs.existsSync(adminPage)) {
+    add("ok", "db", "Payload types and the custom admin panel are present.");
   } else {
-    add("error", "db", "Payload artifacts are missing — run: npm run payload:types && npm run payload:importmap");
+    add("error", "db", "Payload types are missing — run: npm run payload:types");
   }
 
   try {

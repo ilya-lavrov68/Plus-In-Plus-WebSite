@@ -63,10 +63,19 @@ test("order revenue and queue metrics are one database aggregate, not a payment 
   assert.equal(queries.length, 0);
 });
 
-test("Payload dashboard keeps recent lists bounded and projected", () => {
-  const source = fs.readFileSync(path.join(__dirname, "..", "payload", "components", "dashboard-overview.tsx"), "utf8");
-  assert.match(source, /collection: "orders",[\s\S]*?limit: 5/);
-  assert.match(source, /collection: "activity-logs",[\s\S]*?limit: 5/);
-  assert.match(source, /select: \{ number: true, orderNumber: true, status: true, total: true \}/);
-  assert.doesNotMatch(source, /admin-orders|admin-data|skip:|take:/);
+test("admin dashboard keeps recent lists bounded and projected", () => {
+  const page = fs.readFileSync(path.join(__dirname, "..", "app", "(admin)", "admin", "page.tsx"), "utf8");
+  const queries = fs.readFileSync(path.join(__dirname, "..", "lib", "admin-queries.ts"), "utf8");
+
+  // Независимые чтения стартуют вместе.
+  assert.match(page, /await Promise\.all\(\[/);
+  // Списки ограничены и не тянут целые таблицы.
+  assert.match(page, /getOrders\(\{ limit: 6 \}\)/);
+  assert.match(page, /getActivity\(6\)/);
+  assert.match(queries, /limit \?/);
+  assert.match(queries, /getRecentOrders|order by coalesce\(o\.created_at, o\.updated_at\) desc/);
+  // Проекции перечислены явно, `select *` не используется.
+  assert.doesNotMatch(queries, /select \*/i);
+  assert.match(queries, /select o\.id, coalesce\(o\.order_number/);
 });
+

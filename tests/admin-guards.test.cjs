@@ -72,7 +72,8 @@ test("legacy staff URLs and locale-prefixed protected routes use trusted public 
     assert.equal(response.headers.get("location"), `https://preview.example${expectedPath}`);
   }
 
-  const api = await proxy({ url: "https://preview.example/api/payload/posts", auth: null });
+  // REST-поверхности Payload больше нет; публичный API не требует staff-сессии.
+  const api = await proxy({ url: "https://preview.example/api/services", auth: null });
   assert.equal(api.status, 200);
   assert.equal(api.headers.get("location"), null);
 });

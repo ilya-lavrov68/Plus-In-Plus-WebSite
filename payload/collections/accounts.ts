@@ -24,7 +24,6 @@ export const Accounts: CollectionConfig = {
     hidden: ({ user }) => !visibleToAdmin(user),
     components: {
       edit: {
-        beforeDocumentControls: ["/payload/components/reset-password-button#ResetPasswordButton"],
       },
     },
   },
