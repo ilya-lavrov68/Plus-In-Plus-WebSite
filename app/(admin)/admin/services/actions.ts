@@ -5,7 +5,9 @@ import { redirect } from "next/navigation";
 
 import { logAdminAction } from "@/lib/admin-queries";
 import { requireAdmin } from "@/lib/admin-session";
+import { applyCoverChange, coverFileFrom } from "@/lib/cover-images";
 import { insertService, ServiceRuleError, updateService } from "@/lib/service-rules";
+import { UploadValidationError } from "@/lib/uploads";
 
 function field(formData: FormData, name: string): string {
   return String(formData.get(name) ?? "").trim();
@@ -60,6 +62,19 @@ export async function saveService(formData: FormData): Promise<void> {
     throw error;
   }
 
+  try {
+    await applyCoverChange("services", id, {
+      file: coverFileFrom(formData),
+      remove: formData.get("removeCover") === "on",
+      current: field(formData, "currentCover") || null,
+    });
+  } catch (error) {
+    if (error instanceof UploadValidationError) {
+      redirect(`/admin/services/${encodeURIComponent(id)}?error=${encodeURIComponent(error.message)}`);
+    }
+    throw error;
+  }
+
   await logAdminAction({
     action: "service.updated",
     entityType: "service",
@@ -99,6 +114,21 @@ export async function createService(formData: FormData): Promise<void> {
       isActive: checkbox(formData, "isActive"),
       sortOrder: Number.isFinite(sortOrder) ? Math.trunc(sortOrder) : 0,
     });
+
+    try {
+      await applyCoverChange("services", id, {
+        file: coverFileFrom(formData),
+        remove: false,
+        current: null,
+      });
+    } catch (error) {
+      if (error instanceof UploadValidationError) {
+        // Запись уже создана: ошибку показываем в её карточке, а не на пустой
+        // форме, иначе админ заполнит всё заново и получит дубль.
+        redirect(`/admin/services/${encodeURIComponent(id)}?error=${encodeURIComponent(error.message)}`);
+      }
+      throw error;
+    }
 
     await logAdminAction({
       action: "service.created",

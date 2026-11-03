@@ -5,7 +5,9 @@ import { redirect } from "next/navigation";
 
 import { logAdminAction } from "@/lib/admin-queries";
 import { requireAdmin } from "@/lib/admin-session";
+import { applyCoverChange, coverFileFrom } from "@/lib/cover-images";
 import { insertPost, PostRuleError, updatePost } from "@/lib/post-rules";
+import { UploadValidationError } from "@/lib/uploads";
 
 function field(formData: FormData, name: string): string {
   return String(formData.get(name) ?? "").trim();
@@ -51,6 +53,19 @@ export async function savePost(formData: FormData): Promise<void> {
     throw error;
   }
 
+  try {
+    await applyCoverChange("posts", id, {
+      file: coverFileFrom(formData),
+      remove: formData.get("removeCover") === "on",
+      current: field(formData, "currentCover") || null,
+    });
+  } catch (error) {
+    if (error instanceof UploadValidationError) {
+      redirect(`/admin/posts/${encodeURIComponent(id)}?error=${encodeURIComponent(error.message)}`);
+    }
+    throw error;
+  }
+
   await logAdminAction({
     action: "post.updated",
     entityType: "post",
@@ -86,6 +101,17 @@ export async function createPost(formData: FormData): Promise<void> {
       isPublished: checkbox(formData, "isPublished"),
       isFeatured: checkbox(formData, "isFeatured"),
     });
+
+    try {
+      await applyCoverChange("posts", id, { file: coverFileFrom(formData), remove: false, current: null });
+    } catch (error) {
+      if (error instanceof UploadValidationError) {
+        // Запись уже создана: ошибку показываем в её карточке, а не на пустой
+        // форме, иначе админ заполнит всё заново и получит дубль.
+        redirect(`/admin/posts/${encodeURIComponent(id)}?error=${encodeURIComponent(error.message)}`);
+      }
+      throw error;
+    }
 
     await logAdminAction({
       action: "post.created",

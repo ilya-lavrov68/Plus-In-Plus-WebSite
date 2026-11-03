@@ -150,6 +150,14 @@ export function adminLabels(locale: RequestLocale) {
       readOnly: ru ? "Редактировать материалы может только администратор." : "Only an admin can edit posts.",
       create: ru ? "Новый материал" : "New post",
     },
+    image: {
+      title: ru ? "Обложка" : "Cover image",
+      upload: ru ? "Загрузить изображение" : "Upload an image",
+      remove: ru ? "Удалить текущую обложку" : "Remove the current cover",
+      hint: ru
+        ? "PNG, JPEG, WebP, GIF или AVIF до 8 МБ. Файл пережимается в WebP; соотношение 4:3, рекомендуем 1600 × 1200 px."
+        : "PNG, JPEG, WebP, GIF or AVIF up to 8 MB. The file is converted to WebP; 4:3, 1600 × 1200 px recommended.",
+    },
     story: {
       title: ru ? "История студии" : "Studio story",
       subtitle: ru

@@ -5,7 +5,9 @@ import { redirect } from "next/navigation";
 
 import { logAdminAction } from "@/lib/admin-queries";
 import { requireAdmin } from "@/lib/admin-session";
+import { applyCoverChange, coverFileFrom } from "@/lib/cover-images";
 import { insertProduct, ProductRuleError, updateProduct } from "@/lib/product-rules";
+import { UploadValidationError } from "@/lib/uploads";
 
 function field(formData: FormData, name: string): string {
   return String(formData.get(name) ?? "").trim();
@@ -46,6 +48,19 @@ export async function saveProduct(formData: FormData): Promise<void> {
     throw error;
   }
 
+  try {
+    await applyCoverChange("products", id, {
+      file: coverFileFrom(formData),
+      remove: formData.get("removeCover") === "on",
+      current: field(formData, "currentCover") || null,
+    });
+  } catch (error) {
+    if (error instanceof UploadValidationError) {
+      redirect(`/admin/products/${encodeURIComponent(id)}?error=${encodeURIComponent(error.message)}`);
+    }
+    throw error;
+  }
+
   await logAdminAction({
     action: "product.updated",
     entityType: "product",
@@ -76,6 +91,17 @@ export async function createProduct(formData: FormData): Promise<void> {
       category: field(formData, "category") || null,
       isActive: formData.get("isActive") === "on",
     });
+
+    try {
+      await applyCoverChange("products", id, { file: coverFileFrom(formData), remove: false, current: null });
+    } catch (error) {
+      if (error instanceof UploadValidationError) {
+        // Запись уже создана: ошибку показываем в её карточке, а не на пустой
+        // форме, иначе админ заполнит всё заново и получит дубль.
+        redirect(`/admin/products/${encodeURIComponent(id)}?error=${encodeURIComponent(error.message)}`);
+      }
+      throw error;
+    }
 
     await logAdminAction({
       action: "product.created",

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { adminLabels } from "@/components/admin/labels";
+import { IMAGE_ACCEPT } from "@/lib/upload-policy";
 import { requireStaff } from "@/lib/admin-session";
 import { getRequestLocale } from "@/lib/request-locale";
 
@@ -81,6 +82,15 @@ export default async function NewServicePage({
           {t.service.fullDesc}
           <textarea name="fullDesc" rows={8} className={`${inputClass} h-auto py-2`} />
         </label>
+
+        <fieldset className="flex flex-col gap-3 border border-border p-4">
+          <legend className="px-2 text-sm font-semibold">{t.image.title}</legend>
+          <label className={labelClass}>
+            {t.image.upload}
+            <input type="file" name="cover" accept={IMAGE_ACCEPT} className="text-sm file:mr-3 file:border file:border-border file:bg-transparent file:px-3 file:py-1.5 file:text-sm" />
+          </label>
+          <p className="text-xs text-muted-foreground">{t.image.hint}</p>
+        </fieldset>
 
         <div className="flex flex-wrap gap-6">
           <label className="flex items-center gap-2 text-sm">

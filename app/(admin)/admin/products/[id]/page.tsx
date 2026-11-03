@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { adminLabels } from "@/components/admin/labels";
+import { IMAGE_ACCEPT } from "@/lib/upload-policy";
 import { requireStaff } from "@/lib/admin-session";
 import { row } from "@/lib/db";
 import { getRequestLocale } from "@/lib/request-locale";
@@ -17,6 +18,7 @@ interface ProductRow {
   stock: number;
   category: string | null;
   is_active: number;
+  cover_image: string | null;
 }
 
 const inputClass =
@@ -35,7 +37,7 @@ export default async function AdminProductPage({
   const t = adminLabels(locale);
 
   const product = await row<ProductRow>(
-    `select id, name, slug, description, price, stock, category, is_active from products where id = ?`,
+    `select id, name, slug, description, price, stock, category, is_active, cover_image from products where id = ?`,
     [id],
   );
   if (!product) notFound();
@@ -121,6 +123,26 @@ export default async function AdminProductPage({
               className={`${inputClass} h-auto py-2`}
             />
           </label>
+
+        <fieldset className="flex flex-col gap-3 border border-border p-4">
+          <legend className="px-2 text-sm font-semibold">{t.image.title}</legend>
+          <input type="hidden" name="currentCover" value={product.cover_image ?? ""} />
+          {product.cover_image ? (
+            <div className="flex flex-col gap-2">
+              { }
+              <img src={product.cover_image} alt="" className="h-32 w-auto border border-border object-cover" />
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="removeCover" />
+                {t.image.remove}
+              </label>
+            </div>
+          ) : null}
+          <label className={labelClass}>
+            {t.image.upload}
+            <input type="file" name="cover" accept={IMAGE_ACCEPT} className="text-sm file:mr-3 file:border file:border-border file:bg-transparent file:px-3 file:py-1.5 file:text-sm" />
+          </label>
+          <p className="text-xs text-muted-foreground">{t.image.hint}</p>
+        </fieldset>
 
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="isActive" defaultChecked={Boolean(product.is_active)} />
