@@ -7,7 +7,6 @@ import { useState } from "react";
 
 import classes from "./header/header.module.scss";
 import desktop from "./header/desktop.module.scss";
-import mobile from "./header/mobile.module.scss";
 
 export interface PwHeaderProps {
   locale: "ru" | "en";
@@ -50,7 +49,7 @@ export function PwHeader({ locale, topBar, menuLabel, closeLabel, links, utility
               Plus In Plus
             </Link>
 
-            <nav className={`cols-8 ${desktop.tabs}`} aria-label="Main">
+            <nav className={`pw-desktop-nav cols-8 ${desktop.tabs}`} aria-label="Main">
               <ul style={{ display: "flex", alignItems: "center", gap: "1.5rem", listStyle: "none", margin: 0, padding: 0 }}>
                 {links.map((link) => (
                   <li
@@ -68,15 +67,20 @@ export function PwHeader({ locale, topBar, menuLabel, closeLabel, links, utility
                       {link.label}
                       {link.children ? <span aria-hidden="true"> ▾</span> : null}
                     </Link>
-                    {link.children ? (
-                      <div className={`${desktop.dropdown} ${openDropdown === link.href ? desktop.show : ""}`}>
+                    {link.children && openDropdown === link.href ? (
+                      <div
+                        className={`${desktop.dropdown} ${desktop.show}`}
+                        onMouseEnter={() => setOpenDropdown(link.href)}
+                        style={{
+                          top: "calc(var(--top-bar-height) + var(--header-height))",
+                          zIndex: 45,
+                          pointerEvents: "auto",
+                        }}
+                      >
                         <div className={desktop.background} style={{ height: "100%" }} aria-hidden="true" />
                         <div className="grid">
                           {link.children.map((child) => (
-                            <div
-                              key={child.href}
-                              className={`cols-4 ${desktop.dropdownItem} ${openDropdown === link.href ? desktop.show : ""}`}
-                            >
+                            <div key={child.href} className={`cols-4 ${desktop.dropdownItem} ${desktop.show}`}>
                               <Link
                                 href={href(locale, child.href)}
                                 className={desktop.descriptionLink}
@@ -99,18 +103,20 @@ export function PwHeader({ locale, topBar, menuLabel, closeLabel, links, utility
               {user ? (
                 <PwAvatar name={user.name} email={user.email} href={href(locale, "/profile")} />
               ) : null}
-              {utility.map((item) => (
-                <Link
-                  key={item.href}
-                  href={href(locale, item.href)}
-                  className={desktop.defaultLink}
-                >
-                  {item.label}
+              <span className="pw-header-utility">
+                {utility.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={href(locale, item.href)}
+                    className={desktop.defaultLink}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+                <Link href={href(locale, cta.href)} className={desktop.button}>
+                  {cta.label}
                 </Link>
-              ))}
-              <Link href={href(locale, cta.href)} className={desktop.button}>
-                {cta.label}
-              </Link>
+              </span>
               <button
                 type="button"
                 className={`${desktop.tab} ${desktop.link} lg:hidden`}
@@ -131,18 +137,20 @@ export function PwHeader({ locale, topBar, menuLabel, closeLabel, links, utility
         </div>
 
         {open ? (
-          <nav className={`${mobile.mobileNav} ${mobile.hamburgerOpen}`} aria-label="Mobile">
-            <ul className={mobile.linkWrap}>
+          <nav className="pw-mobile-nav" aria-label="Mobile">
+            <ul>
               {[...links.flatMap((link) => [link, ...(link.children ?? [])]), ...utility].map((link) => (
                 <li key={`${link.href}-${link.label}`}>
-                  <Link href={href(locale, link.href)} className={mobile.link} onClick={() => setOpen(false)}>
+                  <Link className="pw-mobile-link" href={href(locale, link.href)} onClick={() => setOpen(false)}>
                     {link.label}
+                    <span aria-hidden="true">→</span>
                   </Link>
                 </li>
               ))}
             </ul>
-            <Link href={href(locale, cta.href)} className={mobile.link} onClick={() => setOpen(false)}>
+            <Link className="pl-btn" href={href(locale, cta.href)} onClick={() => setOpen(false)}>
               {cta.label}
+              <span aria-hidden="true">→</span>
             </Link>
           </nav>
         ) : null}

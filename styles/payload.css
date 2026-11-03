@@ -301,3 +301,56 @@ body {
   background: var(--theme-success-500);
   color: var(--theme-elevation-0);
 }
+
+/* Навигация шапки: десктопный ряд скрыт там, где работает бургер. */
+@media (max-width: 1023px) {
+  .pw-desktop-nav {
+    display: none !important;
+  }
+}
+
+/* Мобильное меню шапки: своя панель, работает на всей ширине бургера. */
+.pw-mobile-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: calc(var(--top-bar-height) + var(--header-height));
+  bottom: 0;
+  background: var(--theme-bg);
+  z-index: 55;
+  overflow-y: auto;
+  padding: 0 var(--gutter-h) 2rem;
+}
+
+.pw-mobile-nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pw-mobile-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--theme-border-color);
+  font-size: 1.125rem;
+  text-decoration: none;
+}
+
+.pw-mobile-nav .pl-btn {
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 767px) {
+  .pw-header-utility {
+    display: none;
+  }
+}
+
+/* Утилиты шапки: корзина, вход, CTA — одной строкой справа. */
+.pw-header-utility {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
