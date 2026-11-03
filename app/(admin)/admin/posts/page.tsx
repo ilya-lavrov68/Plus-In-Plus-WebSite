@@ -16,9 +16,19 @@ export default async function AdminPostsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold sm:text-3xl">{t.posts.title}</h1>
-        <p className="text-sm text-muted-foreground">{t.posts.subtitle}</p>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-2xl font-semibold sm:text-3xl">{t.posts.title}</h1>
+          <p className="text-sm text-muted-foreground">{t.posts.subtitle}</p>
+        </div>
+        {staff?.isAdmin ? (
+          <Link
+            href="/admin/posts/new"
+            className="inline-flex h-10 items-center border border-brand-signal bg-brand-signal px-4 text-sm font-medium text-[#12131B] transition-colors hover:bg-brand-signal-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-signal"
+          >
+            {t.post.create}
+          </Link>
+        ) : null}
       </header>
       <Table>
         <TableHeader>

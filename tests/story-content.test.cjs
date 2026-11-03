@@ -106,20 +106,30 @@ test("public story reads the story tables and returns author content", async () 
   assert.deepEqual(await getStoryContent(), createEmptyStoryContent());
 });
 
-test("the story is read-only for the application and has no CMS editor", () => {
+test("lib/story-editor.ts is the only writer of the story tables", () => {
   const root = path.resolve(__dirname, "..");
-  const offenders = [];
+  const writers = [];
   const walk = (relative) => {
     for (const entry of fs.readdirSync(path.join(root, relative), { withFileTypes: true })) {
       const next = path.join(relative, entry.name);
       if (entry.isDirectory()) walk(next);
-      else if (/\.(ts|tsx)$/.test(entry.name) && /(insert into|update|delete from)\s+story/i.test(fs.readFileSync(path.join(root, next), "utf8"))) {
-        offenders.push(next);
+      else if (
+        /\.(ts|tsx)$/.test(entry.name) &&
+        /(insert into|update|delete from)\s+story/i.test(fs.readFileSync(path.join(root, next), "utf8"))
+      ) {
+        writers.push(next.split(path.sep).join("/"));
       }
     }
   };
-  for (const directory of ["app", "lib"]) walk(directory);
-  assert.deepEqual(offenders, [], "the landing story is authored in the database, not in the app");
-  assert.equal(fs.existsSync(path.join(root, "components", "admin", "story-form.tsx")), false);
+  for (const directory of ["app", "lib", "scripts"]) walk(directory);
+
+  // Историю правит панель через один модуль: никакие сиды, карусели и
+  // публичные страницы не переписывают вехи за спиной администратора.
+  assert.deepEqual(writers, ["lib/story-editor.ts"]);
   assert.equal(fs.existsSync(path.join(root, "payload", "collections", "system.ts")), false);
+  assert.equal(
+    fs.readFileSync(path.join(root, "app", "(admin)", "admin", "story", "page.tsx"), "utf8").includes("saveStoryAction"),
+    true,
+    "the panel editor posts to the story action",
+  );
 });

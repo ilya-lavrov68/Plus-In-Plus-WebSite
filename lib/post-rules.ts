@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { rows, run, withTransaction } from "@/lib/db";
+import { slugify, uniqueSlug } from "@/lib/slug";
 
 /**
  * Правила публикаций: те же, что раньше держали хуки CMS.
@@ -29,14 +30,6 @@ export interface PostUpdate {
   isFeatured: boolean;
 }
 
-function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9\u0400-\u04ff]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
-}
-
 export async function updatePost(input: PostUpdate): Promise<void> {
   return withTransaction(async (tx) => {
     const [current] = await tx.rows<{ is_published: number; published_at: string | null }>(
@@ -60,7 +53,7 @@ export async function updatePost(input: PostUpdate): Promise<void> {
       ]);
     }
 
-    const slug = slugify(input.slug || input.title) || `post-${randomUUID().slice(0, 8)}`;
+    const slug = slugify(input.slug || input.title, `post-${randomUUID().slice(0, 8)}`);
     const changed = await tx.run(
       `update posts set title = ?, slug = ?, excerpt = ?, content = ?, read_time = ?, source_url = ?,
          is_published = ?, is_featured = ?, published_at = ?, updated_at = ?
@@ -80,6 +73,60 @@ export async function updatePost(input: PostUpdate): Promise<void> {
       ],
     );
     if (changed !== 1) throw new PostRuleError("Материал не найден.", "not_found");
+  });
+}
+
+export interface PostCreate {
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  readTime: number;
+  sourceUrl: string | null;
+  isPublished: boolean;
+  isFeatured: boolean;
+}
+
+/** Создаёт материал и возвращает его id; правила те же, что при правке. */
+export async function insertPost(input: PostCreate): Promise<string> {
+  return withTransaction(async (tx) => {
+    if (input.isFeatured && !input.isPublished) {
+      throw new PostRuleError("В избранное можно добавить только опубликованный материал.", "featured_needs_publish");
+    }
+
+    const id = randomUUID();
+    const slug = await uniqueSlug(
+      input.slug || input.title,
+      async (candidate) => (await tx.rows(`select 1 from posts where slug = ? limit 1`, [candidate])).length > 0,
+      "post",
+      id,
+    );
+    const now = new Date().toISOString();
+
+    if (input.isFeatured) {
+      await tx.run(`update posts set is_featured = 0, updated_at = ? where is_featured = 1`, [now]);
+    }
+
+    await tx.run(
+      `insert into posts (id, title, slug, excerpt, content, read_time, source, source_url, is_featured,
+         is_published, published_at, created_at, updated_at)
+       values (?, ?, ?, ?, ?, ?, 'manual', ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        input.title,
+        slug,
+        input.excerpt,
+        input.content,
+        Math.min(Math.max(Math.trunc(input.readTime) || 5, 1), 60),
+        input.sourceUrl,
+        input.isFeatured ? 1 : 0,
+        input.isPublished ? 1 : 0,
+        input.isPublished ? now : null,
+        now,
+        now,
+      ],
+    );
+    return id;
   });
 }
 

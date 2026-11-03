@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 
 import { logAdminAction } from "@/lib/admin-queries";
 import { requireAdmin } from "@/lib/admin-session";
-import { ServiceRuleError, updateService } from "@/lib/service-rules";
+import { insertService, ServiceRuleError, updateService } from "@/lib/service-rules";
 
 function field(formData: FormData, name: string): string {
   return String(formData.get(name) ?? "").trim();
@@ -73,4 +73,50 @@ export async function saveService(formData: FormData): Promise<void> {
   revalidatePath("/shop");
   revalidatePath("/");
   redirect(`/admin/services/${encodeURIComponent(id)}?saved=1`);
+}
+
+/**
+ * Создание услуги. Форма живёт на /admin/services/new; после сохранения
+ * открывается карточка, чтобы сразу видеть результат правил каталога.
+ */
+export async function createService(formData: FormData): Promise<void> {
+  const admin = await requireAdmin();
+  if (!admin) return;
+
+  const title = field(formData, "title");
+  const basePrice = Number(field(formData, "basePrice").replace(",", "."));
+  const sortOrder = Number(field(formData, "sortOrder") || "0");
+
+  try {
+    const id = await insertService({
+      title,
+      category: field(formData, "category") === "large" ? "large" : "small",
+      shortDesc: field(formData, "shortDesc"),
+      fullDesc: field(formData, "fullDesc"),
+      basePrice: Number.isFinite(basePrice) ? basePrice : 0,
+      priceType: field(formData, "priceType") === "quote" ? "quote" : "from",
+      isPublished: checkbox(formData, "isPublished"),
+      isActive: checkbox(formData, "isActive"),
+      sortOrder: Number.isFinite(sortOrder) ? Math.trunc(sortOrder) : 0,
+    });
+
+    await logAdminAction({
+      action: "service.created",
+      entityType: "service",
+      entityId: id,
+      title: `Услуга: ${title}`,
+      actorId: admin.id,
+    });
+
+    revalidatePath("/admin/services");
+    revalidatePath("/services");
+    revalidatePath("/shop");
+    revalidatePath("/");
+    redirect(`/admin/services/${encodeURIComponent(id)}?saved=1`);
+  } catch (error) {
+    if (error instanceof ServiceRuleError) {
+      redirect(`/admin/services/new?error=${encodeURIComponent(error.message)}`);
+    }
+    throw error;
+  }
 }

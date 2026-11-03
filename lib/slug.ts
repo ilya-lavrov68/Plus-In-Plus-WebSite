@@ -44,3 +44,23 @@ export function withNumericSuffix(base: string, index: number): string {
   const suffix = `-${index}`;
   return `${base.slice(0, MAX_SLUG_LENGTH - suffix.length)}${suffix}`;
 }
+
+/**
+ * Первый свободный слаг: `base`, `base-2`, `base-3`…
+ * `isTaken` — проверка занятости в конкретной таблице.
+ */
+export async function uniqueSlug(
+  value: string,
+  isTaken: (slug: string) => Promise<boolean>,
+  fallbackPrefix: string,
+  id: string,
+): Promise<string> {
+  const root = slugify(value, `${fallbackPrefix}-${id.slice(0, 8)}`);
+  for (let index = 1; index <= 50; index += 1) {
+    const candidate = withNumericSuffix(root, index);
+    if (!(await isTaken(candidate))) return candidate;
+  }
+  // Пятьдесят одинаковых названий — уже не «поправить слаг»: подмешиваем id,
+  // чтобы цикл заведомо закончился.
+  return withNumericSuffix(`${root}-${id.slice(0, 8)}`, 1);
+}

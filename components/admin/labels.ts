@@ -26,6 +26,7 @@ export function adminLabels(locale: RequestLocale) {
       accounts: ru ? "Аккаунты" : "Accounts",
       activity: ru ? "Активность" : "Activity",
       settings: ru ? "Настройки" : "Settings",
+      story: ru ? "История" : "Story",
     },
     roles: {
       FOUNDER: ru ? "Основатель" : "Founder",
@@ -101,6 +102,7 @@ export function adminLabels(locale: RequestLocale) {
       no: ru ? "Нет" : "No",
       quote: ru ? "по запросу" : "on request",
       editLink: ru ? "Изменить" : "Edit",
+      create: ru ? "Создать" : "Create",
     },
     orders: {
       title: ru ? "Заказы" : "Orders",
@@ -130,6 +132,7 @@ export function adminLabels(locale: RequestLocale) {
       activeOrders: ru ? "По услуге идут активные заказы: {count}. Цена и тип цены заблокированы." : "Active orders on this service: {count}. Price and price type are locked.",
       pricingLocked: ru ? "Снимите блокировку цены может только основатель — либо дождитесь закрытия активных заказов." : "Only the founder can override the price lock, or wait until the active orders are closed.",
       edit: ru ? "Изменить" : "Edit",
+      create: ru ? "Новая услуга" : "New service",
     },
     post: {
       title: ru ? "Заголовок" : "Title",
@@ -145,6 +148,24 @@ export function adminLabels(locale: RequestLocale) {
         : "Only one featured post is allowed on the home page, and only a published post can be featured.",
       saved: ru ? "Материал сохранён." : "Post saved.",
       readOnly: ru ? "Редактировать материалы может только администратор." : "Only an admin can edit posts.",
+      create: ru ? "Новый материал" : "New post",
+    },
+    story: {
+      title: ru ? "История студии" : "Studio story",
+      subtitle: ru
+        ? "Заголовок, вступление и вехи на главной странице. Пустой блок не показывается."
+        : "Heading, intro and milestones on the home page. An empty block is hidden.",
+      heading: ru ? "Заголовок блока" : "Block heading",
+      description: ru ? "Вступление" : "Intro",
+      events: ru ? "Вехи" : "Milestones",
+      eventsHint: ru
+        ? "Заполняйте сверху вниз: порядок строк — это порядок на странице. Пустые строки удаляются, лимит — {count}."
+        : "Fill top to bottom: row order is page order. Empty rows are dropped, limit {count}.",
+      event: ru ? "Веха" : "Milestone",
+      period: ru ? "Период" : "Period",
+      eventTitle: ru ? "Название" : "Title",
+      eventDescription: ru ? "Описание" : "Description",
+      saved: ru ? "История сохранена." : "Story saved.",
     },
     settings: {
       title: ru ? "Настройки" : "Settings",
@@ -211,6 +232,7 @@ export function adminLabels(locale: RequestLocale) {
       isActive: ru ? "Показывать в магазине" : "Visible in the shop",
       saved: ru ? "Товар сохранён." : "Product saved.",
       readOnly: ru ? "Редактировать товары может только администратор." : "Only an admin can edit products.",
+      create: ru ? "Новый товар" : "New product",
     },
     products: { title: ru ? "Товары" : "Products", subtitle: ru ? "Магазин и остатки." : "Shop and stock." },
     posts: { title: ru ? "Материалы" : "Posts", subtitle: ru ? "Блог и публикации." : "Blog and publications." },

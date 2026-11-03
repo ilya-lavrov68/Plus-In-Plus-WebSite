@@ -1,4 +1,7 @@
+import { randomUUID } from "node:crypto";
+
 import { rows, run, type SqlExecutor } from "@/lib/db";
+import { uniqueSlug } from "@/lib/slug";
 
 /**
  * Правила каталога услуг.
@@ -95,6 +98,62 @@ export async function updateService(input: ServiceUpdate): Promise<void> {
   // Ноль изменений означает, что услугу удалили или id не совпал: молча
   // «сохранить» в этом случае нельзя — админка показала бы ложный успех.
   if (changed !== 1) throw new ServiceRuleError("Услуга не найдена.", "not_found");
+}
+
+export interface ServiceCreate {
+  title: string;
+  category: "small" | "large";
+  shortDesc: string;
+  fullDesc: string;
+  resultText?: string;
+  basePrice: number;
+  priceType: "from" | "quote";
+  isPublished: boolean;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+/** Создаёт услугу и возвращает её id. Слаг подбирается свободный. */
+export async function insertService(input: ServiceCreate): Promise<string> {
+  if (input.title.length < 2 || input.title.length > 120) {
+    throw new ServiceRuleError("Название: от 2 до 120 символов.", "title_length");
+  }
+  if (!Number.isFinite(input.basePrice) || input.basePrice < 0 || input.basePrice > 100_000_000) {
+    throw new ServiceRuleError("Цена: от 0 до 100 000 000 ₽.", "price_range");
+  }
+
+  const id = randomUUID();
+  const slug = await uniqueSlug(
+    input.title,
+    async (candidate) => (await rows(`select 1 from services where slug = ? limit 1`, [candidate])).length > 0,
+    "service",
+    id,
+  );
+  const now = new Date().toISOString();
+
+  await run(
+    `insert into services (id, title, slug, category, short_desc, full_desc, result_text, base_price, price_type,
+       currency, is_orderable, is_published, is_active, sort_order, created_at, updated_at)
+     values (?, ?, ?, ?, ?, ?, ?, ?, ?, 'RUB', ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      input.title,
+      slug,
+      input.category,
+      input.shortDesc,
+      input.fullDesc,
+      input.resultText ?? "",
+      rublesToKopecks(input.basePrice),
+      input.priceType,
+      input.priceType === "quote" ? 0 : 1,
+      input.isPublished ? 1 : 0,
+      input.isActive ? 1 : 0,
+      input.sortOrder,
+      now,
+      now,
+    ],
+  );
+  return id;
 }
 
 export async function deleteService(serviceId: string): Promise<void> {
