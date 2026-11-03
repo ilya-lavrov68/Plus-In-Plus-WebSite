@@ -27,20 +27,6 @@ let publishedPosts = [];
 let settingRows = [];
 let settingQueries = [];
 
-const db = {
-  product: {
-    findMany: async ({ where } = {}) =>
-      productRows.filter((row) => !where?.isActive || row.isActive),
-    count: async ({ where } = {}) =>
-      productRows.filter((row) => !where?.isActive || row.isActive).length,
-  },
-  siteSetting: {
-    findMany: async (query) => {
-      settingQueries.push(structuredClone(query));
-      return structuredClone(settingRows);
-    },
-  },
-};
 
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
@@ -51,6 +37,10 @@ Module._load = function (name, parent, isMain) {
       // Настройки читаются SQL-запросом с allowlist в параметрах.
       rows: async (sql, args = []) => {
         const query = String(sql).replace(/\s+/g, " ");
+        // Счётчик товаров для sitemap идёт тем же SQL-слоем.
+        if (query.includes("count(*)" ) && query.includes("from products")) {
+          return [{ total: productRows.filter((row) => row.isActive).length }];
+        }
         if (!query.includes("from site_settings")) return [];
         settingQueries.push({ sql: query, args });
         const allowed = new Set(args.map(String));
@@ -81,6 +71,26 @@ Module._load = function (name, parent, isMain) {
       getSitemapServices: async () => publishedServices,
       getSitemapPosts: async () => publishedPosts,
       serviceHref: (service) => `/shop/${encodeURIComponent(service.slug || service.id)}`,
+    };
+  }
+  if (name === "@/lib/commerce-data") {
+    const real = originalLoad.call(this, path.join(__dirname, "..", "lib", "commerce-data.ts"), parent, isMain);
+    return {
+      ...real,
+      // Каталог читает активные товары один раз и маппит их в карточки.
+      listActiveProducts: async () =>
+        productRows.filter((row) => row.isActive).map((row) => ({
+          id: row.id,
+          name: row.name,
+          slug: row.slug,
+          description: row.description,
+          price: row.price,
+          coverImage: row.coverImage,
+          cover: { url: row.coverImage },
+          category: row.category,
+          stock: row.stock,
+          isActive: row.isActive,
+        })),
     };
   }
   if (name === "@/components/site/shop-catalog-view") {

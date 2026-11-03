@@ -473,6 +473,34 @@ beforeEach(async () => {
       },
     ],
   ]);
+  // Те же услуги лежат и в настоящей базе: заказы ссылаются на них по FK.
+  const seededAt = new Date().toISOString();
+  for (const service of services.values()) {
+    await database.exec(
+      `insert into services (id, title, slug, category, short_desc, full_desc, result_text, cover_image,
+         base_price, price_type, currency, is_orderable, is_published, is_active, sort_order, created_at, updated_at)
+       values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        service.id,
+        service.title,
+        service.slug,
+        service.category,
+        service.shortDesc,
+        service.fullDesc ?? "",
+        service.resultText ?? "",
+        service.coverImage,
+        service.basePrice,
+        service.priceType,
+        service.currency,
+        service.isOrderable ? 1 : 0,
+        service.isPublished ? 1 : 0,
+        service.isActive ? 1 : 0,
+        service.sortOrder ?? 0,
+        seededAt,
+        seededAt,
+      ],
+    );
+  }
   orders = new Map();
   orderItems = new Map();
   orderServices = new Map();
@@ -543,12 +571,21 @@ test("createOrder generates ПИП-XXXXXX and persists native service links and 
   assert.match(order.orderNumber, /^ПИП-\d{6}$/);
   assert.equal(order.services.length, 2);
   assert.equal(order.estimatedAmount, 5_000_000);
-  assert.equal(orders.size, 1);
-  assert.equal(orderServices.size, 2);
-  assert.equal(orderItems.size, 2);
-  assert.ok([...orderItems.values()].every((item) => item.itemType === "service" && item.optionsSnapshot === "[]"));
-  assert.equal(logs[0].entityType, "order");
-  assert.equal(logs[0].actorId, "usr-client");
+
+  const stored = await database.one("select id, user_id_id, status, total from orders");
+  assert.equal(stored.user_id_id, "usr-client");
+  assert.equal(stored.status, "quote_requested");
+  assert.equal(Number(stored.total), 0, "цена появляется только после согласования");
+  assert.equal((await database.one("select count(*) total from order_services")).total, 2);
+  const items = await database.rows("select item_type, options_snapshot, estimated_unit_price from order_items");
+  assert.equal(items.length, 2);
+  assert.ok(items.every((item) => item.item_type === "service" && item.options_snapshot === "[]"));
+  const amounts = items.map((item) => Number(item.estimated_unit_price)).sort((a, b) => a - b);
+  assert.deepEqual(amounts, [1_500_000, 3_500_000]);
+
+  const entry = await database.one("select entity_type, actor_id_id from activity_logs where entity_id = ?", [stored.id]);
+  assert.equal(entry.entity_type, "order");
+  assert.equal(entry.actor_id_id, "usr-client");
 });
 
 test("HARD CONSTRAINT: updateUserProfile requires authorization and never mutates email or role", async () => {

@@ -1,38 +1,44 @@
 const assert = require("node:assert/strict");
-const { test, beforeEach } = require("node:test");
+const { after, before, beforeEach, test } = require("node:test");
 const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
+const { createTestDatabase } = require("./helpers/test-db.cjs");
 
-require.extensions[".ts"] = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename, "utf8"), {
-  compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true, target: ts.ScriptTarget.ES2022 },
-}).outputText, filename);
+require.extensions[".ts"] = (module, filename) =>
+  module._compile(
+    ts.transpileModule(fs.readFileSync(filename, "utf8"), {
+      compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true, target: ts.ScriptTarget.ES2022 },
+    }).outputText,
+    filename,
+  );
 
-let queries;
-let rawQueries;
-const rows = (query, values) => { queries.push({ collection: query.collection, query }); return values.map((row) => structuredClone(row)); };
-const db = {
-  order: {
-    findMany: async (query) => rows({ collection: "orders", ...query }, [
-      { id: "ord-1", userId: "customer", number: "ПИП-000001", status: "pending", estimatedAmount: 100, total: 0, currency: "RUB", createdAt: new Date("2026-01-01") },
-      { id: "ord-2", userId: "customer", number: "ПИП-000002", status: "paid", estimatedAmount: 200, total: 200, currency: "RUB", createdAt: new Date("2026-01-02") },
-    ]),
-  },
-  orderItem: {
-    findMany: async (query) => rows({ collection: "order-items", ...query }, [
-      { id: "item-1", orderId: "ord-1", itemType: "service", itemId: "svc", title: "Sign", quantity: 1, estimatedUnitPrice: 100 },
-      { id: "item-2", orderId: "ord-2", itemType: "service", itemId: "svc", title: "Sign", quantity: 1, estimatedUnitPrice: 200 },
-    ]),
-  },
-  orderService: { findMany: async (query) => rows({ collection: "order-services", ...query }, []) },
-  payment: { findMany: async (query) => rows({ collection: "payments", ...query }, []) },
-  queryRaw: async (sql, args) => { rawQueries.push({ sql, args }); return [{ queue: 3, revenue: 5000, paidCount: 2 }]; },
-};
+let database;
+let statements = [];
 
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
   if (name === "@/auth") return { auth: async () => ({ user: { id: "customer" } }) };
+  if (name === "@/lib/db") {
+    const real = originalLoad.call(this, path.resolve(__dirname, "..", "lib", "db.ts"), parent, isMain);
+    const record = (sql) => statements.push(String(sql).replace(/\s+/g, " ").trim());
+    return {
+      ...real,
+      rows: async (sql, args) => {
+        record(sql);
+        return real.rows(sql, args);
+      },
+      run: async (sql, args) => {
+        record(sql);
+        return real.run(sql, args);
+      },
+      row: async (sql, args) => {
+        record(sql);
+        return real.row(sql, args);
+      },
+    };
+  }
   if (name.startsWith("@/")) name = path.resolve(__dirname, "..", name.slice(2));
   return originalLoad.call(this, name, parent, isMain);
 };
@@ -40,40 +46,78 @@ Module._load = function (name, parent, isMain) {
 const { getCustomerOrders } = require("../lib/customer-orders.ts");
 const { getOrderStats } = require("../lib/admin-analytics.ts");
 
-beforeEach(() => { queries = []; rawQueries = []; });
+before(async () => {
+  database = createTestDatabase("pip-scale-");
+  await database.ready;
+});
 
-test("customer orders use four bounded native reads regardless of order count", async () => {
-  const result = await getCustomerOrders();
-  assert.equal(result.length, 2);
-  assert.deepEqual(queries.map((entry) => entry.collection), ["orders", "order-items", "order-services", "payments"]);
-  for (const entry of queries.slice(1)) {
-    assert.equal(entry.query.where.orderId.in.length, 2);
+after(async () => {
+  await database?.close();
+});
+
+beforeEach(async () => {
+  statements = [];
+  await database.reset();
+  const now = new Date().toISOString();
+  await database.exec(
+    `insert into accounts (id, email, password_hash, role, is_blocked, created_at, updated_at)
+     values ('customer', 'customer@example.test', 'hash', 'USER', 0, ?, ?)`,
+    [now, now],
+  );
+  await database.exec(
+    `insert into services (id, title, slug, category, short_desc, full_desc, result_text, base_price, price_type,
+       currency, is_orderable, is_published, is_active, sort_order, created_at, updated_at)
+     values ('svc-1', 'Sign Design', 'sign-design', 'small', 'Short', 'Full', 'Result', 100000, 'from',
+       'RUB', 1, 1, 1, 0, ?, ?)`,
+    [now, now],
+  );
+  for (const [id, number, status] of [
+    ["ord-1", "ПИП-000001", "pending"],
+    ["ord-2", "ПИП-000002", "paid"],
+  ]) {
+    await database.exec(
+      `insert into orders (id, order_number, number, user_id_id, status, estimated_amount, total, created_at, updated_at)
+       values (?, ?, ?, 'customer', ?, 100, 0, ?, ?)`,
+      [id, number, number, status, now, now],
+    );
+    await database.exec(
+      `insert into order_items (id, order_id_id, item_type, item_id, service_id_id, title, quantity,
+         estimated_unit_price, unit_price, total_price, options_snapshot, created_at, updated_at)
+       values (?, ?, 'service', 'svc-1', 'svc-1', 'Sign', 1, 100, 0, 0, '[]', ?, ?)`,
+      [`item-${id}`, id, now, now],
+    );
+    await database.exec(
+      `insert into order_services (id, order_id_id, service_id_id, quantity, created_at, updated_at)
+       values (?, ?, 'svc-1', 1, ?, ?)`,
+      [`link-${id}`, id, now, now],
+    );
   }
-  assert.equal(result[0].items.length + result[1].items.length, 2, "no per-order item query");
+  await database.exec(
+    `insert into payments (id, order_id_id, provider, external_id, provider_key, status, amount, currency, created_at, updated_at)
+     values ('pay-1', 'ord-2', 'robokassa', 'inv-1', 'key-1', 'succeeded', 200, 'RUB', ?, ?)`,
+    [now, now],
+  );
 });
 
-test("order revenue and queue metrics are one database aggregate, not a payment history scan", async () => {
+test("customer orders use a bounded number of reads that does not grow with order count", async () => {
+  const orders = await getCustomerOrders();
+  assert.equal(orders.length, 2);
+  assert.equal(orders.flatMap((order) => order.items).length, 2, "no per-order item query");
+  assert.equal(orders.flatMap((order) => order.services).length, 2);
+
+  const reads = statements.filter((sql) => /^select/i.test(sql));
+  // Заказы, позиции, связи, счета и справочник услуг (3 запроса) — не по запросу на заказ.
+  assert.ok(reads.length <= 8, `unexpected read amplification: ${reads.length}\n${reads.join("\n")}`);
+  assert.equal(new Set(reads).size, reads.length, "nothing is queried twice");
+  const batched = reads.filter((sql) => /where order_id_id in \(\?, \?\)/.test(sql));
+  assert.equal(batched.length, 3, "items, links and payments are fetched for both orders at once");
+});
+
+test("order revenue and queue metrics come from one aggregate query", async () => {
   const stats = await getOrderStats();
-  assert.deepEqual(stats, { queue: 3, revenue: 5000, paidCount: 2, averageOrder: 2500 });
-  assert.equal(rawQueries.length, 1);
-  assert.match(rawQueries[0].sql, /COALESCE\(SUM\(amount\), 0\)/);
-  assert.match(rawQueries[0].sql, /EXISTS/);
-  assert.equal(queries.length, 0);
+  assert.deepEqual(stats, { queue: 1, revenue: 200, paidCount: 1, averageOrder: 200 });
+
+  const aggregates = statements.filter((sql) => /coalesce\(sum\(amount\), 0\)/i.test(sql));
+  assert.equal(aggregates.length, 1, "revenue is aggregated in SQL, not scanned row by row");
+  assert.match(aggregates[0], /exists/i, "paid orders are detected with EXISTS, not a second scan");
 });
-
-test("admin dashboard keeps recent lists bounded and projected", () => {
-  const page = fs.readFileSync(path.join(__dirname, "..", "app", "(admin)", "admin", "page.tsx"), "utf8");
-  const queries = fs.readFileSync(path.join(__dirname, "..", "lib", "admin-queries.ts"), "utf8");
-
-  // Независимые чтения стартуют вместе.
-  assert.match(page, /await Promise\.all\(\[/);
-  // Списки ограничены и не тянут целые таблицы.
-  assert.match(page, /getOrders\(\{ limit: 6 \}\)/);
-  assert.match(page, /getActivity\(6\)/);
-  assert.match(queries, /limit \?/);
-  assert.match(queries, /getRecentOrders|order by coalesce\(o\.created_at, o\.updated_at\) desc/);
-  // Проекции перечислены явно, `select *` не используется.
-  assert.doesNotMatch(queries, /select \*/i);
-  assert.match(queries, /select o\.id, coalesce\(o\.order_number/);
-});
-

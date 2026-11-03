@@ -12,7 +12,6 @@ require.extensions[".ts"] = (module, filename) => module._compile(ts.transpileMo
 }).outputText, filename);
 
 let admin;
-let accounts;
 let database;
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
@@ -45,16 +44,7 @@ beforeEach(async () => {
   await database.insertAccount({ id: "admin-1", email: "admin@example.test", role: "ADMIN", passwordHash: "old" });
   await database.insertAccount({ id: "founder-1", email: "founder@example.test", role: "FOUNDER", passwordHash: "old" });
   await database.insertAccount({ id: "user-1", email: "user@example.test", role: "USER", passwordHash: "old" });
-  // Payload hooks still receive plain document objects in this test.
-  accounts = new Map([
-    ["founder-1", { id: "founder-1", email: "founder@example.test", role: "FOUNDER", isBlocked: false, passwordHash: "old" }],
-    ["user-1", { id: "user-1", email: "user@example.test", role: "USER", isBlocked: false, passwordHash: "old" }],
-  ]);
 });
-
-function req(role = "ADMIN", id = "admin-1") {
-  return { user: { id, collection: "accounts", role }, context: {}, payload: {} };
-}
 
 test("role and block changes exist only in the server runbook, never in the panel", () => {
   const root = path.resolve(__dirname, "..");

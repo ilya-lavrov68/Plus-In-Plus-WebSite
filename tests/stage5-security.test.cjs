@@ -24,30 +24,6 @@ class CredentialsSignin extends Error { code = "credentials"; }
 function nextAuth(config) { options = config; return {}; }
 nextAuth.CredentialsSignin = CredentialsSignin;
 
-const db = {
-  media: {
-    create: async ({ data, file }) => {
-      const id = `media-${mediaRows.size + 1}`;
-      const directory = path.join(process.cwd(), "public", "uploads", "media");
-      await fs.promises.mkdir(directory, { recursive: true });
-      await fs.promises.writeFile(path.join(directory, file.name), file.data);
-      const row = { id, ...data, filename: file.name, url: `/uploads/media/${file.name}` };
-      mediaRows.set(id, row);
-      return structuredClone(row);
-    },
-    findMany: async ({ where = {} } = {}) => [...mediaRows.values()]
-      .filter((row) => (!where.filename || row.filename === where.filename) && (!where.kind || row.kind === where.kind))
-      .map((row) => structuredClone(row)),
-    delete: async ({ where }) => {
-      const row = mediaRows.get(where.id);
-      if (!row) throw new Error("Media not found");
-      mediaRows.delete(where.id);
-      await fs.promises.unlink(path.join(process.cwd(), "public", "uploads", "media", row.filename));
-      return structuredClone(row);
-    },
-  },
-  queryRaw: async () => [],
-};
 
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {

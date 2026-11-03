@@ -16,9 +16,6 @@ require.extensions[".ts"] = (module, filename) =>
 // Только в памяти.
 let sessionUser, dbUser;
 
-const db = {
-  user: { findUnique: async ({ where }) => (where.id === dbUser?.id ? { ...dbUser } : null) },
-};
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
   if (name === "@/lib/db") {
