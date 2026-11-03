@@ -145,6 +145,12 @@ export function adminLabels(locale: RequestLocale) {
       saved: ru ? "Материал сохранён." : "Post saved.",
       readOnly: ru ? "Редактировать материалы может только администратор." : "Only an admin can edit posts.",
     },
+    product: {
+      priceRubles: ru ? "Цена, ₽" : "Price, RUB",
+      isActive: ru ? "Показывать в магазине" : "Visible in the shop",
+      saved: ru ? "Товар сохранён." : "Product saved.",
+      readOnly: ru ? "Редактировать товары может только администратор." : "Only an admin can edit products.",
+    },
     products: { title: ru ? "Товары" : "Products", subtitle: ru ? "Магазин и остатки." : "Shop and stock." },
     posts: { title: ru ? "Материалы" : "Posts", subtitle: ru ? "Блог и публикации." : "Blog and publications." },
     accounts: { title: ru ? "Аккаунты" : "Accounts", subtitle: ru ? "Пользователи и роли." : "Users and roles." },
