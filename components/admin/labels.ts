@@ -25,6 +25,7 @@ export function adminLabels(locale: RequestLocale) {
       posts: ru ? "Материалы" : "Posts",
       accounts: ru ? "Аккаунты" : "Accounts",
       activity: ru ? "Активность" : "Activity",
+      settings: ru ? "Настройки" : "Settings",
     },
     roles: {
       FOUNDER: ru ? "Основатель" : "Founder",
@@ -144,6 +145,66 @@ export function adminLabels(locale: RequestLocale) {
         : "Only one featured post is allowed on the home page, and only a published post can be featured.",
       saved: ru ? "Материал сохранён." : "Post saved.",
       readOnly: ru ? "Редактировать материалы может только администратор." : "Only an admin can edit posts.",
+    },
+    settings: {
+      title: ru ? "Настройки" : "Settings",
+      subtitle: ru
+        ? "Публичные данные студии и ключи платёжного провайдера. Доступно только основателю."
+        : "Public studio details and payment provider keys. Founder only.",
+      saved: ru ? "Настройки сохранены." : "Settings saved.",
+      secretSet: ru ? "уже задан — оставьте пустым, чтобы не менять" : "already set — leave empty to keep it",
+      secretEmpty: ru ? "не задан" : "not set",
+      secretHint: ru
+        ? "Значение хранится в базе и никогда не показывается обратно."
+        : "The value is stored in the database and never shown again.",
+      groups: {
+        public: {
+          title: ru ? "Студия и SEO" : "Studio and SEO",
+          keys: [
+            "studioName",
+            "studioDescription",
+            "contactEmail",
+            "contactPhone",
+            "vkUrl",
+            "telegramUrl",
+            "youtubeUrl",
+            "metaTitle",
+            "metaDescription",
+            "metaKeywords",
+          ],
+        },
+        payment: {
+          title: ru ? "Робокасса" : "Robokassa",
+          hint: ru
+            ? "Пустые значения означают: взять из .env, затем демо-магазин."
+            : "Empty values mean: fall back to .env, then the demo merchant.",
+          keys: ["robokassaLogin", "robokassaPassword1", "robokassaPassword2", "robokassaTestMode", "robokassaHashAlgo"],
+        },
+        notification: {
+          title: ru ? "Уведомления" : "Notifications",
+          keys: ["notificationEmail", "telegramBotToken", "telegramChatId"],
+        },
+      },
+      labels: {
+        studioName: ru ? "Название студии" : "Studio name",
+        studioDescription: ru ? "Описание студии" : "Studio description",
+        contactEmail: ru ? "Контактный e-mail" : "Contact e-mail",
+        contactPhone: ru ? "Контактный телефон" : "Contact phone",
+        vkUrl: "VK",
+        telegramUrl: "Telegram",
+        youtubeUrl: "YouTube",
+        metaTitle: ru ? "SEO-заголовок" : "SEO title",
+        metaDescription: ru ? "SEO-описание" : "SEO description",
+        metaKeywords: ru ? "SEO-ключевые слова" : "SEO keywords",
+        robokassaLogin: ru ? "Логин магазина" : "Merchant login",
+        robokassaPassword1: ru ? "Пароль №1" : "Password #1",
+        robokassaPassword2: ru ? "Пароль №2" : "Password #2",
+        robokassaTestMode: ru ? "Тестовый режим (1/0)" : "Test mode (1/0)",
+        robokassaHashAlgo: ru ? "Алгоритм подписи" : "Signature algorithm",
+        notificationEmail: ru ? "E-mail уведомлений" : "Notification e-mail",
+        telegramBotToken: ru ? "Токен Telegram-бота" : "Telegram bot token",
+        telegramChatId: ru ? "Chat ID Telegram" : "Telegram chat ID",
+      } as Record<string, string>,
     },
     product: {
       priceRubles: ru ? "Цена, ₽" : "Price, RUB",
