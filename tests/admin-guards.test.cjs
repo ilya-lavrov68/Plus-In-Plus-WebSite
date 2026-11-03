@@ -9,15 +9,23 @@ require.extensions[".ts"] = (module, filename) => module._compile(ts.transpileMo
   compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true, target: ts.ScriptTarget.ES2022 },
 }).outputText, filename);
 
+let sessionUser = null;
+let accountRow = null;
+
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
   if (name === "next-auth") return () => ({ auth: (callback) => callback });
+  if (name === "@/auth") return { auth: async () => (sessionUser ? { user: sessionUser } : null) };
+  if (name === "@/lib/db") {
+    const real = originalLoad.call(this, path.resolve(__dirname, "..", "lib", "db.ts"), parent, isMain);
+    return { ...real, row: async () => accountRow };
+  }
   if (name.startsWith("@/")) name = path.resolve(__dirname, "..", name.slice(2));
   return originalLoad.call(this, name, parent, isMain);
 };
 
 const { proxy, config } = require("../proxy.ts");
-const { adminOnly, founderOnly, readAccounts, readSubmittedOrders, staffOnly } = require("../payload/access.ts");
+const { requireAdmin, requireFounder, requireStaff } = require("../lib/admin-session.ts");
 
 test("proxy protects Payload admin while allowing every staff role into the shared panel", async () => {
   process.env.AUTH_SECRET = "test-secret-with-at-least-32-characters";
@@ -51,7 +59,6 @@ test("legacy staff URLs and locale-prefixed protected routes use trusted public 
   process.env.AUTH_SECRET = "test-secret-with-at-least-32-characters";
   const cases = [
     ["/cart", "/login"],
-    ["/payload", "/admin"],
     ["/admin/dashboard", "/admin"],
     ["/manager/orders", "/admin/orders"],
     ["/manager/users", "/admin/accounts"],
@@ -78,23 +85,48 @@ test("legacy staff URLs and locale-prefixed protected routes use trusted public 
   assert.equal(api.headers.get("location"), null);
 });
 
-test("Payload access gives managers orders but never the customer directory", async () => {
-  const request = (role) => ({
-    user: role ? { id: "actor", collection: "accounts", role } : null,
-    payload: {
-      find: async () => {
-        throw new Error("manager account access must not query customers");
-      },
-    },
-  });
-  assert.equal(await readAccounts({ req: request("MANAGER") }), false);
-  assert.equal(await readAccounts({ req: request("ADMIN") }), true);
-  assert.equal(await readAccounts({ req: request("FOUNDER") }), true);
-  assert.equal(await readAccounts({ req: request("USER") }), false);
-  assert.equal(staffOnly({ req: request("MANAGER") }), true);
-  assert.equal(adminOnly({ req: request("MANAGER") }), false);
-  assert.equal(founderOnly({ req: request("ADMIN") }), false);
-  assert.deepEqual(readSubmittedOrders({ req: request("MANAGER") }), { status: { not_equals: "cart" } });
+test("staff guards read the role from the database on every request", async () => {
+  process.env.AUTH_SECRET = "test-secret-with-at-least-32-characters";
+  const as = (role) => {
+    sessionUser = { id: "actor", email: "actor@example.test", role };
+    accountRow = { id: "actor", email: "actor@example.test", role, is_blocked: 0 };
+  };
+
+  as("MANAGER");
+  assert.ok(await requireStaff(), "a manager reaches the shared panel");
+  assert.equal(await requireAdmin(), null, "a manager never gets admin-only actions");
+  assert.equal(await requireFounder(), null);
+
+  as("ADMIN");
+  assert.equal((await requireAdmin())?.role, "ADMIN");
+  assert.equal(await requireFounder(), null, "only the founder gets founder actions");
+  assert.equal((await requireStaff())?.isAdmin, true);
+
+  as("FOUNDER");
+  assert.equal((await requireFounder())?.isFounder, true);
+  assert.equal((await requireAdmin())?.isFounder, true);
+
+  as("USER");
+  assert.equal(await requireStaff(), null);
+  assert.equal(await requireAdmin(), null);
+
+  // Понижение роли в базе действует сразу, даже если JWT ещё говорит ADMIN.
+  sessionUser = { id: "actor", email: "actor@example.test", role: "ADMIN" };
+  accountRow = { id: "actor", email: "actor@example.test", role: "USER", is_blocked: 0 };
+  assert.equal(await requireAdmin(), null);
+  assert.equal(await requireStaff(), null);
+
+  // Блокировка тоже закрывает доступ без ожидания истечения токена.
+  as("ADMIN");
+  accountRow = { id: "actor", email: "actor@example.test", role: "ADMIN", is_blocked: 1 };
+  assert.equal(await requireAdmin(), null);
+
+  // Без настроенного секрета staff-доступ закрыт полностью.
+  process.env.AUTH_SECRET = "weak";
+  sessionUser = { id: "actor", email: "actor@example.test", role: "FOUNDER" };
+  accountRow = { id: "actor", email: "actor@example.test", role: "FOUNDER", is_blocked: 0 };
+  assert.equal(await requireStaff(), null);
+  process.env.AUTH_SECRET = "test-secret-with-at-least-32-characters";
 });
 
 test("old admin data and page modules are physically absent", () => {

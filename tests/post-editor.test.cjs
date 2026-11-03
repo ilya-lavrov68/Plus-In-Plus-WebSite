@@ -14,17 +14,33 @@ Module._load = function (name, parent, isMain) {
   return originalLoad.call(this, name, parent, isMain);
 };
 
-const { Posts } = require("../payload/collections/posts.ts");
 const { renderPostContent, renderPostMarkdown } = require("../lib/post-content.ts");
+const { lexicalToHtml } = require("../lib/lexical-html.ts");
 
-test("Payload Lexical is the only post editor and stores structured author content", () => {
-  const content = Posts.fields.find((field) => field.name === "content");
-  assert.equal(content.type, "richText");
-  assert.equal(content.required, true);
-  const config = fs.readFileSync(path.join(__dirname, "..", "payload.config.ts"), "utf8");
-  assert.match(config, /editor: lexicalEditor\(\)/);
-  assert.equal(fs.existsSync(path.join(__dirname, "..", "components", "admin", "post-content-editor.tsx")), false);
-  assert.equal(fs.existsSync(path.join(__dirname, "..", "app", "actions", "posts.ts")), false);
+test("post content is stored as Lexical JSON and rendered by our own converter", () => {
+  const schema = fs.readFileSync(path.join(__dirname, "..", "db", "schema.sql"), "utf8");
+  assert.match(schema, /CREATE TABLE `posts`[\s\S]*?`content` text/);
+  // Конвертер живёт в проекте: пакет CMS удалён вместе с редактором.
+  const document = {
+    root: {
+      children: [
+        { type: "heading", tag: "h2", children: [{ type: "text", text: "Author heading", format: 0 }] },
+        { type: "paragraph", children: [
+          { type: "text", text: "Bold", format: 1 },
+          { type: "text", text: " and ", format: 0 },
+          { type: "text", text: "italic", format: 2 },
+        ] },
+        { type: "list", listType: "bullet", children: [{ type: "listitem", children: [{ type: "text", text: "One", format: 0 }] }] },
+        { type: "link", fields: { url: "javascript:alert(1)" }, children: [{ type: "text", text: "bad", format: 0 }] },
+      ],
+    },
+  };
+  const html = lexicalToHtml(document);
+  assert.match(html, /<h2>Author heading<\/h2>/);
+  assert.match(html, /<strong>Bold<\/strong> and <em>italic<\/em>/);
+  assert.match(html, /<ul><li>One<\/li><\/ul>/);
+  assert.doesNotMatch(html, /javascript:/);
+  assert.equal(lexicalToHtml({}), null);
 });
 
 test("Lexical HTML is sanitized again at the public rendering boundary", () => {

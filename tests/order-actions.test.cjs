@@ -4,7 +4,6 @@ const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
-const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
 
 require.extensions[".ts"] = (module, filename) =>
   module._compile(
@@ -105,7 +104,6 @@ db.transaction = async (callback) => {
 
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/payload-native") return createNativeModuleMock(db);
   // Заявки ведёт requireStaff: администратор и менеджер.
   if (name === "@/lib/admin-session") return {
     requireAdmin: async () => (admin && admin.id !== "usr-manager" ? admin : null),

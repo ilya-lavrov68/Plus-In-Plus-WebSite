@@ -34,7 +34,10 @@ test("админка читает и пишет собственными SQL-з�
   for (const table of ["orders", "services", "products", "posts", "accounts", "activity_logs"]) {
     assert.ok(queries.includes(table), table);
   }
-  assert.match(queries, /update orders set status/);
+  // Статусы меняет отдельный модуль правил жизненного цикла, тоже на SQL.
+  const guards = read("lib/order-guards.ts");
+  assert.match(guards, /transitionOrder\(order\.id, order\.status/);
+  assert.match(guards, /ORDER_TRANSITIONS/);
   // Все значения передаются параметрами, без склейки строк.
   assert.doesNotMatch(queries, /\$\{orderId\}|\$\{status\}|\$\{input\./);
 });
@@ -43,6 +46,7 @@ test("смена статуса заказа требует ADMIN и валид�
   const action = read("app/(admin)/admin/orders/actions.ts");
   assert.match(action, /requireAdmin\(\)/);
   assert.match(action, /ORDER_STATUSES/);
+  assert.match(action, /changeOrderStatus\(/);
   assert.match(action, /logAdminAction/);
   assert.match(action, /revalidatePath\("\/admin\/orders"\)/);
 });

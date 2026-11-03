@@ -4,7 +4,6 @@ const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
-const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
 const { createTestDatabase } = require("./helpers/test-db.cjs");
 const sharp = require("sharp");
 const { createHash } = require("node:crypto");
@@ -67,7 +66,6 @@ Module._load = function (name, parent, isMain) {
     rotateAuthSession: async () => null,
   };
   // Media uploads still go through the Payload media collection.
-  if (name === "@/lib/payload-native") return createNativeModuleMock(db);
   if (name === "@/lib/accounts") {
     const real = originalLoad.call(this, path.resolve(__dirname, "..", "lib", "accounts.ts"), parent, isMain);
     return {

@@ -24,52 +24,49 @@ const { slugify, withNumericSuffix } = require("../lib/slug.ts");
 const { checkRateLimit, hashRateLimitIdentifier } = require("../lib/rate-limit.ts");
 const validators = require("../lib/validators.ts");
 
-const payloadConfig = fs.readFileSync(path.join(rootDir, "payload.config.ts"), "utf8");
-const migration = fs.readFileSync(path.join(rootDir, "payload", "migrations", "20261031_220229.ts"), "utf8");
+const schema = fs.readFileSync(path.join(rootDir, "db", "schema.sql"), "utf8");
 const packageJson = JSON.parse(fs.readFileSync(path.join(rootDir, "package.json"), "utf8"));
 
 // ---------------------------------------------------------------------------
 // One database for development and production
 // ---------------------------------------------------------------------------
 
-test("Payload owns one libSQL/Site database with reviewed migrations and UUID documents", () => {
-  assert.match(payloadConfig, /sqliteAdapter\(\{/);
-  assert.match(payloadConfig, /idType: "uuid"/);
-  assert.match(payloadConfig, /allowIDOnCreate: true/);
-  assert.match(payloadConfig, /push: false/);
-  assert.match(payloadConfig, /migrationDir:/);
-  assert.doesNotMatch(payloadConfig, /prisma|postgres/i);
-  for (const table of ["accounts", "services", "posts", "activity_logs", "orders", "payments"]) {
-    assert.ok(migration.includes(table), table);
-  }
-  assert.ok(migration.includes("DEFAULT 'USER'"));
+test("one libSQL/SQLite database is described by db/schema.sql, without ORM migrations", () => {
+  assert.match(schema, /CREATE TABLE `accounts`/);
+  assert.match(schema, /CREATE TABLE `services`/);
+  assert.match(schema, /CREATE TABLE `posts`/);
+  assert.match(schema, /CREATE TABLE `activity_logs`/);
+  assert.match(schema, /CREATE TABLE `orders`/);
+  assert.match(schema, /CREATE TABLE `payments`/);
+  assert.match(schema, /DEFAULT 'USER'/);
+  assert.match(schema, /DEFAULT 'cart'/);
+  assert.doesNotMatch(schema, /prisma|postgres/i);
+  assert.equal(fs.existsSync(path.join(rootDir, "payload.config.ts")), false);
 });
 
 test("the native SQLite adapter remains installed without Prisma or PostgreSQL drivers", () => {
-  assert.equal(packageJson.dependencies["@payloadcms/db-sqlite"], "3.92.1");
   assert.ok(packageJson.dependencies["@libsql/client"]);
   assert.ok(packageJson.dependencies.zod);
-  for (const dependency of ["prisma", "@prisma/client", "pg", "@db/adapter-pg", "@db/adapter-libsql"]) {
+  for (const dependency of ["payload", "@payloadcms/db-sqlite", "prisma", "@prisma/client", "pg", "@db/adapter-pg", "@db/adapter-libsql"]) {
     assert.equal(packageJson.dependencies[dependency], undefined, dependency);
   }
-  for (const script of ["db:check", "db:promote-admin", "deploy:verify"]) {
+  for (const script of ["db:check", "db:migrate", "db:promote-admin", "deploy:verify"]) {
     assert.ok(packageJson.scripts[script], script);
-    assert.ok(fs.existsSync(path.join(rootDir, packageJson.scripts[script].split(" ")[1])), script);
+    const command = packageJson.scripts[script].split(" ")[1];
+    assert.ok(fs.existsSync(path.join(rootDir, command)), script);
   }
-  assert.equal(packageJson.scripts["payload:migrate"], "node scripts/payload-cli.cjs migrate");
-  assert.ok(fs.existsSync(path.join(rootDir, "scripts/payload-cli.cjs")));
+  assert.equal(packageJson.scripts["payload:migrate"], undefined);
   assert.equal(packageJson.scripts["db:push"], undefined);
 });
 
-test("staff role runbook uses Payload Local API and lifecycle hooks instead of direct SQL", () => {
+test("staff role runbook changes the role through SQL and revokes live sessions", () => {
   assert.equal(packageJson.scripts["db:promote-admin"], "node scripts/run-ts.cjs scripts/promote-admin.ts");
-  const filename = path.join(rootDir, "scripts", "promote-admin.ts");
-  const source = fs.readFileSync(filename, "utf8");
-  assert.match(source, /getPayloadClient/);
-  assert.match(source, /payload\.find\(\{/);
-  assert.match(source, /payload\.update\(\{/);
-  assert.match(source, /closePayloadClient/);
-  assert.doesNotMatch(source, /createClient|client\.execute|update\s+accounts/i);
+  const source = fs.readFileSync(path.join(rootDir, "scripts", "promote-admin.ts"), "utf8");
+  assert.match(source, /findAccountByEmail/);
+  assert.match(source, /updateAccount\(/);
+  assert.match(source, /revokeAllAuthSessions\(/);
+  assert.match(source, /from "@\/lib\/db"/);
+  assert.doesNotMatch(source, /getPayloadClient|closePayloadClient/);
   assert.equal(fs.existsSync(path.join(rootDir, "scripts", "promote-admin.cjs")), false);
 });
 

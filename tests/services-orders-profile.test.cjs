@@ -4,7 +4,6 @@ const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
-const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
 const { createTestDatabase } = require("./helpers/test-db.cjs");
 
 require.extensions[".ts"] = (module, filename) =>
@@ -250,7 +249,6 @@ Module._load = function (name, parent, isMain) {
     compare: async (password, hash) => password === "current-password" && hash === "current-hash",
     hash: async (password) => `hash:${password}`,
   };
-  if (name === "@/lib/payload-native") return createNativeModuleMock(db);
   if (name === "@/lib/db") {
     // Публичные чтения услуг идут через собственный SQL-слой: отдаём фикстуры
     // по тем же правилам фильтрации, что и настоящий запрос.

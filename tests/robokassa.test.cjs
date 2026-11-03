@@ -5,7 +5,6 @@ const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
-const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
 
 require.extensions[".ts"] = (module, filename) =>
   module._compile(
@@ -133,7 +132,6 @@ Module._load = function (name, parent, isMain) {
   // Сгенерированный Prisma-клиент — ESM, из .cjs его не подключить.
   // invoice.ts всё равно работает только с базой, а здесь проверяется
   // чистая арифметика номера счёта.
-  if (name === "@/lib/payload-native") return createNativeModuleMock(invoiceDb.db);
   if (name.startsWith("@/")) name = path.resolve(__dirname, "..", name.slice(2));
   return originalLoad.call(this, name, parent, isMain);
 };

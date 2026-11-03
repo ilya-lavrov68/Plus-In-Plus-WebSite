@@ -4,7 +4,6 @@ const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
-const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
 const React = require("react");
 const { act, create } = require("react-test-renderer");
 
@@ -36,9 +35,13 @@ let signatureValid = false;
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
   if (name === "next/link") return tag("a");
-  if (name === "@/lib/payload-native") return createNativeModuleMock({
-    payment: { findFirst: async () => paymentStatus ? { status: paymentStatus } : null },
-  });
+  if (name === "@/lib/commerce-data") {
+    const real = originalLoad.call(this, path.resolve(__dirname, "..", "lib", "commerce-data.ts"), parent, isMain);
+    return {
+      ...real,
+      findPaymentByExternalId: async () => (paymentStatus ? { status: paymentStatus } : null),
+    };
+  }
   if (name === "@/lib/payments/robokassa-config") {
     return { resolveRobokassaConfig: async () => ({ config: paymentConfig }) };
   }

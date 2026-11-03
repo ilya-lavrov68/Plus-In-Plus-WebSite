@@ -242,15 +242,6 @@ export async function getContentCounts(): Promise<{ services: number; products: 
   return { services: num(row.services), products: num(row.products), posts: num(row.posts), accounts: num(row.accounts) };
 }
 
-/** Смена статуса заказа из админки; ограничена списком допустимых статусов. */
-export async function setOrderStatus(orderId: string, status: string): Promise<void> {
-  await queryPayloadRows(`update orders set status = ?, updated_at = ? where id = ?`, [
-    status,
-    new Date().toISOString(),
-    orderId,
-  ]);
-}
-
 export async function logAdminAction(input: {
   action: string;
   entityType: "order" | "service" | "post" | "user" | "setting" | "media";

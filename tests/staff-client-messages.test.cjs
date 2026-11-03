@@ -32,10 +32,9 @@ test("staff panel is ours: RU/EN chrome, skip link and no shadows", () => {
   assert.match(labels, /locale === "ru"/);
   assert.doesNotMatch(nav, /box-shadow|drop-shadow|text-shadow/);
 
-  // Payload Admin UI и его компоненты удалены; конфиг остаётся только как
-  // описание коллекций для Local API.
+  // CMS-слой удалён целиком: ни UI, ни конфига, ни локального API.
   assert.equal(fs.existsSync(path.join(root, "app", "(payload)")), false);
   assert.equal(fs.existsSync(path.join(root, "payload", "components")), false);
-  const config = fs.readFileSync(path.join(root, "payload.config.ts"), "utf8");
-  assert.doesNotMatch(config, /admin-a11y-provider|dashboard-overview/);
+  assert.equal(fs.existsSync(path.join(root, "payload.config.ts")), false);
+  assert.equal(fs.existsSync(path.join(root, "lib", "payload-native.ts")), false);
 });

@@ -4,7 +4,6 @@ const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
-const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
 
 require.extensions[".ts"] = (module, filename) =>
   module._compile(
@@ -22,7 +21,6 @@ const db = {
 };
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/payload-native") return createNativeModuleMock(db);
   if (name === "@/lib/db") {
     // Роль и блокировка читаются одним SQL-запросом к accounts.
     const real = originalLoad.call(this, path.join(__dirname, "..", "lib", "db.ts"), parent, isMain);

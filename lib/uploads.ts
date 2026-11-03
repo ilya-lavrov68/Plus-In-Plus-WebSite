@@ -116,11 +116,16 @@ async function deleteMediaRow(publicPath: string, kind: UploadKind): Promise<boo
   if (!publicPath.startsWith(MEDIA_PREFIX)) return false;
   const filename = publicPath.slice(MEDIA_PREFIX.length);
   if (!/^[a-z0-9][a-z0-9._-]{0,240}$/i.test(filename)) return true;
-  const found = await rows<{ id: string }>(
-    `select id from media where filename = ? and kind = ? limit 1`,
-    [filename, kind],
+  const found = await rows<{ id: string; kind: string }>(
+    `select id, kind from media where filename = ?`,
+    [filename],
   );
-  if (found[0]) await run(`delete from media where id = ?`, [found[0].id]);
+  if (found.length > 0) {
+    // Файл принадлежит другому разделу: не удаляем ни строку, ни файл, иначе
+    // чужая обложка останется ссылкой на пустоту.
+    if (!found.some((row) => row.kind === kind)) return true;
+    await run(`delete from media where id = ?`, [found[0].id]);
+  }
   try {
     await unlink(path.join(process.cwd(), "public", "uploads", "media", filename));
   } catch (error) {

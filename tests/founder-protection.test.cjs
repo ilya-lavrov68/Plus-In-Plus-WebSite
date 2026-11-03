@@ -24,8 +24,9 @@ Module._load = function (name, parent, isMain) {
 };
 
 const { resetUserPassword } = require("../app/actions/account.ts");
-const { protectAccount, protectAccountDeletion, revokeAccountSessions } = require("../payload/hooks.ts");
-const { SiteSettings } = require("../payload/collections/system.ts");
+const { revokeAllAuthSessions } = require("../lib/auth-sessions.ts");
+const { isSecretSiteSettingKey, normalizePublicSiteSettings } = require("../lib/site-settings.ts");
+const publicSiteSettingsSource = fs.readFileSync(path.join(__dirname, "..", "lib", "public-site-settings.ts"), "utf8");
 
 const { after, before } = require("node:test");
 
@@ -55,62 +56,95 @@ function req(role = "ADMIN", id = "admin-1") {
   return { user: { id, collection: "accounts", role }, context: {}, payload: {} };
 }
 
-test("founder role, block and privilege assignment remain server-runbook only", async () => {
-  const originalDoc = accounts.get("founder-1");
-  for (const data of [{ role: "ADMIN" }, { isBlocked: true }]) {
-    await assert.rejects(protectAccount({ operation: "update", originalDoc, data, req: req("FOUNDER", "founder-1") }), /основателя/);
-  }
-  await assert.rejects(protectAccount({
-    operation: "update", originalDoc: accounts.get("user-1"), data: { role: "FOUNDER" }, req: req(),
-  }), /FOUNDER/);
-  await assert.rejects(protectAccount({
-    operation: "update", originalDoc: { ...accounts.get("user-1"), role: "ADMIN" }, data: { role: "USER" }, req: req("ADMIN", "user-1"),
-  }), /собственную staff-роль/);
+test("role and block changes exist only in the server runbook, never in the panel", () => {
+  const root = path.resolve(__dirname, "..");
+  const runbook = fs.readFileSync(path.join(root, "scripts", "promote-admin.ts"), "utf8");
+  assert.match(runbook, /updateAccount\(account\.id, \{ role \}\)/);
+  assert.match(runbook, /revokeAllAuthSessions\(account\.id, "role_changed"\)/);
+  assert.match(runbook, /is the FOUNDER/, "demoting the founder is called out explicitly");
+
+  // В админке изменение роли или блокировки недоступно: панель только читает.
+  const accountsPage = fs.readFileSync(path.join(root, "app", "(admin)", "admin", "accounts", "page.tsx"), "utf8");
+  assert.doesNotMatch(accountsPage, /updateAccount|is_blocked\s*=/);
+  const actionFiles = fs.readdirSync(path.join(root, "app", "(admin)", "admin"))
+    .filter((name) => name !== "orders")
+    .map((name) => path.join(root, "app", "(admin)", "admin", name, "actions.ts"))
+    .filter((file) => fs.existsSync(file));
+  assert.deepEqual(actionFiles, [], "the panel has a single mutation surface: order status");
+
+  // Единственный SQL-писатель аккаунтов — lib/accounts.ts.
+  const writers = [];
+  const walk = (relative) => {
+    for (const entry of fs.readdirSync(path.join(root, relative), { withFileTypes: true })) {
+      const next = path.join(relative, entry.name);
+      if (entry.isDirectory()) walk(next);
+      else if (/\.(ts|tsx)$/.test(entry.name) && !next.endsWith(path.join("lib", "accounts.ts"))) {
+        if (/update accounts set/i.test(fs.readFileSync(path.join(root, next), "utf8"))) writers.push(next);
+      }
+    }
+  };
+  for (const directory of ["app", "lib"]) walk(directory);
+  assert.deepEqual(writers, [], "account writes go through one reviewed module");
+
+  // Скрипты обслуживания меняют роли только через runbook, а чистка — лишь имена.
+  const cleanup = fs.readFileSync(path.join(root, "scripts", "cleanup-database.ts"), "utf8");
+  assert.doesNotMatch(cleanup, /set\s+role|is_blocked\s*=/);
 });
 
-test("admin can assign and remove manager role, but not block or demote itself", async () => {
-  const manager = await protectAccount({ operation: "update", originalDoc: accounts.get("user-1"), data: { role: "MANAGER" }, req: req() });
-  assert.equal(manager.role, "MANAGER");
-  const customer = await protectAccount({ operation: "update", originalDoc: { ...accounts.get("user-1"), role: "MANAGER" }, data: { role: "USER" }, req: req() });
-  assert.equal(customer.role, "USER");
-  await assert.rejects(protectAccount({ operation: "update", originalDoc: accounts.get("user-1"), data: { isBlocked: true }, req: req("ADMIN", "user-1") }), /собственный аккаунт/);
-  const blocked = await protectAccount({ operation: "update", originalDoc: accounts.get("user-1"), data: { isBlocked: true }, req: req() });
-  assert.equal(blocked.isBlocked, true);
+test("a security change revokes every live session of that account", async () => {
+  const now = new Date().toISOString();
+  await database.exec(
+    `insert into auth_sessions (id, user_id_id, refresh_hash, device_hash, role, last_used_at, expires_at, created_at, updated_at)
+     values ('role-session', 'user-1', 'refresh-hash-2', 'device-hash-2', 'USER', ?, ?, ?, ?)`,
+    [now, new Date(Date.now() + 60_000).toISOString(), now, now],
+  );
+  await revokeAllAuthSessions("user-1", "role_changed");
+  const session = await database.one("select revoked_at, revoke_reason from auth_sessions where id = 'role-session'");
+  assert.ok(session.revoked_at);
+  assert.equal(session.revoke_reason, "role_changed");
+
+  // Чужие сессии не задеваются.
+  await database.exec(
+    `insert into auth_sessions (id, user_id_id, refresh_hash, device_hash, role, last_used_at, expires_at, created_at, updated_at)
+     values ('other-session', 'admin-1', 'refresh-hash-3', 'device-hash-3', 'ADMIN', ?, ?, ?, ?)`,
+    [now, new Date(Date.now() + 60_000).toISOString(), now, now],
+  );
+  await revokeAllAuthSessions("user-1", "account_security_changed");
+  const other = await database.one("select revoked_at from auth_sessions where id = 'other-session'");
+  assert.equal(other.revoked_at, null);
 });
 
-test("security changes revoke Payload auth sessions while profile-only edits do not", async () => {
-  const calls = [];
-  const request = { payload: { update: async (options) => { calls.push(options); return { docs: [] }; } } };
-  for (const [previousDoc, doc] of [
-    [{ role: "USER", isBlocked: false, passwordHash: "a" }, { role: "MANAGER", isBlocked: false, passwordHash: "a" }],
-    [{ role: "USER", isBlocked: false, passwordHash: "a" }, { role: "USER", isBlocked: true, passwordHash: "a" }],
-    [{ role: "USER", isBlocked: false, passwordHash: "a" }, { role: "USER", isBlocked: false, passwordHash: "b" }],
-  ]) {
-    await revokeAccountSessions({ doc: { id: "user-1", ...doc }, previousDoc, operation: "update", req: request });
-  }
-  assert.equal(calls.length, 3);
-  assert.ok(calls.every((call) => call.collection === "auth-sessions" && call.where.and[0].userId.equals === "user-1"));
-  await revokeAccountSessions({ doc: { id: "user-1", role: "USER", isBlocked: false, passwordHash: "a", firstName: "New" }, previousDoc: { role: "USER", isBlocked: false, passwordHash: "a", firstName: "Old" }, operation: "update", req: request });
-  assert.equal(calls.length, 3);
+test("nothing in the application deletes accounts, so the founder row is safe by construction", () => {
+  const root = path.resolve(__dirname, "..");
+  const offenders = [];
+  const walk = (relative) => {
+    for (const entry of fs.readdirSync(path.join(root, relative), { withFileTypes: true })) {
+      const next = path.join(relative, entry.name);
+      if (entry.isDirectory()) walk(next);
+      else if (/\.(ts|tsx)$/.test(entry.name) && /delete from accounts/i.test(fs.readFileSync(path.join(root, next), "utf8"))) {
+        offenders.push(next);
+      }
+    }
+  };
+  for (const directory of ["app", "lib"]) walk(directory);
+  assert.deepEqual(offenders, [], "account deletion lives in the maintenance scripts only");
+  const cleanup = fs.readFileSync(path.join(root, "scripts", "cleanup-database.ts"), "utf8");
+  assert.match(cleanup, /role <> 'FOUNDER'/, "the cleanup script never touches the founder");
 });
 
-test("founder account deletion is blocked before any cascade", async () => {
-  const request = { payload: { find: async () => ({ docs: [{ role: "FOUNDER" }] }) } };
-  await assert.rejects(protectAccountDeletion({ id: "founder-1", req: request }), /нельзя удалить/);
-  request.payload.find = async () => ({ docs: [{ role: "USER" }] });
-  await protectAccountDeletion({ id: "user-1", req: request });
-});
-
-test("site settings remain founder-only and reject unknown keys", () => {
-  const key = SiteSettings.fields.find((field) => field.name === "key");
-  assert.equal(key.validate("robokassaPassword1"), true);
-  assert.match(key.validate("attackerControlledKey"), /Unknown/);
-  for (const operation of ["read", "create", "update", "delete"]) {
-    assert.equal(SiteSettings.access[operation]({ req: req("ADMIN") }), false);
-    assert.equal(SiteSettings.access[operation]({ req: req("MANAGER") }), false);
-    assert.equal(SiteSettings.access[operation]({ req: req("FOUNDER") }), true);
-  }
-  assert.equal(key.access.update(), false, "keys are stable after creation");
+test("site settings keep secrets out of the public projection", () => {
+  assert.equal(isSecretSiteSettingKey("robokassaPassword1"), true);
+  assert.equal(isSecretSiteSettingKey("studioName"), false);
+  const settingsRows = [
+    { key: "studioName", value: "Plus In Plus" },
+    { key: "robokassaPassword1", value: "server-only-secret" },
+    { key: "attackerControlledKey", value: "ignored" },
+  ];
+  const normalized = normalizePublicSiteSettings(settingsRows);
+  assert.equal(normalized.studioName, "Plus In Plus");
+  assert.equal(JSON.stringify(normalized).includes("server-only-secret"), false);
+  assert.equal(JSON.stringify(normalized).includes("attackerControlledKey"), false);
+  assert.equal(publicSiteSettingsSource.includes("robokassaPassword"), false);
 });
 
 test("password reset never targets founder, revokes ordinary sessions and returns a one-time secret", async () => {

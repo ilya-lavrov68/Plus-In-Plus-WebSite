@@ -274,21 +274,25 @@ async function submit(view, label, fields) {
 
 test("Signup10 switches Log in / Register modes with Admin mode only on Log in", async () => {
   const view = mount(React.createElement(Signup10, { defaultMode: "login" }));
-  assert.equal(view.root.findAllByProps({ role: "switch" }).length, 1);
+  // Режим переключается вкладками Log in / Register.
+  assert.equal(view.root.findAllByProps({ role: "tablist" }).length, 1);
+  const tabs = view.root.findAllByProps({ role: "tab" });
+  assert.equal(tabs.length, 2);
+  assert.deepEqual(tabs.map((tab) => tab.props["aria-selected"]), [true, false]);
   assert.deepEqual(
-    view.root.findAllByType("input").map((n) => n.props.name),
+    view.root.findAllByType("input").map((node) => node.props.name),
     ["email", "password"]
   );
+  assert.equal(
+    view.root.findAllByProps({ role: "switch" }).length,
+    1,
+    "admin mode is offered on the login form only"
+  );
 
-  assert.equal(view.root.findAllByProps({ role: "tablist" }).length, 0);
-  const registerLink = view.root
-    .findAllByType("button")
-    .find((n) => content(n) === "Don't have an account? Register");
-  assert.ok(registerLink, "login5 mode link must be present below the form");
-  act(() => registerLink.props.onClick());
+  act(() => tabs[1].props.onClick());
   assert.equal(view.root.findAllByProps({ role: "switch" }).length, 0);
   assert.deepEqual(
-    view.root.findAllByType("input").map((n) => n.props.name),
+    view.root.findAllByType("input").map((node) => node.props.name),
     ["firstName", "lastName", "email", "password", "confirmPassword"]
   );
   act(() => view.unmount());

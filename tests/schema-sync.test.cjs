@@ -38,7 +38,7 @@ test("reviewed schema preserves cart, order and payment uniqueness contracts", (
 });
 
 test("Node CLI loaders use file URLs instead of raw Windows drive-letter paths", () => {
-  for (const filename of ["payload-cli.cjs", "run-ts.cjs"]) {
+  for (const filename of ["run-ts.cjs"]) {
     const source = fs.readFileSync(path.join(__dirname, "..", "scripts", filename), "utf8");
     assert.match(source, /require\("node:url"\)/, filename);
     assert.match(

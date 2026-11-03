@@ -2,9 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 
-import { logAdminAction, setOrderStatus } from "@/lib/admin-queries";
+import { logAdminAction } from "@/lib/admin-queries";
 import { requireAdmin } from "@/lib/admin-session";
 import { ORDER_STATUSES } from "@/lib/order-status";
+import { OrderRuleError, changeOrderStatus } from "@/lib/order-guards";
 
 /**
  * Смена статуса заказа. Доступна только ADMIN/FOUNDER, статус сверяется с
@@ -19,7 +20,15 @@ export async function updateOrderStatus(formData: FormData): Promise<void> {
   const status = String(formData.get("status") ?? "");
   if (!orderId || !(ORDER_STATUSES as readonly string[]).includes(status)) return;
 
-  await setOrderStatus(orderId, status);
+  try {
+    await changeOrderStatus({ orderId, status, actor: { id: admin.id, role: admin.role } });
+  } catch (error) {
+    if (error instanceof OrderRuleError) {
+      console.warn(`[admin] order status rejected: ${error.message}`);
+      return;
+    }
+    throw error;
+  }
   await logAdminAction({
     action: "order.status_changed",
     entityType: "order",

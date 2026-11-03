@@ -196,11 +196,14 @@ test("landing order and native protected Story global are explicit", () => {
   const features = page.indexOf("<Features />");
   assert.ok(hero >= 0 && hero < story && story < features, "Hero → Story → Features");
 
-  const system = fs.readFileSync(path.resolve(__dirname, "../payload/collections/system.ts"), "utf8");
-  assert.match(system, /export const Story: GlobalConfig/);
-  assert.match(system, /slug: "story"/);
-  assert.match(system, /access: \{ read: adminOnly, update: adminOnly \}/);
-  assert.match(system, /name: "events",[\s\S]*?type: "array",[\s\S]*?maxRows: 20/);
+  // История студии живёт в таблицах story/story_events и читается через SQL.
+  const schema = fs.readFileSync(path.resolve(__dirname, "../db/schema.sql"), "utf8");
+  assert.match(schema, /CREATE TABLE `story`/);
+  assert.match(schema, /CREATE TABLE `story_events`/);
+  assert.match(schema, /`_parent_id`/);
+  const reader = fs.readFileSync(path.resolve(__dirname, "../lib/story.ts"), "utf8");
+  assert.match(reader, /from story/);
+  assert.match(reader, /from story_events where _parent_id = \?/);
+  assert.equal(reader.includes("getPayloadClient"), false);
   assert.equal(fs.existsSync(path.resolve(__dirname, "../components/admin/story-form.tsx")), false);
-  assert.equal(fs.existsSync(path.resolve(__dirname, "../lib/admin-data.ts")), false);
 });

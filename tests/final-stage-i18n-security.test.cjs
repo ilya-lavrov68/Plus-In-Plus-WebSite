@@ -4,7 +4,6 @@ const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
-const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
 
 require.extensions[".ts"] = (module, filename) =>
   module._compile(
@@ -46,15 +45,15 @@ Module._load = function (name, parent, isMain) {
           : null,
     };
   }
-  if (name === "@/lib/payload-native") {
-    return createNativeModuleMock({
-      siteSetting: {
-        findMany: async () => [
-          { key: "studioName", value: "Plus In Plus" },
-          { key: "robokassaPassword1", value: "server-only-secret" },
-        ],
-      },
-    });
+  if (name === "@/lib/commerce-data") {
+    const real = originalLoad.call(this, path.resolve(__dirname, "..", "lib", "commerce-data.ts"), parent, isMain);
+    return {
+      ...real,
+      listSiteSettings: async () => ({
+        studioName: "Plus In Plus",
+        robokassaPassword1: "server-only-secret",
+      }),
+    };
   }
   if (name.startsWith("@/")) {
     name = path.resolve(__dirname, "..", name.slice(2));
@@ -103,7 +102,7 @@ test("bidirectional EN <-> RU path resolution handles prefixed, unprefixed, and 
   assert.equal(explicitLocaleFromPath("/ru/services"), "ru");
 });
 
-test("proxy leaves collection authorization to Payload and strips locale prefixes", async () => {
+test("proxy leaves authorization to the server guards and strips locale prefixes", async () => {
   process.env.AUTH_SECRET = "test-secret-with-at-least-32-characters";
   for (const role of ["MANAGER", "ADMIN", "FOUNDER"]) {
     const response = await proxy({
@@ -125,12 +124,15 @@ test("proxy leaves collection authorization to Payload and strips locale prefixe
   assert.match(localeBypassRes.headers.get("set-cookie") || "", /pip-locale=ru/);
 });
 
-test("site settings collection is founder-only and public loader never exposes secrets", () => {
-  const collection = fs.readFileSync(path.resolve(__dirname, "../payload/collections/system.ts"), "utf8");
+test("site settings keep secrets out of the public projection", () => {
+  const settings = fs.readFileSync(path.resolve(__dirname, "../lib/site-settings.ts"), "utf8");
+  // Секретные ключи перечислены отдельно и не попадают в публичный набор.
+  assert.match(settings, /isSecretSiteSettingKey/);
+  assert.match(settings, /robokassaPassword1/);
   const publicLoader = fs.readFileSync(path.resolve(__dirname, "../lib/public-site-settings.ts"), "utf8");
-  assert.match(collection, /SiteSettings[\s\S]*access: \{ read: founderOnly, create: founderOnly, update: founderOnly, delete: founderOnly \}/);
-  assert.ok(publicLoader.includes("PUBLIC_SITE_SETTING_KEYS"));
+  assert.ok(publicLoader.includes("normalizePublicSiteSettings"));
   assert.equal(publicLoader.includes("robokassaPassword"), false);
+  assert.equal(fs.existsSync(path.resolve(__dirname, "../payload/collections")), false);
 });
 
 test("service localization translates seeded studio services to RU without overwriting custom admin titles", () => {

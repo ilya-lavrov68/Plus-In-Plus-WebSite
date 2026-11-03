@@ -4,7 +4,6 @@ const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
-const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
 
 require.extensions[".ts"] = (module, filename) =>
   module._compile(
@@ -352,7 +351,6 @@ mockPrisma.transaction = async (cb) => cb(mockPrisma);
 
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/payload-native") return createNativeModuleMock(mockPrisma);
   if (name === "@/lib/auth-secret") return { isAuthConfigured: () => true };
   if (name === "@/auth") {
     return {
