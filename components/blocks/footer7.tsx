@@ -114,7 +114,7 @@ const Footer7 = ({
           <div className="flex max-w-xs flex-col gap-5">
             <Link
               href="/"
-              className="inline-flex w-fit items-center transition-opacity duration-200 hover:opacity-80"
+              className="inline-flex w-fit items-center transition-opacity duration-200 hover:opacity-80 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <WordmarkLogo className="h-7" />
             </Link>
@@ -126,7 +126,7 @@ const Footer7 = ({
                 {contactEmail ? (
                   <a
                     href={`mailto:${contactEmail}`}
-                    className="inline-flex items-center gap-2 transition-colors duration-200 hover:text-foreground"
+                    className="inline-flex items-center gap-2 transition-colors duration-200 hover:text-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                   >
                     <Mail aria-hidden="true" className="h-4 w-4 shrink-0" />
                     <span>{contactEmail}</span>
@@ -135,7 +135,7 @@ const Footer7 = ({
                 {contactPhone ? (
                   <a
                     href={`tel:${contactPhone.replace(/[^+\d]/g, "")}`}
-                    className="inline-flex items-center gap-2 transition-colors duration-200 hover:text-foreground"
+                    className="inline-flex items-center gap-2 transition-colors duration-200 hover:text-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                   >
                     <Phone aria-hidden="true" className="h-4 w-4 shrink-0" />
                     <span>{contactPhone}</span>
@@ -151,7 +151,7 @@ const Footer7 = ({
                   target="_blank"
                   rel="noreferrer"
                   aria-label={label}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors duration-200 hover:border-foreground/25 hover:text-foreground"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors duration-200 hover:border-foreground/25 hover:text-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 >
                   <Icon aria-hidden="true" className="h-4 w-4" />
                 </a>
@@ -170,7 +170,7 @@ const Footer7 = ({
                     <li key={link.name}>
                       <Link
                         href={link.href}
-                        className="transition-colors duration-200 hover:text-foreground"
+                        className="transition-colors duration-200 hover:text-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                       >
                         {link.name}
                       </Link>
@@ -187,13 +187,13 @@ const Footer7 = ({
           <div className="flex items-center gap-6">
             <Link
               href="/privacy"
-              className="transition-colors duration-200 hover:text-foreground"
+              className="transition-colors duration-200 hover:text-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               {t("privacyPolicy")}
             </Link>
             <Link
               href="/contact"
-              className="transition-colors duration-200 hover:text-foreground"
+              className="transition-colors duration-200 hover:text-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               {t("companyLinks.contactUs")}
             </Link>

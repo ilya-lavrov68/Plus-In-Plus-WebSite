@@ -672,6 +672,35 @@ test("Footer7 renders public contact and social settings with icon controls", ()
   act(() => view.unmount());
 });
 
+test("every footer link shows a keyboard focus outline", () => {
+  let view;
+  act(() => {
+    view = create(
+      React.createElement(Footer7, {
+        contactEmail: "hello@example.test",
+        contactPhone: "+7 (900) 123-45-67",
+        socialLinks: { vk: "https://vk.com/a", telegram: "https://t.me/a", youtube: "https://youtube.com/@a" },
+      }),
+    );
+  });
+
+  // Ховер в футере — только цвет текста, поэтому фокус обязан быть явным:
+  // иначе с клавиатуры виден дефолтный UA-обвод, который легко принять за
+  // «серую плашку» и который выбивается из остального интерфейса.
+  const links = view.root.findAllByType("a");
+  assert.ok(links.length >= 10, "the footer must render its link columns");
+  for (const link of links) {
+    const className = String(link.props.className ?? "");
+    assert.match(className, /focus-visible:outline-2/, `missing focus outline on ${link.props.href}`);
+    assert.match(className, /focus-visible:outline-ring/, `focus must use the brand ring on ${link.props.href}`);
+    assert.doesNotMatch(className, /focus-visible:ring|shadow/, `focus must be an outline, not a ring or shadow`);
+  }
+
+  const source = fs.readFileSync(path.resolve(__dirname, "../components/blocks/footer7.tsx"), "utf8");
+  assert.doesNotMatch(source, /hover:bg-/, "footer links keep the flat colour-only hover");
+  act(() => view.unmount());
+});
+
 test("Navbar10 opens the account dialog from desktop and mobile navigation", async () => {
   sessionStatus = "authenticated";
   let view;
