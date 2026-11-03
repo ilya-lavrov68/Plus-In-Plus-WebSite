@@ -13,6 +13,9 @@ import { getRequestLocale } from "@/lib/request-locale";
 
 import "@/styles/globals.css";
 
+// Панель читает cookies сессии на каждом запросе: статический рендер ей не подходит.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Plus In Plus — Админ",
   robots: { index: false, follow: false },
