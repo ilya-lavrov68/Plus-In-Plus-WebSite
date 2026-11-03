@@ -4,11 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useCallback, useMemo, useState, type FormEvent } from "react";
-import { Calendar } from "lucide-react";
+import { ArrowUpRight, Calendar, Layers, LogIn } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
 import { createOrder } from "@/app/actions/orders";
+import { ContactGridColumn } from "@/components/site/page-geometry";
 import { ServiceSelector } from "@/components/site/service-selector";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -94,33 +97,39 @@ export function ContactOrderForm({
   };
 
   return (
-    <div style={{ paddingLeft: "var(--gutter-h)", paddingRight: "var(--gutter-h)", paddingBottom: "var(--block-spacing)" }}>
-      <div className="mb-10 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div style={{ maxWidth: "48rem" }}>
-          <p className="pl-h6">Plus In Plus</p>
-          <h1 className="pl-h1">{t("orderTitle")}</h1>
-          <p className="pl-body">{t("orderSubtitle")}</p>
+    <div className="relative isolate mx-auto max-w-4xl overflow-hidden px-6 py-24 md:py-32">
+      <ContactGridColumn />
+      <div className="mb-10 flex flex-col justify-between gap-4 border-b border-border/60 pb-8 sm:flex-row sm:items-end">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
+            {t("orderTitle")}
+          </h1>
+          <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">
+            {t("orderSubtitle")}
+          </p>
         </div>
-        <Link className="pl-btn" href="/services" style={{ width: "auto", whiteSpace: "nowrap" }}>
-          {t("browseCatalog")}
-          <span aria-hidden="true">→</span>
-        </Link>
+        <Button asChild variant="outline" size="sm" className="w-fit shrink-0">
+          <Link href="/services" className="gap-1.5">
+            <Layers aria-hidden="true" className="h-4 w-4" />
+            {t("browseCatalog")}
+            <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" />
+          </Link>
+        </Button>
       </div>
 
       {status === "unauthenticated" ? (
-        <div
-          className="mb-8 flex flex-wrap items-center justify-between gap-4"
-          style={{ border: "1px solid var(--theme-border-color)", padding: "1rem 1.5rem" }}
-        >
-          <p className="pl-small">{t("signInNotice")}</p>
-          <Link className="pl-btn" href="/login" style={{ width: "auto" }}>
-            {t("signInButton")}
-            <span aria-hidden="true">→</span>
-          </Link>
-        </div>
+        <Card className="mb-8 flex flex-wrap items-center justify-between gap-4 border-border bg-secondary/40 p-4 sm:px-6">
+          <p className="text-sm text-muted-foreground">{t("signInNotice")}</p>
+          <Button asChild variant="secondary" size="sm">
+            <Link href="/login" className="gap-2">
+              <LogIn aria-hidden="true" className="h-4 w-4" />
+              {t("signInButton")}
+            </Link>
+          </Button>
+        </Card>
       ) : null}
 
-      <form onSubmit={handleSubmit} className="pw-form" style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+      <form onSubmit={handleSubmit} className="space-y-8">
         <div>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <Label className="text-lg font-semibold">
@@ -204,14 +213,14 @@ export function ContactOrderForm({
             </p>
           ) : null}
 
-          <button
+          <Button
             type="submit"
-            className="pl-btn"
+            size="lg"
             disabled={isLoading || selectedServices.length === 0}
+            className="w-full"
           >
             {isLoading ? t("creatingOrder") : t("submitOrder")}
-            <span aria-hidden="true">→</span>
-          </button>
+          </Button>
         </div>
       </form>
     </div>

@@ -1,66 +1,41 @@
-import { PwFooter } from "@/components/pw/footer";
-import { getRequestLocale } from "@/lib/request-locale";
+import { Footer7 } from "@/components/blocks/footer7";
+import { getPublishedServices } from "@/lib/data";
+import { mergeCatalogServices } from "@/lib/studio-catalog";
 import { getRequestTranslations } from "@/lib/server-i18n";
 import { getPublicSiteSettings } from "@/lib/public-site-settings";
 
-/**
- * Футер строками, как на payloadcms.com: четыре ряда ссылок вместо
- * пятиколоночной простыни, контакты и нижняя строка с документами.
- */
 export async function Footer() {
-  const [t, locale, settings] = await Promise.all([
-    getRequestTranslations("shell"),
-    getRequestLocale(),
+  const [dbServices, t, ta, settings] = await Promise.all([
+    getPublishedServices(),
+    getRequestTranslations("footer"),
+    getRequestTranslations("auth"),
     getPublicSiteSettings(),
   ]);
+  const services = mergeCatalogServices(dbServices);
+  const keys = [
+    "ai", "largeDesigns", "services", "about", "resources", "legal", "company", "aboutLinks.howWeWork",
+    "aboutLinks.ourPartners", "aboutLinks.studioNews", "aboutLinks.blog", "companyLinks.account", "companyLinks.contactUs",
+    "legalLinks.privacyPolicy", "legalLinks.termsOfUse", "orderDesign", "description", "privacyPolicy",
+    "servicesLinks.signDesign", "servicesLinks.bagDesign", "servicesLinks.websiteDesign", "servicesLinks.badgeDesign",
+    "servicesLinks.posterDesign", "servicesLinks.bannerMockupDesign", "servicesLinks.largeBillboard", "servicesLinks.rooftopAdvertising",
+  ];
+  const labels = Object.fromEntries(keys.map((key) => [key, t(key)]));
+  labels["auth.register"] = ta("register");
+  if (settings.studioDescription) {
+    labels.description = settings.studioDescription;
+  }
 
   return (
-    <PwFooter
-      locale={locale === "en" ? "en" : "ru"}
+    <Footer7
+      services={services}
+      labels={labels}
+      socialLinks={{
+        vk: settings.vkUrl,
+        telegram: settings.telegramUrl,
+        youtube: settings.youtubeUrl,
+      }}
       contactEmail={settings.contactEmail}
       contactPhone={settings.contactPhone}
-      social={[
-        { label: "VK", href: settings.vkUrl ?? "https://vk.com/plusinplus" },
-        { label: "Telegram", href: settings.telegramUrl ?? "https://t.me/plusinplus" },
-        { label: "YouTube", href: settings.youtubeUrl ?? "https://www.youtube.com/@plusinplus" },
-      ]}
-      groups={[
-        {
-          title: t("footer.services"),
-          links: [
-            { label: t("nav.services"), href: "/services" },
-            { label: t("nav.shop"), href: "/shop" },
-            { label: "Заказать дизайн", href: "/contact" },
-          ],
-        },
-        {
-          title: t("footer.studio"),
-          links: [
-            { label: t("nav.blog"), href: "/blog" },
-            { label: t("nav.contact"), href: "/contact" },
-            { label: t("utility.cart"), href: "/cart" },
-          ],
-        },
-        {
-          title: t("footer.resources"),
-          links: [
-            { label: t("nav.ai"), href: "/ai" },
-            { label: "Lumi Q1", href: "/ai/lumi" },
-            { label: "Kairo", href: "/ai/kairo" },
-          ],
-        },
-        {
-          title: t("footer.legal"),
-          links: [
-            { label: t("legal.privacy"), href: "/privacy" },
-            { label: t("legal.terms"), href: "/terms" },
-          ],
-        },
-      ]}
-      legal={[
-        { label: t("legal.privacy"), href: "/privacy" },
-        { label: t("legal.terms"), href: "/terms" },
-      ]}
     />
   );
 }

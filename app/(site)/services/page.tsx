@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { PwPageHeader } from "@/components/pw/page-header";
 import { ServicesCatalogView } from "@/components/site/services-catalog-view";
 import { getActiveServices } from "@/lib/data";
 import { getRequestLocale } from "@/lib/request-locale";
@@ -24,10 +23,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ServicesPage() {
-  const [rawServices, locale, t] = await Promise.all([
+  const [rawServices, locale] = await Promise.all([
     getActiveServices(),
     getRequestLocale(),
-    getRequestTranslations("metadata"),
   ]);
   const services = localizePublicServices(rawServices, locale);
 
@@ -35,12 +33,9 @@ export default async function ServicesPage() {
   const largeServices = services.filter((s) => s.category === "large");
 
   return (
-    <>
-      <PwPageHeader eyebrow="Plus In Plus" title={t("services")} description={t("servicesDescription")} dense />
-      <ServicesCatalogView
-        smallServices={smallServices}
-        largeServices={largeServices}
-      />
-    </>
+    <ServicesCatalogView
+      smallServices={smallServices}
+      largeServices={largeServices}
+    />
   );
 }

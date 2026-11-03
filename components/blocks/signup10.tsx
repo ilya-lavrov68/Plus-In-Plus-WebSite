@@ -10,6 +10,7 @@ import { loginUser, registerUser } from "@/app/actions/auth";
 import type { AuthActionResult } from "@/app/actions/auth";
 import { getMfaPasskeyOptions } from "@/app/actions/mfa";
 import { BrandMark } from "@/components/site/logo";
+import { AuthMosaicField } from "@/components/site/page-geometry";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -164,8 +165,9 @@ const Signup10 = ({
   };
 
   return (
-    <section style={{ padding: "var(--block-spacing) var(--gutter-h)" }}>
-      <div style={{ width: "100%", maxWidth: "28rem", margin: "0 auto" }}>
+    <section className="pip-tech-grid relative isolate flex min-h-[calc(100dvh-5rem)] items-center justify-center overflow-hidden bg-background px-4 py-12 sm:px-6 sm:py-16">
+      <AuthMosaicField />
+      <div className="w-full max-w-md">
         <div className="flex flex-col items-center text-center">
           <Link
             href="/"
@@ -173,20 +175,19 @@ const Signup10 = ({
           >
             <BrandMark className="h-9" label="Plus In Plus" />
           </Link>
-          <h1 className="pl-h2 mt-6 text-center">
+          <h1 className="mt-6 text-center text-3xl font-semibold tracking-[-0.02em]">
             {isLogin ? t("login") : t("register")}
           </h1>
-          <p className="pl-small" style={{ textAlign: "center", marginTop: "0.5rem" }}>
+          <p className="mx-auto mt-2 max-w-sm text-center text-sm leading-relaxed text-muted-foreground">
             {isLogin ? t("loginPageDescription") : t("registerPageDescription")}
           </p>
         </div>
 
-        <div style={{ marginTop: "2rem", border: "1px solid var(--theme-border-color)", padding: "2rem" }}>
+        <div className="mt-8 rounded-none border border-border bg-card p-6 sm:p-8">
           <form
             aria-label={isLogin ? t("login") : t("register")}
             onSubmit={handleSubmit}
-            className="pw-form"
-            style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+            className="space-y-4"
           >
             {!isLogin && (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

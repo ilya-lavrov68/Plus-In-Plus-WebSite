@@ -65,7 +65,6 @@
   ],
   "exclude": [
     "node_modules",
-    ".e2e",
-    "vendor"
+    ".e2e"
   ]
 }

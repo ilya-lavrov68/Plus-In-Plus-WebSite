@@ -24,7 +24,7 @@ const BUILTINS = new Set(builtinModules);
  */
 const OPTIONAL_AT_RUNTIME = new Set(["pg"]);
 
-const SKIP_DIRECTORIES = new Set(["node_modules", ".next", ".git", "generated", "public", "docs", "vendor"]);
+const SKIP_DIRECTORIES = new Set(["node_modules", ".next", ".git", "generated", "public", "docs"]);
 const SOURCE_EXTENSIONS = /\.(ts|tsx|js|jsx|mjs|cjs)$/;
 
 function readJson(file) {

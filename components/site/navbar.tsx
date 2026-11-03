@@ -1,55 +1,19 @@
-import { auth } from "@/auth";
-import { PwHeader } from "@/components/pw/header";
-import { getRequestLocale } from "@/lib/request-locale";
-import { getRequestTranslations } from "@/lib/server-i18n";
+import { Navbar10 } from "@/components/blocks/navbar10";
+import { getFeaturedPost } from "@/lib/data";
 
 /**
- * Шапка сайта в структуре payloadcms.com: строка-объявление, панель навигации,
- * утилиты (корзина, вход) и CTA. SHOP остаётся в меню как каталог услуг.
+ * Шапка сайта.
+ *
+ * Раздел SHOP временно скрыт из навигации до появления мерча, поэтому услуги
+ * из базы сюда больше не подгружаются. Страницы услуг (/shop/[slug]) остаются
+ * доступны по прямым ссылкам — через них создаётся заявка на расчёт.
  */
 export async function Navbar() {
-  const [t, locale, session] = await Promise.all([
-    getRequestTranslations("shell"),
-    getRequestLocale(),
-    auth(),
-  ]);
+  const post = await getFeaturedPost();
 
   return (
-    <PwHeader
-      locale={locale === "en" ? "en" : "ru"}
-      topBar={t("topBar")}
-      menuLabel={t("menu")}
-      closeLabel={t("close")}
-      links={[
-        {
-          label: t("nav.services"),
-          href: "/services",
-          description: "Дизайн-системы, айдентика и производство носителей.",
-          children: [
-            { label: locale === "ru" ? "Все услуги" : "All services", href: "/services", description: "Айдентика, макеты и вывески под ключ." },
-            { label: t("nav.shop"), href: "/shop", description: "Каталог носителей и заказ производства." },
-          ],
-        },
-        { label: t("nav.shop"), href: "/shop" },
-        { label: t("nav.blog"), href: "/blog" },
-        {
-          label: t("nav.ai"),
-          href: "/ai",
-          description: "Два агента: инженерия и документы.",
-          children: [
-            { label: "Lumi Q1", href: "/ai/lumi", description: "Агент для кода и инженерных задач." },
-            { label: "Kairo", href: "/ai/kairo", description: "Агент для документов и права." },
-            { label: locale === "ru" ? "Все агенты" : "All agents", href: "/ai", description: "Как устроены агенты и что они умеют." },
-          ],
-        },
-        { label: t("nav.contact"), href: "/contact" },
-      ]}
-      utility={[
-        { label: t("utility.cart"), href: "/cart" },
-        { label: t("utility.login"), href: "/login" },
-      ]}
-      cta={{ label: t("cta"), href: "/contact" }}
-      user={session?.user ?? null}
+    <Navbar10
+      featuredPost={post ? { title: post.title, slug: post.slug, coverImage: post.coverImage } : null}
     />
   );
 }

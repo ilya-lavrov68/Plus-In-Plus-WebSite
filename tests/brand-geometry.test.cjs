@@ -181,10 +181,16 @@ test("public routes get distinct page geometry instead of one repeated block", (
     "every route composition must look different"
   );
 
-  // services/shop/blog уже переведены на блоки payloadcms.com — орнаментов там нет.
   const wiring = {
+    "components/site/services-catalog-view.tsx": "ServicesGridBand",
+    "components/site/shop-catalog-view.tsx": "ShopSideGrid",
     "components/blocks/blog11.tsx": "BlogLatticeField",
     "components/blocks/contact29.tsx": "ContactGridColumn",
+    "components/site/contact-order-form.tsx": "ContactGridColumn",
+    "components/blocks/signup10.tsx": "AuthMosaicField",
+    "app/(site)/privacy/page.tsx": "LegalLineBand",
+    "app/(site)/terms/page.tsx": "LegalLineBand",
+    "components/ai/ai-page-view.tsx": "AiGridBand",
     "components/site/story-timeline.tsx": "StorySignalRule",
   };
   for (const [file, component] of Object.entries(wiring)) {

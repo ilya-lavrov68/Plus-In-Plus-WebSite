@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { PwBlogArchive } from "@/components/pw/blog-archive";
+import { Blog11 } from "@/components/blocks/blog11";
 import { getPublishedPosts } from "@/lib/data";
 import { createPageMetadata } from "@/lib/seo";
 import { getRequestLocale } from "@/lib/request-locale";
@@ -30,18 +30,16 @@ export default async function BlogPage() {
   const posts = localizeBlogPosts(mergeCatalogPosts(dbPosts), t, locale);
 
   return (
-    <PwBlogArchive
-      locale={locale}
-      title={t("title")}
+    <Blog11
+      id="blog-page"
+      heading={t("title")}
       description={t("listDescription")}
-      posts={posts.map(toBlogCardData).map((post) => ({
-        slug: post.slug,
-        title: post.title,
-        dateLabel: post.dateLabel,
-        category: post.category ?? null,
-      }))}
+      posts={posts.map(toBlogCardData)}
+      allCategoryLabel={t("allCategory")}
+      categoryLabels={{ Design: t("categoryDesign"), Studio: t("categoryStudio"), Outdoor: t("categoryOutdoor") }}
       emptyTitle={t("empty.title")}
       emptyDescription={t("empty.description")}
+      asPageHeading
     />
   );
 }
