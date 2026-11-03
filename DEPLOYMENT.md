@@ -50,7 +50,7 @@ Windows: installer и shell-команды выполняйте в WSL или Gi
 | Переменная | Обязательность | Назначение |
 | --- | --- | --- |
 | `DATABASE_URL` | Да | Единый SQLite/libSQL target для сайта, auth, заказов и аналитики; в production обычно `libsql://…` |
-| `PAYLOAD_DATABASE_AUTH_TOKEN` | Для Turso Cloud | Token доступа к единой БД |
+| `DATABASE_AUTH_TOKEN` | Для Turso Cloud | Token доступа к единой БД |
 | `AUTH_SECRET` | Да | Уникальный секрет не короче 32 символов |
 | `AUTH_URL` | Да в production | Реальный HTTPS origin сайта |
 | `NEXT_PUBLIC_SITE_URL` | Рекомендуется | Тот же публичный origin для SEO/sitemap |
@@ -61,9 +61,9 @@ Windows: installer и shell-команды выполняйте в WSL или Gi
 | `PIP_HIBP_CHECK` / `PIP_HIBP_REQUIRED` | Нет | Политика проверки скомпрометированных паролей |
 | `ROBOKASSA_*` | Только для согласованной интеграции | Настройки платёжного provider |
 
-`TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` поддерживаются только как aliases для существующего secret manager; вторую БД настраивать не нужно. Приоритет у canonical `PAYLOAD_*` переменных.
+`TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` поддерживаются только как aliases для существующего secret manager; вторую БД настраивать не нужно. Приоритет у canonical `DATABASE_*`; legacy-имена `PAYLOAD_DATABASE_*` читаются только как fallback и в новой конфигурации не нужны.
 
-Генерация `AUTH_SECRET` (повторите отдельно для `PAYLOAD_SECRET`):
+Генерация `AUTH_SECRET`:
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
@@ -95,8 +95,8 @@ npm run db:check
 PowerShell:
 
 ```powershell
-$env:PAYLOAD_DATABASE_URL="libsql://plus-in-plus-<org>.turso.io"
-$env:PAYLOAD_DATABASE_AUTH_TOKEN="<token>"
+$env:DATABASE_URL="libsql://plus-in-plus-<org>.turso.io"
+$env:DATABASE_AUTH_TOKEN="<token>"
 npm run db:migrate
 npm run db:check
 ```

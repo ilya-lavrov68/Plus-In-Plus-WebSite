@@ -65,7 +65,7 @@ export async function GET() {
       {
         status: "unavailable",
         database: { driver: "libsql", remote: config.remote, reachable: false },
-        hint: "Check PAYLOAD_DATABASE_URL / PAYLOAD_DATABASE_AUTH_TOKEN and the libSQL database.",
+        hint: "Check DATABASE_URL / DATABASE_AUTH_TOKEN and the libSQL database.",
       },
       { status: 503 },
     );

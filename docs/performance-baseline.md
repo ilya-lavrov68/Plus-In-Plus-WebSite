@@ -2,7 +2,7 @@
 
 Дата: 2026-10-26. Базовый commit первого сравнения: `e399ce3d695d3ae6ad424e4e255db65320ea02b6`.
 
-Документ фиксирует последовательные измеренные пакеты этапов 0–2 из [`next-forge-optimization.md`](next-forge-optimization.md), а не завершение всей программы производительности. Архитектура, схема БД, runtime dependencies, Next.js/React major versions, Auth.js, Prisma и Turso не менялись **внутри того исторического этапа**. После полного cutover текущие data reads используют Payload Local API; упоминания Prisma ниже описывают только исходный baseline и не являются актуальным runbook.
+Документ фиксирует последовательные измеренные пакеты этапов 0–2 из [`next-forge-optimization.md`](next-forge-optimization.md), а не завершение всей программы производительности. Архитектура, схема БД, runtime dependencies, Next.js/React major versions, Auth.js, Prisma и Turso не менялись **внутри того исторического этапа**. После полного cutover текущие data reads используют собственный SQL-слой; упоминания Prisma ниже описывают только исходный baseline и не являются актуальным runbook.
 
 ## 1. Что было измерено до изменений
 

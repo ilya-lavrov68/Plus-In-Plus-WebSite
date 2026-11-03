@@ -1,4 +1,4 @@
-// Применяет db/schema.sql к базе из DATABASE_URL (или PAYLOAD_DATABASE_URL).
+// Применяет db/schema.sql к базе из DATABASE_URL (legacy-алиас: PAYLOAD_DATABASE_URL).
 // Скрипт идемпотентен: повторный запуск ничего не ломает и не удаляет данные.
 const fs = require("node:fs");
 const path = require("node:path");

@@ -42,7 +42,7 @@ npm ci
 Copy-Item .env.example .env
 ```
 
-Создайте два разных секретных ключа. Это случайные строки для защиты входа и админ-панели, а не пароли от сайта.
+Создайте секретный ключ сессий. Это случайная строка для защиты входа и админ-панели, а не пароль от сайта.
 
 1. Выполните команду и скопируйте результат в `AUTH_SECRET`:
 
@@ -50,14 +50,12 @@ Copy-Item .env.example .env
    node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
    ```
 
-2. Выполните её ещё раз и скопируйте новый результат в `PAYLOAD_SECRET`.
-3. Откройте файл командой `notepad .env` и вставьте оба значения. Начало файла должно выглядеть примерно так:
+2. Откройте файл командой `notepad .env` и вставьте значение. Начало файла должно выглядеть примерно так:
 
    ```env
    DATABASE_URL="file:./payload/pip.db"
-   PAYLOAD_DATABASE_AUTH_TOKEN=""
-   AUTH_SECRET="первый_результат_генератора"
-   PAYLOAD_SECRET="второй_результат_генератора"
+   DATABASE_AUTH_TOKEN=""
+   AUTH_SECRET="результат_генератора"
    ```
 
 Остальные значения для обычной локальной разработки менять не нужно. Файл `.env` содержит секреты и не должен попадать в Git.
@@ -102,7 +100,7 @@ npm ci
 cp .env.example .env
 ```
 
-Дважды выполните генератор и вставьте разные результаты в `AUTH_SECRET` и `PAYLOAD_SECRET` внутри `.env`:
+Выполните генератор и вставьте результат в `AUTH_SECRET` внутри `.env`:
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
@@ -160,10 +158,9 @@ npm start
 В серверном `.env` обязательно укажите свои значения:
 
 ```env
-PAYLOAD_DATABASE_URL="libsql://адрес-вашей-базы"
-PAYLOAD_DATABASE_AUTH_TOKEN="токен-базы"
-AUTH_SECRET="первый_случайный_секрет"
-PAYLOAD_SECRET="второй_случайный_секрет"
+DATABASE_URL="libsql://адрес-вашей-базы"
+DATABASE_AUTH_TOKEN="токен-базы"
+AUTH_SECRET="случайный_секрет"
 AUTH_URL="https://your-domain.example"
 NEXT_PUBLIC_SITE_URL="https://your-domain.example"
 WEBAUTHN_ORIGIN="https://your-domain.example"
@@ -200,7 +197,7 @@ npm run deploy:verify -- https://your-domain.example
 | --- | --- |
 | `ERR_UNSUPPORTED_ESM_URL_SCHEME` и путь начинается с `D:` | Повторите команду на Node `24.22.1+`: Windows-путь преобразуется в корректный `file://` URL. |
 | Node `24.14.1` или другая старая версия | Установите Node `24.22.1+` и проверьте `node -v` в новом окне терминала. |
-| `PAYLOAD_SECRET must be configured...` | Проверьте, что существует `.env`, а оба секрета заполнены разными строками длиной не менее 32 символов. |
+| `AUTH_SECRET must be configured...` | Проверьте, что существует `.env` и `AUTH_SECRET` заполнен строкой длиной не менее 32 символов. |
 | `Missing tables` | Выполните `npm run db:migrate`, затем `npm run db:check`. |
 | Порт `3000` уже занят | Запустите dev-сервер на другом порту: `npm run dev -- -p 3001`. |
 | Нужна общая диагностика | Выполните `npm run doctor`: команда проверит Node, пакеты, `db/schema.sql`, админ-панель, базу и наличие секретов, не печатая их значения. |
@@ -347,7 +344,7 @@ ROBOKASSA_HASH_ALGO="md5"
 | `502 Bad Gateway` | Приложение не запущено на `:3000` → проверьте `pm2 status`, `pm2 logs plus-in-plus` и `curl http://127.0.0.1:3000/api/health`. |
 | Staff не попадает в `/admin` | Проверьте, что включён **«Режим администратора»** и пройден второй фактор. Если открыт `/profile?mfa=required`, сначала настройте TOTP/passkey, сохраните backup codes и повторите вход. |
 | Google Authenticator отклоняет код при первичной привязке | Создайте текущий QR, удалите прежнюю запись Plus In Plus для аккаунта в приложении и отсканируйте QR заново. Включите автоматические дату и время на телефоне; если отказ сохраняется, проверьте `date -u`/NTP на сервере и только redacted event `auth.mfa.failed`. Не расширяйте TOTP window и не отправляйте QR/secret/code в тикет. |
-| Вход/регистрация пишут «временно недоступны» | На сервере не задан `PAYLOAD_DATABASE_URL` или `AUTH_SECRET` короче 32 символов → заполните `.env` и выполните `pm2 restart plus-in-plus`. |
+| Вход/регистрация пишут «временно недоступны» | На сервере не задан `DATABASE_URL` или `AUTH_SECRET` короче 32 символов → заполните `.env` и выполните `pm2 restart plus-in-plus`. |
 | `npm run db:migrate` применяется не к той базе | Скрипт читает переменные окружения шелла → проверьте `DATABASE_URL` и перед запуском выполните `set -a; source .env; set +a`. |
 | `JavaScript heap out of memory` при `npm run build` | На VPS с 1 ГБ RAM добавьте swap 2 ГБ: `sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile`. |
 

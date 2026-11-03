@@ -11,7 +11,7 @@ import path from "node:path";
  *   - `:memory:`                     — throwaway database, scripts only
  *
  * DATABASE_URL — каноническая переменная в обоих окружениях: dev и prod ходят
- * в одну и ту же схему из db/schema.sql. PAYLOAD_DATABASE_URL остаётся алиасом
+ * в одну и ту же схему из db/schema.sql. Legacy-имя PAYLOAD_DATABASE_URL остаётся алиасом
  * для уже настроенных окружений.
  */
 

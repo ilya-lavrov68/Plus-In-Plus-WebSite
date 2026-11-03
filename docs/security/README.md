@@ -1,16 +1,16 @@
 # Оценка безопасности Plus In Plus и план дальнейших работ
 
-Первичная оценка: **2026-10-26**; архитектура актуализирована после Payload cutover **2026-11-01**. База сравнения: `d583e92725c1c30095882af1e5d21ce06cb6799d`; оцениваемый delta находится в ветке, содержащей этот документ.
+Первичная оценка: **2026-10-26**; архитектура актуализирована после удаления CMS-слоя и перевода данных на собственный SQL **2026-11-03**. База сравнения: `d583e92725c1c30095882af1e5d21ce06cb6799d`; оцениваемый delta находится в ветке, содержащей этот документ.
 
 Это оценка исходников и автоматических проверок, **не** сертификация, внешний penetration test, infrastructure audit, юридическое заключение или production security rating. Не было доступа к настроенной non-production/production БД, реальному HTTPS endpoint, cloud account, SIEM, backup vault или live Robokassa. Mock repositories, in-memory doubles и disposable SQLite не выдаются за staging/production evidence.
 
 ## 1. Результат и объём изменений
 
-В baseline уже были server-side RBAC/ownership, Auth.js credentials, bcrypt, generic login failures, bounded/shared rate limiting, Zod, parameterized Payload/SQLite queries, HTML sanitization, image re-encoding, nonce CSP, payment signature/state checks и transactional ActivityLog.
+В baseline уже были server-side RBAC/ownership, Auth.js credentials, bcrypt, generic login failures, bounded/shared rate limiting, Zod, parameterized SQLite/libSQL queries, HTML sanitization, image re-encoding, nonce CSP, payment signature/state checks и transactional ActivityLog.
 
 Текущий hardening delta добавляет или завершает:
 
-- **Additive MFA/session schema:** `pending_logins`, `auth_sessions`, `mfa_backup_codes`, `webauthn_credentials` и nullable `activity_logs.actorPseudonym`. Health проверяет 16 обязательных прикладных таблиц плюс служебные Payload tables. Схема применяется только reviewed `payload:migrate`; для managed/production окружения по-прежнему нужны backup и staging verification.
+- **Additive MFA/session schema:** `pending_logins`, `auth_sessions`, `mfa_backup_codes`, `webauthn_credentials` и nullable `activity_logs.actorPseudonym`. Health проверяет обязательные прикладные таблицы. Схема принадлежит репозиторию (`db/schema.sql`) и применяется reviewed `db:migrate`; для managed/production окружения по-прежнему нужны backup и staging verification.
 - **TOTP:** secrets шифруются AES-256-GCM с отдельным HKDF-derived key из `AUTH_SECRET`; pending setup действует десять минут и атомарно переиспользуется между вкладками. Форма привязана к timestamp конкретного enrollment: устаревший QR получает отдельное recovery-состояние, а invalid code оставляет только redacted event `auth.mfa.failed`. Verification throttled, `window: 1` не расширяется.
 - **WebAuthn/passkeys:** registration/authentication через SimpleWebAuthn 14, user verification required, алгоритмы `-7` и `-257`; production требует HTTPS, `WEBAUTHN_ORIGIN` и `WEBAUTHN_RP_ID` с hostname/parent-domain validation.
 - **Исправление MFA serialization:** `AuthenticationResponseJSON` явно кодируется в JSON перед URL-encoded Auth.js credentials boundary и строго декодируется с size/shape checks в `authorize`. Отсутствующее passkey-поле больше не превращается в строку `"undefined"`; malformed passkey payload не проваливается в TOTP/backup branch. Challenge/origin/RP ID/UV/replay/rate-limit проверки не ослаблены.
@@ -33,7 +33,7 @@
 | --- | --- | --- |
 | Полный `npm test` | **358/358 passed** | Включает прежние RBAC/payment/CMS/upload regressions и MFA/session/CSP/SSRF/health/origin tests, включая stable/stale/expired TOTP enrollment. Это не staging или external test. |
 | Focused MFA/session regressions | Passed внутри полного suite | TOTP challenge consumption, backup-code single use, role-demotion/re-promotion semantics, refresh rotation/reuse/device binding, three-session limit и selective revocation на in-memory doubles. Не доказывает live authenticator или distributed DB race. |
-| Реальная MFA ceremony integration | **4/4 passed** | `tests/mfa-ceremony-integration.test.cjs`: настоящие action functions, URL-encoded `@auth/core` parser, Credentials provider, SimpleWebAuthn, QR/TOTP, bcrypt и настоящий Payload Local API на disposable SQLite. Дополнительно проверены parallel/reopened setup, один `setupId`, отклонение stale enrollment, истечение TTL и успешное renewal. Это не физический/platform authenticator и не staging. |
+| Реальная MFA ceremony integration | **4/4 passed** | `tests/mfa-ceremony-integration.test.cjs`: настоящие action functions, URL-encoded `@auth/core` parser, Credentials provider, SimpleWebAuthn, QR/TOTP, bcrypt и настоящий SQL-слой на disposable SQLite. Дополнительно проверены parallel/reopened setup, один `setupId`, отклонение stale enrollment, истечение TTL и успешное renewal. Это не физический/platform authenticator и не staging. |
 | Локальный Next.js HTTP MFA smoke | **Passed** | До fix реальный `next dev` воспроизвёл `The verification code is invalid or expired.` для валидной signed assertion; после fix тот же flow завершился успешно. `beginTotpSetup` → QR → `enableTotp` также прошёл на HTTP в development и в собранном `next start`; pending secret очищен. Не доказывает чужой deployment, HTTPS-домен или браузерный authenticator. |
 | Локальный HTTPS production browser MFA review | **Passed** | QR декодирован в `otpauth://`; код вычислен независимой HMAC-реализацией и принят. Проверены invalid recovery, server/client expiry, renewal и повторный Staff sign-in как `ADMIN`; RU/EN, 320–1440 px, keyboard и console. Disposable SQLite и самоподписанный TLS не являются production evidence. |
 | Focused SSRF/CSP/health/origin | Passed внутри полного suite | Body-cap read stop/cancellation, redirect revalidation, modern CSP fields/redaction, health log redaction и cross-origin rejection до side effects. Не live DNS rebinding или browser CSP verification. |
@@ -41,7 +41,7 @@
 | `npm run security:audit` | Passed: **310 source files**, no high-confidence findings | Focused policy checks выбранных secrets/CORS/raw-SQL/HTML/dynamic-execution patterns. Не полный SAST и не гарантия отсутствия секретов. |
 | `npm run security:dependencies` | **0 vulnerabilities** | Point-in-time full npm audit. Не гарантия будущего отсутствия advisories или поддержки всех версий. |
 | ESLint / TypeScript / production build | **Passed** | `npm run lint` без warnings/errors, `tsc --noEmit` и `next build` успешны. Это не заменяет browser/runtime checks и managed staging. |
-| Disposable Payload migrations + local production smoke | **Passed** | `payload:migrate`/`migrate:status`/`db:check`: 16 обязательных таблиц; health `ok`, `/`, `/shop`, `/blog`, `/sitemap.xml` — 200; payment GET — 405; cross-origin POST — 403; пустой refresh — 401; CSP reporting headers есть. Это не staging/Turso/production. |
+| Disposable schema + local production smoke | **Passed** | `db:migrate`/`db:check`: 16 обязательных таблиц; health `ok`, `/`, `/shop`, `/blog`, `/sitemap.xml` — 200; payment GET — 405; cross-origin POST — 403; пустой refresh — 401; CSP reporting headers есть. Это не staging/Turso/production. |
 | Managed Turso / remote concurrency | **Не выполнялись** | Реальные migrations и ceremonies выполняются на disposable SQLite; managed remote environment и distributed concurrency требуют отдельного reviewed staging run. |
 | Operational MFA у всех staff | **Не подтверждено** | Код enforcement есть; реальные пользователи должны настроить факторы и пройти recovery drill. |
 | Live HIBP / Upstash | **Не проверялись** | Protocol/atomic behavior покрыт mocks; production connectivity и outage behavior требуют smoke. |
@@ -53,7 +53,7 @@
 
 Сообщённый отказ TOTP на deployed-площадке локально **не воспроизвёлся**: формат URI совпал с независимыми HMAC/`pyotp`, а production browser scenario принял код. После повторного пользовательского отчёта добавлены привязка формы к enrollment, отдельное stale/expired recovery и redacted `auth.mfa.failed` для invalid setup code. Это устраняет подтверждённый stale-QR дефект, но не доказывает причину отказа на чужой инфраструктуре. Если invalid сохраняется на текущем QR после deploy, нужны только конкретный UI result и redacted server event `auth.mfa.failed`; также проверить `npm run db:check`, UTC/NTP на сервере, автоматическое время на authenticator-устройстве, одинаковый `AUTH_SECRET` на всех инстансах и отсутствие его ротации между setup и enable. Секреты, QR, TOTP codes и содержимое БД в тикет не включать.
 
-Полный CI в `.github/workflows/ci.yml` дополнительно запускает install/doctor, audits, lint, TypeScript, tests, disposable Payload migrations/status/check, production build и HTTP smoke. Он не имеет production secrets и не применяет реальную схему.
+Полный CI в `.github/workflows/ci.yml` дополнительно запускает install/doctor, audits, lint, TypeScript, tests, disposable `db:migrate`/`db:check`, production build и HTTP smoke. Он не имеет production secrets и не применяет реальную схему.
 
 ## 3. OWASP Top 10 mapping
 
@@ -63,10 +63,10 @@
 | --- | --- | --- |
 | A01 Broken Access Control | Server-derived roles, DB/token effective roles, founder rules, manager scope, owned cart/order/support, staff MFA enforcement и regressions. Partial. | Нужны external horizontal/vertical tests и centralized permission-denied alerting. |
 | A02 Cryptographic Failures | bcrypt cost 12, encrypted TOTP, hashed backup/refresh secrets, secure production cookies и HSTS при правильном HTTPS deployment. Partial. | TLS/ciphers, certificate automation, Turso/storage/backups encryption, key rotation и managed secret store не проверены. |
-| A03 Injection | Payload query binding, reviewed raw SQL binds, Zod, sanitization, request caps/type checks и no runtime `child_process`. Partial. | Нужны independent SQL/command/template/fuzz tests. |
+| A03 Injection | Parameterised SQL binds, Zod, sanitization, request caps/type checks и no runtime `child_process`. Partial. | Нужны independent SQL/command/template/fuzz tests. |
 | A04 Insecure Design | Deny-by-default roles, server-authoritative prices/CMS, MFA/session architecture, abuse limits, audit records и IR/GDPR/DR templates. Partial. | Нужны approved threat model, RTO/RPO, operational recovery и periodic design reviews. |
 | A05 Security Misconfiguration | Nonce CSP, anti-framing, nosniff/referrer/permissions, HSTS, production CSP enforcement и telemetry endpoint. Partial. | Proxy redirect/forwarded-header overwrite, CDN/WAF, TLS и host/container hardening требуют deployment verification. HSTS `includeSubDomains` требует all-subdomain review. |
-| A06 Vulnerable and Outdated Components | Exact lockfile, `npm ci`, full audit в CI, текущий zero finding. Partial. | Нужны continuous advisory monitoring, SBOM, supported Payload/ESLint upgrades и dependency/action provenance. |
+| A06 Vulnerable and Outdated Components | Exact lockfile, `npm ci`, full audit в CI, текущий zero finding. Partial. | Нужны continuous advisory monitoring, SBOM, supported ESLint/dependency upgrades и dependency/action provenance. |
 | A07 Identification and Authentication Failures | Strong/HIBP passwords, generic errors, throttling, TOTP/WebAuthn/backup codes, pending challenge limits, 15-minute access, rotating seven-day refresh, device binding и three-session limit. Repository controls реализованы; overall Partial. | Нужны real staff enrollment, authenticator/browser tests, staging concurrency/revocation, risk-based signals и incident recovery. |
 | A08 Software and Data Integrity Failures | Lockfile/CI, schema/build checks, transactional audit, payment signature/amount/order/state validation. Partial. | Actions pinned by tags, не commit SHA; нет SBOM, artifact signing/provenance и independent integrity assessment. |
 | A09 Security Logging and Monitoring Failures | ActivityLog, fixed-field auth/refresh events, sanitized errors, health и redacted CSP telemetry; retention CLI. Partial. | Нет подтверждённого central immutable logging, alerting/on-call и approved automated retention schedule. |
@@ -79,7 +79,7 @@ XML parsing не обнаружен как application request path. CORS ост
 | Функция | Текущее evidence | Статус и следующее действие |
 | --- | --- | --- |
 | **Govern** | Эта оценка, reporting policy, IR/GDPR/DR и deployment runbooks | **Partial.** Назначить owners/deputies, risk acceptance, vendor ownership, approval и review cadence. |
-| **Identify** | Payload data inventory, source/dependency review, documented assets/threats | **Partial.** Завершить production asset/data-flow inventory, processor register, BIA и external attack-surface validation. |
+| **Identify** | Data inventory, source/dependency review, documented assets/threats | **Partial.** Завершить production asset/data-flow inventory, processor register, BIA и external attack-surface validation. |
 | **Protect** | RBAC/ownership, MFA/session controls, passwords, throttling, validation, headers, uploads, SSRF pinning, secrets rules и CI | **Partial.** Применить reviewed schema, включить staff MFA, проверить TLS/IAM/encryption, secret manager, WAF и retention. |
 | **Detect** | Health, ActivityLog, structured auth/refresh/security events и redacted CSP endpoint | **Partial.** Centralize tamper-resistant logs, alert на spikes/role/payment/session anomalies и отрепетировать queries. |
 | **Respond** | [IR runbook](incident-response.md), containment/revocation/rotation levers | **Template only.** Назначить on-call/legal contacts, off-site evidence и tabletop exercise. |
@@ -109,7 +109,7 @@ XML parsing не обнаружен как application request path. CORS ост
 
 ### P0 — до Internet-facing production release
 
-1. **Схема и staging:** backup, reviewed `payload:migrate`, `migrate:status`, `db:check`, health 16 и полный staging smoke на копии. Проверить MFA enrollment/login/recovery, passkeys в браузере, refresh rotation/reuse/race, logout/password revocation и четыре concurrent sessions.
+1. **Схема и staging:** backup, reviewed `db:migrate`, `db:check`, health 16 и полный staging smoke на копии. Проверить MFA enrollment/login/recovery, passkeys в браузере, refresh rotation/reuse/race, logout/password revocation и четыре concurrent sessions.
 2. **Operational MFA:** включить второй фактор у каждого FOUNDER/ADMIN/MANAGER, сохранить backup codes в approved manager, назначить recovery owners и убедиться, что ordinary customer login сохранён.
 3. **Deployment security:** HTTPS-only redirect, trusted proxy headers, secure `__Secure-` cookies, `WEBAUTHN_*`, TLS/ciphers/certificate renewal и all-subdomain HSTS review. Выполнить external Security Headers/SSL Labs без выдумывания оценок.
 4. **Abuse controls:** настроить и проверить Upstash/equivalent, CDN/WAF global limits, NAT exceptions, limiter outage alerts и при необходимости risk-based CAPTCHA.
@@ -120,7 +120,7 @@ XML parsing не обнаружен как application request path. CORS ост
 
 ### P1 — следующая engineering-итерация
 
-- Commit-SHA-pinned GitHub Actions, Dependabot/Renovate review, SBOM, artifact provenance и supported Payload/ESLint upgrade plan.
+- Commit-SHA-pinned GitHub Actions, Dependabot/Renovate review, SBOM, artifact provenance и supported ESLint/dependency upgrade plan.
 - Live DNS-rebinding/egress test environment и professional SAST/DAST/fuzzing для parsers, uploads, URL canonicalization, RBAC и payment callbacks.
 - Aggregate multipart/streaming limits, central error telemetry и rehearsed alert queries.
 - Browser-based UI/accessibility review по `docs/ui-ux-pro-max.md` с screenshots, keyboard, responsive, reduced motion и повторным review после fixes.

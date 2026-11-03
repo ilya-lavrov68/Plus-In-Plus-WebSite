@@ -5,7 +5,7 @@ import { createClient, type Client, type InValue } from "@libsql/client";
  * приложения: и публичный сайт, и админка, и админ-аналитика ходят в базу
  * напрямую, без CMS-слоя.
  *
- * URL берётся из `DATABASE_URL`, старый `PAYLOAD_DATABASE_URL` поддерживается
+ * URL берётся из `DATABASE_URL`, legacy-имя `PAYLOAD_DATABASE_URL` поддерживается
  * как алиас, чтобы существующие .env и скрипты продолжали работать.
  */
 
