@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 
 import { cookies } from "next/headers";
 
+import { revokeAllAuthSessions, revokeWhere } from "@/lib/auth-session-revoke";
 import { row, rows, run, sqlValue, withTransaction } from "@/lib/db";
 import { hashesEqual } from "@/lib/mfa";
 import { logSecurityEvent } from "@/lib/security-log";
@@ -49,16 +50,6 @@ export async function clearRefreshCookies(): Promise<void> {
 export async function readRefreshCookies(): Promise<{ refreshToken: string; deviceId: string }> {
   const jar = await cookies();
   return { refreshToken: jar.get(refreshCookieName())?.value ?? "", deviceId: jar.get(deviceCookieName())?.value ?? "" };
-}
-
-async function revokeWhere(userId: string, now: string, reason: string, excludeSessionId?: string): Promise<void> {
-  const params: unknown[] = [now, reason.slice(0, 64), now, userId];
-  let sql = "update auth_sessions set revoked_at = ?, revoke_reason = ?, updated_at = ? where user_id_id = ? and revoked_at is null";
-  if (excludeSessionId) {
-    sql += " and id <> ?";
-    params.push(excludeSessionId);
-  }
-  await run(sql, params);
 }
 
 export async function createAuthSession(userId: string, role: UserRole): Promise<{ sessionId: string; deviceHash: string }> {
@@ -205,10 +196,9 @@ export async function downgradeAuthSession(sessionId: string, deviceHash: string
   );
 }
 
-export async function revokeAllAuthSessions(userId: string, reason: string): Promise<void> {
-  const now = new Date().toISOString();
-  await revokeWhere(userId, now, reason);
-}
+// Обе функции живут в lib/auth-session-revoke.ts: тот модуль не тянет
+// next/headers и годится для CLI. Реэкспорт сохраняет прежний импорт.
+export { revokeAllAuthSessions };
 
 export async function revokeOtherAuthSessions(userId: string, reason: string): Promise<void> {
   const { refreshToken } = await readRefreshCookies();

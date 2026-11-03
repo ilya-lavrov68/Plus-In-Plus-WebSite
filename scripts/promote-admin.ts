@@ -1,5 +1,5 @@
 import { findAccountByEmail, updateAccount } from "@/lib/accounts";
-import { revokeAllAuthSessions } from "@/lib/auth-sessions";
+import { revokeAllAuthSessions } from "@/lib/auth-session-revoke";
 import { closeDb, rows } from "@/lib/db";
 
 // Server-only runbook. Registration still creates USER; FOUNDER cannot be

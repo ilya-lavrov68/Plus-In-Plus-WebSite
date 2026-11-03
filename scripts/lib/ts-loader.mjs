@@ -9,7 +9,14 @@ async function exists(url) {
 
 export async function resolve(specifier, context, nextResolve) {
   let target = null;
-  if (specifier.startsWith("@/")) target = path.join(root, specifier.slice(2));
+  if (specifier.startsWith("@/")) {
+    target = path.join(root, specifier.slice(2));
+  } else if ((specifier.startsWith("./") || specifier.startsWith("../")) && !path.extname(specifier)) {
+    // TypeScript-импорты пишутся без расширения (`./database`), а ESM его требует.
+    // Ищем файл рядом с импортирующим модулем.
+    const parentPath = context.parentURL ? path.dirname(fileURLToPath(context.parentURL)) : root;
+    target = path.resolve(parentPath, specifier);
+  }
   if (target) {
     for (const candidate of [target, `${target}.ts`, `${target}.tsx`, path.join(target, "index.ts"), path.join(target, "index.tsx")]) {
       const url = pathToFileURL(candidate).href;
