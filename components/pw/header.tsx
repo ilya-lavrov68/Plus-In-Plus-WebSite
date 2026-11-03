@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-
-import { PwAvatar } from "./avatar";
 import { useState } from "react";
 
+import { PwAvatar } from "./avatar";
 import classes from "./header/header.module.scss";
 import desktop from "./header/desktop.module.scss";
+import topbar from "./header/topbar.module.scss";
 
 export interface PwHeaderProps {
   locale: "ru" | "en";
@@ -16,6 +16,7 @@ export interface PwHeaderProps {
   links: {
     label: string;
     href: string;
+    description?: string;
     children?: { label: string; href: string; description: string }[];
   }[];
   utility: { label: string; href: string }[];
@@ -26,8 +27,9 @@ export interface PwHeaderProps {
 const href = (locale: string, path: string) => `/${locale}${path === "/" ? "" : path}`;
 
 /**
- * Шапка из payloadcms/website (components/Header, DesktopNav, MobileNav — MIT):
- * их SCSS-модули, их верхняя строка, панель навигации и мобильное меню.
+ * Шапка payloadcms.com: верхняя строка TopBar (success-100), панель
+ * DesktopNav высотой --header-height (логотип cols-4, контент cols-8,
+ * утилиты cols-4) и выпадающие меню внутри .tabs.
  */
 export function PwHeader({ locale, topBar, menuLabel, closeLabel, links, utility, cta, user }: PwHeaderProps) {
   const [open, setOpen] = useState(false);
@@ -35,103 +37,108 @@ export function PwHeader({ locale, topBar, menuLabel, closeLabel, links, utility
 
   return (
     <div className={classes.wrapper}>
-      <div className={classes.topBar} style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <span className="pl-h6">{topBar}</span>
-      </div>
+      <Link className={topbar.topBar} href={href(locale, cta.href)}>
+        <span className={topbar.message}>{topBar}</span>
+        <span className={topbar.label}>{cta.label}</span>
+        <span aria-hidden="true">→</span>
+      </Link>
 
-      <header className={`${classes.header} ${open ? classes.mobileNavOpen : ""}`}>
-        <div className={`pw-header ${desktop.desktopNav}`}>
+      <header className={classes.header}>
+        <div className={`pw-bar ${desktop.desktopNav}`} style={{ width: "100%" }}>
           <div
-            className={`${desktop.container} grid`}
-            style={{ paddingLeft: "var(--gutter-h)", paddingRight: "var(--gutter-h)", alignItems: "center", height: "100%" }}
+            className={`${desktop.desktopNav} ${openDropdown ? desktop.active : ""}`}
+            style={{ paddingLeft: "var(--gutter-h)", paddingRight: "var(--gutter-h)" }}
           >
-            <Link href={href(locale, "/")} className={`cols-3 ${desktop.logo}`}>
-              Plus In Plus
-            </Link>
+            <div className={`${desktop.grid} grid`}>
+              <div className={`${desktop.logo} cols-4`}>
+                <Link className={desktop.logo} href={href(locale, "/")}>
+                  Plus In Plus
+                </Link>
+              </div>
 
-            <nav className={`pw-desktop-nav cols-8 ${desktop.tabs}`} aria-label="Main">
-              <ul style={{ display: "flex", alignItems: "center", gap: "1.5rem", listStyle: "none", margin: 0, padding: 0 }}>
-                {links.map((link) => (
-                  <li
-                    key={link.href}
-                    className={desktop.dropdownWrap}
-                    onMouseEnter={() => setOpenDropdown(link.children ? link.href : null)}
-                    onMouseLeave={() => setOpenDropdown(null)}
-                  >
-                    <Link
-                      href={href(locale, link.href)}
-                      className={`${desktop.tab} ${openDropdown === link.href ? desktop.active : ""}`}
-                      aria-expanded={link.children ? openDropdown === link.href : undefined}
-                      onFocus={() => setOpenDropdown(link.children ? link.href : null)}
+              <div className={`${desktop.content} cols-8`} data-pw-nav="">
+                <div className={desktop.tabs} onMouseLeave={() => setOpenDropdown(null)}>
+                  {links.map((link) => (
+                    <div
+                      key={link.href}
+                      onMouseEnter={() => setOpenDropdown(link.children ? link.href : null)}
                     >
-                      {link.label}
-                      {link.children ? <span aria-hidden="true"> ▾</span> : null}
-                    </Link>
-                    {link.children && openDropdown === link.href ? (
-                      <div
-                        className={`${desktop.dropdown} ${desktop.show}`}
-                        onMouseEnter={() => setOpenDropdown(link.href)}
-                        style={{
-                          top: "calc(var(--top-bar-height) + var(--header-height))",
-                          zIndex: 45,
-                          pointerEvents: "auto",
-                        }}
-                      >
-                        <div className={desktop.background} style={{ height: "100%" }} aria-hidden="true" />
-                        <div className="grid">
+                      {link.children ? (
+                        <button
+                          type="button"
+                          className={desktop.tab}
+                          aria-expanded={openDropdown === link.href}
+                          onClick={() => setOpenDropdown(openDropdown === link.href ? null : link.href)}
+                        >
+                          {link.label}
+                        </button>
+                      ) : (
+                        <Link className={`${desktop.tab} ${desktop.directLink}`} href={href(locale, link.href)}>
+                          {link.label}
+                        </Link>
+                      )}
+
+                      {link.children && openDropdown === link.href ? (
+                        <div
+                          className={`grid ${desktop.dropdown} ${desktop.activeTab}`}
+                          style={{ top: "calc(var(--top-bar-height) + var(--header-height))" }}
+                        >
+                          <div className={`${desktop.description} cols-4`}>
+                            {link.description ?? link.label}
+                          </div>
                           {link.children.map((child) => (
-                            <div key={child.href} className={`cols-4 ${desktop.dropdownItem} ${desktop.show}`}>
-                              <Link
-                                href={href(locale, child.href)}
-                                className={desktop.descriptionLink}
-                                onClick={() => setOpenDropdown(null)}
-                              >
-                                <span className={desktop.listLabel}>{child.label}</span>
-                                <span className={desktop.description}>{child.description}</span>
+                            <div key={child.href} className={`cols-4 ${desktop.dropdownItem}`}>
+                              <Link className={desktop.defaultLink} href={href(locale, child.href)}>
+                                <div className={desktop.defaultLinkLabel}>{child.label}</div>
+                                <div className={desktop.defaultLinkDescription}>
+                                  {child.description}
+                                  <span aria-hidden="true" className={desktop.linkArrow}>
+                                    →
+                                  </span>
+                                </div>
                               </Link>
                             </div>
                           ))}
                         </div>
-                      </div>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </nav>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-            <div className={`cols-5 ${desktop.secondaryNavItems}`}>
-              {user ? (
-                <PwAvatar name={user.name} email={user.email} href={href(locale, "/profile")} />
-              ) : null}
-              <span className="pw-header-utility">
-                {utility.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={href(locale, item.href)}
-                    className={desktop.defaultLink}
+              <div className="cols-4">
+                <div className={`${desktop.secondaryNavItems} ${desktop.show}`}>
+                  {user ? (
+                    <PwAvatar name={user.name} email={user.email} href={href(locale, "/profile")} />
+                  ) : null}
+                  <span className="pw-header-utility">
+                    {utility.map((item) => (
+                      <Link key={item.href} className={desktop.defaultLink} href={href(locale, item.href)}>
+                        {item.label}
+                      </Link>
+                    ))}
+                    <Link className={desktop.button} href={href(locale, cta.href)}>
+                      {cta.label}
+                    </Link>
+                  </span>
+                  <button
+                    type="button"
+                    className={`${desktop.tab} pw-burger`}
+                    onClick={() => setOpen((value) => !value)}
+                    aria-expanded={open}
+                    aria-label={open ? closeLabel : menuLabel}
+                    style={{ height: "auto" }}
                   >
-                    {item.label}
-                  </Link>
-                ))}
-                <Link href={href(locale, cta.href)} className={desktop.button}>
-                  {cta.label}
-                </Link>
-              </span>
-              <button
-                type="button"
-                className={`${desktop.tab} ${desktop.link} lg:hidden`}
-                onClick={() => setOpen((value) => !value)}
-                aria-expanded={open}
-                aria-label={open ? closeLabel : menuLabel}
-              >
-                <svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true">
-                  {open ? (
-                    <path d="M2 2l14 8M16 2L2 10" stroke="currentColor" strokeWidth="1.5" fill="none" />
-                  ) : (
-                    <path d="M0 1h18M0 6h18M0 11h18" stroke="currentColor" strokeWidth="1.5" fill="none" />
-                  )}
-                </svg>
-              </button>
+                    <svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true">
+                      {open ? (
+                        <path d="M2 2l14 8M16 2L2 10" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                      ) : (
+                        <path d="M0 1h18M0 6h18M0 11h18" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                      )}
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

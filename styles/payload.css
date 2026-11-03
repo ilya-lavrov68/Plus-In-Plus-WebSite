@@ -303,9 +303,27 @@ body {
 }
 
 /* Навигация шапки: десктопный ряд скрыт там, где работает бургер. */
+.pw-burger {
+  display: none;
+}
+
 @media (max-width: 1023px) {
-  .pw-desktop-nav {
+  [data-pw-nav] {
     display: none !important;
+  }
+
+  .pw-burger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* Их .desktopNav скрывается ниже 768px, но в нём живут логотип и бургер. */
+@media (max-width: 768px) {
+  .pw-bar {
+    display: block !important;
+    visibility: visible !important;
   }
 }
 
