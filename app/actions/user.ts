@@ -4,10 +4,11 @@ import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
+import { findAccountById, recordActivity, updateAccount } from "@/lib/accounts";
 import { getActionTranslator } from "@/lib/action-i18n";
 import { isAuthConfigured } from "@/lib/auth-secret";
+import { withTransaction, type DbTransaction } from "@/lib/db";
 import { assertPasswordNotCompromised, CompromisedPasswordError } from "@/lib/password-breach";
-import { getPayloadClient, type PayloadTransactionRequest, withPayloadTransaction } from "@/lib/payload-native";
 import { checkRateLimitAsync, hashRateLimitIdentifier } from "@/lib/rate-limit";
 import { logServerError } from "@/lib/security-log";
 import { localAvatarPath } from "@/lib/upload-policy";
@@ -20,8 +21,8 @@ export interface ChangePasswordInput { currentPassword: string; newPassword: str
 export interface UpdateUserProfileInput { firstName?: string; lastName?: string; avatar?: string }
 export interface UpdateUserProfileResult { ok: boolean; firstName: string | null; lastName: string | null; avatar: string | null }
 function isFormData(value: unknown): value is FormData { return typeof FormData !== "undefined" && value instanceof FormData; }
-async function writeActivity(payload: Awaited<ReturnType<typeof getPayloadClient>>, req: PayloadTransactionRequest, action: string, userId: string) {
-  await payload.create({ collection: "activity-logs", data: { action, entityType: "user", entityId: userId, title: "User account", actorId: userId }, overrideAccess: true, req });
+async function writeActivity(tx: DbTransaction, action: string, userId: string) {
+  await recordActivity({ action, entityType: "user", entityId: userId, title: "User account", actorId: userId }, tx);
 }
 
 export async function updateUserProfile(data: UpdateUserProfileInput | FormData): Promise<UpdateUserProfileResult> {
@@ -35,9 +36,7 @@ export async function updateUserProfile(data: UpdateUserProfileInput | FormData)
   const parsed = profileSchema.safeParse({ firstName: rawFirstName, lastName: rawLastName });
   if (!parsed.success) throw new Error(t(firstIssueMessage(parsed.error)));
 
-  const payload = await getPayloadClient();
-  const existingResult = await payload.find({ collection: "accounts", depth: 0, limit: 1, overrideAccess: true, where: { id: { equals: session.user.id } } });
-  const existing = existingResult.docs[0];
+  const existing = await findAccountById(session.user.id);
   if (!existing || existing.isBlocked) throw new Error(t("unauthorized"));
   let uploadedAvatar: string | null = null;
   let nextAvatar: string | null | undefined;
@@ -59,16 +58,14 @@ export async function updateUserProfile(data: UpdateUserProfileInput | FormData)
         nextAvatar = safePath;
       }
     }
-    const updated = await withPayloadTransaction(payload, async (req) => {
-      const user = await payload.update({
-        collection: "accounts",
-        id: existing.id,
-        data: { firstName: parsed.data.firstName || null, lastName: parsed.data.lastName || null, ...(nextAvatar !== undefined ? { avatar: nextAvatar } : {}) },
-        overrideAccess: true,
-        req,
-      });
-      await writeActivity(payload, req, "updated profile", existing.id);
-      return user;
+    const updated = await withTransaction(async (tx) => {
+      await updateAccount(
+        existing.id,
+        { firstName: parsed.data.firstName || null, lastName: parsed.data.lastName || null, ...(nextAvatar !== undefined ? { avatar: nextAvatar } : {}) },
+        tx,
+      );
+      await writeActivity(tx, "updated profile", existing.id);
+      return { ...existing, firstName: parsed.data.firstName || null, lastName: parsed.data.lastName || null, avatar: nextAvatar !== undefined ? nextAvatar : existing.avatar };
     });
     saved = true;
     if (uploadedAvatar && existing.avatar && existing.avatar !== uploadedAvatar) await cleanupUpload(existing.avatar, "avatars");
@@ -99,9 +96,7 @@ export async function changePassword(data: ChangePasswordInput): Promise<{ ok: t
     if (newPassword !== confirmPassword) throw new PasswordChangeError(t("validation.passwordsDoNotMatch"));
     if (currentPassword === newPassword) throw new PasswordChangeError(t("passwordUnchanged"));
 
-    const payload = await getPayloadClient();
-    const existingResult = await payload.find({ collection: "accounts", depth: 0, limit: 1, overrideAccess: true, showHiddenFields: true, where: { id: { equals: session.user.id } } });
-    const existing = existingResult.docs[0];
+    const existing = await findAccountById(session.user.id);
     if (!existing || existing.isBlocked || !existing.passwordHash) throw new PasswordChangeError(t("unauthorized"));
     if (!(await bcrypt.compare(currentPassword, existing.passwordHash))) throw new PasswordChangeError(t("currentPasswordIncorrect"));
     try {
@@ -111,16 +106,15 @@ export async function changePassword(data: ChangePasswordInput): Promise<{ ok: t
       throw error;
     }
     const passwordHash = await bcrypt.hash(newPassword, 12);
-    await withPayloadTransaction(payload, async (req) => {
-      await payload.update({
-        collection: "auth-sessions",
-        data: { revokedAt: new Date().toISOString(), revokeReason: "password_changed" },
-        overrideAccess: true,
-        req,
-        where: { and: [{ userId: { equals: existing.id } }, { revokedAt: { exists: false } }] },
-      });
-      await payload.update({ collection: "accounts", id: existing.id, data: { passwordHash }, overrideAccess: true, req });
-      await writeActivity(payload, req, "password changed", existing.id);
+    await withTransaction(async (tx) => {
+      const now = new Date().toISOString();
+      await tx.run(
+        `update auth_sessions set revoked_at = ?, revoke_reason = 'password_changed', updated_at = ?
+         where user_id_id = ? and revoked_at is null`,
+        [now, now, existing.id],
+      );
+      await updateAccount(existing.id, { passwordHash }, tx);
+      await writeActivity(tx, "password changed", existing.id);
     });
     return { ok: true };
   } catch (error) {

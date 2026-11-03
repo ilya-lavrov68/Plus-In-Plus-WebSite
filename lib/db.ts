@@ -62,13 +62,57 @@ export interface DbTransaction {
   run(sql: string, args?: unknown[]): Promise<number>;
 }
 
+function isSqliteBusy(error: unknown): boolean {
+  const candidate = error as { code?: unknown; message?: unknown; cause?: { code?: unknown; message?: unknown } } | null;
+  const code = String(candidate?.code ?? candidate?.cause?.code ?? "").toUpperCase();
+  const message = `${String(candidate?.message ?? "")} ${String(candidate?.cause?.message ?? "")}`.toLowerCase();
+  return code === "SQLITE_BUSY" || code === "SQLITE_LOCKED" || message.includes("database is locked") || message.includes("database table is locked");
+}
+
+// В SQLite один писатель. Очередь держит транзакции этого процесса
+// последовательными: параллельные BEGIN дают SQLITE_BUSY и оставляют
+// незакрытые native-соединения.
+let writerTail: Promise<void> = Promise.resolve();
+
+async function acquireWriter(): Promise<() => void> {
+  const previous = writerTail;
+  let release!: () => void;
+  const current = new Promise<void>((resolve) => { release = resolve; });
+  writerTail = previous.then(() => current);
+  await previous;
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    release();
+  };
+}
+
+async function startWriteTransaction() {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await getDb().transaction("write");
+    } catch (error) {
+      if (!isSqliteBusy(error) || attempt >= 7) throw error;
+      await new Promise((resolve) => setTimeout(resolve, Math.min(10 * 2 ** attempt, 160)));
+    }
+  }
+}
+
 /**
  * Запись в одной SQLite-транзакции. Нужна там, где несколько изменений должны
  * примениться вместе: выдача сессии и вытеснение лишних, ротация refresh-токена,
  * создание заказа.
  */
 export async function withTransaction<T>(fn: (tx: DbTransaction) => Promise<T>): Promise<T> {
-  const tx = await getDb().transaction("write");
+  const release = await acquireWriter();
+  let tx;
+  try {
+    tx = await startWriteTransaction();
+  } catch (error) {
+    release();
+    throw error;
+  }
   const scoped: DbTransaction = {
     async rows<R = Record<string, unknown>>(sql: string, args: unknown[] = []): Promise<R[]> {
       const result = await tx.execute({ sql, args: toArgs(args) });
@@ -90,6 +134,8 @@ export async function withTransaction<T>(fn: (tx: DbTransaction) => Promise<T>):
       // Соединение могло уже закрыться — исходная ошибка важнее.
     }
     throw error;
+  } finally {
+    release();
   }
 }
 

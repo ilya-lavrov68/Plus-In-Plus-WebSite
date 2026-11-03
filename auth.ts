@@ -4,15 +4,16 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 
 import { authConfig } from "@/auth.config";
+import { findAccountById } from "@/lib/accounts";
 import { isAuthConfigured } from "@/lib/auth-secret";
 import {
   authSessionIsActive,
   clearRefreshCookies,
   createAuthSession,
   downgradeAuthSession,
+  revokeAuthSessionById,
 } from "@/lib/auth-sessions";
 import { authorizeCredentials } from "@/lib/credentials";
-import { getPayloadClient } from "@/lib/payload-native";
 import { logServerError } from "@/lib/security-log";
 import { localAvatarPath } from "@/lib/upload-policy";
 import { normalizeRole, profileName } from "@/lib/user-profile";
@@ -22,18 +23,8 @@ function passwordStamp(passwordHash: string): string {
   return createHash("sha256").update(passwordHash).digest("base64url");
 }
 
-async function findAuthAccount(id: string) {
-  const payload = await getPayloadClient();
-  const result = await payload.find({
-    collection: "accounts",
-    depth: 0,
-    limit: 1,
-    overrideAccess: true,
-    showHiddenFields: true,
-    where: { id: { equals: id } },
-  });
-  return result.docs[0] ?? null;
-}
+/** Единственный источник данных аккаунта: наша таблица `accounts`. */
+const findAuthAccount = findAccountById;
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -57,19 +48,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async signOut(message) {
       try {
         const token = "token" in message ? message.token : null;
-        if (token?.sessionId) {
-          const payload = await getPayloadClient();
-          await payload.update({
-            collection: "auth-sessions",
-            data: { revokedAt: new Date().toISOString(), revokeReason: "logout" },
-            overrideAccess: true,
-            where: {
-              and: [
-                { id: { equals: token.sessionId } },
-                { revokedAt: { exists: false } },
-              ],
-            },
-          });
+        if (typeof token?.sessionId === "string") {
+          await revokeAuthSessionById(token.sessionId, "logout");
         }
         await clearRefreshCookies();
       } catch (error) {

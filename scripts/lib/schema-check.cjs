@@ -1,4 +1,5 @@
-// Структурная проверка таблиц, которыми владеет Payload. DDL здесь не выполняется.
+// Структурная проверка таблиц приложения (схема живёт в db/schema.sql).
+// DDL здесь не выполняется — только чтение sqlite_master.
 const EXPECTED_TABLES = [
   "accounts",
   "pending_logins",
@@ -17,7 +18,7 @@ const EXPECTED_TABLES = [
   "page_views",
   "site_settings",
   "story",
-  "payload_migrations",
+  "story_events",
 ];
 
 async function inspectDatabase(url, authToken) {

@@ -6,7 +6,7 @@ const path = require("node:path");
 const { createClient } = require("@libsql/client");
 const { EXPECTED_TABLES, checkSchema } = require("../scripts/lib/schema-check.cjs");
 
-test("read-only schema check accepts the complete Payload schema and reports missing tables", async () => {
+test("read-only schema check accepts the complete schema and reports missing tables", async () => {
   const directory = await fs.promises.mkdtemp(path.join(os.tmpdir(), "pip-schema-check-"));
   const url = `file:${path.join(directory, "check.db")}`;
   const client = createClient({ url });
@@ -26,15 +26,15 @@ test("read-only schema check accepts the complete Payload schema and reports mis
   }
 });
 
-test("reviewed migration preserves cart, order and payment uniqueness contracts", () => {
-  const migration = fs.readFileSync(path.join(__dirname, "..", "payload", "migrations", "20261031_220229.ts"), "utf8");
+test("reviewed schema preserves cart, order and payment uniqueness contracts", () => {
+  const schema = fs.readFileSync(path.join(__dirname, "..", "db", "schema.sql"), "utf8");
   for (const index of ["orders_order_number_idx", "orders_cart_key_idx", "payments_provider_key_idx", "accounts_email_idx"]) {
-    assert.ok(migration.includes(index), index);
+    assert.ok(schema.includes(index), index);
   }
-  assert.match(migration, /CREATE UNIQUE INDEX/);
-  assert.match(migration, /CREATE TABLE \\`orders\\/);
-  assert.match(migration, /CREATE TABLE \\`order_items\\/);
-  assert.doesNotMatch(migration, /prisma|db push/i);
+  assert.match(schema, /CREATE UNIQUE INDEX/);
+  assert.match(schema, /CREATE TABLE `orders`/);
+  assert.match(schema, /CREATE TABLE `order_items`/);
+  assert.doesNotMatch(schema, /prisma|db push/i);
 });
 
 test("Node CLI loaders use file URLs instead of raw Windows drive-letter paths", () => {
@@ -49,17 +49,16 @@ test("Node CLI loaders use file URLs instead of raw Windows drive-letter paths",
   }
 });
 
-test("repository and CI use reviewed Payload migrations instead of additive legacy DDL", () => {
+test("repository and CI apply db/schema.sql instead of CMS-generated migrations", () => {
   const root = path.join(__dirname, "..");
   const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
-  assert.equal(pkg.scripts["payload:migrate"], "node scripts/payload-cli.cjs migrate");
-  assert.ok(fs.existsSync(path.join(root, "scripts", "payload-cli.cjs")));
+  assert.equal(pkg.scripts["db:migrate"], "node scripts/db-migrate.cjs");
+  assert.ok(fs.existsSync(path.join(root, "db", "schema.sql")));
   assert.equal(pkg.scripts["db:push"], undefined);
   assert.equal(fs.existsSync(path.join(root, "scripts", "lib", "db-cli.cjs")), false);
   const ci = fs.readFileSync(path.join(root, ".github", "workflows", "ci.yml"), "utf8");
-  assert.match(ci, /npm run payload:migrate/);
-  assert.match(ci, /npm run payload -- migrate:status/);
+  assert.match(ci, /npm run db:migrate/);
   assert.match(ci, /npm run db:check/);
   assert.match(ci, /runs-on: windows-latest/);
-  assert.doesNotMatch(ci, /prisma|db push/i);
+  assert.doesNotMatch(ci, /prisma|db push|payload:migrate/i);
 });

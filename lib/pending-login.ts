@@ -1,86 +1,126 @@
 import { createHash, randomBytes } from "node:crypto";
 
+import { findAccountById, listPasskeys, type AccountWithPasskeys } from "@/lib/accounts";
+import { row, run, withTransaction } from "@/lib/db";
 import { hashesEqual } from "@/lib/mfa";
-import { getPayloadClient, payloadDate, payloadId, withPayloadTransaction } from "@/lib/payload-native";
-import type { UserRole } from "@/lib/user-profile";
-import type { PendingLogin } from "@/payload/payload-types";
+import { normalizeRole, type UserRole } from "@/lib/user-profile";
+
+/**
+ * Промежуточный вход (пароль верен, второй фактор ещё нет).
+ *
+ * Таблица `pending_logins` — единственный источник правды: секрет хранится
+ * только как sha256, попытки считаются в SQL, а списание идёт условным DELETE,
+ * поэтому один и тот же challenge нельзя использовать дважды даже при гонке.
+ */
 
 export const PENDING_LOGIN_SECONDS = 5 * 60;
 export const MAX_PENDING_LOGIN_ATTEMPTS = 5;
+const MAX_PENDING_LOGINS_PER_USER = 5;
 const ID_PATTERN = /^[A-Za-z0-9_-]{32,128}$/;
-function hashSecret(secret: string): string { return createHash("sha256").update(secret, "utf8").digest("hex"); }
+
+function hashSecret(secret: string): string {
+  return createHash("sha256").update(secret, "utf8").digest("hex");
+}
+
+export interface PendingLoginRecord {
+  id: string;
+  userId: string;
+  role: UserRole;
+  secretHash: string;
+  webAuthnChallenge: string | null;
+  attempts: number;
+  expiresAt: Date;
+  user: AccountWithPasskeys;
+}
 
 export async function createPendingLogin(userId: string, role: UserRole): Promise<{ pendingLoginId: string; pendingLoginSecret: string }> {
-  const payload = await getPayloadClient();
   const pendingLoginId = randomBytes(24).toString("base64url");
   const pendingLoginSecret = randomBytes(32).toString("base64url");
   const now = new Date();
-  await withPayloadTransaction(payload, async (req) => {
-    await payload.delete({ collection: "pending-logins", where: { and: [{ userId: { equals: userId } }, { expiresAt: { less_than_equal: now.toISOString() } }] }, overrideAccess: true, req });
-    await payload.create({
-      collection: "pending-logins",
-      data: { id: pendingLoginId, userId, role, secretHash: hashSecret(pendingLoginSecret), attempts: 0, expiresAt: new Date(now.getTime() + PENDING_LOGIN_SECONDS * 1000).toISOString() },
-      overrideAccess: true,
-      req,
-    });
-    const recent = await payload.find({ collection: "pending-logins", depth: 0, pagination: false, sort: "-createdAt", overrideAccess: true, req, where: { userId: { equals: userId } } });
-    const excess = recent.docs.slice(5).map((item) => item.id);
-    if (excess.length) await payload.delete({ collection: "pending-logins", where: { id: { in: excess } }, overrideAccess: true, req });
+  const expiresAt = new Date(now.getTime() + PENDING_LOGIN_SECONDS * 1000);
+
+  await withTransaction(async (tx) => {
+    // Просроченные записи этого пользователя больше не нужны.
+    await tx.run(`delete from pending_logins where user_id_id = ? and expires_at <= ?`, [userId, now.toISOString()]);
+    await tx.run(
+      `insert into pending_logins (id, user_id_id, role, secret_hash, attempts, expires_at, created_at, updated_at)
+       values (?, ?, ?, ?, 0, ?, ?, ?)`,
+      [pendingLoginId, userId, role, hashSecret(pendingLoginSecret), expiresAt.toISOString(), now.toISOString(), now.toISOString()],
+    );
+    // Лимит: держим только самые свежие challenge'и пользователя.
+    const recent = await tx.rows<{ id: string }>(
+      `select id from pending_logins where user_id_id = ? order by created_at desc`,
+      [userId],
+    );
+    const excess = recent.slice(MAX_PENDING_LOGINS_PER_USER).map((item) => item.id);
+    if (excess.length) {
+      await tx.run(
+        `delete from pending_logins where id in (${excess.map(() => "?").join(", ")})`,
+        excess,
+      );
+    }
   });
+
   return { pendingLoginId, pendingLoginSecret };
 }
 
-/** Returns null for every malformed, expired or secret-mismatch case. */
-export async function readPendingLogin(pendingLoginId: unknown, pendingLoginSecret: unknown) {
+/** Возвращает null для любого некорректного, просроченного или чужого секрета. */
+export async function readPendingLogin(pendingLoginId: unknown, pendingLoginSecret: unknown): Promise<PendingLoginRecord | null> {
   if (typeof pendingLoginId !== "string" || typeof pendingLoginSecret !== "string") return null;
   if (!ID_PATTERN.test(pendingLoginId) || !ID_PATTERN.test(pendingLoginSecret)) return null;
-  const payload = await getPayloadClient();
-  const result = await payload.find({ collection: "pending-logins", depth: 1, limit: 1, overrideAccess: true, where: { id: { equals: pendingLoginId } } });
-  const pending = result.docs[0] as PendingLogin | undefined;
-  const expiresAt = payloadDate(pending?.expiresAt);
-  if (!pending || !expiresAt || expiresAt.getTime() <= Date.now() || pending.attempts >= MAX_PENDING_LOGIN_ATTEMPTS) return null;
-  const account = pending.userId && typeof pending.userId === "object" ? pending.userId : null;
-  if (!account || account.isBlocked || !hashesEqual(pending.secretHash, hashSecret(pendingLoginSecret))) return null;
-  const credentials = await payload.find({ collection: "webauthn-credentials", depth: 0, pagination: false, overrideAccess: true, where: { userId: { equals: account.id } } });
+
+  const pending = await row(
+    `select id, user_id_id, role, secret_hash, web_authn_challenge, attempts, expires_at
+     from pending_logins where id = ? limit 1`,
+    [pendingLoginId],
+  );
+  if (!pending) return null;
+
+  const expiresAt = new Date(String(pending.expires_at ?? ""));
+  const attempts = Number(pending.attempts ?? 0);
+  if (Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= Date.now()) return null;
+  if (!Number.isFinite(attempts) || attempts >= MAX_PENDING_LOGIN_ATTEMPTS) return null;
+  if (!hashesEqual(String(pending.secret_hash ?? ""), hashSecret(pendingLoginSecret))) return null;
+
+  const account = await findAccountById(String(pending.user_id_id ?? ""));
+  if (!account || account.isBlocked) return null;
+  const user: AccountWithPasskeys = { ...account, webAuthnCredentials: await listPasskeys(account.id) };
   return {
-    ...pending,
+    id: String(pending.id),
+    userId: account.id,
+    role: normalizeRole(pending.role === null ? null : String(pending.role)),
+    secretHash: String(pending.secret_hash ?? ""),
+    webAuthnChallenge: pending.web_authn_challenge === null || pending.web_authn_challenge === undefined ? null : String(pending.web_authn_challenge),
+    attempts,
     expiresAt,
-    user: { ...account, webAuthnCredentials: credentials.docs },
-    userId: payloadId(pending.userId),
+    user,
   };
 }
 
 export async function recordPendingLoginFailure(pendingLoginId: string): Promise<void> {
-  const payload = await getPayloadClient();
-  await withPayloadTransaction(payload, async (req) => {
-    const result = await payload.find({ collection: "pending-logins", depth: 0, limit: 1, overrideAccess: true, req, where: { id: { equals: pendingLoginId } } });
-    const pending = result.docs[0];
-    if (!pending || pending.attempts >= MAX_PENDING_LOGIN_ATTEMPTS) return;
-    await payload.update({
-      collection: "pending-logins",
-      id: pending.id,
-      data: { attempts: pending.attempts + 1 },
-      overrideAccess: true,
-      req,
-    });
-  });
+  await run(
+    `update pending_logins set attempts = attempts + 1, updated_at = ?
+     where id = ? and attempts < ?`,
+    [new Date().toISOString(), pendingLoginId, MAX_PENDING_LOGIN_ATTEMPTS],
+  );
 }
 
+/** Условный DELETE: одноразовость challenge'а обеспечивает сама база. */
 export async function consumePendingLogin(pendingLoginId: string, secretHash: string): Promise<boolean> {
-  const payload = await getPayloadClient();
-  const consumed = await payload.delete({ collection: "pending-logins", where: { and: [{ id: { equals: pendingLoginId } }, { secretHash: { equals: secretHash } }] }, overrideAccess: true });
-  return consumed.docs.length === 1;
+  const consumed = await run(`delete from pending_logins where id = ? and secret_hash = ?`, [pendingLoginId, secretHash]);
+  return consumed === 1;
 }
 
 export async function savePendingWebAuthnChallenge(pendingLoginId: string, secretHash: string, challenge: string): Promise<boolean> {
-  const payload = await getPayloadClient();
-  const updated = await payload.update({
-    collection: "pending-logins",
-    data: { webAuthnChallenge: challenge },
-    overrideAccess: true,
-    where: { and: [{ id: { equals: pendingLoginId } }, { secretHash: { equals: secretHash } }, { attempts: { less_than: MAX_PENDING_LOGIN_ATTEMPTS } }, { expiresAt: { greater_than: new Date().toISOString() } }] },
-  });
-  return updated.docs.length === 1;
+  const now = new Date();
+  const updated = await run(
+    `update pending_logins set web_authn_challenge = ?, updated_at = ?
+     where id = ? and secret_hash = ? and attempts < ? and expires_at > ?`,
+    [challenge, now.toISOString(), pendingLoginId, secretHash, MAX_PENDING_LOGIN_ATTEMPTS, now.toISOString()],
+  );
+  return updated === 1;
 }
 
-export function pendingSecretHash(secret: string): string { return hashSecret(secret); }
+export function pendingSecretHash(secret: string): string {
+  return hashSecret(secret);
+}

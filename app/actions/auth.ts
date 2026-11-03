@@ -6,16 +6,24 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
 import { auth, signIn, signOut } from "@/auth";
+import {
+  createAccount,
+  findAccountByEmail,
+  findAccountById,
+  findAccountWithPasskeysByEmail,
+  isUniqueConstraintError,
+  recordActivity,
+  updateAccount,
+} from "@/lib/accounts";
 import { getActionTranslator } from "@/lib/action-i18n";
 import { isAuthConfigured } from "@/lib/auth-secret";
 import { assertPasswordNotCompromised, CompromisedPasswordError } from "@/lib/password-breach";
+import { withTransaction, type DbTransaction } from "@/lib/db";
 import { readPendingLogin } from "@/lib/pending-login";
-import { getPayloadClient, isPayloadUniqueError, type PayloadTransactionRequest, withPayloadTransaction } from "@/lib/payload-native";
 import { getClientAddress, checkRateLimitAsync, hashRateLimitIdentifier } from "@/lib/rate-limit";
 import { logSecurityEvent, logServerError } from "@/lib/security-log";
 import { cleanupUpload, saveImageUpload, UploadValidationError } from "@/lib/uploads";
 import { firstIssueMessage, loginSchema, profileSchema, registerSchema } from "@/lib/validators";
-import type { Account } from "@/payload/payload-types";
 
 export interface LoginInput {
   email?: string;
@@ -120,24 +128,14 @@ const WINDOW_MS = 10 * 60 * 1000;
 
 async function recordAuthActivity(action: "login" | "staff login" | "logout", userId: string): Promise<void> {
   try {
-    const payload = await getPayloadClient();
-    await payload.create({
-      collection: "activity-logs",
-      data: { action, entityType: "user", entityId: userId, title: "User account", actorId: userId },
-      overrideAccess: true,
-    });
+    await recordActivity({ action, entityType: "user", entityId: userId, title: "User account", actorId: userId });
   } catch (error) {
     logServerError("auth.audit.write_failed", error);
   }
 }
 
-async function writeAuthActivity(payload: Awaited<ReturnType<typeof getPayloadClient>>, req: PayloadTransactionRequest, action: string, userId: string): Promise<void> {
-  await payload.create({
-    collection: "activity-logs",
-    data: { action, entityType: "user", entityId: userId, title: "User account", actorId: userId },
-    overrideAccess: true,
-    req,
-  });
+async function writeAuthActivity(tx: DbTransaction, action: string, userId: string): Promise<void> {
+  await recordActivity({ action, entityType: "user", entityId: userId, title: "User account", actorId: userId }, tx);
 }
 
 export async function loginUser(input: LoginSubmission): Promise<AuthActionResult> {
@@ -172,20 +170,7 @@ export async function loginUser(input: LoginSubmission): Promise<AuthActionResul
       email = credentials.data.email;
       password = credentials.data.password;
       // This lookup only selects a destination and never replaces Auth.js verification.
-      const payload = await getPayloadClient();
-      const result = await payload.find({
-        collection: "accounts",
-        depth: 0,
-        limit: 1,
-        overrideAccess: true,
-        showHiddenFields: true,
-        where: { email: { equals: email } },
-      });
-      const found = result.docs[0] as Account | undefined;
-      const passkeys = found
-        ? await payload.find({ collection: "webauthn-credentials", depth: 0, limit: 1, overrideAccess: true, where: { userId: { equals: found.id } } })
-        : { docs: [] };
-      account = found ? { ...found, webAuthnCredentials: passkeys.docs } : null;
+      account = await findAccountWithPasskeysByEmail(email);
     }
   } catch (error) {
     logServerError("auth.login.lookup_failed", error);
@@ -300,19 +285,12 @@ export async function registerUser(input: RegisterSubmission): Promise<RegisterR
   }
 
   try {
-    const payload = await getPayloadClient();
-    const existing = await payload.find({ collection: "accounts", depth: 0, limit: 1, overrideAccess: true, where: { email: { equals: email } } });
-    if (existing.docs.length) return { ok: false, success: false, error: t("registrationFailedWithDetails") };
+    if (await findAccountByEmail(email)) return { ok: false, success: false, error: t("registrationFailedWithDetails") };
     await assertPasswordNotCompromised(password);
     const passwordHash = await bcrypt.hash(password, 12);
-    await withPayloadTransaction(payload, async (req) => {
-      const user = await payload.create({
-        collection: "accounts",
-        data: { email, passwordHash, firstName, lastName, role: "USER" },
-        overrideAccess: true,
-        req,
-      });
-      await writeAuthActivity(payload, req, "registered", user.id);
+    await withTransaction(async (tx) => {
+      const user = await createAccount({ email, passwordHash, firstName, lastName, role: "USER" }, tx);
+      await writeAuthActivity(tx, "registered", user.id);
     });
   } catch (error) {
     if (error instanceof CompromisedPasswordError) {
@@ -322,7 +300,7 @@ export async function registerUser(input: RegisterSubmission): Promise<RegisterR
         error: t(error.code === "compromised" ? "validation.passwordCompromised" : "validation.passwordBreachUnavailable"),
       };
     }
-    if (isPayloadUniqueError(error)) return { ok: false, success: false, error: t("registrationFailedWithDetails") };
+    if (isUniqueConstraintError(error)) return { ok: false, success: false, error: t("registrationFailedWithDetails") };
     logServerError("auth.registration.failed", error);
     return { ok: false, success: false, error: t("registrationFailed") };
   }
@@ -356,24 +334,20 @@ export async function updateUserProfile(formData: FormData): Promise<AuthActionR
     });
     if (!profile.success) return { ok: false, success: false, error: t(firstIssueMessage(profile.error)) };
     const { firstName, lastName } = profile.data;
-    const payload = await getPayloadClient();
-    const existingResult = await payload.find({ collection: "accounts", depth: 0, limit: 1, overrideAccess: true, where: { id: { equals: session.user.id } } });
-    const existing = existingResult.docs[0];
+    const existing = await findAccountById(session.user.id);
     if (!existing) return { ok: false, success: false, error: t("accountGone") };
     const file = formData.get("avatar");
     if (typeof file === "string" && file) return { ok: false, success: false, error: t("chooseLocalImage") };
     if (file instanceof File && file.name && file.size === 0) throw new UploadValidationError(t("emptyImage"));
     if (file instanceof File && file.size > 0) newAvatar = await saveImageUpload(file, "avatars");
 
-    await withPayloadTransaction(payload, async (req) => {
-      await payload.update({
-        collection: "accounts",
-        id: existing.id,
-        data: { firstName: firstName || null, lastName: lastName || null, ...(newAvatar ? { avatar: newAvatar } : {}) },
-        overrideAccess: true,
-        req,
-      });
-      await writeAuthActivity(payload, req, "updated profile", existing.id);
+    await withTransaction(async (tx) => {
+      await updateAccount(
+        existing.id,
+        { firstName: firstName || null, lastName: lastName || null, ...(newAvatar ? { avatar: newAvatar } : {}) },
+        tx,
+      );
+      await writeAuthActivity(tx, "updated profile", existing.id);
     });
     saved = true;
     if (newAvatar) await cleanupUpload(existing.avatar ?? null, "avatars");

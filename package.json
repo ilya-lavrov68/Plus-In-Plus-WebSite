@@ -6,6 +6,7 @@
     "build": "next build",
     "analyze": "ANALYZE=true next build",
     "db:check": "node scripts/db-check.cjs",
+    "db:migrate": "node scripts/db-migrate.cjs",
     "db:cleanup": "node scripts/run-ts.cjs scripts/cleanup-database.ts",
     "db:audit-retention": "node scripts/run-ts.cjs scripts/pseudonymize-audit.ts",
     "db:promote-admin": "node scripts/run-ts.cjs scripts/promote-admin.ts",

@@ -5,7 +5,7 @@ const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
 const bcrypt = require("bcryptjs");
-const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
+const { createTestDatabase } = require("./helpers/test-db.cjs");
 
 require.extensions[".ts"] = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename, "utf8"), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true, target: ts.ScriptTarget.ES2022 },
@@ -13,27 +13,9 @@ require.extensions[".ts"] = (module, filename) => module._compile(ts.transpileMo
 
 let admin;
 let accounts;
-let revoked;
-let logs;
-const db = {
-  user: {
-    findUnique: async ({ where }) => structuredClone(accounts.get(where.id) ?? null),
-    update: async ({ where, data }) => {
-      const row = accounts.get(where.id);
-      if (!row) throw new Error("missing account");
-      Object.assign(row, structuredClone(data));
-      return structuredClone(row);
-    },
-  },
-  authSession: {
-    updateMany: async ({ where, data }) => { revoked.push({ where, data }); return { count: 2 }; },
-  },
-  activityLog: { create: async ({ data }) => { logs.push(structuredClone(data)); return data; } },
-  transaction: async (callback) => callback(db),
-};
+let database;
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/payload-native") return createNativeModuleMock(db);
   if (name === "@/lib/admin-session") return { requireAdmin: async () => admin };
   if (name === "@/lib/action-i18n") return { getActionTranslator: async () => (key) => key };
   if (name === "next/cache") return { revalidatePath: () => {} };
@@ -45,14 +27,28 @@ const { resetUserPassword } = require("../app/actions/account.ts");
 const { protectAccount, protectAccountDeletion, revokeAccountSessions } = require("../payload/hooks.ts");
 const { SiteSettings } = require("../payload/collections/system.ts");
 
-beforeEach(() => {
+const { after, before } = require("node:test");
+
+before(async () => {
+  database = createTestDatabase("pip-founder-");
+  await database.ready;
+});
+
+after(async () => {
+  await database?.close();
+});
+
+beforeEach(async () => {
   admin = { id: "admin-1", role: "ADMIN" };
+  await database.reset();
+  await database.insertAccount({ id: "admin-1", email: "admin@example.test", role: "ADMIN", passwordHash: "old" });
+  await database.insertAccount({ id: "founder-1", email: "founder@example.test", role: "FOUNDER", passwordHash: "old" });
+  await database.insertAccount({ id: "user-1", email: "user@example.test", role: "USER", passwordHash: "old" });
+  // Payload hooks still receive plain document objects in this test.
   accounts = new Map([
     ["founder-1", { id: "founder-1", email: "founder@example.test", role: "FOUNDER", isBlocked: false, passwordHash: "old" }],
     ["user-1", { id: "user-1", email: "user@example.test", role: "USER", isBlocked: false, passwordHash: "old" }],
   ]);
-  revoked = [];
-  logs = [];
 });
 
 function req(role = "ADMIN", id = "admin-1") {
@@ -122,16 +118,25 @@ test("password reset never targets founder, revokes ordinary sessions and return
   assert.equal((await resetUserPassword("user-1")).ok, false);
   admin = { id: "founder-1", role: "FOUNDER" };
   assert.equal((await resetUserPassword("founder-1")).ok, false, "founder cannot reset even their own password through the panel");
-  assert.equal(revoked.length, 0);
+  assert.equal((await database.one("select password_hash from accounts where id = ?", ["user-1"])).password_hash, "old");
 
   admin = { id: "admin-1", role: "ADMIN" };
+  await database.exec(
+    `insert into auth_sessions (id, user_id_id, refresh_hash, device_hash, role, last_used_at, expires_at, created_at, updated_at)
+     values ('session-1', 'user-1', 'refresh-hash', 'device-hash', 'USER', ?, ?, ?, ?)`,
+    [new Date().toISOString(), new Date(Date.now() + 60_000).toISOString(), new Date().toISOString(), new Date().toISOString()],
+  );
   const result = await resetUserPassword("user-1");
   assert.equal(result.ok, true);
   assert.ok(result.temporaryPassword);
-  assert.notEqual(result.temporaryPassword, accounts.get("user-1").passwordHash);
-  assert.equal(await bcrypt.compare(result.temporaryPassword, accounts.get("user-1").passwordHash), true);
-  assert.equal(revoked.length, 1);
-  assert.equal(revoked[0].data.revokeReason, "password_reset");
-  assert.equal(logs[0].actorId, "admin-1");
-  assert.equal(JSON.stringify(logs).includes("user@example.test"), false);
+  const reset = await database.one("select password_hash from accounts where id = ?", ["user-1"]);
+  assert.notEqual(result.temporaryPassword, reset.password_hash);
+  assert.equal(await bcrypt.compare(result.temporaryPassword, reset.password_hash), true);
+  const session = await database.one("select revoked_at, revoke_reason from auth_sessions where id = 'session-1'");
+  assert.ok(session.revoked_at, "ordinary sessions are revoked with the new password");
+  assert.equal(session.revoke_reason, "password_reset");
+  const log = await database.rows("select * from activity_logs where entity_id = 'user-1'");
+  assert.equal(log[0].actor_id_id, "admin-1");
+  assert.equal(log[0].action, "password reset");
+  assert.equal(JSON.stringify(log).includes("user@example.test"), false);
 });

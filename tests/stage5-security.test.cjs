@@ -1,10 +1,11 @@
 const assert = require("node:assert/strict");
-const { test, beforeEach } = require("node:test");
+const { after, before, test, beforeEach } = require("node:test");
 const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
 const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
+const { createTestDatabase } = require("./helpers/test-db.cjs");
 const sharp = require("sharp");
 const { createHash } = require("node:crypto");
 const { TOTP } = require("otpauth");
@@ -15,8 +16,9 @@ require.extensions[".ts"] = (module, filename) => {
   }).outputText, filename);
 };
 
-// Test doubles only. These tests never connect to a database or create real accounts.
-let account, session, options, compareCalls, lookupFails, pendingLogin, backupCode;
+// Accounts, pending logins and backup codes live in a real temporary SQLite
+// database; only password hashing and media storage are doubled.
+let account, session, options, compareCalls, lookupFails, database;
 const mediaRows = new Map();
 let addressSequence = 1;
 class CredentialsSignin extends Error { code = "credentials"; }
@@ -24,20 +26,6 @@ function nextAuth(config) { options = config; return {}; }
 nextAuth.CredentialsSignin = CredentialsSignin;
 
 const db = {
-  user: {
-    findUnique: async () => {
-      if (lookupFails) throw new Error("simulated DB outage");
-      return account;
-    },
-    findMany: async ({ where = {} } = {}) => {
-      if (lookupFails) throw new Error("simulated DB outage");
-      if (!account || (where.id && account.id !== where.id) || (where.email && account.email !== where.email)) return [];
-      return [structuredClone(account)];
-    },
-  },
-  webAuthnCredential: {
-    findMany: async () => structuredClone(account?.webAuthnCredentials ?? []),
-  },
   media: {
     create: async ({ data, file }) => {
       const id = `media-${mediaRows.size + 1}`;
@@ -59,33 +47,7 @@ const db = {
       return structuredClone(row);
     },
   },
-  pendingLogin: {
-    findUnique: async ({ where }) => pendingLogin?.id === where.id
-      ? { ...structuredClone(pendingLogin), user: structuredClone(account) }
-      : null,
-    deleteMany: async ({ where }) => {
-      if (!pendingLogin || pendingLogin.id !== where.id || (where.secretHash && pendingLogin.secretHash !== where.secretHash)) return { count: 0 };
-      pendingLogin = null;
-      return { count: 1 };
-    },
-    updateMany: async ({ where, data }) => {
-      if (!pendingLogin || pendingLogin.id !== where.id || pendingLogin.attempts >= (where.attempts?.lt ?? Infinity)) return { count: 0 };
-      if (data.attempts?.increment) pendingLogin.attempts += data.attempts.increment;
-      else if (Number.isInteger(data.attempts)) pendingLogin.attempts = data.attempts;
-      return { count: 1 };
-    },
-  },
-  mfaBackupCode: {
-    findFirst: async ({ where }) => backupCode && backupCode.userId === where.userId &&
-      backupCode.codeHash === where.codeHash && backupCode.usedAt === null
-      ? { id: backupCode.id }
-      : null,
-    updateMany: async ({ where, data }) => {
-      if (!backupCode || backupCode.id !== where.id || backupCode.usedAt !== null) return { count: 0 };
-      backupCode.usedAt = data.usedAt;
-      return { count: 1 };
-    },
-  },
+  queryRaw: async () => [],
 };
 
 const originalLoad = Module._load;
@@ -104,16 +66,16 @@ Module._load = function (name, parent, isMain) {
     downgradeAuthSession: async () => {},
     rotateAuthSession: async () => null,
   };
+  // Media uploads still go through the Payload media collection.
   if (name === "@/lib/payload-native") return createNativeModuleMock(db);
-  if (name === "@/lib/db") {
-    // admin-session читает роль и блокировку напрямую из accounts.
-    const real = originalLoad.call(this, path.join(__dirname, "..", "lib", "db.ts"), parent, isMain);
+  if (name === "@/lib/accounts") {
+    const real = originalLoad.call(this, path.resolve(__dirname, "..", "lib", "accounts.ts"), parent, isMain);
     return {
       ...real,
-      row: async () =>
-        account
-          ? { id: account.id, email: account.email, role: account.role, is_blocked: account.isBlocked ? 1 : 0 }
-          : null,
+      findAccountWithPasskeysByEmail: async (...args) => {
+        if (lookupFails) throw new Error("simulated DB outage");
+        return real.findAccountWithPasskeysByEmail(...args);
+      },
     };
   }
   if (name.startsWith("@/")) name = path.resolve(__dirname, "..", name.slice(2));
@@ -133,34 +95,66 @@ const { createTotpSecret, encryptMfaSecret, hashBackupCode } = require("../lib/m
 const request = () => new Request("http://example.test/api/auth/callback/credentials", { headers: { "x-real-ip": `198.51.100.${addressSequence++}` } });
 const credentials = (adminMode = "false") => ({ email: " ADMIN@example.com ", password: "valid-passphrase", adminMode });
 
-beforeEach(() => {
+before(async () => {
+  database = createTestDatabase("pip-stage5-");
+  await database.ready;
+});
+
+after(async () => {
+  await database?.close();
+});
+
+/** Переносит текущее состояние объекта `account` в SQLite. */
+async function syncAccount() {
+  if (!account) {
+    if (accountId) await database.run("delete from accounts where id = ?", [accountId]);
+    accountId = null;
+    return;
+  }
+  await database.run(
+    `update accounts set role = ?, first_name = ?, last_name = ?, password_hash = ?, mfa_secret = ?, is_blocked = ?, avatar = ? where id = ?`,
+    [account.role, account.firstName ?? null, account.lastName ?? null, account.passwordHash ?? null, account.mfaSecret ?? null, account.isBlocked ? 1 : 0, account.avatar ?? null, account.id],
+  );
+}
+
+async function seedPendingLogin(role = "ADMIN") {
+  const id = "p".repeat(32);
+  const secret = "q".repeat(32);
+  const now = new Date();
+  await database.run(
+    `insert into pending_logins (id, user_id_id, role, secret_hash, attempts, expires_at, created_at, updated_at)
+     values (?, ?, ?, ?, 0, ?, ?, ?)`,
+    [id, account.id, role, createHash("sha256").update(secret, "utf8").digest("hex"), new Date(now.getTime() + 60_000).toISOString(), now.toISOString(), now.toISOString()],
+  );
+  return { pendingLoginId: id, pendingLoginSecret: secret };
+}
+
+async function pendingLoginRow(id) {
+  return database.one("select * from pending_logins where id = ?", [id]);
+}
+
+let accountId = null;
+
+beforeEach(async () => {
   process.env.AUTH_SECRET = "test-secret-with-at-least-32-characters";
   delete process.env.UPSTASH_REDIS_REST_URL;
   delete process.env.UPSTASH_REDIS_REST_TOKEN;
+  await database.reset();
   account = { id: "mock-admin-id", email: "admin@example.com", role: "ADMIN", firstName: "Test", lastName: "Double", avatar: null, passwordHash: "mock-password-hash", mfaSecret: null, webAuthnCredentials: [] };
+  accountId = account.id;
+  await database.insertAccount({
+    id: account.id,
+    email: account.email,
+    role: account.role,
+    firstName: account.firstName,
+    lastName: account.lastName,
+    passwordHash: account.passwordHash,
+  });
   session = { user: { ...account } };
   compareCalls = 0;
   lookupFails = false;
-  pendingLogin = null;
-  backupCode = null;
   mediaRows.clear();
 });
-
-function seedPendingLogin(role = "ADMIN") {
-  const id = "p".repeat(32);
-  const secret = "q".repeat(32);
-  pendingLogin = {
-    id,
-    userId: account.id,
-    role,
-    secretHash: createHash("sha256").update(secret, "utf8").digest("hex"),
-    webAuthnChallenge: null,
-    attempts: 0,
-    createdAt: new Date(),
-    expiresAt: new Date(Date.now() + 60_000),
-  };
-  return { pendingLoginId: id, pendingLoginSecret: secret };
-}
 
 test("Credentials validates the password and includes the profile, but not the hash", async () => {
   const user = await authorizeCredentials(credentials("true"), request());
@@ -174,14 +168,16 @@ test("Credentials validates the password and includes the profile, but not the h
 
 test("regular login never grants ADMIN, even to an existing administrator", async () => {
   assert.equal((await authorizeCredentials(credentials(), request())).role, "USER");
-  assert.equal(account.role, "ADMIN", "login must not mutate the database role");
+  assert.equal((await database.one("select role from accounts where id = ?", [account.id])).role, "ADMIN", "login must not mutate the database role");
   assert.equal((await authorizeCredentials({ ...credentials(), role: "ADMIN", adminMode: false }, request())).role, "USER");
 });
 
 test("Admin mode returns the same credential failure for USER and unknown accounts", async () => {
   account.role = "USER";
+  await syncAccount();
   assert.equal(await authorizeCredentials(credentials("true"), request()), null);
   account = null;
+  await syncAccount();
   assert.equal(await authorizeCredentials(credentials("true"), request()), null);
   assert.equal(compareCalls, 2, "unknown accounts must still run the password comparison");
 });
@@ -189,32 +185,42 @@ test("Admin mode returns the same credential failure for USER and unknown accoun
 test("TOTP completes a pending staff login exactly once without elevating a changed role", async () => {
   const secret = createTotpSecret();
   account.mfaSecret = encryptMfaSecret(secret);
-  const pending = seedPendingLogin("ADMIN");
+  await syncAccount();
+  const pending = await seedPendingLogin("ADMIN");
   const mfaCode = new TOTP({ secret, algorithm: "SHA1", digits: 6, period: 30 }).generate();
 
   const user = await authorizeCredentials({ ...pending, mfaCode }, request());
   assert.equal(user.role, "ADMIN");
-  assert.equal(pendingLogin, null, "a successful challenge is consumed");
+  assert.equal(await pendingLoginRow(pending.pendingLoginId), null, "a successful challenge is consumed");
   assert.equal(await authorizeCredentials({ ...pending, mfaCode }, request()), null, "challenge replay fails");
 
-  const demotedPending = seedPendingLogin("ADMIN");
+  const demotedPending = await seedPendingLogin("ADMIN");
   account.role = "USER";
+  await syncAccount();
   const demoted = await authorizeCredentials({ ...demotedPending, mfaCode }, request());
   assert.equal(demoted.role, "USER", "a role change during MFA never auto-elevates the session");
 });
 
 test("backup codes are single-use and a failed replay does not consume the pending login", async () => {
-  account.webAuthnCredentials = [{ id: "mock-passkey" }];
+  await database.run(
+    `insert into webauthn_credentials (id, user_id_id, public_key, counter, transports, name, created_at, updated_at)
+     values ('mock-passkey', ?, 'cHVibGljLWtleQ', '0', '[]', 'Test passkey', ?, ?)`,
+    [account.id, new Date().toISOString(), new Date().toISOString()],
+  );
   const rawCode = "ABCD-EFGH-JKLM";
-  backupCode = { id: "backup-code-1", userId: account.id, codeHash: hashBackupCode(rawCode), usedAt: null };
-  const pending = seedPendingLogin("USER");
+  await database.run(
+    `insert into mfa_backup_codes (id, user_id_id, code_hash, created_at, updated_at) values ('backup-code-1', ?, ?, ?, ?)`,
+    [account.id, hashBackupCode(rawCode), new Date().toISOString(), new Date().toISOString()],
+  );
+  const pending = await seedPendingLogin("USER");
 
   const user = await authorizeCredentials({ ...pending, mfaCode: rawCode }, request());
   assert.equal(user.role, "USER");
-  assert.ok(backupCode.usedAt);
-  assert.ok(Number.isFinite(new Date(backupCode.usedAt).getTime()));
+  const used = await database.one("select used_at from mfa_backup_codes where id = 'backup-code-1'");
+  assert.ok(used.used_at);
+  assert.ok(Number.isFinite(new Date(used.used_at).getTime()));
 
-  const replay = seedPendingLogin("USER");
+  const replay = await seedPendingLogin("USER");
   const originalWarn = console.warn;
   console.warn = () => {};
   try {
@@ -225,8 +231,8 @@ test("backup codes are single-use and a failed replay does not consume the pendi
   } finally {
     console.warn = originalWarn;
   }
-  assert.equal(pendingLogin.attempts, 1);
-  assert.equal(pendingLogin.id, replay.pendingLoginId);
+  const failed = await pendingLoginRow(replay.pendingLoginId);
+  assert.equal(Number(failed.attempts), 1);
 });
 
 test("invalid emails, overlong bcrypt passwords and weak configuration are rejected", async () => {
@@ -250,6 +256,7 @@ test("JWT refresh reads the DB, ignores forged client updates, and never auto-el
   const token = await options.callbacks.jwt({ token: {}, user: { ...account, role: "USER" } });
   assert.equal(token.passwordHash, undefined);
   account.firstName = "Changed";
+  await syncAccount();
   const refreshed = await options.callbacks.jwt({ token, trigger: "update", session: { role: "ADMIN", id: "other-user", firstName: "Injected" } });
   assert.equal(refreshed.id, account.id);
   assert.equal(refreshed.firstName, "Changed");
@@ -263,6 +270,7 @@ test("password changes revoke existing JWTs without exposing the bcrypt hash", a
   assert.ok(token.passwordStamp);
   assert.notEqual(token.passwordStamp, account.passwordHash);
   account.passwordHash = "replacement-password-hash";
+  await syncAccount();
   assert.equal(await options.callbacks.jwt({ token }), null);
   assert.equal(await options.callbacks.jwt({ token: { id: account.id } }), null, "legacy unmarked sessions must reauthenticate");
 });
@@ -270,8 +278,10 @@ test("password changes revoke existing JWTs without exposing the bcrypt hash", a
 test("sessions reflect demotion and disappear after account deletion", async () => {
   const token = await options.callbacks.jwt({ token: {}, user: account });
   account.role = "USER";
+  await syncAccount();
   assert.equal((await options.callbacks.jwt({ token })).role, "USER");
   account = null;
+  await syncAccount();
   assert.equal(await options.callbacks.jwt({ token }), null);
 });
 
@@ -291,8 +301,10 @@ test("server guards reject weak secrets, ordinary mode, demotion and deleted acc
   assert.equal(await requireAdmin(), null);
   session.user.role = "ADMIN";
   account.role = "USER";
+  await syncAccount();
   assert.equal(await requireAdmin(), null);
   account = null;
+  await syncAccount();
   assert.equal(await requireAdmin(), null);
   session = null;
   assert.equal(await requireAdmin(), null);

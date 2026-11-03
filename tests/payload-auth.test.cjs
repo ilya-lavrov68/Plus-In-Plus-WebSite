@@ -1,5 +1,5 @@
 const assert = require("node:assert/strict");
-const { test, beforeEach } = require("node:test");
+const { test } = require("node:test");
 const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
@@ -9,67 +9,41 @@ require.extensions[".ts"] = (module, filename) => module._compile(ts.transpileMo
   compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true, target: ts.ScriptTarget.ES2022 },
 }).outputText, filename);
 
-let staff;
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/admin-session") return { requireStaff: async () => staff };
   if (name.startsWith("@/")) name = path.resolve(__dirname, "..", name.slice(2));
   return originalLoad.call(this, name, parent, isMain);
 };
 
-const { authenticateAuthJsStaff } = require("../payload/auth/authjs-strategy.ts");
 const { Accounts } = require("../payload/collections/accounts.ts");
 const { Posts } = require("../payload/collections/posts.ts");
 
-beforeEach(() => { staff = null; });
+const root = path.resolve(__dirname, "..");
+const read = (relative) => fs.readFileSync(path.join(root, relative), "utf8");
 
-function payloadStub(account) {
-  const calls = [];
-  return {
-    calls,
-    find: async (args) => { calls.push(args); return { docs: account ? [account] : [] }; },
-  };
-}
-
-test("Payload Auth.js strategy returns no user and performs no CMS query for a guest", async () => {
-  const result = await authenticateAuthJsStaff({ payload: { find: async () => { throw new Error("guest must not query CMS"); } } });
-  assert.equal(result.user, null);
-});
-
-test("Payload strategy uses the real account, never provisions a shadow user or exposes secrets", async () => {
-  staff = { id: "account-admin", email: "admin@example.test", role: "ADMIN" };
-  const payload = payloadStub({
-    id: "account-admin", email: "admin@example.test", role: "ADMIN", firstName: "Admin", isBlocked: false,
-    passwordHash: "secret-hash", mfaSecret: "secret-mfa", webAuthnRegistrationChallenge: "secret-challenge",
-  });
-  const result = await authenticateAuthJsStaff({ payload });
-  assert.equal(result.user.collection, "accounts");
-  assert.equal(result.user.id, "account-admin");
-  assert.equal(result.user.role, "ADMIN");
-  assert.equal(result.user._strategy, "authjs-staff");
-  for (const key of ["passwordHash", "mfaSecret", "webAuthnRegistrationChallenge"]) assert.equal(key in result.user, false);
-  assert.equal(payload.calls.length, 1);
-  assert.equal(payload.calls[0].collection, "accounts");
-  assert.equal(payload.calls[0].where.id.equals, staff.id);
-  assert.equal(payload.calls[0].overrideAccess, true);
-});
-
-test("Payload strategy reapplies the lower current role and rejects blocked or customer accounts", async () => {
-  staff = { id: "account-1", email: "staff@example.test", role: "ADMIN" };
-  let result = await authenticateAuthJsStaff({ payload: payloadStub({ id: "account-1", email: "staff@example.test", role: "MANAGER" }) });
-  assert.equal(result.user.role, "MANAGER");
-  staff = { ...staff, role: "MANAGER" };
-  result = await authenticateAuthJsStaff({ payload: payloadStub({ id: "account-1", email: "staff@example.test", role: "ADMIN" }) });
-  assert.equal(result.user.role, "MANAGER");
-  result = await authenticateAuthJsStaff({ payload: payloadStub({ id: "account-1", email: "staff@example.test", role: "ADMIN", isBlocked: true }) });
-  assert.equal(result.user, null);
-  staff = { ...staff, role: "ADMIN" };
-  result = await authenticateAuthJsStaff({ payload: payloadStub({ id: "account-1", email: "staff@example.test", role: "USER" }) });
-  assert.equal(result.user, null);
-});
-
-test("Payload collections deny public/password access and keep managers out of content and accounts", () => {
+test("Payload has no authentication authority: no local strategy and no custom strategies", () => {
   assert.equal(Accounts.auth.disableLocalStrategy, true);
+  assert.equal(Accounts.auth.strategies, undefined, "staff sessions come from Auth.js, never from a Payload strategy");
+  assert.equal(fs.existsSync(path.join(root, "payload/auth")), false, "the Auth.js→Payload bridge is deleted with the CMS layer");
+  assert.equal(fs.existsSync(path.join(root, "payload/components")), false, "the Payload admin UI is deleted too");
+  assert.equal(fs.existsSync(path.join(root, "app/(payload)")), false, "the native Payload REST/admin routes are deleted");
+});
+
+test("the staff gate resolves roles from our own accounts table on every request", () => {
+  const source = read("lib/admin-session.ts");
+  assert.match(source, /from accounts where id = \?/);
+  assert.match(source, /is_blocked === 1/);
+  assert.equal(source.includes("payload"), false, "guards never consult the CMS layer");
+});
+
+test("credentials never look up accounts through Payload", () => {
+  for (const file of ["lib/credentials.ts", "lib/pending-login.ts", "app/actions/auth.ts", "app/actions/mfa.ts", "app/actions/user.ts", "app/actions/account.ts", "auth.ts"]) {
+    assert.equal(read(file).includes("payload-native"), false, `${file} must use the SQL layer`);
+    assert.equal(read(file).includes("payload/payload-types"), false, `${file} must not depend on generated CMS types`);
+  }
+});
+
+test("Payload collections deny public and password access and keep managers out of content and accounts", () => {
   assert.equal(Accounts.access.create(), false);
   const guest = { req: { user: null } };
   const manager = { req: { user: { collection: "accounts", role: "MANAGER" } } };

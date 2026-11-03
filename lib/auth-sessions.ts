@@ -229,6 +229,17 @@ export async function revokeCurrentAuthSession(reason = "logout"): Promise<void>
   );
 }
 
+/** Отзыв конкретной сессии (например, при выходе из Auth.js по sessionId токена). */
+export async function revokeAuthSessionById(sessionId: string, reason: string): Promise<void> {
+  if (!validRandomPart(sessionId)) return;
+  const now = new Date().toISOString();
+  await run(
+    `update auth_sessions set revoked_at = ?, revoke_reason = ?, updated_at = ?
+     where id = ? and revoked_at is null`,
+    [now, reason.slice(0, 64), now, sessionId],
+  );
+}
+
 /** Все активные сессии пользователя — для страницы безопасности в профиле. */
 export async function listActiveAuthSessions(userId: string): Promise<Array<{ id: string; lastUsedAt: string; expiresAt: string }>> {
   const found = await rows<{ id: string; last_used_at: string; expires_at: string }>(

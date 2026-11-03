@@ -82,16 +82,30 @@ test("database resolution prefers Turso and falls back to the local file in deve
     url: `file:${path.join("/app", "payload", "pip.db")}`,
     authToken: undefined,
     remote: false,
-    ignoredUrl: undefined,
   });
 
+  // DATABASE_URL — канонический адрес базы; PAYLOAD_DATABASE_URL остался алиасом.
   const turso = resolveDatabaseConfig({
-    env: { TURSO_DATABASE_URL: "libsql://plus-in-plus-org.turso.io", TURSO_AUTH_TOKEN: " token-value " },
+    env: { DATABASE_URL: "libsql://plus-in-plus-org.turso.io", DATABASE_AUTH_TOKEN: " token-value " },
     rootDir: "/app",
   });
   assert.equal(turso.url, "libsql://plus-in-plus-org.turso.io");
   assert.equal(turso.authToken, "token-value");
   assert.equal(turso.remote, true);
+
+  const alias = resolveDatabaseConfig({
+    env: { PAYLOAD_DATABASE_URL: "libsql://legacy-alias.turso.io", TURSO_AUTH_TOKEN: "alias-token" },
+    rootDir: "/app",
+  });
+  assert.equal(alias.url, "libsql://legacy-alias.turso.io");
+  assert.equal(alias.authToken, "alias-token");
+  assert.equal(alias.remote, true);
+
+  const canonicalWins = resolveDatabaseConfig({
+    env: { DATABASE_URL: "file:canonical.db", PAYLOAD_DATABASE_URL: "file:legacy.db" },
+    rootDir: "/app",
+  });
+  assert.equal(canonicalWins.url, `file:${path.join("/app", "canonical.db")}`);
 
   const relative = resolveDatabaseConfig({ env: { TURSO_DATABASE_URL: "file:local.db" }, rootDir: "/app" });
   assert.equal(relative.url, `file:${path.join("/app", "local.db")}`);
@@ -100,19 +114,20 @@ test("database resolution prefers Turso and falls back to the local file in deve
   assert.equal(sqld.remote, true);
 });
 
-test("a leftover PostgreSQL DATABASE_URL is reported, never silently used", () => {
+test("a PostgreSQL URL is reported and rejected instead of being silently used", () => {
   const legacy = "postgresql://postgres:secret@localhost:5432/plus_in_plus";
-  const development = resolveDatabaseConfig({ env: { DATABASE_URL: legacy }, rootDir: "/app" });
-  assert.equal(development.url, `file:${path.join("/app", "payload", "pip.db")}`);
-  assert.equal(development.ignoredUrl, legacy);
   assert.match(unsupportedDatabaseUrlMessage({ DATABASE_URL: legacy }), /not a libSQL\/SQLite URL/);
+  assert.match(unsupportedDatabaseUrlMessage({ PAYLOAD_DATABASE_URL: legacy }), /not a libSQL\/SQLite URL/);
   assert.equal(unsupportedDatabaseUrlMessage({ DATABASE_URL: "file:local.db" }), null);
-  assert.equal(resolveDatabaseConfig({ env: { NODE_ENV: "production", DATABASE_URL: legacy } }), null);
 
-  assert.throws(
-    () => resolveDatabaseConfig({ env: { TURSO_DATABASE_URL: legacy } }),
-    /must start with "libsql:"/,
-  );
+  for (const name of ["DATABASE_URL", "PAYLOAD_DATABASE_URL", "TURSO_DATABASE_URL"]) {
+    assert.throws(
+      () => resolveDatabaseConfig({ env: { [name]: legacy } }),
+      /must start with "libsql:"/,
+      name,
+    );
+  }
+  assert.equal(resolveDatabaseConfig({ env: { NODE_ENV: "production" } }), null);
 });
 
 test("log output never exposes credentials", () => {

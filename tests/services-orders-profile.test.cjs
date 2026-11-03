@@ -1,10 +1,11 @@
 const assert = require("node:assert/strict");
-const { test, beforeEach } = require("node:test");
+const { after, before, test, beforeEach } = require("node:test");
 const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
 const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
+const { createTestDatabase } = require("./helpers/test-db.cjs");
 
 require.extensions[".ts"] = (module, filename) =>
   module._compile(
@@ -256,9 +257,11 @@ Module._load = function (name, parent, isMain) {
     const real = originalLoad.call(this, path.join(__dirname, "..", "lib", "db.ts"), parent, isMain);
     return {
       ...real,
-      rows: async (sql) => {
+      rows: async (sql, args = []) => {
         const query = String(sql).replace(/\s+/g, " ");
-        if (!query.includes("from services s")) return [];
+        // Всё, что не является публичным списком услуг, читает настоящая база:
+        // аккаунты, аудит и профиль живут в SQLite.
+        if (!query.includes("from services s")) return real.rows(sql, args);
         return [...services.values()]
           .filter((service) => service.isActive && service.isPublished)
           .map((service) => ({
@@ -341,12 +344,51 @@ Module._load = function (name, parent, isMain) {
   return originalLoad.call(this, name, parent, isMain);
 };
 
+let database;
+
+/** Аккаунты из `users` живут в настоящей SQLite: профиль и пароль пишутся туда. */
+async function mirrorUsers() {
+  for (const user of users.values()) {
+    await database.insertAccount({
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      isBlocked: user.isBlocked,
+      avatar: user.avatar,
+      passwordHash: user.passwordHash ?? null,
+    });
+  }
+}
+
+async function storedUser(id) {
+  const row = await database.one("select * from accounts where id = ?", [id]);
+  return {
+    firstName: row.first_name,
+    lastName: row.last_name,
+    email: row.email,
+    role: row.role,
+    passwordHash: row.password_hash,
+  };
+}
+
 const { GET: getServicesApi } = require("../app/api/services/route.ts");
 const { createOrder } = require("../app/actions/orders.ts");
 const { changePassword, updateUserProfile } = require("../app/actions/user.ts");
 
-beforeEach(() => {
+before(async () => {
+  database = createTestDatabase("pip-profile-");
+  await database.ready;
+});
+
+after(async () => {
+  await database?.close();
+});
+
+beforeEach(async () => {
   seq = 0;
+  await database.reset();
   admin = { id: "usr-admin", email: "admin@pip.test", role: "ADMIN" };
   sessionUser = { id: "usr-client" };
   users = new Map([
@@ -376,6 +418,7 @@ beforeEach(() => {
       },
     ],
   ]);
+  await mirrorUsers();
   services = new Map([
     [
       "svc-small",
@@ -536,7 +579,7 @@ test("HARD CONSTRAINT: updateUserProfile requires authorization and never mutate
   assert.equal(updated.firstName, "Alexey");
   assert.equal(updated.lastName, "Smirnov");
 
-  const stored = users.get("usr-client");
+  const stored = await storedUser("usr-client");
   assert.equal(stored.firstName, "Alexey");
   assert.equal(stored.lastName, "Smirnov");
   assert.equal(stored.email, "client@pip.test");
@@ -553,16 +596,17 @@ test("password changes verify the current password, validate the replacement and
     () => changePassword({ ...valid, currentPassword: "wrong-password" }),
     /current password is incorrect/i,
   );
-  assert.equal(users.get("usr-client").passwordHash, "current-hash");
+  assert.equal((await storedUser("usr-client")).passwordHash, "current-hash");
   await assert.rejects(
     () => changePassword({ ...valid, confirmPassword: "different-passphrase" }),
     /do not match/i,
   );
 
   assert.deepEqual(await changePassword(valid), { ok: true });
-  assert.equal(users.get("usr-client").passwordHash, "hash:a-New-long-passphrase1");
-  assert.equal(logs.at(-1).action, "password changed");
-  assert.equal(logs.at(-1).actorId, "usr-client");
+  assert.equal((await storedUser("usr-client")).passwordHash, "hash:a-New-long-passphrase1");
+  const audit = await database.rows("select * from activity_logs where entity_id = 'usr-client' order by created_at");
+  assert.equal(audit.at(-1).action, "password changed");
+  assert.equal(audit.at(-1).actor_id_id, "usr-client");
 
   sessionUser = null;
   await assert.rejects(() => changePassword(valid), /log in/i);

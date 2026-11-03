@@ -1,7 +1,6 @@
 import type { CollectionConfig, Field } from "payload";
 
 import { ACCOUNTS_SLUG, adminOnly, founderOnly, readAccounts, visibleToAdmin } from "../access.ts";
-import { authenticateAuthJsStaff } from "../auth/authjs-strategy.ts";
 import { activityAfterChange, cascadeAccountDeletion, protectAccount, protectAccountDeletion, revokeAccountSessions } from "../hooks.ts";
 
 const secretField = (name: string, type: "text" | "date" = "text"): Field => ({
@@ -22,14 +21,12 @@ export const Accounts: CollectionConfig = {
     defaultColumns: ["email", "firstName", "lastName", "role", "isBlocked", "createdAt"],
     group: { en: "Users", ru: "Пользователи" },
     hidden: ({ user }) => !visibleToAdmin(user),
-    components: {
-      edit: {
-      },
-    },
   },
+  // Вход выполняет только собственный слой Auth.js; Payload не хранит пароль
+  // и не выдаёт свои токены. Коллекция остаётся auth-коллекцией лишь потому,
+  // что этого требует `admin.user` конфига до полного удаления CMS-слоя.
   auth: {
     disableLocalStrategy: true,
-    strategies: [{ name: "authjs-staff", authenticate: authenticateAuthJsStaff }],
   },
   access: {
     read: readAccounts,
