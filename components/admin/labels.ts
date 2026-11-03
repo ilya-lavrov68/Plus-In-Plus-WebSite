@@ -130,6 +130,21 @@ export function adminLabels(locale: RequestLocale) {
       pricingLocked: ru ? "Снимите блокировку цены может только основатель — либо дождитесь закрытия активных заказов." : "Only the founder can override the price lock, or wait until the active orders are closed.",
       edit: ru ? "Изменить" : "Edit",
     },
+    post: {
+      title: ru ? "Заголовок" : "Title",
+      slug: ru ? "Адрес (slug)" : "Slug",
+      excerpt: ru ? "Краткое описание" : "Excerpt",
+      content: ru ? "Текст (Markdown или HTML)" : "Content (Markdown or HTML)",
+      readTime: ru ? "Время чтения, мин" : "Read time, min",
+      sourceUrl: ru ? "Ссылка на источник" : "Source URL",
+      isPublished: ru ? "Опубликовано" : "Published",
+      isFeatured: ru ? "В избранном" : "Featured",
+      hint: ru
+        ? "Избранный материал на главной может быть только один; в избранное попадает лишь опубликованный текст."
+        : "Only one featured post is allowed on the home page, and only a published post can be featured.",
+      saved: ru ? "Материал сохранён." : "Post saved.",
+      readOnly: ru ? "Редактировать материалы может только администратор." : "Only an admin can edit posts.",
+    },
     products: { title: ru ? "Товары" : "Products", subtitle: ru ? "Магазин и остатки." : "Shop and stock." },
     posts: { title: ru ? "Материалы" : "Posts", subtitle: ru ? "Блог и публикации." : "Blog and publications." },
     accounts: { title: ru ? "Аккаунты" : "Accounts", subtitle: ru ? "Пользователи и роли." : "Users and roles." },
