@@ -1,6 +1,7 @@
 const assert = require("node:assert/strict");
 const { test } = require("node:test");
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
@@ -19,7 +20,13 @@ Module._load = function (name, parent, isMain) {
 };
 
 const { parseLineList, parseJsonArray, toJsonArray } = require("../lib/db-helpers.ts");
-const { describeDatabaseUrl, localDatabaseUrl, resolveDatabaseConfig, unsupportedDatabaseUrlMessage } = require("../lib/database.ts");
+const {
+  describeDatabaseUrl,
+  ensureLocalDatabaseDirectory,
+  localDatabaseUrl,
+  resolveDatabaseConfig,
+  unsupportedDatabaseUrlMessage,
+} = require("../lib/database.ts");
 const { slugify, withNumericSuffix } = require("../lib/slug.ts");
 const { checkRateLimit, hashRateLimitIdentifier } = require("../lib/rate-limit.ts");
 const validators = require("../lib/validators.ts");
@@ -223,4 +230,32 @@ test("rate limiting is still in-process, hashed and bounded", () => {
   assert.equal(checkRateLimit(`test:${key}`, 2, 1000, 1).allowed, true);
   assert.equal(checkRateLimit(`test:${key}`, 2, 1000, 2).allowed, false);
   assert.equal(checkRateLimit(`test:${key}`, 2, 1000, 2_000).allowed, true);
+});
+
+test("a local file URL gets its directory created before the first connection", () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "pip-db-dir-"));
+  try {
+    const nested = path.join(sandbox, "payload", "nested");
+    assert.equal(fs.existsSync(nested), false);
+
+    // libSQL не создаёт каталоги сам: на свежем клоне папки payload/ нет, и
+    // db:migrate падал с SQLITE_CANTOPEN вместо применения схемы.
+    ensureLocalDatabaseDirectory(`file:${path.join(nested, "pip.db")}`);
+    assert.equal(fs.existsSync(nested), true);
+
+    ensureLocalDatabaseDirectory("file:./relative/deep.db", sandbox);
+    assert.equal(fs.existsSync(path.join(sandbox, "relative")), true);
+
+    // Удалённые базы и память каталогов не требуют.
+    for (const url of ["libsql://db.turso.io", "https://sqld.example:8080", ":memory:", "file::memory:?"]) {
+      assert.doesNotThrow(() => ensureLocalDatabaseDirectory(url, sandbox));
+    }
+    assert.deepEqual(
+      fs.readdirSync(sandbox).sort(),
+      ["payload", "relative"],
+      "no stray directories are created next to the database",
+    );
+  } finally {
+    fs.rmSync(sandbox, { recursive: true, force: true });
+  }
 });

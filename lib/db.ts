@@ -1,5 +1,7 @@
 import { createClient, type Client, type InValue } from "@libsql/client";
 
+import { ensureLocalDatabaseDirectory } from "./database";
+
 /**
  * Собственный доступ к SQLite/libSQL. Единственная точка соединения для
  * приложения: и публичный сайт, и админка, и админ-аналитика ходят в базу
@@ -21,6 +23,8 @@ let clientUrl = "";
 export function getDb(): Client {
   const url = databaseUrl();
   if (!client || clientUrl !== url) {
+    // Файловой базе нужен существующий каталог — на свежем клоне его нет.
+    ensureLocalDatabaseDirectory(url);
     client = createClient({
       url,
       authToken: process.env.DATABASE_AUTH_TOKEN || process.env.PAYLOAD_DATABASE_AUTH_TOKEN || undefined,

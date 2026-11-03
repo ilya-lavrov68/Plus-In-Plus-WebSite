@@ -29,10 +29,11 @@ function statements() {
 }
 
 async function main() {
-  const { resolveDatabaseConfig, describeDatabaseUrl } = loadDatabaseModule();
+  const { resolveDatabaseConfig, describeDatabaseUrl, ensureLocalDatabaseDirectory } = loadDatabaseModule();
   const config = resolveDatabaseConfig({ allowDevelopmentFallback: true });
   if (!config) throw new Error("Set DATABASE_URL (see .env.example).");
 
+  ensureLocalDatabaseDirectory(config.url);
   const { createClient } = require("@libsql/client");
   const client = createClient({ url: config.url, authToken: config.authToken });
   console.log(`[db:migrate] ${describeDatabaseUrl(config.url)} (${config.remote ? "remote" : "local file"})`);

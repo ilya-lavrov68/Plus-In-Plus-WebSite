@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 
 /**
@@ -51,6 +52,23 @@ export function isRemoteDatabaseUrl(url: string): boolean {
 export function isSupportedDatabaseUrl(url: string): boolean {
   const trimmed = url.trim();
   return trimmed === ":memory:" || isRemoteDatabaseUrl(trimmed) || trimmed.startsWith("file:");
+}
+
+/**
+ * libSQL не создаёт каталог для `file:`-URL. На свежем клоне папки `payload/`
+ * ещё нет, и первое же подключение падало бы с SQLITE_CANTOPEN — это ломало
+ * `npm run db:migrate`, dev-сервер и CI. Создаём каталог заранее.
+ */
+export function ensureLocalDatabaseDirectory(
+  url: string,
+  rootDir: string = process.cwd(),
+): void {
+  const trimmed = url.trim();
+  if (!trimmed.startsWith("file:")) return;
+  const target = trimmed.slice("file:".length).split("?")[0];
+  if (!target || target === ":memory:" || target.startsWith("//")) return;
+  const filePath = path.isAbsolute(target) ? target : path.resolve(rootDir, target);
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
 }
 
 /** `file:local.db` is relative to the process, not to db/schema.db. */
