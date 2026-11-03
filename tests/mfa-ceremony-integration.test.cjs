@@ -1,13 +1,13 @@
 const assert = require("node:assert/strict");
 const { after, before, test } = require("node:test");
 const fs = require("node:fs");
-const os = require("node:os");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
 const bcrypt = require("bcryptjs");
 const { TOTP, URI } = require("otpauth");
 const { createSoftwareAuthenticator } = require("./helpers/software-webauthn.cjs");
+const { createTestDatabase } = require("./helpers/test-db.cjs");
 
 const ORIGIN = "http://localhost:3000";
 const PASSWORD = "integration-passphrase";
@@ -17,12 +17,10 @@ const originalLoad = Module._load;
 
 let core;
 let authErrors;
-let payload;
-let closePayloadClient;
+let database;
 let loginUser;
 let mfaActions;
 let currentUserId;
-let temporaryDirectory;
 let requestSequence = 0;
 const cookieValues = new Map();
 
@@ -80,9 +78,6 @@ Module._load = function (name, parent, isMain) {
   if (name === "next-auth") {
     return { AuthError: authErrors.AuthError, CredentialsSignin: authErrors.CredentialsSignin };
   }
-  // The MFA integration does not render the Admin rich-text editor; avoiding its
-  // top-level-await ESM graph keeps this plain-Node test on the real Payload DB.
-  if (name === "@payloadcms/richtext-lexical") return { lexicalEditor: () => ({}) };
   if (name === "next/headers") {
     return { headers: async () => requestHeaders(), cookies: async () => cookieJar };
   }
@@ -94,7 +89,6 @@ Module._load = function (name, parent, isMain) {
       signOut: async () => {},
     };
   }
-  if (name === "@payload-config") name = path.resolve(__dirname, "..", "payload.config.ts");
   if (name.startsWith("@/")) name = path.resolve(__dirname, "..", name.slice(2));
   return originalLoad.call(this, name, parent, isMain);
 };
@@ -110,61 +104,68 @@ require.extensions[".ts"] = (module, filename) => {
 };
 
 before(async () => {
-  temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "pip-mfa-ceremony-"));
-  process.env.AUTH_SECRET = SECRET;
-  // Never open Payload's Next HMR WebSocket from a plain Node test process.
   process.env.NODE_ENV = "test";
-  process.env.DISABLE_PAYLOAD_HMR = "true";
-  process.env.PAYLOAD_DATABASE_URL = `file:${path.join(temporaryDirectory, "ceremony.db")}`;
-  process.env.PAYLOAD_SECRET = SECRET;
+  process.env.AUTH_SECRET = SECRET;
   process.env.WEBAUTHN_ORIGIN = ORIGIN;
   process.env.WEBAUTHN_RP_ID = "localhost";
-  delete process.env.PAYLOAD_DATABASE_AUTH_TOKEN;
   delete process.env.UPSTASH_REDIS_REST_URL;
   delete process.env.UPSTASH_REDIS_REST_TOKEN;
+  // Настоящая SQLite из `db/schema.sql`: церемонии проверяются на тех же
+  // таблицах и ограничениях, что и в приложении.
+  database = createTestDatabase("pip-mfa-ceremony-");
+  await database.ready;
   core = await import("@auth/core");
   authErrors = await import("@auth/core/errors");
-  const native = require("../lib/payload-native.ts");
-  closePayloadClient = native.closePayloadClient;
-  payload = await native.getPayloadClient();
-  const migration = require("../payload/migrations/20261031_220229.ts");
-  await migration.up({ db: payload.db.drizzle, payload, req: { payload } });
   ({ loginUser } = require("../app/actions/auth.ts"));
   mfaActions = require("../app/actions/mfa.ts");
 });
 
 after(async () => {
-  await closePayloadClient?.();
+  await database?.close();
   Module._load = originalLoad;
   if (originalTsExtension) require.extensions[".ts"] = originalTsExtension;
   else delete require.extensions[".ts"];
-  if (temporaryDirectory) fs.rmSync(temporaryDirectory, { recursive: true, force: true });
 });
 
 async function createAccount(email) {
-  const account = await payload.create({
-    collection: "accounts",
-    data: {
-      email,
-      passwordHash: await bcrypt.hash(PASSWORD, 12),
-      firstName: "Integration",
-      lastName: "User",
-      role: "USER",
-    },
-    overrideAccess: true,
+  const id = await database.insertAccount({
+    email,
+    passwordHash: await bcrypt.hash(PASSWORD, 12),
+    firstName: "Integration",
+    lastName: "User",
+    role: "USER",
   });
-  currentUserId = account.id;
-  return account;
+  currentUserId = id;
+  return { id, email };
 }
 
 async function findAccount(id) {
-  const result = await payload.find({ collection: "accounts", depth: 0, limit: 1, overrideAccess: true, showHiddenFields: true, where: { id: { equals: id } } });
-  return result.docs[0] ?? null;
+  const row = await database.one(
+    `select id, email, role, mfa_secret, mfa_pending_secret, mfa_pending_created_at
+     from accounts where id = ?`,
+    [id],
+  );
+  if (!row) return null;
+  return {
+    id: row.id,
+    email: row.email,
+    role: row.role,
+    mfaSecret: row.mfa_secret ?? null,
+    mfaPendingSecret: row.mfa_pending_secret ?? null,
+    mfaPendingCreatedAt: row.mfa_pending_created_at ?? null,
+  };
 }
+
 async function findCredential(id) {
-  const result = await payload.find({ collection: "webauthn-credentials", depth: 0, limit: 1, overrideAccess: true, where: { id: { equals: id } } });
-  return result.docs[0] ?? null;
+  const row = await database.one(
+    "select id, counter, last_used_at from webauthn_credentials where id = ?",
+    [id],
+  );
+  if (!row) return null;
+  return { id: row.id, counter: String(row.counter), lastUsedAt: row.last_used_at ?? null };
 }
+
+const countRows = async (sql, args) => Number((await database.one(sql, args))?.total ?? 0);
 
 function totpCode(secret) {
   return new TOTP({ secret, algorithm: "SHA1", digits: 6, period: 30 }).generate();
@@ -202,7 +203,10 @@ test("real passkey and TOTP ceremonies survive Auth.js serialization and remain 
   const enabledAccount = await findAccount(account.id);
   assert.ok(enabledAccount.mfaSecret);
   assert.equal(enabledAccount.mfaPendingSecret, null);
-  assert.equal((await payload.count({ collection: "mfa-backup-codes", overrideAccess: true, where: { userId: { equals: account.id } } })).totalDocs, 10);
+  assert.equal(
+    await countRows("select count(*) total from mfa_backup_codes where user_id_id = ?", [account.id]),
+    10,
+  );
 
   const passwordStep = await loginUser({ email: account.email, password: PASSWORD, adminMode: false });
   assert.equal(passwordStep.mfaRequired, true);
@@ -242,7 +246,10 @@ test("real passkey and TOTP ceremonies survive Auth.js serialization and remain 
   credential = await findCredential(authenticator.id);
   assert.equal(credential.counter, "1");
   assert.ok(Number.isFinite(new Date(credential.lastUsedAt).getTime()));
-  assert.equal((await payload.count({ collection: "pending-logins", overrideAccess: true, where: { id: { equals: pending.pendingLoginId } } })).totalDocs, 0);
+  assert.equal(
+    await countRows("select count(*) total from pending_logins where id = ?", [pending.pendingLoginId]),
+    0,
+  );
 
   const replay = await loginUser({ ...pending, webAuthnResponse: assertion });
   assert.equal(replay.ok, false);
@@ -300,12 +307,10 @@ test("expired authenticator setup has an explicit stale state and can be renewed
   const setup = await mfaActions.beginTotpSetup();
   assert.equal(setup.ok, true, setup.error);
 
-  await payload.update({
-    collection: "accounts",
-    id: account.id,
-    data: { mfaPendingCreatedAt: new Date(Date.now() - 11 * 60 * 1000).toISOString() },
-    overrideAccess: true,
-  });
+  await database.exec("update accounts set mfa_pending_created_at = ? where id = ?", [
+    new Date(Date.now() - 11 * 60 * 1000).toISOString(),
+    account.id,
+  ]);
   const expired = await mfaActions.enableTotp(URI.parse(setup.otpauthUri).generate(), setup.setupId);
   assert.equal(expired.ok, false);
   assert.equal(expired.failureReason, "stale-setup");

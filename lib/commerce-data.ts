@@ -568,9 +568,23 @@ export async function insertPayment(input: NewPayment, exec: SqlExecutor = direc
   const id = randomUUID();
   const now = new Date().toISOString();
   await exec.run(
-    `insert into payments (id, order_id_id, provider, external_id, status, amount, currency, payment_url, created_at, updated_at)
-     values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [id, input.orderId, input.provider, input.externalId, input.status, input.amount, input.currency, input.paymentUrl, now, now],
+    `insert into payments (id, order_id_id, provider, external_id, provider_key, status, amount, currency, payment_url, created_at, updated_at)
+     values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      input.orderId,
+      input.provider,
+      input.externalId,
+      // Уникальный ключ провайдера гасит гонку двух одновременных выставлений:
+      // второй INSERT падает, и обёртка перечитывает уже созданный счёт.
+      input.externalId ? `${input.provider}:${input.externalId}` : null,
+      input.status,
+      input.amount,
+      input.currency,
+      input.paymentUrl,
+      now,
+      now,
+    ],
   );
   const found = await exec.rows(`select ${PAYMENT_COLUMNS} from payments where id = ? limit 1`, [id]);
   if (!found[0]) throw new Error("Payment row disappeared right after insert.");
