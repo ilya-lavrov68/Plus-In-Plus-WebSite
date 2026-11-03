@@ -150,6 +150,15 @@ export function adminLabels(locale: RequestLocale) {
       readOnly: ru ? "Редактировать материалы может только администратор." : "Only an admin can edit posts.",
       create: ru ? "Новый материал" : "New post",
     },
+    gallery: {
+      title: ru ? "Галерея" : "Gallery",
+      hint: ru
+        ? "Дополнительные изображения материала. Порядок — сверху вниз; файл пережимается в WebP, до 12 картинок."
+        : "Extra images for the post. Order is top to bottom; files are converted to WebP, up to 12 images.",
+      add: ru ? "Добавить изображения" : "Add images",
+      remove: ru ? "Удалить" : "Remove",
+      empty: ru ? "Галерея пуста." : "The gallery is empty.",
+    },
     image: {
       title: ru ? "Обложка" : "Cover image",
       upload: ru ? "Загрузить изображение" : "Upload an image",

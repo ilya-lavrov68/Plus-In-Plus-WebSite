@@ -1,5 +1,10 @@
 import { run } from "@/lib/db";
-import { cleanupUpload, saveImageUpload, UploadValidationError, type UploadKind } from "@/lib/uploads";
+import {
+  cleanupPostCoverIfUnused,
+  cleanupProductCoverIfUnused,
+  cleanupServiceCoverIfUnused,
+} from "@/lib/media-cleanup";
+import { saveImageUpload, UploadValidationError, type UploadKind } from "@/lib/uploads";
 
 /**
  * Обложки услуг, товаров и материалов.
@@ -10,10 +15,10 @@ import { cleanupUpload, saveImageUpload, UploadValidationError, type UploadKind 
  */
 
 export const COVER_TABLES = {
-  services: { table: "services", kind: "services" },
-  posts: { table: "posts", kind: "blog" },
-  products: { table: "products", kind: "services" },
-} as const satisfies Record<string, { table: string; kind: UploadKind }>;
+  services: { table: "services", kind: "services", cleanup: cleanupServiceCoverIfUnused },
+  posts: { table: "posts", kind: "blog", cleanup: cleanupPostCoverIfUnused },
+  products: { table: "products", kind: "services", cleanup: cleanupProductCoverIfUnused },
+} as const satisfies Record<string, { table: string; kind: UploadKind; cleanup: (path: string | null) => Promise<void> }>;
 
 export type CoverSurface = keyof typeof COVER_TABLES;
 
@@ -58,14 +63,15 @@ export async function applyCoverChange(
       throw error;
     }
     await setCover(surface, id, url);
-    // Старый файл удаляем только после успешной записи новой ссылки.
-    await cleanupUpload(change.current, COVER_TABLES[surface].kind);
+    // Старый файл удаляем только после успешной записи новой ссылки и только
+    // если на него больше никто не ссылается.
+    await COVER_TABLES[surface].cleanup(change.current);
     return url;
   }
 
   if (change.remove) {
     await setCover(surface, id, null);
-    await cleanupUpload(change.current, COVER_TABLES[surface].kind);
+    await COVER_TABLES[surface].cleanup(change.current);
     return null;
   }
 

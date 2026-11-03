@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { logAdminAction } from "@/lib/admin-queries";
 import { requireAdmin } from "@/lib/admin-session";
 import { applyCoverChange, coverFileFrom } from "@/lib/cover-images";
+import { appendGalleryImages, GalleryRuleError, removeGalleryImage } from "@/lib/post-gallery";
 import { insertPost, PostRuleError, updatePost } from "@/lib/post-rules";
 import { UploadValidationError } from "@/lib/uploads";
 
@@ -130,4 +131,46 @@ export async function createPost(formData: FormData): Promise<void> {
     }
     throw error;
   }
+}
+
+/**
+ * Галерея материала. Отдельная форма: в одной форме с текстом файлы
+ * перемешивались бы с обычными полями и терялись при ошибке валидации текста.
+ */
+export async function savePostGallery(formData: FormData): Promise<void> {
+  const admin = await requireAdmin();
+  if (!admin) return;
+
+  const id = field(formData, "id");
+  if (!id) return;
+
+  const files = formData.getAll("gallery").filter((item): item is File => item instanceof File && item.size > 0);
+  const removals = formData
+    .getAll("removeGallery")
+    .filter((item): item is string => typeof item === "string" && item.length > 0);
+
+  try {
+    if (removals.length > 0) {
+      for (const mediaId of removals) await removeGalleryImage(id, mediaId);
+    }
+    if (files.length > 0) await appendGalleryImages(id, files);
+  } catch (error) {
+    if (error instanceof GalleryRuleError || error instanceof UploadValidationError) {
+      redirect(`/admin/posts/${encodeURIComponent(id)}?error=${encodeURIComponent(error.message)}`);
+    }
+    throw error;
+  }
+
+  await logAdminAction({
+    action: "post.gallery_updated",
+    entityType: "post",
+    entityId: id,
+    title: `Галерея: +${files.length} / −${removals.length}`,
+    actorId: admin.id,
+  });
+
+  revalidatePath(`/admin/posts/${id}`);
+  revalidatePath("/admin/posts");
+  revalidatePath("/blog");
+  redirect(`/admin/posts/${encodeURIComponent(id)}?saved=1`);
 }

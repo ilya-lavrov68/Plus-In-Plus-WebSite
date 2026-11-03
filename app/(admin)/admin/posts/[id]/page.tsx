@@ -7,7 +7,9 @@ import { requireStaff } from "@/lib/admin-session";
 import { row } from "@/lib/db";
 import { getRequestLocale } from "@/lib/request-locale";
 
-import { savePost } from "../actions";
+import { listGallery } from "@/lib/post-gallery";
+
+import { savePost, savePostGallery } from "../actions";
 
 interface PostRow {
   id: string;
@@ -45,6 +47,8 @@ export default async function AdminPostPage({
     [id],
   );
   if (!post) notFound();
+
+  const gallery = await listGallery(id);
 
   const canEdit = Boolean(staff?.isAdmin);
   const error = typeof query.error === "string" && query.error ? query.error : null;
@@ -122,25 +126,24 @@ export default async function AdminPostPage({
             <input name="sourceUrl" defaultValue={post.source_url ?? ""} className={inputClass} />
           </label>
 
-        <fieldset className="flex flex-col gap-3 border border-border p-4">
-          <legend className="px-2 text-sm font-semibold">{t.image.title}</legend>
-          <input type="hidden" name="currentCover" value={post.cover_image ?? ""} />
-          {post.cover_image ? (
-            <div className="flex flex-col gap-2">
-              { }
-              <img src={post.cover_image} alt="" className="h-32 w-auto border border-border object-cover" />
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="removeCover" />
-                {t.image.remove}
-              </label>
-            </div>
-          ) : null}
-          <label className={labelClass}>
-            {t.image.upload}
-            <input type="file" name="cover" accept={IMAGE_ACCEPT} className="text-sm file:mr-3 file:border file:border-border file:bg-transparent file:px-3 file:py-1.5 file:text-sm" />
-          </label>
-          <p className="text-xs text-muted-foreground">{t.image.hint}</p>
-        </fieldset>
+          <fieldset className="flex flex-col gap-3 border border-border p-4">
+            <legend className="px-2 text-sm font-semibold">{t.image.title}</legend>
+            <input type="hidden" name="currentCover" value={post.cover_image ?? ""} />
+            {post.cover_image ? (
+              <div className="flex flex-col gap-2">
+                <img src={post.cover_image} alt="" className="h-32 w-auto border border-border object-cover" />
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" name="removeCover" />
+                  {t.image.remove}
+                </label>
+              </div>
+            ) : null}
+            <label className={labelClass}>
+              {t.image.upload}
+              <input type="file" name="cover" accept={IMAGE_ACCEPT} className="text-sm file:mr-3 file:border file:border-border file:bg-transparent file:px-3 file:py-1.5 file:text-sm" />
+            </label>
+            <p className="text-xs text-muted-foreground">{t.image.hint}</p>
+          </fieldset>
 
           <div className="flex flex-wrap gap-6">
             <label className="flex items-center gap-2 text-sm">
@@ -173,6 +176,44 @@ export default async function AdminPostPage({
       ) : (
         <p className="text-sm text-muted-foreground">{t.post.readOnly}</p>
       )}
+
+      {staff?.isAdmin ? (
+        <form action={savePostGallery} className="flex flex-col gap-4 border border-border p-4">
+          <input type="hidden" name="id" value={post.id} />
+          <div className="flex flex-col gap-1">
+            <h2 className="text-sm font-semibold">{t.gallery.title}</h2>
+            <p className="text-xs text-muted-foreground">{t.gallery.hint}</p>
+          </div>
+
+          {gallery.length > 0 ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {gallery.map((image) => (
+                <label key={image.mediaId} className="flex flex-col gap-2 border border-border p-2 text-xs">
+                  <img src={image.url} alt="" className="h-24 w-full object-cover" />
+                  <span className="flex items-center gap-2">
+                    <input type="checkbox" name="removeGallery" value={image.mediaId} />
+                    {t.gallery.remove}
+                  </span>
+                </label>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">{t.gallery.empty}</p>
+          )}
+
+          <label className={labelClass}>
+            {t.gallery.add}
+            <input type="file" name="gallery" multiple accept={IMAGE_ACCEPT} className="text-sm file:mr-3 file:border file:border-border file:bg-transparent file:px-3 file:py-1.5 file:text-sm" />
+          </label>
+
+          <button
+            type="submit"
+            className="h-10 w-fit border border-border px-4 text-sm transition-colors hover:border-brand-signal focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-signal"
+          >
+            {t.table.save}
+          </button>
+        </form>
+      ) : null}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { rows, run, withTransaction } from "@/lib/db";
+import { clearGallery } from "@/lib/post-gallery";
 import { slugify, uniqueSlug } from "@/lib/slug";
 
 /**
@@ -134,6 +135,8 @@ export async function deletePost(postId: string): Promise<void> {
   if (!(await rows<{ id: string }>(`select id from posts where id = ?`, [postId])).length) {
     throw new PostRuleError("Материал не найден.", "not_found");
   }
-  // Галерея удаляется каскадом по posts_rels.
+  // Галерею снимаем до удаления поста: каскад убрал бы строки posts_rels, но
+  // не файлы, и в public/uploads остались бы сироты.
+  await clearGallery(postId);
   await run(`delete from posts where id = ?`, [postId]);
 }

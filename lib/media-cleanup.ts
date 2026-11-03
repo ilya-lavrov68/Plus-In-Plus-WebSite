@@ -9,8 +9,9 @@ async function referenced(path: string): Promise<boolean> {
   const found = await rows<{ total: number }>(
     `select (select count(*) from services where cover_image = ?)
           + (select count(*) from posts where cover_image = ?)
+          + (select count(*) from products where cover_image = ?)
           + (select count(*) from posts_rels r join media m on m.id = r.media_id where m.url = ?) total`,
-    [path, path, path],
+    [path, path, path, path],
   );
   return Number(found[0]?.total ?? 0) > 0;
 }
@@ -30,5 +31,23 @@ export async function cleanupPostCoverIfUnused(publicPath: string | null): Promi
     if (!(await referenced(publicPath))) await cleanupUpload(publicPath, "blog");
   } catch (error) {
     console.error("Post cover reference check failed; preserving the upload:", error);
+  }
+}
+
+export async function cleanupProductCoverIfUnused(publicPath: string | null): Promise<void> {
+  if (!publicPath) return;
+  try {
+    if (!(await referenced(publicPath))) await cleanupUpload(publicPath, "services");
+  } catch (error) {
+    console.error("Product cover reference check failed; preserving the upload:", error);
+  }
+}
+
+export async function cleanupGalleryImageIfUnused(publicPath: string | null): Promise<void> {
+  if (!publicPath) return;
+  try {
+    if (!(await referenced(publicPath))) await cleanupUpload(publicPath, "blog");
+  } catch (error) {
+    console.error("Gallery reference check failed; preserving the upload:", error);
   }
 }
