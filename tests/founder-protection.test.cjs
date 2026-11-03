@@ -56,11 +56,20 @@ test("role and block changes exist only in the server runbook, never in the pane
   // В админке изменение роли или блокировки недоступно: панель только читает.
   const accountsPage = fs.readFileSync(path.join(root, "app", "(admin)", "admin", "accounts", "page.tsx"), "utf8");
   assert.doesNotMatch(accountsPage, /updateAccount|is_blocked\s*=/);
+  // Мутации панели ограничены заказами и каталогом услуг: роли, блокировки и
+  // аккаунты из интерфейса не меняются вообще.
+  const allowedSurfaces = new Set(["orders", "services"]);
   const actionFiles = fs.readdirSync(path.join(root, "app", "(admin)", "admin"))
-    .filter((name) => name !== "orders")
-    .map((name) => path.join(root, "app", "(admin)", "admin", name, "actions.ts"))
-    .filter((file) => fs.existsSync(file));
-  assert.deepEqual(actionFiles, [], "the panel has a single mutation surface: order status");
+    .map((name) => ({ name, file: path.join(root, "app", "(admin)", "admin", name, "actions.ts") }))
+    .filter((entry) => fs.existsSync(entry.file));
+  for (const entry of actionFiles) {
+    assert.ok(allowedSurfaces.has(entry.name), `${entry.name} must not mutate data from the panel`);
+    assert.doesNotMatch(
+      fs.readFileSync(entry.file, "utf8"),
+      /update accounts set|insert into accounts|delete from accounts/i,
+      `${entry.name} must never write to accounts`,
+    );
+  }
 
   // Единственный SQL-писатель аккаунтов — lib/accounts.ts.
   const writers = [];

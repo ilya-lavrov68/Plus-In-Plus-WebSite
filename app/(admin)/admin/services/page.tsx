@@ -8,7 +8,7 @@ import { requireStaff } from "@/lib/admin-session";
 import { getRequestLocale } from "@/lib/request-locale";
 
 export default async function AdminServicesPage() {
-  await requireStaff();
+  const staff = await requireStaff();
   const locale = await getRequestLocale();
   const t = adminLabels(locale);
   const services = await getServices();
@@ -61,14 +61,24 @@ export default async function AdminServicesPage() {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <Link
-                    href={`/services/${service.slug}`}
-                    className="text-xs underline-offset-4 hover:underline"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {t.table.open}
-                  </Link>
+                  <div className="flex items-center justify-end gap-4">
+                    {staff?.isAdmin ? (
+                      <Link
+                        href={`/admin/services/${encodeURIComponent(service.id)}`}
+                        className="text-xs underline-offset-4 hover:underline"
+                      >
+                        {t.table.editLink}
+                      </Link>
+                    ) : null}
+                    <Link
+                      href={`/services/${service.slug}`}
+                      className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {t.table.open}
+                    </Link>
+                  </div>
                 </TableCell>
               </TableRow>
             ))
