@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 
-import { LegalLineBand } from "@/components/site/page-geometry";
-import { Separator } from "@/components/ui/separator";
 import { getRequestLocale } from "@/lib/request-locale";
 import { createPageMetadata } from "@/lib/seo";
 
@@ -26,26 +24,25 @@ export default async function PrivacyPage() {
   const isRu = locale === "ru";
 
   return (
-    <section className="relative isolate overflow-hidden py-24 md:py-32">
-      <LegalLineBand />
-      <div className="container max-w-3xl">
-        <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
+    <section style={{ paddingBottom: "var(--block-spacing)" }}>
+      <div style={{ paddingLeft: "var(--gutter-h)", paddingRight: "var(--gutter-h)", maxWidth: "48rem" }}>
+        <p className="pl-h6">
           {isRu ? "Правовая информация" : "Legal"}
         </p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">
+        <h1 className="pl-h1 mt-3">
           {isRu ? "Политика конфиденциальности" : "Privacy Policy"}
         </h1>
-        <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
+        <p className="pl-body mt-4">
           {isRu
             ? "Конфиденциальность — один из базовых принципов студии Plus In Plus. В этом документе описано, какие данные мы собираем при использовании сайта, создании аккаунта или отправке заявки на дизайн."
             : "Confidentiality is one of the core principles of Plus In Plus. This policy explains what data we collect when you use our website, create an account, or submit a design request."}
         </p>
 
-        <Separator className="my-10" />
+        <hr style={{ borderColor: "var(--theme-border-color)", margin: "2.5rem 0" }} />
 
-        <div className="space-y-8 text-base leading-7 text-muted-foreground">
-          <div className="space-y-3">
-            <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+        <div style={{ display: "flex", flexDirection: "column", gap: "2rem", color: "var(--theme-elevation-750)", lineHeight: 1.7 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+            <h2 className="pl-h3">
               {isRu ? "1. Какие данные мы собираем" : "1. Information We Collect"}
             </h2>
             <p>
@@ -55,8 +52,8 @@ export default async function PrivacyPage() {
             </p>
           </div>
 
-          <div className="space-y-3">
-            <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+            <h2 className="pl-h3">
               {isRu ? "2. Строгая конфиденциальность" : "2. Strict Confidentiality"}
             </h2>
             <p>
@@ -66,8 +63,8 @@ export default async function PrivacyPage() {
             </p>
           </div>
 
-          <div className="space-y-3">
-            <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+            <h2 className="pl-h3">
               {isRu ? "3. Контакты и управление данными" : "3. Contact & Data Requests"}
             </h2>
             <p>

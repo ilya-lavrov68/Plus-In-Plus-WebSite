@@ -278,3 +278,26 @@ body {
   outline: 2px solid var(--theme-success-500);
   outline-offset: 2px;
 }
+
+/* Кнопки внутри форм авторизации — в геометрии Payload. */
+.pw-form button {
+  font-family: var(--font-body);
+}
+
+.pw-form button[type="submit"] {
+  width: 100%;
+  border: 1px solid var(--theme-border-color);
+  border-radius: 0;
+  background: var(--theme-elevation-1000);
+  color: var(--theme-elevation-0);
+  padding: 1rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+
+.pw-form button[type="submit"]:hover {
+  background: var(--theme-success-500);
+  color: var(--theme-elevation-0);
+}
