@@ -105,6 +105,17 @@ Module._load = function (name, parent, isMain) {
     rotateAuthSession: async () => null,
   };
   if (name === "@/lib/payload-native") return createNativeModuleMock(db);
+  if (name === "@/lib/db") {
+    // admin-session читает роль и блокировку напрямую из accounts.
+    const real = originalLoad.call(this, path.join(__dirname, "..", "lib", "db.ts"), parent, isMain);
+    return {
+      ...real,
+      row: async () =>
+        account
+          ? { id: account.id, email: account.email, role: account.role, is_blocked: account.isBlocked ? 1 : 0 }
+          : null,
+    };
+  }
   if (name.startsWith("@/")) name = path.resolve(__dirname, "..", name.slice(2));
   return originalLoad.call(this, name, parent, isMain);
 };

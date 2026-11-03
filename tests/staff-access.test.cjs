@@ -23,6 +23,17 @@ const db = {
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
   if (name === "@/lib/payload-native") return createNativeModuleMock(db);
+  if (name === "@/lib/db") {
+    // Роль и блокировка читаются одним SQL-запросом к accounts.
+    const real = originalLoad.call(this, path.join(__dirname, "..", "lib", "db.ts"), parent, isMain);
+    return {
+      ...real,
+      row: async () =>
+        dbUser
+          ? { id: dbUser.id, email: dbUser.email, role: dbUser.role, is_blocked: dbUser.isBlocked }
+          : null,
+    };
+  }
   // auth() отдаёт то, что лежит в подписанном токене.
   if (name === "@/auth") return { auth: async () => (sessionUser ? { user: sessionUser } : null) };
   if (name === "@/lib/auth-secret") return { isAuthConfigured: () => true };

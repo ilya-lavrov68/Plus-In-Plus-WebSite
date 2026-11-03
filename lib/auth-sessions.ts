@@ -2,13 +2,18 @@ import { createHash, randomBytes } from "node:crypto";
 
 import { cookies } from "next/headers";
 
+import { row, rows, run, sqlValue, withTransaction } from "@/lib/db";
 import { hashesEqual } from "@/lib/mfa";
-import { getPayloadClient, payloadDate, payloadId, withPayloadTransaction } from "@/lib/payload-native";
 import { logSecurityEvent } from "@/lib/security-log";
 import { MAX_CONCURRENT_SESSIONS, REFRESH_PRESENT_COOKIE, REFRESH_SESSION_SECONDS } from "@/lib/session-policy";
 import { localAvatarPath } from "@/lib/upload-policy";
 import type { UserRole } from "@/lib/user-profile";
-import type { AuthSession } from "@/payload/payload-types";
+
+/**
+ * Refresh-сессии: таблица `auth_sessions` читается и пишется напрямую.
+ * Хеши токена и устройства сравниваются в приложении (`hashesEqual`), не в SQL,
+ * поэтому запросы остаются параметризованными и без утечек секретов в план.
+ */
 
 const REFRESH_COOKIE = "pip-refresh";
 const DEVICE_COOKIE = "pip-device";
@@ -19,12 +24,14 @@ export function deviceCookieName(): string { return production() ? `__Secure-${D
 export function hashRefreshSecret(secret: string): string { return createHash("sha256").update(secret, "utf8").digest("hex"); }
 export function hashDevice(deviceId: string): string { return createHash("sha256").update(deviceId, "utf8").digest("hex"); }
 function validRandomPart(value: unknown): value is string { return typeof value === "string" && TOKEN_PATTERN.test(value); }
+
 export function parseRefreshToken(value: unknown): { id: string; secret: string } | null {
   if (typeof value !== "string") return null;
   const [id, secret, extra] = value.split(".");
   if (!validRandomPart(id) || !validRandomPart(secret) || extra) return null;
   return { id, secret };
 }
+
 async function writeRefreshCookies(sessionId: string, secret: string, deviceId: string, expiresAt: Date): Promise<void> {
   const jar = await cookies();
   const secure = production();
@@ -44,8 +51,17 @@ export async function readRefreshCookies(): Promise<{ refreshToken: string; devi
   return { refreshToken: jar.get(refreshCookieName())?.value ?? "", deviceId: jar.get(deviceCookieName())?.value ?? "" };
 }
 
+async function revokeWhere(userId: string, now: string, reason: string, excludeSessionId?: string): Promise<void> {
+  const params: unknown[] = [now, reason.slice(0, 64), now, userId];
+  let sql = "update auth_sessions set revoked_at = ?, revoke_reason = ?, updated_at = ? where user_id_id = ? and revoked_at is null";
+  if (excludeSessionId) {
+    sql += " and id <> ?";
+    params.push(excludeSessionId);
+  }
+  await run(sql, params);
+}
+
 export async function createAuthSession(userId: string, role: UserRole): Promise<{ sessionId: string; deviceHash: string }> {
-  const payload = await getPayloadClient();
   const jar = await cookies();
   const existingDevice = jar.get(deviceCookieName())?.value;
   const deviceId = validRandomPart(existingDevice) ? existingDevice : randomBytes(32).toString("base64url");
@@ -54,42 +70,38 @@ export async function createAuthSession(userId: string, role: UserRole): Promise
   const refreshSecret = randomBytes(32).toString("base64url");
   const now = new Date();
   const expiresAt = new Date(now.getTime() + REFRESH_SESSION_SECONDS * 1000);
-  await withPayloadTransaction(payload, async (req) => {
-    await payload.create({
-      collection: "auth-sessions",
-      data: { id: sessionId, userId, role, refreshHash: hashRefreshSecret(refreshSecret), deviceHash, lastUsedAt: now.toISOString(), expiresAt: expiresAt.toISOString() },
-      overrideAccess: true,
-      req,
-    });
-    const active = await payload.find({
-      collection: "auth-sessions",
-      depth: 0,
-      pagination: false,
-      sort: "-lastUsedAt",
-      overrideAccess: true,
-      req,
-      where: { and: [{ userId: { equals: userId } }, { revokedAt: { exists: false } }, { expiresAt: { greater_than: now.toISOString() } }] },
-    });
-    const excess = active.docs.slice(MAX_CONCURRENT_SESSIONS).map((session) => session.id);
+
+  await withTransaction(async (tx) => {
+    await tx.run(
+      `insert into auth_sessions (id, user_id_id, refresh_hash, device_hash, role, last_used_at, expires_at, created_at, updated_at)
+       values (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [sessionId, userId, hashRefreshSecret(refreshSecret), deviceHash, role, now.toISOString(), expiresAt.toISOString(), now.toISOString(), now.toISOString()],
+    );
+    // Лимит одновременных сессий: лишние (самые старые по last_used_at) отзываем.
+    const active = await tx.rows<{ id: string }>(
+      `select id from auth_sessions
+       where user_id_id = ? and revoked_at is null and expires_at > ?
+       order by last_used_at desc`,
+      [userId, now.toISOString()],
+    );
+    const excess = active.slice(MAX_CONCURRENT_SESSIONS).map((session) => session.id);
     if (excess.length) {
-      await payload.update({
-        collection: "auth-sessions",
-        data: { revokedAt: now.toISOString(), revokeReason: "session_limit" },
-        overrideAccess: true,
-        req,
-        where: { and: [{ id: { in: excess } }, { revokedAt: { exists: false } }] },
-      });
+      await tx.run(
+        `update auth_sessions set revoked_at = ?, revoke_reason = 'session_limit', updated_at = ?
+         where id in (${excess.map(() => "?").join(", ")}) and revoked_at is null`,
+        [now.toISOString(), now.toISOString(), ...excess],
+      );
     }
   });
+
   try {
     await writeRefreshCookies(sessionId, refreshSecret, deviceId, expiresAt);
   } catch (error) {
-    await payload.update({
-      collection: "auth-sessions",
-      data: { revokedAt: new Date().toISOString(), revokeReason: "cookie_write_failed" },
-      overrideAccess: true,
-      where: { and: [{ id: { equals: sessionId } }, { revokedAt: { exists: false } }] },
-    });
+    await run(
+      `update auth_sessions set revoked_at = ?, revoke_reason = 'cookie_write_failed', updated_at = ?
+       where id = ? and revoked_at is null`,
+      [new Date().toISOString(), new Date().toISOString(), sessionId],
+    );
     throw error;
   }
   return { sessionId, deviceHash };
@@ -105,108 +117,125 @@ export interface RotatedAuthSession {
 export async function rotateAuthSession(rawRefreshToken: string, deviceId: string): Promise<RotatedAuthSession | null> {
   const parsed = parseRefreshToken(rawRefreshToken);
   if (!parsed || !validRandomPart(deviceId)) return null;
-  const payload = await getPayloadClient();
   const presentedHash = hashRefreshSecret(parsed.secret);
   const presentedDeviceHash = hashDevice(deviceId);
-  const result = await payload.find({
-    collection: "auth-sessions",
-    depth: 1,
-    limit: 1,
-    overrideAccess: true,
-    where: { id: { equals: parsed.id } },
-  });
-  const existing = result.docs[0] as AuthSession | undefined;
-  const expiresAt = payloadDate(existing?.expiresAt);
-  const account = existing?.userId && typeof existing.userId === "object" ? existing.userId : null;
-  if (!existing || existing.revokedAt || !expiresAt || expiresAt.getTime() <= Date.now() || !account || account.isBlocked) return null;
-  if (!hashesEqual(existing.deviceHash, presentedDeviceHash)) {
+
+  const existing = await row<Record<string, unknown>>(
+    `select s.id, s.refresh_hash, s.device_hash, s.role, s.expires_at, s.revoked_at,
+            a.id account_id, a.email, a.first_name, a.last_name, a.avatar, a.role account_role, a.is_blocked
+     from auth_sessions s left join accounts a on a.id = s.user_id_id
+     where s.id = ?`,
+    [parsed.id],
+  );
+  if (!existing) return null;
+
+  const expiresAt = sqlValue.date(existing.expires_at);
+  const account = existing.account_id == null ? null : {
+    id: sqlValue.text(existing.account_id),
+    email: sqlValue.text(existing.email),
+    firstName: existing.first_name == null ? null : sqlValue.text(existing.first_name),
+    lastName: existing.last_name == null ? null : sqlValue.text(existing.last_name),
+    avatar: existing.avatar == null ? null : sqlValue.text(existing.avatar),
+    role: sqlValue.text(existing.account_role),
+    isBlocked: sqlValue.boolean(existing.is_blocked),
+  };
+  if (existing.revoked_at || !expiresAt || expiresAt.getTime() <= Date.now() || !account || account.isBlocked) return null;
+
+  if (!hashesEqual(sqlValue.text(existing.device_hash), presentedDeviceHash)) {
     logSecurityEvent("auth.refresh.device_mismatch");
     return null;
   }
-  const userId = payloadId(existing.userId)!;
-  if (!hashesEqual(existing.refreshHash, presentedHash)) {
+  const userId = account.id;
+  if (!hashesEqual(sqlValue.text(existing.refresh_hash), presentedHash)) {
     await revokeAllAuthSessions(userId, "refresh_reuse");
     logSecurityEvent("auth.refresh.reuse_detected");
     return null;
   }
-  const role: UserRole = (existing.role === "FOUNDER" || existing.role === "ADMIN" || existing.role === "MANAGER") && existing.role === account.role ? existing.role : "USER";
+
+  const sessionRole = sqlValue.text(existing.role);
+  const role: UserRole = (sessionRole === "FOUNDER" || sessionRole === "ADMIN" || sessionRole === "MANAGER") && sessionRole === account.role
+    ? sessionRole
+    : "USER";
   const nextSecret = randomBytes(32).toString("base64url");
-  const rotated = await payload.update({
-    collection: "auth-sessions",
-    data: { refreshHash: hashRefreshSecret(nextSecret), lastUsedAt: new Date().toISOString(), role },
-    overrideAccess: true,
-    where: { and: [{ id: { equals: existing.id } }, { refreshHash: { equals: presentedHash } }, { revokedAt: { exists: false } }] },
-  });
-  if (rotated.docs.length !== 1) {
+  const now = new Date().toISOString();
+
+  // Условный update защищает от гонки: ротация засчитывается только один раз.
+  const updated = await run(
+    `update auth_sessions set refresh_hash = ?, last_used_at = ?, role = ?, updated_at = ?
+     where id = ? and refresh_hash = ? and revoked_at is null`,
+    [hashRefreshSecret(nextSecret), now, role, now, parsed.id, presentedHash],
+  );
+  if (updated !== 1) {
     await revokeAllAuthSessions(userId, "refresh_race");
     logSecurityEvent("auth.refresh.reuse_detected");
     return null;
   }
-  await writeRefreshCookies(existing.id, nextSecret, deviceId, expiresAt);
+
+  await writeRefreshCookies(parsed.id, nextSecret, deviceId, expiresAt);
   return {
-    sessionId: existing.id,
-    deviceHash: existing.deviceHash,
+    sessionId: parsed.id,
+    deviceHash: sqlValue.text(existing.device_hash),
     role,
-    user: { id: account.id, email: account.email, firstName: account.firstName ?? null, lastName: account.lastName ?? null, avatar: localAvatarPath(account.avatar ?? null) },
+    user: {
+      id: account.id,
+      email: account.email,
+      firstName: account.firstName,
+      lastName: account.lastName,
+      avatar: localAvatarPath(account.avatar),
+    },
   };
 }
 
 export async function authSessionIsActive(sessionId: string, deviceHash: string): Promise<boolean> {
   if (!validRandomPart(sessionId) || !/^[a-f0-9]{64}$/.test(deviceHash)) return false;
-  const payload = await getPayloadClient();
-  const result = await payload.find({
-    collection: "auth-sessions",
-    depth: 0,
-    limit: 1,
-    overrideAccess: true,
-    where: { and: [{ id: { equals: sessionId } }, { revokedAt: { exists: false } }, { expiresAt: { greater_than: new Date().toISOString() } }] },
-  });
-  const session = result.docs[0];
-  return Boolean(session && hashesEqual(session.deviceHash, deviceHash));
+  const session = await row<{ device_hash: string }>(
+    `select device_hash from auth_sessions
+     where id = ? and revoked_at is null and expires_at > ? limit 1`,
+    [sessionId, new Date().toISOString()],
+  );
+  return Boolean(session && hashesEqual(session.device_hash, deviceHash));
 }
 
 export async function downgradeAuthSession(sessionId: string, deviceHash: string): Promise<void> {
   if (!validRandomPart(sessionId) || !/^[a-f0-9]{64}$/.test(deviceHash)) return;
-  const payload = await getPayloadClient();
-  await payload.update({
-    collection: "auth-sessions",
-    data: { role: "USER" },
-    overrideAccess: true,
-    where: { and: [{ id: { equals: sessionId } }, { deviceHash: { equals: deviceHash } }, { revokedAt: { exists: false } }, { role: { not_equals: "USER" } }] },
-  });
+  await run(
+    `update auth_sessions set role = 'USER', updated_at = ?
+     where id = ? and device_hash = ? and revoked_at is null and role <> 'USER'`,
+    [new Date().toISOString(), sessionId, deviceHash],
+  );
 }
 
 export async function revokeAllAuthSessions(userId: string, reason: string): Promise<void> {
-  const payload = await getPayloadClient();
-  await payload.update({
-    collection: "auth-sessions",
-    data: { revokedAt: new Date().toISOString(), revokeReason: reason.slice(0, 64) },
-    overrideAccess: true,
-    where: { and: [{ userId: { equals: userId } }, { revokedAt: { exists: false } }] },
-  });
+  const now = new Date().toISOString();
+  await revokeWhere(userId, now, reason);
 }
 
 export async function revokeOtherAuthSessions(userId: string, reason: string): Promise<void> {
   const { refreshToken } = await readRefreshCookies();
   const current = parseRefreshToken(refreshToken);
-  const payload = await getPayloadClient();
-  await payload.update({
-    collection: "auth-sessions",
-    data: { revokedAt: new Date().toISOString(), revokeReason: reason.slice(0, 64) },
-    overrideAccess: true,
-    where: { and: [{ userId: { equals: userId } }, { revokedAt: { exists: false } }, ...(current ? [{ id: { not_equals: current.id } }] : [])] },
-  });
+  const now = new Date().toISOString();
+  await revokeWhere(userId, now, reason, current?.id);
 }
 
 export async function revokeCurrentAuthSession(reason = "logout"): Promise<void> {
   const { refreshToken, deviceId } = await readRefreshCookies();
   const parsed = parseRefreshToken(refreshToken);
   if (!parsed || !validRandomPart(deviceId)) return;
-  const payload = await getPayloadClient();
-  await payload.update({
-    collection: "auth-sessions",
-    data: { revokedAt: new Date().toISOString(), revokeReason: reason },
-    overrideAccess: true,
-    where: { and: [{ id: { equals: parsed.id } }, { deviceHash: { equals: hashDevice(deviceId) } }, { revokedAt: { exists: false } }] },
-  });
+  const now = new Date().toISOString();
+  await run(
+    `update auth_sessions set revoked_at = ?, revoke_reason = ?, updated_at = ?
+     where id = ? and device_hash = ? and revoked_at is null`,
+    [now, reason, now, parsed.id, hashDevice(deviceId)],
+  );
+}
+
+/** Все активные сессии пользователя — для страницы безопасности в профиле. */
+export async function listActiveAuthSessions(userId: string): Promise<Array<{ id: string; lastUsedAt: string; expiresAt: string }>> {
+  const found = await rows<{ id: string; last_used_at: string; expires_at: string }>(
+    `select id, last_used_at, expires_at from auth_sessions
+     where user_id_id = ? and revoked_at is null and expires_at > ?
+     order by last_used_at desc`,
+    [userId, new Date().toISOString()],
+  );
+  return found.map((session) => ({ id: session.id, lastUsedAt: session.last_used_at, expiresAt: session.expires_at }));
 }

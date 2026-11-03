@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { isAuthConfigured } from "@/lib/auth-secret";
-import { getPayloadClient } from "@/lib/payload-native";
+import { row } from "@/lib/db";
 import { roleLevel, type UserRole } from "@/lib/user-profile";
 
 export type { UserRole } from "@/lib/user-profile";
@@ -17,10 +17,13 @@ async function resolveStaff(): Promise<{ id: string; email: string; role: UserRo
     if (!isAuthConfigured()) return null;
     const session = await auth();
     if (!session?.user?.id || roleLevel(session.user.role) < 1) return null;
-    const payload = await getPayloadClient();
-    const result = await payload.find({ collection: "accounts", depth: 0, limit: 1, overrideAccess: true, where: { id: { equals: session.user.id } } });
-    const account = result.docs[0];
-    if (!account?.email || account.isBlocked) return null;
+    // Текущая роль берётся из БД при каждом запросе: понижение роли или блокировка
+    // действуют сразу, без ожидания истечения JWT.
+    const account = await row<{ id: string; email: string; role: string; is_blocked: number }>(
+      "select id, email, role, is_blocked from accounts where id = ? limit 1",
+      [session.user.id],
+    );
+    if (!account?.email || account.is_blocked === 1) return null;
     const role = effectiveRole(session.user.role, account.role);
     if (roleLevel(role) < 1) return null;
     return { id: account.id, email: account.email, role };

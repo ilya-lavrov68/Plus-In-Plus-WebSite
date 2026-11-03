@@ -57,6 +57,42 @@ export async function run(sql: string, args: unknown[] = []): Promise<number> {
   return result.rowsAffected;
 }
 
+export interface DbTransaction {
+  rows<T = Record<string, unknown>>(sql: string, args?: unknown[]): Promise<T[]>;
+  run(sql: string, args?: unknown[]): Promise<number>;
+}
+
+/**
+ * Запись в одной SQLite-транзакции. Нужна там, где несколько изменений должны
+ * примениться вместе: выдача сессии и вытеснение лишних, ротация refresh-токена,
+ * создание заказа.
+ */
+export async function withTransaction<T>(fn: (tx: DbTransaction) => Promise<T>): Promise<T> {
+  const tx = await getDb().transaction("write");
+  const scoped: DbTransaction = {
+    async rows<R = Record<string, unknown>>(sql: string, args: unknown[] = []): Promise<R[]> {
+      const result = await tx.execute({ sql, args: toArgs(args) });
+      return result.rows as R[];
+    },
+    async run(sql: string, args: unknown[] = []): Promise<number> {
+      const result = await tx.execute({ sql, args: toArgs(args) });
+      return result.rowsAffected;
+    },
+  };
+  try {
+    const result = await fn(scoped);
+    await tx.commit();
+    return result;
+  } catch (error) {
+    try {
+      await tx.rollback();
+    } catch {
+      // Соединение могло уже закрыться — исходная ошибка важнее.
+    }
+    throw error;
+  }
+}
+
 /** Закрытие соединения для скриптов и тестов. */
 export async function closeDb(): Promise<void> {
   try {
