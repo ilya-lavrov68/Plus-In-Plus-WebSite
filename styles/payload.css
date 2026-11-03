@@ -354,3 +354,16 @@ body {
   align-items: center;
   gap: 1.25rem;
 }
+
+/* Их .desktopNav скрывается на мобильном, но у нас в нём же живут логотип
+   и бургер — поэтому возвращаем панель на мобильной ширине. */
+@media (max-width: 768px) {
+  .pw-header {
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  .pw-header .pw-header-utility {
+    display: none;
+  }
+}

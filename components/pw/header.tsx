@@ -40,7 +40,7 @@ export function PwHeader({ locale, topBar, menuLabel, closeLabel, links, utility
       </div>
 
       <header className={`${classes.header} ${open ? classes.mobileNavOpen : ""}`}>
-        <div className={desktop.desktopNav}>
+        <div className={`pw-header ${desktop.desktopNav}`}>
           <div
             className={`${desktop.container} grid`}
             style={{ paddingLeft: "var(--gutter-h)", paddingRight: "var(--gutter-h)", alignItems: "center", height: "100%" }}
