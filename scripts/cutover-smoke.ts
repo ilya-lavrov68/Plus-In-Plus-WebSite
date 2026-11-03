@@ -1,117 +1,107 @@
-import { closePayloadClient, getPayloadClient, payloadId, withPayloadTransaction } from "@/lib/payload-native";
+import { randomUUID } from "node:crypto";
 
+import { createAccount } from "@/lib/accounts";
+import {
+  findOrderById,
+  insertOrder,
+  insertOrderItem,
+  listOrderItems,
+  listOrderServicesForOrders,
+  replaceOrderServices,
+} from "@/lib/commerce-data";
+import { findServiceById } from "@/lib/data";
+import { closeDb, run, withTransaction } from "@/lib/db";
+
+/**
+ * Дымовой тест после отказа от CMS: проверяет, что вложенные опции услуги и
+ * связи заказа читаются из SQL так же, как раньше из Payload. Всё созданное
+ * удаляется в конце, база остаётся чистой.
+ */
 async function main() {
-  const payload = await getPayloadClient();
   const suffix = Date.now().toString(36);
-  const user = await payload.create({
-    collection: "accounts",
-    data: { email: `smoke-${suffix}@example.test`, passwordHash: "not-a-real-password", role: "USER" },
-    overrideAccess: true,
-  });
-  const service = await payload.create({
-    collection: "services",
-    data: {
-      title: `Smoke ${suffix}`,
-      slug: `smoke-${suffix}`,
-      category: "small",
-      shortDesc: "Smoke",
-      fullDesc: "Smoke service",
-      includes: [{ value: "One" }],
-      shapes: [{ value: "Layout" }],
-      resultText: "Ready",
-      basePrice: 10000,
-      priceType: "from",
-      currency: "RUB",
-      isOrderable: true,
-      isPublished: true,
-      isActive: true,
-      sortOrder: 0,
-      optionGroups: [{
-        name: "Size",
-        required: true,
-        sortOrder: 0,
-        options: [{ label: "A", priceDelta: 100, priceFactor: 1, isDefault: true, sortOrder: 0 }],
-      }],
-    },
-    overrideAccess: true,
-  });
-  const loadedServiceResult = await payload.find({
-    collection: "services",
-    depth: 2,
-    limit: 1,
-    overrideAccess: true,
-    where: { id: { equals: service.id } },
-  });
-  const loadedService = loadedServiceResult.docs[0];
-  if (!loadedService?.optionGroups?.[0]?.options?.length) {
-    throw new Error("nested service options were not loaded");
+  const user = await createAccount({ email: `smoke-${suffix}@example.test`, passwordHash: "not-a-real-password" });
+  const serviceId = `svc-smoke-${suffix}`;
+  const groupId = randomUUID();
+  const now = new Date().toISOString();
+
+  try {
+    await withTransaction(async (tx) => {
+      await tx.run(
+        `insert into services (id, title, slug, category, short_desc, full_desc, result_text, base_price,
+           price_type, currency, is_orderable, is_published, is_active, sort_order, created_at, updated_at)
+         values (?, ?, ?, 'small', 'Smoke', 'Smoke service', 'Ready', 10000, 'from', 'RUB', 1, 1, 1, 0, ?, ?)`,
+        [serviceId, `Smoke ${suffix}`, `smoke-${suffix}`, now, now],
+      );
+      await tx.run(`insert into services_includes (_order, _parent_id, id, value) values (0, ?, ?, 'One')`, [serviceId, randomUUID()]);
+      await tx.run(`insert into services_shapes (_order, _parent_id, id, value) values (0, ?, ?, 'Layout')`, [serviceId, randomUUID()]);
+      await tx.run(
+        `insert into services_option_groups (_order, _parent_id, id, name, required, sort_order) values (0, ?, ?, 'Size', 1, 0)`,
+        [serviceId, groupId],
+      );
+      await tx.run(
+        `insert into services_option_groups_options (_order, _parent_id, id, label, price_delta, price_factor, is_default, sort_order)
+         values (0, ?, ?, 'A', 100, 1, 1, 0)`,
+        [groupId, randomUUID()],
+      );
+    });
+
+    const service = await findServiceById(serviceId, { withOptions: true });
+    if (!service?.optionGroups?.[0]?.options?.length) {
+      throw new Error("nested service options were not loaded");
+    }
+
+    const order = await withTransaction(async (tx) => {
+      const created = await insertOrder(
+        {
+          orderNumber: `SMOKE-${suffix}`,
+          number: `SMOKE-${suffix}`,
+          userId: user.id,
+          status: "quote_requested",
+          estimatedAmount: 10000,
+          subtotal: 0,
+          discount: 0,
+          total: 0,
+          currency: "RUB",
+        },
+        tx,
+      );
+      await replaceOrderServices(created.id, [{ serviceId, quantity: 1 }], tx);
+      await insertOrderItem(
+        {
+          orderId: created.id,
+          itemType: "service",
+          itemId: serviceId,
+          serviceId,
+          title: service.title,
+          quantity: 1,
+          estimatedUnitPrice: 10000,
+          optionsSnapshot: "[]",
+        },
+        tx,
+      );
+      return created;
+    });
+
+    const [items, links, loadedOrder] = await Promise.all([
+      listOrderItems(order.id),
+      listOrderServicesForOrders([order.id]),
+      findOrderById(order.id),
+    ]);
+    if (items.length !== 1 || links.length !== 1 || loadedOrder?.userId !== user.id) {
+      throw new Error("order relations were not loaded");
+    }
+
+    console.log(JSON.stringify({
+      ok: true,
+      serviceOptions: service.optionGroups[0].options.length,
+      orderItems: items.length,
+    }));
+  } finally {
+    // Порядок важен: заказ ссылается на услугу и аккаунт.
+    await run(`delete from orders where user_id_id = ?`, [user.id]);
+    await run(`delete from services where id = ?`, [serviceId]);
+    await run(`delete from accounts where id = ?`, [user.id]);
   }
-
-  const order = await withPayloadTransaction(payload, async (req) => {
-    const created = await payload.create({
-      collection: "orders",
-      data: {
-        orderNumber: `SMOKE-${suffix}`,
-        number: `SMOKE-${suffix}`,
-        userId: user.id,
-        status: "quote_requested",
-        estimatedAmount: 10000,
-        subtotal: 0,
-        discount: 0,
-        total: 0,
-        currency: "RUB",
-      },
-      depth: 0,
-      overrideAccess: true,
-      req,
-    });
-    await payload.create({
-      collection: "order-services",
-      data: { orderId: created.id, serviceId: service.id, quantity: 1 },
-      overrideAccess: true,
-      req,
-    });
-    await payload.create({
-      collection: "order-items",
-      data: {
-        orderId: created.id,
-        itemType: "service",
-        itemId: service.id,
-        serviceId: service.id,
-        title: service.title,
-        quantity: 1,
-        estimatedUnitPrice: 10000,
-        unitPrice: 0,
-        totalPrice: 0,
-        optionsSnapshot: "[]",
-      },
-      overrideAccess: true,
-      req,
-    });
-    return created;
-  });
-
-  const [items, services, loadedOrder] = await Promise.all([
-    payload.find({ collection: "order-items", depth: 0, pagination: false, overrideAccess: true, where: { orderId: { equals: order.id } } }),
-    payload.find({ collection: "order-services", depth: 0, pagination: false, overrideAccess: true, where: { orderId: { equals: order.id } } }),
-    payload.find({ collection: "orders", depth: 0, limit: 1, overrideAccess: true, where: { id: { equals: order.id } } }),
-  ]);
-  if (
-    items.docs.length !== 1 ||
-    services.docs.length !== 1 ||
-    payloadId(loadedOrder.docs[0]?.userId) !== user.id
-  ) {
-    throw new Error("order relations were not loaded");
-  }
-
-  await payload.delete({ collection: "orders", id: order.id, overrideAccess: true });
-  await payload.delete({ collection: "services", id: service.id, overrideAccess: true });
-  await payload.delete({ collection: "accounts", id: user.id, overrideAccess: true });
-  console.log(JSON.stringify({
-    ok: true,
-    serviceOptions: loadedService.optionGroups[0].options.length,
-    orderItems: items.docs.length,
-  }));
 }
 
 main()
@@ -119,4 +109,4 @@ main()
     console.error(error);
     process.exitCode = 1;
   })
-  .finally(closePayloadClient);
+  .finally(closeDb);

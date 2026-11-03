@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { unlink } from "node:fs/promises";
+import { mkdir, unlink } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 
-import { getPayloadClient } from "@/lib/payload-native";
+import { rows, run } from "@/lib/db";
 import {
   isUploadFilename, isUploadKind, MAX_AVATAR_BYTES, MAX_COVER_BYTES,
   MAX_COVER_INPUT_PIXELS, MAX_COVER_OUTPUT_EDGE_PX, type UploadKind,
@@ -73,52 +73,68 @@ async function processImage(file: File, kind: UploadKind): Promise<Buffer> {
   }
 }
 
+const MEDIA_PREFIX = "/uploads/media/";
+
+/**
+ * Картинка сохраняется в `public/uploads/media` и строкой в таблице `media`.
+ * Файл пишется до вставки: он не должен пережить неудачную запись в базу,
+ * поэтому вызывающая сторона при ошибке удаляет его через `cleanupUpload`.
+ */
 async function createMedia(image: Buffer, kind: UploadKind): Promise<string> {
-  const payload = await getPayloadClient();
-  const media = await payload.create({
-    collection: "media",
-    data: { alt: kind === "avatars" ? "User avatar" : "Plus In Plus image", kind },
-    file: {
-      data: image,
-      mimetype: "image/webp",
-      name: `${randomUUID()}.webp`,
-      size: image.length,
-    },
-    overrideAccess: true,
-  });
-  if (!media.url) throw new UploadValidationError("Payload did not return a media URL.");
-  return media.url;
+  const filename = `${randomUUID()}.webp`;
+  const directory = path.join(process.cwd(), "public", "uploads", "media");
+  await mkdir(directory, { recursive: true });
+  const info = await sharp(image).metadata();
+  await sharp(image).toFile(path.join(directory, filename));
+  const url = `${MEDIA_PREFIX}${filename}`;
+  await run(
+    `insert into media (id, alt, kind, url, filename, mime_type, filesize, width, height, created_at, updated_at)
+     values (?, ?, ?, ?, ?, 'image/webp', ?, ?, ?, ?, ?)`,
+    [
+      randomUUID(),
+      kind === "avatars" ? "User avatar" : "Plus In Plus image",
+      kind,
+      url,
+      filename,
+      image.length,
+      info.width ?? null,
+      info.height ?? null,
+      new Date().toISOString(),
+      new Date().toISOString(),
+    ],
+  );
+  return url;
 }
 
-/** Validate, strip metadata and store a local raster image through Payload Media. */
+/** Validate, strip metadata and store a local raster image. */
 export async function saveImageUpload(file: File, kind: UploadKind): Promise<string> {
   if (!isUploadKind(kind)) throw new UploadValidationError("Unknown upload destination.");
   return createMedia(await processImage(file, kind), kind);
 }
 
-async function deletePayloadMedia(publicPath: string, kind: UploadKind): Promise<boolean> {
-  if (!publicPath.startsWith("/uploads/media/")) return false;
-  const filename = publicPath.slice("/uploads/media/".length);
+async function deleteMediaRow(publicPath: string, kind: UploadKind): Promise<boolean> {
+  if (!publicPath.startsWith(MEDIA_PREFIX)) return false;
+  const filename = publicPath.slice(MEDIA_PREFIX.length);
   if (!/^[a-z0-9][a-z0-9._-]{0,240}$/i.test(filename)) return true;
-  const payload = await getPayloadClient();
-  const result = await payload.find({
-    collection: "media",
-    depth: 0,
-    limit: 1,
-    overrideAccess: true,
-    where: { and: [{ filename: { equals: filename } }, { kind: { equals: kind } }] },
-  });
-  const media = result.docs[0];
-  if (media) await payload.delete({ collection: "media", id: media.id, overrideAccess: true });
+  const found = await rows<{ id: string }>(
+    `select id from media where filename = ? and kind = ? limit 1`,
+    [filename, kind],
+  );
+  if (found[0]) await run(`delete from media where id = ?`, [found[0].id]);
+  try {
+    await unlink(path.join(process.cwd(), "public", "uploads", "media", filename));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
   return true;
 }
 
 /** Only delete uploader-owned files in the expected folder, never arbitrary paths. */
 export async function deleteImageUpload(publicPath: string | null, kind: UploadKind): Promise<void> {
   if (!publicPath || !isUploadKind(kind)) return;
-  if (await deletePayloadMedia(publicPath, kind)) return;
+  if (await deleteMediaRow(publicPath, kind)) return;
 
-  // Legacy local-file cleanup. New writes always take the Payload branch above.
+  // Legacy local-file cleanup (файлы, загруженные до таблицы media).
   const folder = uploadDirectory(kind);
   const prefix = `/uploads/${kind}/`;
   if (!publicPath.startsWith(prefix)) return;

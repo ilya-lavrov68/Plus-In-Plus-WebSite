@@ -104,7 +104,7 @@
     }
   },
   "announcement": {
-    "message": "Plus In Plus — design and AI in one studio",
+    "message": "Plus In Plus — A next-generation design studio",
     "dismiss": "Dismiss announcement"
   },
   "hero": {
@@ -112,7 +112,7 @@
     "order": "Order",
     "contactUs": "Contact us",
     "orderDesign": "Order a design",
-    "exploreAi": "Explore AI"
+    "exploreAi": "AI agents"
   },
   "categories": {
     "title": "Order a design you won't regret",
@@ -127,7 +127,6 @@
     "cardLabel": "{title} services"
   },
   "features": {
-    "eyebrow": "How we work",
     "ariaLabel": "Why choose Plus In Plus",
     "confidential": {
       "title": "Everything is confidential",
@@ -141,12 +140,12 @@
       "title": "Digital support",
       "description": "We are here when a design needs refinement or a digital workflow needs a clear explanation"
     },
-    "heading": "Sharp edges and precise meaning.",
+    "heading": "Pixels, code, and human meaning.",
     "button": "Contact us"
   },
   "story": {
     "eyebrow": "Our story",
-    "heading": "How the studio found its shape.",
+    "heading": "From the first idea to what we create next.",
     "description": "The milestones, experiments and launches that shape Plus In Plus, told by the studio itself.",
     "timelineLabel": "Plus In Plus company timeline",
     "emptyTitle": "Our story is being prepared",
@@ -1396,17 +1395,14 @@
   },
   "home": {
     "newsDescription": "Studio news, digital initiatives, and client project updates.",
-    "heroEyebrow": "Plus In Plus — design + AI",
-    "heroMuted": "Where an idea",
-    "heroPrimary": "takes",
-    "heroAccent": "shape",
-    "heroDescriptionLead": "A studio for visual systems, signage and outdoor media. ",
-    "heroDescriptionStrong": "Lumi Q1 and Kairo — specialised AI agents for code and law.",
-    "heroFootnote": "Plus In Plus · form, code and meaning",
+    "heroMuted": "AI and design",
+    "heroPrimary": "for the next generation",
+    "heroDescriptionLead": "We create visual systems and develop specialised AI agents. ",
+    "heroDescriptionStrong": "Two Plus In Plus directions: design for brands and digital assistants for coding and legal information.",
+    "heroFootnote": "Plus In Plus · AI + Design",
     "heroAlt": "Plus In Plus studio showcase",
-    "ctaTitle": "Let's give your idea its shape.",
-    "ctaDescription": "Tell us about the task — identity, artwork or signage. If you need a digital assistant, see how Lumi Q1 and Kairo work.",
-    "ctaButton": "Discuss a project",
+    "ctaTitle": "Two directions. One digital environment.",
+    "ctaDescription": "Order design for your idea or explore the concepts behind Lumi Q1 and Kairo, the specialised AI agents from Plus In Plus.",
     "communityBadge": "Partners & Neighbors",
     "communityHeading": "Our partners and neighbors",
     "communityDescription": "We closely collaborate with TS Connect, an IT firm in Tambov, delivering reliable design and digital infrastructure for brands and organizations.",
@@ -1543,7 +1539,7 @@
   "directions": {
     "eyebrow": "Two directions · one digital environment",
     "heading": "AI technology and design",
-    "description": "One studio, two practices: design brings an idea to its precise form, while AI agents turn it into a working tool. The shared principle is clarity, code and attention to every pixel.",
+    "description": "Plus In Plus develops specialised AI agents and continues to create visual solutions for brands. Both directions share a focus on clarity, code, and every pixel.",
     "ai": {
       "index": "01 / AI",
       "title": "AI agents",

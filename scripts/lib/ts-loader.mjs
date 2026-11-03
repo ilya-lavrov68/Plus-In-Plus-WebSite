@@ -9,8 +9,7 @@ async function exists(url) {
 
 export async function resolve(specifier, context, nextResolve) {
   let target = null;
-  if (specifier === "@payload-config") target = path.join(root, "payload.config.ts");
-  else if (specifier.startsWith("@/")) target = path.join(root, specifier.slice(2));
+  if (specifier.startsWith("@/")) target = path.join(root, specifier.slice(2));
   if (target) {
     for (const candidate of [target, `${target}.ts`, `${target}.tsx`, path.join(target, "index.ts"), path.join(target, "index.tsx")]) {
       const url = pathToFileURL(candidate).href;

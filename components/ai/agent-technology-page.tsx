@@ -89,7 +89,7 @@ export async function AgentTechnologyPage({ agent }: { agent: AgentKind }) {
               <span aria-hidden="true">01 / 06</span>
             </div>
             <div className="aspect-[36/23] w-full border-y border-border bg-background text-foreground">
-              <AgentShaderPlayer key={agent} agent={agent} labels={shaderLabels} />
+              <AgentShaderPlayer agent={agent} labels={shaderLabels} />
             </div>
             <figcaption className="sr-only">{content.visualLabel}</figcaption>
           </figure>

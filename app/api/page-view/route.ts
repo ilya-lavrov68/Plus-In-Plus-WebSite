@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { getPayloadClient } from "@/lib/payload-native";
+import { randomUUID } from "node:crypto";
+
+import { run } from "@/lib/db";
 import { checkRateLimitAsync, getClientAddress, hashRateLimitIdentifier, retryAfterHeaders } from "@/lib/rate-limit";
 import { isJsonObject, readJsonBody } from "@/lib/request-body";
 import { isSameOriginRequest } from "@/lib/request-origin";
@@ -55,21 +57,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false }, { status: 400 });
     }
 
-    const payload = await getPayloadClient();
-    const view = await payload.create({
-      collection: "page-views",
-      data: {
+    const id = randomUUID();
+    const now = new Date().toISOString();
+    await run(
+      `insert into page_views (id, path, referrer, utm_source, device, session_id, visitor_id, created_at, updated_at)
+       values (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
         path,
-        referrer: clean(body?.referrer, 200),
-        utmSource: clean(body?.utmSource, 100),
-        device: cleanDevice(body?.device),
-        sessionId: clean(body?.sessionId, 100),
-        visitorId: clean(body?.visitorId, 100),
-      },
-      overrideAccess: true,
-    });
+        clean(body?.referrer, 200),
+        clean(body?.utmSource, 100),
+        cleanDevice(body?.device),
+        clean(body?.sessionId, 100),
+        clean(body?.visitorId, 100),
+        now,
+        now,
+      ],
+    );
     // id нужен, чтобы позже дозаписать, сколько пробыли на странице.
-    return NextResponse.json({ ok: true, id: view.id }, { status: 201 });
+    return NextResponse.json({ ok: true, id }, { status: 201 });
   } catch {
     return NextResponse.json({ ok: false }, { status: 503 });
   }
@@ -97,13 +103,11 @@ export async function PATCH(request: Request) {
     if (!id || !Number.isFinite(durationMs) || durationMs < 0) {
       return NextResponse.json({ ok: false }, { status: 400 });
     }
-    const payload = await getPayloadClient();
-    await payload.update({
-      collection: "page-views",
-      data: { durationMs: Math.min(Math.round(durationMs), 3_600_000) },
-      overrideAccess: true,
-      where: { and: [{ id: { equals: id } }, { durationMs: { exists: false } }] },
-    });
+    // Длительность записывается один раз: повторный PATCH ничего не меняет.
+    await run(
+      `update page_views set duration_ms = ?, updated_at = ? where id = ? and duration_ms is null`,
+      [Math.min(Math.round(durationMs), 3_600_000), new Date().toISOString(), id],
+    );
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ ok: false }, { status: 503 });

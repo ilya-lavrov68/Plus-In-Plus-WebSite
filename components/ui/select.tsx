@@ -3,10 +3,8 @@
 import * as React from "react";
 
 import * as SelectPrimitive from "@radix-ui/react-select";
-import { ChevronDownIcon, ChevronUpIcon } from "lucide-animated";
-import { Check } from "lucide-react";
+import { Check, ChevronDown, ChevronUp } from "lucide-react";
 
-import { AnimatedIcon } from "@/components/ui/animated-icon";
 import { cn } from "@/lib/utils";
 
 const Select = SelectPrimitive.Root;
@@ -21,7 +19,6 @@ const SelectTrigger = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <SelectPrimitive.Trigger
     ref={ref}
-    data-pip-icon-trigger
     className={cn(
       "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-solid focus:outline-2 focus:outline-offset-2 focus:outline-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
       className
@@ -29,8 +26,8 @@ const SelectTrigger = React.forwardRef<
     {...props}
   >
     {children}
-    <SelectPrimitive.Icon>
-      <AnimatedIcon icon={ChevronDownIcon} size={16} className="opacity-50" />
+    <SelectPrimitive.Icon asChild>
+      <ChevronDown className="h-4 w-4 opacity-50" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ));
@@ -42,15 +39,14 @@ const SelectScrollUpButton = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.ScrollUpButton
     ref={ref}
-    data-pip-icon-trigger
     className={cn(
       "flex cursor-default items-center justify-center py-1",
       className
     )}
     {...props}
   >
-    <SelectPrimitive.Icon>
-      <AnimatedIcon icon={ChevronUpIcon} size={16} />
+    <SelectPrimitive.Icon asChild>
+      <ChevronUp className="h-4 w-4" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.ScrollUpButton>
 ));
@@ -62,15 +58,14 @@ const SelectScrollDownButton = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.ScrollDownButton
     ref={ref}
-    data-pip-icon-trigger
     className={cn(
       "flex cursor-default items-center justify-center py-1",
       className
     )}
     {...props}
   >
-    <SelectPrimitive.Icon>
-      <AnimatedIcon icon={ChevronDownIcon} size={16} />
+    <SelectPrimitive.Icon asChild>
+      <ChevronDown className="h-4 w-4" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.ScrollDownButton>
 ));

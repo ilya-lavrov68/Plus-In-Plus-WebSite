@@ -1,9 +1,8 @@
-import { convertLexicalToHTML } from "@payloadcms/richtext-lexical/html";
-
 import type { CommerceServiceOptionGroup } from "@/lib/commerce";
 import { rows, sqlValue } from "@/lib/db";
 import { parseJsonArray } from "@/lib/db-helpers";
 import { postCover, serviceCover } from "@/lib/content-placeholders";
+import { lexicalToHtml } from "@/lib/lexical-html";
 
 /**
  * Публичные чтения сайта. Запросы идут напрямую в SQLite (`lib.db`), без CMS:
@@ -242,7 +241,7 @@ function postContent(value: unknown): string {
   try {
     const parsed = JSON.parse(trimmed) as { root?: unknown };
     if (parsed && typeof parsed === "object" && parsed.root) {
-      return convertLexicalToHTML({ data: parsed as never });
+      return lexicalToHtml(parsed) ?? value;
     }
   } catch {
     // Не JSON — обычный текст или HTML.
@@ -414,6 +413,32 @@ async function findServiceBySlug(slugOrId: string, withOptions: boolean): Promis
   return services[0] ?? null;
 }
 
+/** Услуги по набору id — для корзины и заказов, включая скрытые и снятые. */
+export async function getServicesByIds(
+  ids: readonly string[],
+  options: { withOptions?: boolean } = {},
+): Promise<ServiceModel[]> {
+  if (!ids.length) return [];
+  return loadServices({
+    where: [`s.id in (${ids.map(() => "?").join(", ")})`],
+    args: [...ids],
+    orderBy: "s.created_at asc",
+    withOptions: options.withOptions === true,
+  });
+}
+
+/** Поиск услуги по slug без фильтров публикации: вызывающий код решает сам. */
+export async function findServiceBySlugAny(slug: string): Promise<ServiceModel | null> {
+  if (!slug) return null;
+  const found = await loadServices({ where: ["s.slug = ?"], args: [slug], orderBy: "s.created_at asc", limit: 1 });
+  return found[0] ?? null;
+}
+
+export async function findServiceById(id: string, options: { withOptions?: boolean } = {}): Promise<ServiceModel | null> {
+  const [service] = await getServicesByIds([id], options);
+  return service ?? null;
+}
+
 export async function getPublishedService(slugOrId: string): Promise<ServiceView | null> {
   try {
     const service = await findServiceBySlug(slugOrId, false);
@@ -497,6 +522,19 @@ export async function getPublishedPost(slug: string): Promise<PostView | null> {
 }
 
 export interface FeaturedPostView { title: string; slug: string; coverImage: string }
+
+/** Полная запись избранного поста (для API); обложка уже с плейсхолдером. */
+export async function getFeaturedPostModel(): Promise<PostView | null> {
+  try {
+    const filter = publishedPostFilter();
+    let posts = await loadPosts({ where: ["p.is_featured = 1", ...filter.where], args: filter.args, limit: 1 });
+    if (!posts.length) posts = await loadPosts({ where: filter.where, args: filter.args, limit: 1 });
+    return posts[0] ? toPostView(posts[0]) : null;
+  } catch (error) {
+    console.error("Failed to load featured post:", error);
+    return null;
+  }
+}
 
 export async function getFeaturedPost(): Promise<FeaturedPostView | null> {
   try {

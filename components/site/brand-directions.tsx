@@ -16,11 +16,6 @@ interface DirectionCardProps {
   accent?: boolean;
 }
 
-/**
- * Карточка направления: острая прямоугольная поверхность с hairline-границей,
- * пиксельный sprite как содержательная визуализация и pill-статус.
- * Скругление здесь не используется — это несущая карточка, а не кнопка.
- */
 function DirectionCard({
   href,
   index,
@@ -35,34 +30,28 @@ function DirectionCard({
   return (
     <Link
       href={href}
-      className="group relative flex h-full flex-col overflow-hidden rounded-none border border-border bg-card transition-colors duration-200 hover:border-primary/60 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-colors duration-200 hover:border-foreground/30 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
     >
-      <span
-        aria-hidden="true"
-        className="absolute top-0 right-0 z-10 block size-2 bg-primary opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-      />
       <div className="relative h-40 shrink-0 overflow-hidden border-b border-border bg-background sm:h-48">
         <PixelDirectionSprite variant={pattern} className="absolute inset-0 size-full" />
       </div>
       <div className="flex flex-1 flex-col p-6 sm:p-8">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className="text-[11px] font-medium tracking-[0.18em] text-muted-foreground uppercase">
-            {index}
-          </span>
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+          <span className="font-medium tracking-[0.16em] text-muted-foreground uppercase">{index}</span>
           <span
             className={
               accent
-                ? "pip-chip pip-chip--signal"
-                : "pip-chip"
+                ? "rounded-full border border-primary/30 bg-primary/10 px-3 py-1 font-medium text-primary"
+                : "rounded-full border border-border px-3 py-1 font-medium text-muted-foreground"
             }
           >
             {status}
           </span>
         </div>
-        <h3 className="mt-6 text-3xl font-semibold tracking-[-0.02em] sm:text-4xl">{title}</h3>
+        <h3 className="mt-6 text-3xl font-medium tracking-tight sm:text-4xl">{title}</h3>
         <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground">{description}</p>
-        <p className="mt-5 text-[11px] font-medium tracking-[0.16em] text-foreground/70 uppercase">{meta}</p>
-        <span className="mt-auto inline-flex items-center gap-2 pt-8 text-sm font-medium text-foreground">
+        <p className="mt-5 text-sm text-foreground/80">{meta}</p>
+        <span className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-foreground">
           {linkLabel}
           <ArrowUpRight
             aria-hidden="true"
@@ -83,8 +72,8 @@ export async function BrandDirections() {
       <div className="container">
         <div data-reveal="" className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
           <div>
-            <p className="pip-eyebrow">{t("eyebrow")}</p>
-            <h2 className="mt-5 max-w-2xl text-3xl font-semibold tracking-[-0.02em] sm:text-4xl md:text-5xl">
+            <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">{t("eyebrow")}</p>
+            <h2 className="mt-4 max-w-2xl text-3xl font-medium tracking-tight sm:text-4xl md:text-5xl">
               {t("heading")}
             </h2>
           </div>

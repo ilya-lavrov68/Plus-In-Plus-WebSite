@@ -173,29 +173,10 @@
   --color-destructive: hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
   --color-destructive-text: hsl(var(--destructive-text));
-  /* Основной сигнал бренда — жёлтый; пурпур из референса остаётся вторичным. */
-  --color-brand-signal: var(--pip-signal);
-  --color-brand-signal-strong: var(--pip-signal-strong);
-  --color-brand-signal-wash: var(--pip-signal-wash);
-  --color-brand-signal-deep: var(--pip-signal-deep);
-  --color-brand-violet: var(--pip-violet);
-  --color-brand-violet-strong: var(--pip-violet-strong);
-  --color-brand-violet-wash: var(--pip-violet-wash);
-  --color-brand-violet-deep: var(--pip-violet-deep);
 
-  /*
-   * Геометрия бренда: несущие поверхности, карточки, поля и основные кнопки —
-   * строго прямоугольные. Скругление остаётся только у вторичных кнопок,
-   * chips (rounded-full) и круглых иконок. Поэтому радиусы темы обнулены:
-   * любой rounded-xl/rounded-2xl в унаследованных блоках становится острым.
-   */
-  --radius-sm: 0;
-  --radius-md: 0;
-  --radius-lg: 0;
-  --radius-xl: 0;
-  --radius-2xl: 0;
-  --radius-3xl: 0;
-  --radius-4xl: 0;
+  --radius-lg: 0.625rem;
+  --radius-md: 0.5rem;
+  --radius-sm: 0.375rem;
 
   --duration-200: 200ms;
   --duration-250: 250ms;
@@ -221,64 +202,50 @@
 @layer base {
   :root,
   .dark {
-    /* #181819 — графитовая основа нового бренда. */
-    --background: 240 2% 9.6%;
-    /* #F4F4F2 — тёплый off-white вместо стерильного белого. */
-    --foreground: 60 5% 95.3%;
-    --card: 240 3% 12.5%;
-    --card-foreground: 60 5% 95.3%;
-    --popover: 240 3% 12.5%;
-    --popover-foreground: 60 5% 95.3%;
-    /* Фирменный акцент Plus In Plus: жёлтый #FFFF01 с тёмным текстом. */
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 7.5%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 7.5%;
+    --popover-foreground: 0 0% 98%;
+    /* Фирменный акцент Plus In Plus: точный #FFFF01 с тёмным текстом. */
     --primary: #FFFF01;
-    --primary-foreground: #12131b;
-    --secondary: 240 5% 15.7%;
-    --secondary-foreground: 60 5% 95.3%;
-    --muted: 240 3% 11%;
-    --muted-foreground: 240 5% 67%;
-    --accent: 233 26% 19%;
-    --accent-foreground: 60 5% 95.3%;
+    --primary-foreground: #0a0a0a;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 11.5%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 50.6%;
     --destructive-foreground: 0 0% 98%;
     --destructive-text: 0 85% 68%;
-    --border: 240 3% 17.5%;
-    --input: 240 4% 21%;
+    --border: 0 0% 15.5%;
+    --input: 0 0% 15.5%;
     --ring: 60 100% 50%;
-    --radius: 0;
-
-    /*
-     * Две шкалы одного языка форм.
-     * signal — главный жёлтый: действия, активный статус, signal-пиксели.
-     * violet — вторичный пурпур из референса: крупные сетки, орнаменты,
-     * направления ИИ, hover-заливка основных кнопок.
-     */
-    --pip-signal: #ffff01;
-    --pip-signal-strong: #ffffa3;
-    --pip-signal-wash: #f7f7cc;
-    --pip-signal-deep: #23230d;
-    --pip-violet: #8f9cfc;
-    --pip-violet-strong: #afb8fd;
-    --pip-violet-wash: #eaedfe;
-    --pip-violet-deep: #1e2238;
-    --pip-grid-line: hsl(var(--foreground) / 0.06);
-    --pip-grid-line-strong: hsl(var(--foreground) / 0.12);
+    --radius: 0.625rem;
 
     --mobile-bottom-nav-height: 4.5rem;
     --mobile-bottom-nav-clearance: 0px;
 
-    --spectrum-primary: #ffff01;
-    --spectrum-primary-hover: #e6e601;
-    --spectrum-secondary: #26262a;
-    --spectrum-secondary-hover: #303036;
-    --spectrum-accent: #23230d;
-    --spectrum-background: #181819;
-    --spectrum-text: #f4f4f2;
-    --spectrum-muted: #a6a6ae;
+    --hero-pillar-1: 60 100% 50%;
+    --hero-pillar-2: 0 0% 32%;
+    --hero-pillar-3: 0 0% 62%;
+    --hero-pillar-4: 0 0% 22%;
+
+    --spectrum-primary: #FFFF01;
+    --spectrum-primary-hover: #E6E601;
+    --spectrum-secondary: #262626;
+    --spectrum-secondary-hover: #383838;
+    --spectrum-accent: #1d1d1d;
+    --spectrum-background: #0a0a0a;
+    --spectrum-text: #fafafa;
+    --spectrum-muted: #a3a3a3;
     --spectrum-destructive: #ce3434;
-    --spectrum-border: #2b2b2e;
-    --spectrum-radius-sm: 0;
-    --spectrum-radius-md: 0;
-    --spectrum-radius-lg: 0;
+    --spectrum-border: #262626;
+    --spectrum-radius-sm: 0.375rem;
+    --spectrum-radius-md: 0.5rem;
+    --spectrum-radius-lg: 0.625rem;
     --spectrum-radius-full: 9999px;
     --spectrum-duration-base: 200ms;
     --spectrum-ease: cubic-bezier(0, 0, 0.2, 1);
@@ -546,90 +513,10 @@
     backdrop-filter: blur(24px) saturate(135%);
   }
 
-  /*
-   * Язык геометрии бренда.
-   * 1. Тонкая сетка — технологичная подложка hero и акцентных секций.
-   * 2. Eyebrow с квадратным сигнальным маркером — острая метка раздела.
-   * 3. Chip — единственная узаконенная «мягкая» форма рядом с pill-кнопками.
-   * 4. Frame — несущая прямоугольная поверхность с hairline-границей.
-   */
-  .pip-tech-grid {
-    --pip-grid-cell: 96px;
-    background-image:
-      linear-gradient(var(--pip-grid-line) 1px, transparent 1px),
-      linear-gradient(90deg, var(--pip-grid-line) 1px, transparent 1px);
-    background-size: var(--pip-grid-cell) var(--pip-grid-cell);
-    background-position: center;
-  }
-
-  .pip-tech-grid--fine {
-    --pip-grid-cell: 24px;
-  }
-
-  .pip-tech-grid--bold {
-    --pip-grid-cell: 144px;
-    background-image:
-      linear-gradient(var(--pip-grid-line-strong) 1px, transparent 1px),
-      linear-gradient(90deg, var(--pip-grid-line-strong) 1px, transparent 1px);
-  }
-
-  .pip-eyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.625rem;
-    font-size: 0.6875rem;
-    font-weight: 500;
-    letter-spacing: 0.2em;
-    line-height: 1;
-    text-transform: uppercase;
-    color: hsl(var(--muted-foreground));
-  }
-
-  .pip-eyebrow::before {
-    display: block;
-    width: 0.5rem;
-    height: 0.5rem;
-    flex: none;
-    background-color: var(--pip-signal);
-    content: "";
-  }
-
-  .pip-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
+  /* Тонкая нейтральная граница сохраняет силуэт hero без тени и без
+   * full-width backdrop blur на каждом scroll-кадре. */
+  .hero-media-frame {
     border: 1px solid hsl(var(--border));
-    border-radius: 9999px;
-    padding: 0.3rem 0.75rem;
-    font-size: 0.6875rem;
-    font-weight: 500;
-    letter-spacing: 0.12em;
-    line-height: 1.1;
-    text-transform: uppercase;
-    color: hsl(var(--muted-foreground));
-  }
-
-  .pip-chip--signal {
-    border-color: var(--pip-signal);
-    color: var(--primary);
-  }
-
-  .pip-chip--violet {
-    border-color: color-mix(in oklab, var(--pip-violet) 70%, transparent);
-    color: var(--pip-violet-strong);
-  }
-
-  .pip-frame {
-    border: 1px solid hsl(var(--border));
-    border-radius: 0;
-    background-color: hsl(var(--card));
-  }
-
-  /* Волосяная линия-разделитель вместо декоративных теней. */
-  .pip-rule {
-    height: 1px;
-    width: 100%;
-    background-color: hsl(var(--border));
   }
 
   /* Timeline cards сохраняют glass без дополнительных теней и без
@@ -800,46 +687,9 @@
   }
 }
 
-/* Основные кнопки бренда: острые, жёлтая заливка. При точном hover из
- * фактической точки входа указателя растёт пурпурная волна из референса:
- * фиолетовый остаётся вторичным состоянием, а не основным цветом бренда. */
-.pip-cursor-fill {
-  --cursor-fill-x: 50%;
-  --cursor-fill-y: 50%;
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  border-radius: 0;
-  background-color: var(--pip-signal);
-  color: var(--primary-foreground);
-}
-
-.pip-cursor-fill::before {
-  position: absolute;
-  z-index: -1;
-  top: var(--cursor-fill-y);
-  left: var(--cursor-fill-x);
-  width: 250%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: var(--pip-violet);
-  content: "";
-  pointer-events: none;
-  transform: translate(-50%, -50%) scale(0);
-  transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.pip-cursor-fill:hover::before {
-  transform: translate(-50%, -50%) scale(3);
-}
-
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
-  }
-
-  .pip-cursor-fill::before {
-    transition: none;
   }
 
   [data-reveal] {

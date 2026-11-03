@@ -91,7 +91,7 @@ export function LanguageSwitcher() {
         disabled={pending}
         data-testid="language-switcher"
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-border px-3 text-xs font-medium text-muted-foreground uppercase transition-colors duration-200 ease-out hover:border-primary/60 hover:text-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-muted-foreground uppercase transition-colors duration-200 ease-out hover:bg-accent hover:text-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         <Languages aria-hidden="true" className="h-4 w-4" strokeWidth={1.8} />
         <span>{locale}</span>
@@ -100,7 +100,7 @@ export function LanguageSwitcher() {
         <div
           role="listbox"
           aria-label={t("language")}
-          className="absolute top-full right-0 z-50 mt-2 min-w-36 rounded-none border border-border bg-popover p-1.5"
+          className="absolute top-full right-0 z-50 mt-2 min-w-36 rounded-xl border border-border bg-popover p-1.5"
         >
           {(Object.keys(labels) as Locale[]).map((option) => (
             <button

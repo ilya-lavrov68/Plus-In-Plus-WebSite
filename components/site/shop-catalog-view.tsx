@@ -5,7 +5,6 @@ import { useLocale, useTranslations } from "next-intl";
 
 import { AddToCartButton } from "@/components/site/add-to-cart-button";
 import { Badge } from "@/components/ui/badge";
-import { ShopSideGrid } from "@/components/site/page-geometry";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -31,8 +30,7 @@ export function ShopCatalogView({
 
   if (products.length === 0) {
     return (
-      <div className="relative isolate flex min-h-[60vh] items-center justify-center overflow-hidden px-4 py-24">
-        <ShopSideGrid />
+      <div className="flex min-h-[60vh] items-center justify-center px-4 py-24">
         <div className="text-center">
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
             {tShop("comingSoonTitle")}
@@ -54,8 +52,7 @@ export function ShopCatalogView({
   }
 
   return (
-    <div className="container relative isolate py-24 md:py-32">
-      <ShopSideGrid />
+    <div className="container py-24 md:py-32">
       <div className="border-b border-border/60 pb-10">
         <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
           {tShop("pageTitle")}

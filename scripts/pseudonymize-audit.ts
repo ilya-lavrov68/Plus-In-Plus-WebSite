@@ -1,5 +1,5 @@
 import { looksLikeContactOrNetworkText, pseudonymizeActivityRecord } from "@/lib/audit-retention";
-import { closePayloadClient, getPayloadClient, payloadId, withPayloadTransaction } from "@/lib/payload-native";
+import { closeDb, rows, withTransaction } from "@/lib/db";
 
 const BATCH_SIZE = 500;
 
@@ -9,7 +9,6 @@ function argument(name: string): string | undefined {
 }
 
 async function main(): Promise<void> {
-  const payload = await getPayloadClient();
   const days = Number(argument("older-than-days") ?? "365");
   if (!Number.isSafeInteger(days) || days < 1 || days > 3650) {
     throw new Error("older-than-days must be an integer from 1 to 3650");
@@ -23,34 +22,24 @@ async function main(): Promise<void> {
     throw new Error("Apply requires AUDIT_PSEUDONYM_KEY with at least 32 characters");
   }
 
-  const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
   let cursor: string | undefined;
   let scanned = 0;
   let candidates = 0;
   let changed = 0;
   do {
-    const result = await payload.find({
-      collection: "activity-logs",
-      depth: 0,
-      limit: BATCH_SIZE,
-      sort: "id",
-      overrideAccess: true,
-      select: { actorId: true, actorPseudonym: true, title: true },
-      where: {
-        and: [
-          { createdAt: { less_than: cutoff.toISOString() } },
-          ...(cursor ? [{ id: { greater_than: cursor } }] : []),
-        ],
-      },
-    });
-    const rows = result.docs.map((row) => ({
-      ...row,
-      actorId: payloadId(row.actorId),
-      actorPseudonym: row.actorPseudonym ?? null,
-    }));
-    if (!rows.length) break;
-    scanned += rows.length;
-    const updates = rows.flatMap((row) => {
+    // Курсорная пагинация по id: батч не сдвигается, пока идут правки.
+    const batch = await rows<{ id: string; actorId: string | null; actorPseudonym: string | null; title: string }>(
+      `select id, actor_id_id as actorId, actor_pseudonym as actorPseudonym, title
+       from activity_logs
+       where created_at < ? ${cursor ? "and id > ?" : ""}
+       order by id
+       limit ?`,
+      cursor ? [cutoff, cursor, BATCH_SIZE] : [cutoff, BATCH_SIZE],
+    );
+    if (!batch.length) break;
+    scanned += batch.length;
+    const updates = batch.flatMap((row) => {
       const candidate = row.actorId !== null || looksLikeContactOrNetworkText(row.title);
       if (candidate) candidates += 1;
       if (!apply || !candidate) return [];
@@ -60,20 +49,18 @@ async function main(): Promise<void> {
       return [{ id: row.id, actorPseudonym: next.actorPseudonym, title: next.title }];
     });
     if (updates.length) {
-      await withPayloadTransaction(payload, async (req) => {
+      await withTransaction(async (tx) => {
         for (const update of updates) {
-          await payload.update({
-            collection: "activity-logs",
-            id: update.id,
-            data: { actorId: null, actorPseudonym: update.actorPseudonym, title: update.title },
-            overrideAccess: true,
-            req,
-          });
+          await tx.run(
+            `update activity_logs set actor_id_id = null, actor_pseudonym = ?, title = ?, updated_at = ?
+             where id = ?`,
+            [update.actorPseudonym, update.title, new Date().toISOString(), update.id],
+          );
         }
       });
     }
-    cursor = rows[rows.length - 1]?.id;
-    if (rows.length < BATCH_SIZE) break;
+    cursor = batch[batch.length - 1]?.id;
+    if (batch.length < BATCH_SIZE) break;
   } while (true);
 
   console.log(JSON.stringify({
@@ -93,4 +80,4 @@ main()
     console.error("Audit retention job failed. Check the runbook and database health without exposing secrets.");
     process.exitCode = 1;
   })
-  .finally(closePayloadClient);
+  .finally(closeDb);

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { resolveDatabaseConfig } from "@/lib/database";
-import { queryPayloadRows } from "@/lib/payload-native";
+import { rows as queryPayloadRows } from "@/lib/db";
 import { logServerError } from "@/lib/security-log";
 
 /** Безопасный deployment check: только booleans и имена отсутствующих таблиц. */

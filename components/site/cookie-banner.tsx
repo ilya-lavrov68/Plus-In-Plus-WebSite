@@ -1,11 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { SettingsIcon, XIcon } from "lucide-animated";
-import { Check, Cookie } from "lucide-react";
+import { Check, Cookie, Settings, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import { AnimatedIcon } from "@/components/ui/animated-icon";
 import { Button } from "@/components/ui/button";
 import {
   readConsent,
@@ -108,10 +106,9 @@ export function CookieBanner() {
               type="button"
               onClick={() => setIsVisible(false)}
               aria-label={t("close")}
-              data-pip-icon-trigger
               className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
-              <AnimatedIcon icon={XIcon} size={20} />
+              <X aria-hidden="true" className="size-5" />
             </button>
           </div>
 
@@ -125,9 +122,8 @@ export function CookieBanner() {
               variant="ghost"
               className="gap-2"
               aria-expanded={showDetails}
-              data-pip-icon-trigger
             >
-              <AnimatedIcon icon={SettingsIcon} size={16} />
+              <Settings aria-hidden="true" className="size-4" />
               {t("customize")}
             </Button>
           </div>

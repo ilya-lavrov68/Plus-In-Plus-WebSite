@@ -1,4 +1,4 @@
-import { queryPayloadRows } from "@/lib/payload-native";
+import { rows as queryPayloadRows } from "@/lib/db";
 
 /**
  * Read/write helpers для собственной админ-панели.

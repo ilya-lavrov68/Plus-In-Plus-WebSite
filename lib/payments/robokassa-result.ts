@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 
-import { recordActivity } from "@/lib/activity-log";
-import { getPayloadClient, payloadId, withPayloadTransaction } from "@/lib/payload-native";
+import { recordActivity } from "@/lib/accounts";
+import {
+  findOrderById,
+  findPaymentByExternalId,
+  listPaymentsForOrder,
+  markPaymentSucceeded,
+  transitionOrder,
+} from "@/lib/commerce-data";
+import { withTransaction } from "@/lib/db";
 import { verifyPaymentHash } from "@/lib/payments/robokassa";
 import { resolveRobokassaConfig } from "@/lib/payments/robokassa-config";
 
@@ -53,21 +60,13 @@ export async function handleRobokassaResult(request: Request): Promise<Response>
   }
 
   try {
-    const payload = await getPayloadClient();
-    const paymentResult = await payload.find({
-      collection: "payments",
-      depth: 0,
-      limit: 1,
-      overrideAccess: true,
-      where: { and: [{ externalId: { equals: invId } }, { provider: { equals: "robokassa" } }] },
-    });
-    const payment = paymentResult.docs[0];
+    const payment = await findPaymentByExternalId(invId, "robokassa");
     if (!payment) {
       console.error(`[robokassa] Счёт ${invId} не найден`);
       return new NextResponse(`OK${invId}`, { status: 200 });
     }
 
-    const paymentOrderId = payloadId(payment.orderId);
+    const paymentOrderId = payment.orderId;
     if (paymentOrderId !== orderId) {
       console.error(`[robokassa] Заказ не совпал для счёта ${invId}`);
       return new NextResponse(`OK${invId}`, { status: 200 });
@@ -85,26 +84,10 @@ export async function handleRobokassaResult(request: Request): Promise<Response>
     }
 
     const now = new Date();
-    await withPayloadTransaction(payload, async (req) => {
-      const latestResult = await payload.find({
-        collection: "payments",
-        depth: 0,
-        limit: 1,
-        sort: "-createdAt",
-        overrideAccess: true,
-        req,
-        where: { and: [{ orderId: { equals: paymentOrderId } }, { provider: { equals: "robokassa" } }] },
-      });
-      const orderResult = await payload.find({
-        collection: "orders",
-        depth: 0,
-        limit: 1,
-        overrideAccess: true,
-        req,
-        where: { id: { equals: paymentOrderId } },
-      });
-      const latestInvoice = latestResult.docs[0];
-      const order = orderResult.docs[0];
+    await withTransaction(async (tx) => {
+      const invoices = await listPaymentsForOrder(paymentOrderId, tx);
+      const latestInvoice = invoices[0];
+      const order = await findOrderById(paymentOrderId, tx);
 
       if (
         latestInvoice?.id !== payment.id ||
@@ -117,43 +100,20 @@ export async function handleRobokassaResult(request: Request): Promise<Response>
         return;
       }
 
-      const claimed = await payload.update({
-        collection: "payments",
-        data: {
-          status: "succeeded",
-          paidAt: now.toISOString(),
-          rawPayload: JSON.stringify({ outSum, invId, orderId, receivedAt: now.toISOString() }),
-        },
-        overrideAccess: true,
-        req,
-        where: { and: [{ id: { equals: payment.id } }, { status: { equals: "pending" } }] },
-      });
-      if (claimed.docs.length !== 1) return;
+      const payloadJson = JSON.stringify({ outSum, invId, orderId, receivedAt: now.toISOString() });
+      if (!(await markPaymentSucceeded(payment.id, payloadJson, tx))) return;
 
-      const updatedOrder = await payload.update({
-        collection: "orders",
-        data: { status: "paid", paidAt: now.toISOString() },
-        overrideAccess: true,
-        req,
-        where: {
-          and: [
-            { id: { equals: order.id } },
-            { status: { equals: "awaiting_payment" } },
-            { total: { equals: payment.amount } },
-          ],
-        },
-      });
-      if (updatedOrder.docs.length !== 1) {
-        throw new Error("Order changed while confirming payment");
-      }
+      // Условный переход: заказ оплачивается только из ожидающего статуса.
+      const paid = await transitionOrder(order.id, "awaiting_payment", { status: "paid", paidAt: now }, tx);
+      if (!paid) throw new Error("Order changed while confirming payment");
 
-      await recordActivity(payload, req, {
+      await recordActivity({
         action: "paid",
         entityType: "order",
         entityId: order.id,
         title: `${order.orderNumber ?? order.number ?? order.id} — оплачен, ${(amountKopecks / 100).toLocaleString("ru-RU")} ₽`,
         actorId: null,
-      });
+      }, tx);
     });
 
     return new NextResponse(`OK${invId}`, { status: 200 });

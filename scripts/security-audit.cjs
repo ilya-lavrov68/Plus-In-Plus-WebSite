@@ -23,8 +23,8 @@ function walk(relativeDirectory) {
   }
 }
 
-for (const directory of ["app", "components", "lib", "payload", "scripts", "tests", ".github"]) walk(directory);
-for (const filename of ["auth.ts", "auth.config.ts", "proxy.ts", "next.config.mjs", "payload.config.ts"]) {
+for (const directory of ["app", "components", "lib", "db", "scripts", "tests", ".github"]) walk(directory);
+for (const filename of ["auth.ts", "auth.config.ts", "proxy.ts", "next.config.mjs"]) {
   if (fs.existsSync(path.join(root, filename))) files.push(filename);
 }
 

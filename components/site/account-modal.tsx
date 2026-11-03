@@ -7,12 +7,12 @@ import { signOut, useSession } from "next-auth/react";
 import {
   ArrowUpRight,
   FileText,
+  LogOut,
   Pencil,
   ShieldCheck,
   Upload,
   User,
 } from "lucide-react";
-import { LogoutIcon } from "lucide-animated";
 import { useTranslations } from "next-intl";
 
 import {
@@ -24,7 +24,6 @@ import {
 import type { AuthActionResult } from "@/app/actions/auth";
 import { getMfaPasskeyOptions } from "@/app/actions/mfa";
 import { UserAvatar } from "@/components/site/user-avatar";
-import { AnimatedIcon } from "@/components/ui/animated-icon";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -271,7 +270,7 @@ function ProfilePanel({
           {user.role === "FOUNDER" || user.role === "ADMIN" || user.role === "MANAGER" ? (
             <Link
               href={
-                user.role === "MANAGER" ? "/admin/collections/orders" : "/admin"
+                user.role === "MANAGER" ? "/manager/orders" : "/admin/dashboard"
               }
               onClick={onClose}
               className="flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium text-foreground underline-offset-4 hover:underline"
@@ -287,10 +286,9 @@ function ProfilePanel({
             variant="ghost"
             className="w-full gap-2"
             disabled={pending}
-            data-pip-icon-trigger
             onClick={handleLogout}
           >
-            <AnimatedIcon icon={LogoutIcon} size={16} />
+            <LogOut aria-hidden="true" className="h-4 w-4" />
             {pending ? t("loggingOut") : t("logout")}
           </Button>
         </div>

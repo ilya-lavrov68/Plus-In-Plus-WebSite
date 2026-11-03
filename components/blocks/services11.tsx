@@ -43,9 +43,11 @@ const Services11Catalog = ({
         <div className="grid grid-cols-1 gap-8 pb-14 lg:grid-cols-12 lg:items-end">
           <div className="lg:col-span-5">
             {eyebrow && (
-              <p className="pip-eyebrow mb-4">{eyebrow}</p>
+              <p className="mb-3 text-xs font-medium tracking-wider text-muted-foreground uppercase">
+                {eyebrow}
+              </p>
             )}
-            <h2 className="text-3xl font-semibold tracking-[-0.02em] md:text-5xl">
+            <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
               {heading}
             </h2>
             {subtitle && (
@@ -76,7 +78,7 @@ const Services11Catalog = ({
           {services.map((service) => (
             <div
               key={service.slug}
-              className="group relative flex aspect-[3/4] flex-col justify-between overflow-hidden rounded-none border border-border bg-card p-6 transition-colors duration-200 ease-out hover:border-primary/60"
+              className="group relative flex aspect-[3/4] flex-col justify-between overflow-hidden rounded-xl border border-border bg-card p-6 transition-colors duration-200 ease-out hover:border-foreground/30"
             >
               <Link
                 href={`/shop/${service.slug}`}
@@ -92,12 +94,12 @@ const Services11Catalog = ({
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/25 transition-opacity duration-200 group-hover:opacity-80" />
 
               <div className="pointer-events-none relative z-20 flex items-start justify-between gap-2">
-                <span className="rounded-none bg-black/55 px-2.5 py-1 text-xs font-medium text-white/85 backdrop-blur-sm">
+                <span className="rounded-md bg-black/55 px-2.5 py-1 text-xs font-medium text-white/85 backdrop-blur-sm">
                   {service.category === "large"
                     ? largeCategoryLabel
                     : smallCategoryLabel}
                 </span>
-                <span className="flex size-9 items-center justify-center rounded-none border border-white/25 bg-black/45 text-white backdrop-blur-sm transition-colors duration-200 group-hover:border-primary group-hover:text-primary">
+                <span className="flex size-9 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white backdrop-blur-sm transition-colors duration-200 group-hover:border-white/50">
                   <ArrowUpRight className="size-4 transition-transform duration-200 ease-out group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </span>
               </div>
@@ -108,7 +110,7 @@ const Services11Catalog = ({
                 </h3>
                 <Button
                   size="sm"
-                  variant="outline"
+                  variant="secondary"
                   className="pointer-events-auto"
                   asChild
                 >

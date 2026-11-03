@@ -3,15 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { ArrowRightIcon } from "lucide-animated";
+import { ArrowRight } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
 import {
   ServiceCard,
   type ServiceCardData,
 } from "@/components/site/service-card";
-import { AnimatedIcon } from "@/components/ui/animated-icon";
-import { ServicesGridBand } from "@/components/site/page-geometry";
 import { Button } from "@/components/ui/button";
 
 export interface ServicesCatalogViewProps {
@@ -57,8 +55,7 @@ export function ServicesCatalogView({
   };
 
   return (
-    <div className="container relative isolate overflow-hidden py-24 md:py-32">
-      <ServicesGridBand />
+    <div className="container py-24 md:py-32">
       <div className="flex flex-col justify-between gap-6 border-b border-border/60 pb-10 md:flex-row md:items-end">
         <div>
           <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
@@ -69,9 +66,9 @@ export function ServicesCatalogView({
           </p>
         </div>
         <Button asChild variant="outline">
-          <Link href="/contact" className="gap-2" data-pip-icon-trigger>
+          <Link href="/contact" className="gap-2">
             {t("proceedToOrder")}
-            <AnimatedIcon icon={ArrowRightIcon} size={16} />
+            <ArrowRight aria-hidden="true" className="h-4 w-4" />
           </Link>
         </Button>
       </div>
@@ -153,9 +150,9 @@ export function ServicesCatalogView({
             >
               {t("clearSelection")}
             </Button>
-            <Button type="button" onClick={handleProceed} className="gap-2" data-pip-icon-trigger>
+            <Button type="button" onClick={handleProceed} className="gap-2">
               {t("proceedToOrder")}
-              <AnimatedIcon icon={ArrowRightIcon} size={16} />
+              <ArrowRight aria-hidden="true" className="h-4 w-4" />
             </Button>
           </div>
         </div>

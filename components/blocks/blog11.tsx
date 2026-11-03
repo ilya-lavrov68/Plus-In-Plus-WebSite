@@ -7,7 +7,6 @@ import { Newspaper } from "lucide-react";
 
 import { EmptyState } from "@/components/site/empty-state";
 import { DecryptText } from "@/components/site/motion/decrypt-text";
-import { BlogLatticeField } from "@/components/site/page-geometry";
 import { Separator } from "@/components/ui/separator";
 import type { BlogCardData } from "@/lib/blog-card";
 
@@ -54,8 +53,7 @@ const Blog11 = ({
   const HeadingTag = asPageHeading ? "h1" : "h2";
 
   return (
-    <section id={id} className="motion-section relative isolate overflow-hidden py-32">
-      <BlogLatticeField />
+    <section id={id} className="motion-section py-32">
       <div className="container">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-12">
           <div className="lg:col-span-4">
@@ -129,11 +127,11 @@ const Blog11 = ({
                 >
                   <Link
                     href={`/blog/${post.slug}`}
-                    className="group relative flex h-80 flex-col justify-between overflow-hidden rounded-none border border-border bg-muted p-6 transition-colors duration-200 hover:border-primary/50 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    className="group relative flex h-80 flex-col justify-between overflow-hidden rounded-xl bg-muted p-6 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                   >
                     <div
                       aria-hidden="true"
-                      className={`pointer-events-none absolute inset-0 transition-[clip-path] duration-300 ease-out ${
+                      className={`pointer-events-none absolute inset-0 transition-[clip-path] duration-300 ease-out will-change-[clip-path] ${
                         isFeatured
                           ? "[clip-path:inset(0_0_0%_0)]"
                           : "[clip-path:inset(0_0_100%_0)] group-hover:[clip-path:inset(0_0_0%_0)] group-focus-visible:[clip-path:inset(0_0_0%_0)]"
@@ -142,9 +140,6 @@ const Blog11 = ({
                       <img
                         src={post.image}
                         alt={post.title}
-                        loading={index < 2 ? "eager" : "lazy"}
-                        decoding="async"
-                        fetchPriority={index === 0 ? "high" : "auto"}
                         className="size-full object-contain"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/30" />

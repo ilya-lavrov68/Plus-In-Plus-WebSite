@@ -3,12 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { CartIcon } from "lucide-animated";
-import { Check } from "lucide-react";
+import { Check, ShoppingCart } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { notifyCartUpdated } from "@/components/site/cart-icon";
-import { AnimatedIcon } from "@/components/ui/animated-icon";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
@@ -90,7 +88,6 @@ export function AddToCartButton({
       size={size}
       onClick={handleClick}
       disabled={isAdded || isPending}
-      data-pip-icon-trigger
       className={cn("gap-2", className)}
     >
       {isAdded ? (
@@ -100,7 +97,7 @@ export function AddToCartButton({
         </>
       ) : (
         <>
-          <AnimatedIcon icon={CartIcon} size={16} />
+          <ShoppingCart aria-hidden="true" className="h-4 w-4" />
           {t("addToCart")}
         </>
       )}

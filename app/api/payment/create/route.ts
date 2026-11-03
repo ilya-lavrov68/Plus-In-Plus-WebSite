@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
-import { getPayloadClient, payloadId } from "@/lib/payload-native";
+import { findAccountById } from "@/lib/accounts";
+import { countPaymentsByStatus, findOrderByReference } from "@/lib/commerce-data";
 import { issueInvoice } from "@/lib/payments/invoice";
 import { checkRateLimitAsync, getClientAddress, hashRateLimitIdentifier, retryAfterHeaders } from "@/lib/rate-limit";
 import { isSameOriginRequest } from "@/lib/request-origin";
@@ -44,30 +45,10 @@ async function createPaymentRedirect(request: Request): Promise<Response> {
     return NextResponse.json({ ok: false, error: "order_id_required" }, { status: 400 });
   }
 
-  const payload = await getPayloadClient();
-  const [accountResult, orderResult] = await Promise.all([
-    payload.find({
-      collection: "accounts",
-      depth: 0,
-      limit: 1,
-      overrideAccess: true,
-      where: { id: { equals: session.user.id } },
-    }),
-    payload.find({
-      collection: "orders",
-      depth: 0,
-      limit: 1,
-      overrideAccess: true,
-      where: {
-        and: [
-          { status: { not_equals: "cart" } },
-          { or: [{ id: { equals: orderId } }, { number: { equals: orderId } }, { orderNumber: { equals: orderId } }] },
-        ],
-      },
-    }),
+  const [account, order] = await Promise.all([
+    findAccountById(session.user.id),
+    findOrderByReference(orderId),
   ]);
-  const account = accountResult.docs[0];
-  const order = orderResult.docs[0];
   if (!account || account.isBlocked) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
@@ -75,19 +56,14 @@ async function createPaymentRedirect(request: Request): Promise<Response> {
     return NextResponse.json({ ok: false, error: "order_not_found" }, { status: 404 });
   }
 
-  const customerId = payloadId(order.userId);
+  const customerId = order.userId;
   const isOwner = customerId === account.id;
   const isStaff = roleLevel(account.role) >= 1 && roleLevel(session.user.role) >= 1;
   if (!isOwner && !isStaff) {
     return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
   }
 
-  const succeeded = await payload.count({
-    collection: "payments",
-    overrideAccess: true,
-    where: { and: [{ orderId: { equals: order.id } }, { status: { equals: "succeeded" } }] },
-  });
-  if (succeeded.totalDocs > 0) {
+  if ((await countPaymentsByStatus(order.id, "succeeded")) > 0) {
     return NextResponse.redirect(new URL("/payment/success", request.url), 303);
   }
   if (order.total <= 0 || order.status !== "awaiting_payment") {
@@ -96,15 +72,7 @@ async function createPaymentRedirect(request: Request): Promise<Response> {
 
   let customerEmail = isOwner ? account.email : null;
   if (!isOwner && customerId) {
-    const customerResult = await payload.find({
-      collection: "accounts",
-      depth: 0,
-      limit: 1,
-      overrideAccess: true,
-      select: { email: true },
-      where: { id: { equals: customerId } },
-    });
-    customerEmail = customerResult.docs[0]?.email ?? null;
+    customerEmail = (await findAccountById(customerId))?.email ?? null;
   }
 
   const invoice = await issueInvoice({
@@ -113,7 +81,7 @@ async function createPaymentRedirect(request: Request): Promise<Response> {
     amount: order.total,
     currency: order.currency,
     customerEmail,
-  }, payload);
+  });
   if (!invoice?.paymentUrl) {
     return NextResponse.json({ ok: false, error: "provider_not_configured" }, { status: 503 });
   }

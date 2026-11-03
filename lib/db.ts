@@ -62,6 +62,9 @@ export interface DbTransaction {
   run(sql: string, args?: unknown[]): Promise<number>;
 }
 
+/** Всё, что умеет читать и писать: соединение напрямую или транзакция. */
+export type SqlExecutor = DbTransaction;
+
 function isSqliteBusy(error: unknown): boolean {
   const candidate = error as { code?: unknown; message?: unknown; cause?: { code?: unknown; message?: unknown } } | null;
   const code = String(candidate?.code ?? candidate?.cause?.code ?? "").toUpperCase();
