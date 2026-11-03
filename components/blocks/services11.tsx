@@ -59,7 +59,7 @@ const Services11Catalog = ({
 
           <div className="lg:col-span-5">
             {description && (
-              <p className="max-w-[60ch] text-base leading-[1.75] text-muted-foreground">
+              <p className="measure text-base leading-[1.75] text-muted-foreground">
                 {description}
               </p>
             )}

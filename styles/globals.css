@@ -221,10 +221,6 @@
   max-width: 68ch;
 }
 
-@utility measure-wide {
-  max-width: 78ch;
-}
-
 @layer base {
   :root,
   .dark {

@@ -89,7 +89,7 @@ const ProductDetail1 = ({
               {service.title}
             </h1>
 
-            <p className="mt-6 max-w-[60ch] text-base leading-[1.75] text-muted-foreground">
+            <p className="mt-6 measure text-base leading-[1.75] text-muted-foreground">
               {service.fullDesc}
             </p>
 
