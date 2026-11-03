@@ -18,10 +18,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
-      PAYLOAD_DATABASE_URL: "file:./payload/ci.db"
-      PAYLOAD_DATABASE_AUTH_TOKEN: ""
+      DATABASE_URL: "file:./payload/ci.db"
+      DATABASE_AUTH_TOKEN: ""
       AUTH_SECRET: "ci-only-secret-used-by-the-test-suite-32ch"
-      PAYLOAD_SECRET: "ci-only-payload-secret-not-for-production-32ch"
     steps:
       - uses: actions/checkout@v4
 
@@ -87,10 +86,9 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 15
     env:
-      PAYLOAD_DATABASE_URL: "file:./payload/ci-windows.db"
-      PAYLOAD_DATABASE_AUTH_TOKEN: ""
+      DATABASE_URL: "file:./payload/ci-windows.db"
+      DATABASE_AUTH_TOKEN: ""
       AUTH_SECRET: "ci-only-secret-used-by-the-test-suite-32ch"
-      PAYLOAD_SECRET: "ci-only-payload-secret-not-for-production-32ch"
     steps:
       - uses: actions/checkout@v4
 
@@ -112,15 +110,13 @@ jobs:
         shell: pwsh
         run: |
           @(
-            'PAYLOAD_DATABASE_URL="file:./payload/ci-windows-dotenv.db"'
-            'PAYLOAD_DATABASE_AUTH_TOKEN=""'
+            'DATABASE_URL="file:./payload/ci-windows-dotenv.db"'
+            'DATABASE_AUTH_TOKEN=""'
             'AUTH_SECRET="ci-only-secret-loaded-from-dotenv-32ch"'
-            'PAYLOAD_SECRET="ci-only-payload-secret-from-dotenv-32ch"'
           ) | Set-Content -Path .env -Encoding utf8
-          Remove-Item Env:PAYLOAD_DATABASE_URL -ErrorAction SilentlyContinue
-          Remove-Item Env:PAYLOAD_DATABASE_AUTH_TOKEN -ErrorAction SilentlyContinue
+          Remove-Item Env:DATABASE_URL -ErrorAction SilentlyContinue
+          Remove-Item Env:DATABASE_AUTH_TOKEN -ErrorAction SilentlyContinue
           Remove-Item Env:AUTH_SECRET -ErrorAction SilentlyContinue
-          Remove-Item Env:PAYLOAD_SECRET -ErrorAction SilentlyContinue
           npm run db:migrate
           npm run db:check
           npm run db:promote-admin

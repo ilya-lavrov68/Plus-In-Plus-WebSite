@@ -40,7 +40,7 @@
 - тени запрещены во всём интерфейсе, включая header, cards, overlays, pinned columns и focus: никаких `shadow*`, `drop-shadow*`, `box-shadow`, `text-shadow` или ring-as-shadow; разделение создаётся нейтральными borders, фоном и spacing, а keyboard focus — видимым outline;
 - Features сохраняет очищенный logo/plus treatment;
 - все plus icons при hover поворачиваются на 90°;
-- язык орнаментов зафиксирован в `docs/brand-rebrand.md`: `PixelMosaic`, `DotLattice` и `SignalBlocks` детерминированы (math-хеш без `Math.random`), не являются вторым интерфейсом и не заменяют содержательные sprite/shader-визуализации;
+- декоративные орнаменты ребрендинга (`PixelMosaic`, `DotLattice`, `SignalBlocks`) удалены вместе с PR #70–#78; снимок PR #69 обходится без них, а содержательные sprite/shader-визуализации остаются единственным источником крупной графики;
 - glass surfaces остаются полупрозрачными и blurred, без chamfered styling и теней;
 - animated timeline outline и его branch-and-trace behavior сохраняются;
 - background glows не используются ни в hero, ни ниже: глубина строится hairline-границами, фоном и spacing;
