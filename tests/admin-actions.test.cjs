@@ -43,11 +43,12 @@ function request(user) {
   return { user: actor, context: {}, payload: {} };
 }
 
-test("legacy content actions stay removed while Payload owns the only staff panel", () => {
+test("legacy content actions stay removed while the custom admin owns the only staff panel", () => {
   for (const file of ["app/actions/services.ts", "app/actions/posts.ts", "app/actions/story.ts"]) {
     assert.equal(fs.existsSync(path.join(__dirname, "..", file)), false, file);
   }
-  assert.equal(fs.existsSync(path.join(__dirname, "..", "app", "(payload)", "admin", "[[...segments]]", "page.tsx")), true);
+  assert.equal(fs.existsSync(path.join(__dirname, "..", "app", "(admin)", "admin", "page.tsx")), true);
+  assert.equal(fs.existsSync(path.join(__dirname, "..", "app", "(payload)", "admin")), false);
 });
 
 test("preparePost sets publication time once and preserves an explicit date", async () => {

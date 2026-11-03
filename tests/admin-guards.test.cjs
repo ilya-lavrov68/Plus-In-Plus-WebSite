@@ -53,8 +53,8 @@ test("legacy staff URLs and locale-prefixed protected routes use trusted public 
     ["/cart", "/login"],
     ["/payload", "/admin"],
     ["/admin/dashboard", "/admin"],
-    ["/manager/orders", "/admin/collections/orders"],
-    ["/manager/users", "/admin/collections/accounts"],
+    ["/manager/orders", "/admin/orders"],
+    ["/manager/users", "/admin/accounts"],
     ["/ru/admin", "/admin"],
   ];
   for (const [pathname, expectedPath] of cases) {

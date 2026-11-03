@@ -379,5 +379,8 @@ export async function cancelMyOrder(input: { orderId: string }): Promise<OrderAc
   }
 
   revalidatePath("/cart");
+  // Отмена видна в собственной админ-панели (/admin/orders, /admin).
+  revalidatePath("/admin/orders");
+  revalidatePath("/admin");
   return { ok: true };
 }

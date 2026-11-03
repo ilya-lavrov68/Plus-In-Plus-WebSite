@@ -148,9 +148,9 @@ export async function proxy(
     if (pathname === "/admin/dashboard") {
       targetUrl.pathname = "/admin";
     } else if (pathname.startsWith("/manager/orders")) {
-      targetUrl.pathname = pathname.replace(/^\/manager\/orders/, "/admin/collections/orders");
+      targetUrl.pathname = pathname.replace(/^\/manager\/orders/, "/admin/orders");
     } else if (pathname.startsWith("/manager/users")) {
-      targetUrl.pathname = pathname.replace(/^\/manager\/users/, "/admin/collections/accounts");
+      targetUrl.pathname = pathname.replace(/^\/manager\/users/, "/admin/accounts");
     } else {
       targetUrl.pathname = "/admin";
     }

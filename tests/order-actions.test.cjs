@@ -266,7 +266,7 @@ test("cancelMyOrder: клиент отменяет свою неоплаченн
   assert.match(logs[0].title, /ПИП-000099/);
   // Объединённая страница корзины и заказы в админке должны обновиться.
   assert.ok(invalidated.includes("/cart"));
-  assert.equal(invalidated.includes("/admin/collections/orders"), false);
+  assert.ok(invalidated.includes("/admin/orders"));
 });
 
 test("cancelMyOrder: отменяются все доспешные статусы", async () => {
