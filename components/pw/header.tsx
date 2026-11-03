@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { WordmarkLogo } from "@/components/site/logo";
 import { PwAvatar } from "./avatar";
 import classes from "./header/header.module.scss";
 import desktop from "./header/desktop.module.scss";
@@ -51,8 +52,8 @@ export function PwHeader({ locale, topBar, menuLabel, closeLabel, links, utility
           >
             <div className={`${desktop.grid} grid`}>
               <div className={`${desktop.logo} cols-4`}>
-                <Link className={desktop.logo} href={href(locale, "/")}>
-                  Plus In Plus
+                <Link className={desktop.logo} href={href(locale, "/")} aria-label="Plus In Plus">
+                  <WordmarkLogo className="h-[1.25rem] w-auto" />
                 </Link>
               </div>
 
