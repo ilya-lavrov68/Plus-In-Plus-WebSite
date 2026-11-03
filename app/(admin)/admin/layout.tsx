@@ -42,6 +42,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     { href: "/admin/products", label: t.nav.products },
     { href: "/admin/posts", label: t.nav.posts },
     ...(staff.isAdmin ? [{ href: "/admin/story", label: t.nav.story }] : []),
+    ...(staff.isAdmin ? [{ href: "/admin/media", label: t.nav.media }] : []),
     ...(staff.isAdmin ? [{ href: "/admin/accounts", label: t.nav.accounts }] : []),
     ...(staff.isAdmin ? [{ href: "/admin/activity", label: t.nav.activity }] : []),
     ...(staff.isFounder ? [{ href: "/admin/settings", label: t.nav.settings }] : []),

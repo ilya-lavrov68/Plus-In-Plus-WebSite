@@ -27,6 +27,7 @@ export function adminLabels(locale: RequestLocale) {
       activity: ru ? "Активность" : "Activity",
       settings: ru ? "Настройки" : "Settings",
       story: ru ? "История" : "Story",
+      media: ru ? "Медиатека" : "Media",
     },
     roles: {
       FOUNDER: ru ? "Основатель" : "Founder",
@@ -149,6 +150,20 @@ export function adminLabels(locale: RequestLocale) {
       saved: ru ? "Материал сохранён." : "Post saved.",
       readOnly: ru ? "Редактировать материалы может только администратор." : "Only an admin can edit posts.",
       create: ru ? "Новый материал" : "New post",
+    },
+    media: {
+      title: ru ? "Медиатека" : "Media library",
+      subtitle: ru
+        ? "Загруженные изображения. Удалить можно только файл, на который не ссылается ни одна услуга, товар или материал."
+        : "Uploaded images. Only files that no service, product or post references can be deleted.",
+      empty: ru ? "Файлов пока нет." : "No files yet.",
+      kind: ru ? "Раздел" : "Section",
+      size: ru ? "Размер" : "Size",
+      dimensions: ru ? "Размер в пикселях" : "Dimensions",
+      created: ru ? "Загружен" : "Uploaded",
+      inUse: ru ? "Используется: {count}" : "Used by: {count}",
+      remove: ru ? "Удалить файл" : "Delete file",
+      deleted: ru ? "Файл удалён." : "File deleted.",
     },
     gallery: {
       title: ru ? "Галерея" : "Gallery",

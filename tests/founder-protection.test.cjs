@@ -58,7 +58,7 @@ test("role and block changes exist only in the server runbook, never in the pane
   assert.doesNotMatch(accountsPage, /updateAccount|is_blocked\s*=/);
   // Мутации панели ограничены заказами и каталогом услуг: роли, блокировки и
   // аккаунты из интерфейса не меняются вообще.
-  const allowedSurfaces = new Set(["orders", "services", "posts", "products", "settings", "story"]);
+  const allowedSurfaces = new Set(["orders", "services", "posts", "products", "settings", "story", "media"]);
   const actionFiles = fs.readdirSync(path.join(root, "app", "(admin)", "admin"))
     .map((name) => ({ name, file: path.join(root, "app", "(admin)", "admin", name, "actions.ts") }))
     .filter((entry) => fs.existsSync(entry.file));
