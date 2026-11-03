@@ -2,8 +2,6 @@ import Link from "next/link";
 import { ArrowRight, CircuitBoard, Code2, PenTool, Scale, type LucideIcon } from "lucide-react";
 
 import { AgentShaderPlayer } from "@/components/ai/agent-shader-player";
-import { AiGridBand } from "@/components/site/page-geometry";
-import { Button } from "@/components/ui/button";
 import { getRequestTranslations } from "@/lib/server-i18n";
 import { cn } from "@/lib/utils";
 
@@ -47,8 +45,8 @@ function AgentSection({
   reverse = false,
 }: AgentSectionProps) {
   return (
-    <section id={id} className="border-t border-border py-24 md:py-36">
-      <div className="container grid gap-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-24 xl:gap-32">
+    <section id={id} style={{ borderTop: "1px solid var(--theme-border-color)", padding: "var(--block-spacing) 0" }}>
+      <div className="grid" style={{ paddingLeft: "var(--gutter-h)", paddingRight: "var(--gutter-h)", rowGap: "3rem", alignItems: "center" }}>
         <figure
           data-reveal=""
           className={cn("min-w-0", reverse && "lg:order-2")}
@@ -57,7 +55,7 @@ function AgentSection({
             <span className="font-mono text-muted-foreground">{index}</span>
             <span className="font-medium text-muted-foreground">{status}</span>
           </div>
-          <div className="mt-6 aspect-[36/23] w-full border-y border-border bg-background text-foreground">
+          <div className="mt-6 aspect-[36/23] w-full" style={{ borderTop: "1px solid var(--theme-border-color)", borderBottom: "1px solid var(--theme-border-color)", background: "var(--theme-bg)" }}>
             <AgentShaderPlayer key={agent} agent={agent} labels={shaderLabels} />
           </div>
           <figcaption className="sr-only">{visualLabel}</figcaption>
@@ -66,15 +64,15 @@ function AgentSection({
         <div data-reveal="" data-reveal-delay={100} className="min-w-0">
           <Icon aria-hidden="true" className="size-7 text-foreground/70" strokeWidth={1.5} />
           <p className="mt-8 text-sm font-medium text-foreground/80">{role}</p>
-          <h2 className="mt-3 text-4xl font-medium tracking-tight sm:text-5xl">{name}</h2>
-          <p className="mt-7 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+          <h2 className="pl-h2">{name}</h2>
+          <p className="pl-body mt-7" style={{ maxWidth: "36rem" }}>
             {description}
           </p>
 
-          <h3 className="mt-12 text-sm font-semibold text-foreground">{benefitsTitle}</h3>
+          <h3 className="pl-h6 mt-12">{benefitsTitle}</h3>
           <ol className="mt-6 space-y-6">
             {benefits.map((benefit, benefitIndex) => (
-              <li key={benefit} className="flex items-start gap-5 border-t border-border pt-5">
+              <li key={benefit} style={{ display: "flex", alignItems: "flex-start", gap: "1.25rem", borderTop: "1px solid var(--theme-border-color)", paddingTop: "1.25rem" }}>
                 <span aria-hidden="true" className="mt-1 shrink-0 font-mono text-xs text-muted-foreground">
                   {String(benefitIndex + 1).padStart(2, "0")}
                 </span>
@@ -110,31 +108,32 @@ export async function AiPageView() {
 
   return (
     <>
-      <section className="relative isolate overflow-hidden bg-background pt-20 pb-24 md:pt-28 md:pb-32">
-        <AiGridBand />
-        <div className="container relative z-10">
+      <section style={{ paddingBottom: "var(--block-spacing)" }}>
+        <div style={{ paddingLeft: "var(--gutter-h)", paddingRight: "var(--gutter-h)" }}>
           <div className="grid gap-12 lg:grid-cols-[1.15fr_0.85fr] lg:items-end lg:gap-20">
             <div>
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-                <p className="pip-eyebrow">{t("eyebrow")}</p>
+                <p className="pl-h6">{t("eyebrow")}</p>
                 <span className="text-xs text-muted-foreground">{t("announcement")}</span>
               </div>
-              <h1 className="mt-8 max-w-4xl text-4xl font-semibold tracking-[-0.03em] sm:text-5xl md:text-6xl lg:text-7xl">
+              <h1 className="pl-h1 mt-8">
                 {t("title")}
               </h1>
             </div>
-            <p className="max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg lg:justify-self-end">
+            <p className="pl-body">
               {t("intro")}
             </p>
           </div>
 
           <div className="mt-12 flex flex-wrap gap-3">
-            <Button asChild>
-              <Link href="/ai/lumi">Lumi Q1</Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href="/ai/kairo">Kairo</Link>
-            </Button>
+            <Link className="pl-btn" href="/ai/lumi" style={{ width: "auto" }}>
+              Lumi Q1
+              <span aria-hidden="true">→</span>
+            </Link>
+            <Link className="pl-btn" href="/ai/kairo" style={{ width: "auto" }}>
+              Kairo
+              <span aria-hidden="true">→</span>
+            </Link>
           </div>
 
           <aside
@@ -186,26 +185,21 @@ export async function AiPageView() {
         reverse
       />
 
-      <section className="border-t border-border py-24 md:py-32">
-        <div className="container">
+      <section style={{ borderTop: "1px solid var(--theme-border-color)", padding: "var(--block-spacing) 0" }}>
+        <div style={{ paddingLeft: "var(--gutter-h)", paddingRight: "var(--gutter-h)" }}>
           <div
             data-reveal=""
             className="flex flex-col justify-between gap-12 lg:flex-row lg:items-end lg:gap-20"
           >
             <div className="max-w-2xl">
               <PenTool aria-hidden="true" className="size-7 text-foreground/70" strokeWidth={1.5} />
-              <h2 className="mt-8 text-3xl font-medium tracking-tight sm:text-4xl">{t("designBridge.title")}</h2>
-              <p className="mt-6 text-base leading-relaxed text-muted-foreground sm:text-lg">{t("designBridge.description")}</p>
+              <h2 className="pl-h2 mt-8">{t("designBridge.title")}</h2>
+              <p className="pl-body mt-6">{t("designBridge.description")}</p>
             </div>
-            <Button size="lg" asChild className="w-fit shrink-0">
-              <Link href="/services" className="group">
-                {t("designBridge.cta")}
-                <ArrowRight
-                  aria-hidden="true"
-                  className="ml-2 size-4 transition-transform duration-200 group-hover:translate-x-1"
-                />
-              </Link>
-            </Button>
+            <Link className="pl-btn" href="/services" style={{ width: "auto" }}>
+              {t("designBridge.cta")}
+              <span aria-hidden="true">→</span>
+            </Link>
           </div>
         </div>
       </section>

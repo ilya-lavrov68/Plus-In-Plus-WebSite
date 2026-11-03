@@ -188,7 +188,6 @@ test("public routes get distinct page geometry instead of one repeated block", (
     "components/blocks/signup10.tsx": "AuthMosaicField",
     "app/(site)/privacy/page.tsx": "LegalLineBand",
     "app/(site)/terms/page.tsx": "LegalLineBand",
-    "components/ai/ai-page-view.tsx": "AiGridBand",
     "components/site/story-timeline.tsx": "StorySignalRule",
   };
   for (const [file, component] of Object.entries(wiring)) {
