@@ -24,8 +24,9 @@ export async function Navbar() {
         {
           label: t("nav.services"),
           href: "/services",
+          description: "Дизайн-системы, айдентика и производство носителей.",
           children: [
-            { label: t("nav.services"), href: "/services", description: "Айдентика, макеты и вывески под ключ." },
+            { label: locale === "ru" ? "Все услуги" : "All services", href: "/services", description: "Айдентика, макеты и вывески под ключ." },
             { label: t("nav.shop"), href: "/shop", description: "Каталог носителей и заказ производства." },
           ],
         },
@@ -34,9 +35,11 @@ export async function Navbar() {
         {
           label: t("nav.ai"),
           href: "/ai",
+          description: "Два агента: инженерия и документы.",
           children: [
             { label: "Lumi Q1", href: "/ai/lumi", description: "Агент для кода и инженерных задач." },
             { label: "Kairo", href: "/ai/kairo", description: "Агент для документов и права." },
+            { label: locale === "ru" ? "Все агенты" : "All agents", href: "/ai", description: "Как устроены агенты и что они умеют." },
           ],
         },
         { label: t("nav.contact"), href: "/contact" },

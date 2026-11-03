@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
-import { WordmarkLogo } from "@/components/site/logo";
 import { PwAvatar } from "./avatar";
 import classes from "./header/header.module.scss";
 import desktop from "./header/desktop.module.scss";
@@ -35,6 +34,8 @@ const href = (locale: string, path: string) => `/${locale}${path === "/" ? "" : 
 export function PwHeader({ locale, topBar, menuLabel, closeLabel, links, utility, cta, user }: PwHeaderProps) {
   const [open, setOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [panelHeight, setPanelHeight] = useState(0);
+  const panelRef = useRef<HTMLDivElement | null>(null);
 
   return (
     <div className={classes.wrapper}>
@@ -53,7 +54,13 @@ export function PwHeader({ locale, topBar, menuLabel, closeLabel, links, utility
             <div className={`${desktop.grid} grid`}>
               <div className={`${desktop.logo} cols-4`}>
                 <Link className={desktop.logo} href={href(locale, "/")} aria-label="Plus In Plus">
-                  <WordmarkLogo className="h-[1.25rem] w-auto" />
+                  <img
+                    src="/assets/logos/npip.svg"
+                    alt="Plus In Plus"
+                    width={189}
+                    height={42}
+                    style={{ height: "1.25rem", width: "auto", maxWidth: "100%" }}
+                  />
                 </Link>
               </div>
 
@@ -81,6 +88,10 @@ export function PwHeader({ locale, topBar, menuLabel, closeLabel, links, utility
 
                       {link.children && openDropdown === link.href ? (
                         <div
+                          ref={(node) => {
+                            panelRef.current = node;
+                            if (node) setPanelHeight(node.offsetHeight);
+                          }}
                           className={`grid ${desktop.dropdown} ${desktop.activeTab}`}
                           style={{ top: "calc(var(--top-bar-height) + var(--header-height))" }}
                         >
@@ -114,7 +125,7 @@ export function PwHeader({ locale, topBar, menuLabel, closeLabel, links, utility
                   ) : null}
                   <span className="pw-header-utility">
                     {utility.map((item) => (
-                      <Link key={item.href} className={desktop.defaultLink} href={href(locale, item.href)}>
+                      <Link key={item.href} className={desktop.tab} href={href(locale, item.href)}>
                         {item.label}
                       </Link>
                     ))}
@@ -142,6 +153,11 @@ export function PwHeader({ locale, topBar, menuLabel, closeLabel, links, utility
               </div>
             </div>
           </div>
+
+          <div
+            className={desktop.background}
+            style={{ height: openDropdown ? panelHeight : 0, top: "var(--header-height)" }}
+          />
         </div>
 
         {open ? (
