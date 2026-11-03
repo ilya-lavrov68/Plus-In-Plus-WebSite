@@ -59,6 +59,7 @@ Module._load = function (name, parent, isMain) {
   }
   if (name === "@/lib/seo") {
     return {
+      SITE_URL: new URL("https://example.test"),
       absoluteUrl: (value) => new URL(value, "https://example.test").toString(),
       createPageMetadata: (options) => ({
         title: options.title,
@@ -108,6 +109,7 @@ Module._load = function (name, parent, isMain) {
 const shopPage = require("../app/(site)/shop/(index)/page.tsx");
 const aiPage = require("../app/(site)/ai/page.tsx");
 const sitemap = require("../app/(site)/sitemap.ts").default;
+const robots = require("../app/robots.ts").default;
 const { getPublicSiteSettings } = require("../lib/public-site-settings.ts");
 const {
   normalizePublicSiteSettings,
@@ -254,4 +256,27 @@ test("public settings have a server-only loader and are wired to metadata and th
   assert.ok(layout.includes("settings.metaTitle"));
   assert.ok(footer.includes("getPublicSiteSettings"));
   assert.ok(footer.includes("settings.vkUrl"));
+});
+
+test("robots.txt is generated from the app root, not from a route group", () => {
+  const root = path.resolve(__dirname, "..");
+  // Next.js регистрирует `robots` только на верхнем уровне app/: файл внутри
+  // группы `(site)` собирается, но маршрут `/robots.txt` не появляется и
+  // страница отдаёт 404 — именно так и было до этого теста.
+  assert.equal(fs.existsSync(path.join(root, "app", "robots.ts")), true, "app/robots.ts must exist");
+  for (const group of ["(site)", "(admin)"]) {
+    assert.equal(
+      fs.existsSync(path.join(root, "app", group, "robots.ts")),
+      false,
+      `robots.ts inside app/${group} is never served`,
+    );
+  }
+
+  const rules = robots();
+  const disallow = Array.isArray(rules.rules) ? rules.rules.flatMap((rule) => rule.disallow ?? []) : rules.rules.disallow;
+  assert.ok(disallow.includes("/admin/"), "the panel must stay out of search results");
+  assert.ok(disallow.includes("/api/auth/"), "auth endpoints must stay out of search results");
+  assert.equal(rules.rules.allow ?? rules.rules[0]?.allow, "/");
+  assert.equal(rules.host, "https://example.test", "the host directive points at the public origin");
+  assert.equal(String(rules.sitemap), "https://example.test/sitemap.xml");
 });
