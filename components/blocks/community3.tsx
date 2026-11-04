@@ -25,32 +25,32 @@ const Community3 = ({
   partnerDescription = "Regional IT engineering and digital infrastructure partner in Tambov.",
 }: Community3Props) => {
   return (
-    <section id={id} className="motion-section border-b border-border py-24 md:py-32">
+    <section id={id} className="motion-section section-y">
       <div className="container">
         <div className="flex flex-col items-center text-center">
           <Badge
             variant="secondary"
             data-reveal=""
-            className="pip-chip border-border bg-transparent px-3.5 py-1 text-muted-foreground backdrop-blur-xl"
+            className="rounded-full border-0 bg-white/[0.055] px-3.5 py-1 text-xs backdrop-blur-xl"
           >
             {badge}
           </Badge>
-          <h2 className="mt-5 text-4xl font-semibold tracking-[-0.02em] md:text-5xl">
+          <h2 className="mt-5 text-4xl font-semibold tracking-tight md:text-5xl">
             <DecryptText text={heading} seed={29} />
           </h2>
           <p
             data-reveal=""
             data-reveal-delay={60}
-            className="mt-4 max-w-2xl text-lg text-muted-foreground"
+            className="mt-5 max-w-2xl text-lg leading-[1.75] text-muted-foreground"
           >
             {description}
           </p>
 
-          <div className="mt-12 grid w-full max-w-2xl grid-cols-1 gap-6 sm:grid-cols-2">
+          <div className="mt-16 grid w-full max-w-2xl grid-cols-1 gap-7 sm:grid-cols-2">
             <Card
               data-reveal=""
               data-reveal-delay={100}
-              className="glass-surface group rounded-none border border-border bg-card/60 p-8 transition-[background-color,border-color] duration-200 ease-out hover:border-primary/50 hover:bg-card"
+              className="glass-surface group rounded-2xl border-0 bg-white/[0.05] p-8 transition-[background-color] duration-200 ease-out hover:bg-white/[0.08]"
             >
               <Link
                 href="/"
@@ -68,7 +68,7 @@ const Community3 = ({
             <Card
               data-reveal=""
               data-reveal-delay={150}
-              className="glass-surface group rounded-none border border-border bg-card/60 p-8 transition-[background-color,border-color] duration-200 ease-out hover:border-primary/50 hover:bg-card"
+              className="glass-surface group rounded-2xl border-0 bg-white/[0.05] p-8 transition-[background-color] duration-200 ease-out hover:bg-white/[0.08]"
             >
               <a
                 href="https://tsconnect.ru"

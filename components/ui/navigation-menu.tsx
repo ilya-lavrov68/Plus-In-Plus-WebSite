@@ -3,9 +3,8 @@
 import * as React from "react";
 import * as NavigationMenuPrimitive from "@radix-ui/react-navigation-menu";
 import { cva } from "class-variance-authority";
-import { ChevronDownIcon } from "lucide-animated";
+import { ChevronDown } from "lucide-react";
 
-import { AnimatedIcon } from "@/components/ui/animated-icon";
 import { cn } from "@/lib/utils";
 
 const NavigationMenu = React.forwardRef<
@@ -46,7 +45,7 @@ NavigationMenuList.displayName = NavigationMenuPrimitive.List.displayName;
 const NavigationMenuItem = NavigationMenuPrimitive.Item;
 
 const navigationMenuTriggerStyle = cva(
-  "group inline-flex h-10 w-max items-center justify-center rounded-none bg-transparent px-4 py-2 text-sm font-medium text-muted-foreground transition-colors duration-200 ease-out hover:bg-foreground/[0.07] hover:text-foreground focus:bg-foreground/[0.07] focus:text-foreground focus:outline-solid focus:outline-2 focus:outline-offset-2 focus:outline-ring disabled:pointer-events-none disabled:opacity-50 data-[state=open]:bg-foreground/[0.07] data-[state=open]:text-foreground"
+  "group inline-flex h-10 w-max items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium text-muted-foreground transition-colors duration-200 ease-out hover:bg-white/[0.06] hover:text-foreground focus:bg-white/[0.06] focus:text-foreground focus:outline-solid focus:outline-2 focus:outline-offset-2 focus:outline-ring disabled:pointer-events-none disabled:opacity-50 data-[state=open]:bg-white/[0.06] data-[state=open]:text-foreground"
 );
 
 const NavigationMenuTrigger = React.forwardRef<
@@ -56,14 +55,12 @@ const NavigationMenuTrigger = React.forwardRef<
   <NavigationMenuPrimitive.Trigger
     ref={ref}
     className={cn(navigationMenuTriggerStyle(), "group", className)}
-    data-pip-icon-trigger
     {...props}
   >
     {children}{" "}
-    <AnimatedIcon
-      icon={ChevronDownIcon}
-      size={14}
-      className="relative top-[1px] ml-1.5 transition-transform duration-200 ease-out group-data-[state=open]:rotate-180"
+    <ChevronDown
+      className="relative top-[1px] ml-1.5 h-3.5 w-3.5 transition-transform duration-200 ease-out group-data-[state=open]:rotate-180"
+      aria-hidden="true"
     />
   </NavigationMenuPrimitive.Trigger>
 ));

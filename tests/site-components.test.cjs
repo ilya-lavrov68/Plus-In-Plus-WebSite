@@ -260,43 +260,28 @@ const textOf = (node) =>
     .map((child) => (typeof child === "string" ? child : textOf(child)))
     .join("");
 
-test("Hero138 renders the centred brand statement, square primary plus pill secondary and geometry ornaments", () => {
+test("Hero138 renders the restored studio statement, its two CTAs and the media stage", () => {
   let view;
   act(() => {
     view = create(React.createElement(Hero138));
   });
   const text = textOf(view.root);
-  // DecryptText рисует скрэмбл-слой, поэтому заголовок проверяем по структуре,
-  // а не по точной строке: eyebrow, две строки h1 и акцентный хвост.
-  assert.match(text, /Plus In Plus — design \+ AI/);
+  // DecryptText рисует скрэмбл-слой, поэтому заголовок проверяем по структуре.
   assert.equal(view.root.findAllByType("h1").length, 1);
-  assert.ok(view.root.findAll((node) => node.props?.className === "text-primary").length >= 1);
-  assert.match(text, /A studio for brand systems, signage and outdoor media/);
+  assert.match(text, /Have an idea but don't know how to showcase it\?/);
+  assert.match(text, /Plus In Plus Design Studio/);
   const links = view.root.findAllByType("a").map((a) => ({
     href: a.props.href,
     text: textOf(a),
   }));
-  assert.ok(links.some((l) => l.href === "/services" && l.text.includes("Order a design")));
-  assert.ok(links.some((l) => l.href === "/ai" && l.text.includes("Explore AI")));
+  assert.ok(links.some((link) => link.href === "/services" && link.text.includes("Order")));
+  assert.ok(links.some((link) => link.href === "/contact" && link.text.includes("Contact us")));
 
-  const primary = view.root
-    .findAllByType("a")
-    .find((link) => link.props.href === "/services");
+  const primary = view.root.findAllByType("a").find((link) => link.props.href === "/services");
   assert.match(primary.props.className, /bg-primary/);
-  assert.match(primary.props.className, /pip-cursor-fill/);
-  const secondary = view.root
-    .findAllByType("a")
-    .find((link) => link.props.href === "/ai");
-  assert.match(secondary.props.className, /rounded-full/);
-  assert.match(secondary.props.className, /bg-transparent/);
-
   assert.ok(
-    view.root.findAll((node) => node.props?.viewBox === "0 0 16 14").length >= 1,
-    "hero must render the deterministic pixel mosaic",
-  );
-  assert.ok(
-    view.root.findAll((node) => node.props?.viewBox === "0 0 20.5 14").length >= 1,
-    "hero must render the half-drop dot lattice",
+    view.root.findAll((node) => node.props?.["data-reveal"] !== undefined).length >= 2,
+    "the hero reveals its blocks progressively",
   );
   act(() => view.unmount());
 });
@@ -412,7 +397,8 @@ test("Brand accent and shader implementation keep the approved visual and motion
     "utf8"
   );
   assert.match(globals, /--primary:\s*#FFFF01;/);
-  assert.match(globals, /--radius-lg:\s*0;/);
+  assert.match(globals, /--radius-lg:/);
+  assert.doesNotMatch(globals, /text-shadow/);
   assert.match(tailwind, /DEFAULT:\s*"var\(--primary\)"/);
   assert.equal(AGENT_SHADER_CYCLE_SECONDS, 4.5);
   assert.equal(AGENT_SHADER_DURATION_MS, 4500);
@@ -456,23 +442,21 @@ test("Brand accent and shader implementation keep the approved visual and motion
   assert.match(AGENT_BARS_FRAGMENT_SHADER, /uniform sampler2D uField;/);
   assert.match(AGENT_BARS_FRAGMENT_SHADER, /w = 3\.6/);
   assert.match(AGENT_BARS_FRAGMENT_SHADER, /mod\(px\.y, 9\.4\)/);
-  assert.match(diagram, /assets\/agents\/\$\{resolvedScene\}-poster\.webp/);
-  assert.match(diagram, /decoding="async"/);
+  assert.match(diagram, /data-static-field=\{resolvedScene\}/);
   assert.equal(AGENT_SHADER_SCENE_NAMES.lumi, "tool-calls");
   assert.equal(AGENT_SHADER_SCENE_NAMES.kairo, "rag-answer");
   assert.doesNotMatch(diagram, />MODEL<\/text>|>RESPONSE<\/text>|streamingField/);
-  assert.match(player, /assets\/agents\/\$\{resolvedScene\}\.webm/);
-  assert.match(player, /assets\/agents\/\$\{resolvedScene\}\.mp4/);
+  assert.match(player, /useRef<HTMLCanvasElement>/);
+  assert.match(player, /prefers-reduced-motion: reduce/);
   assert.match(player, /size="icon"/);
   assert.match(player, /aria-label=\{label\}/);
-  assert.match(player, /\[nearViewport, reducedMotion, resolvedScene\]/);
+  assert.match(player, /controllerRef\.current = \{ play, pause \}/);
   assert.doesNotMatch(player, /"complete"|RotateCcw|restart|play\(true\)/);
-  assert.match(player, /prefers-reduced-motion: reduce/);
   assert.match(player, /IntersectionObserver/);
-  assert.match(player, /video\.pause\(\)/);
-  assert.match(player, /video\.play\(\)/);
-  assert.match(player, /preload="none"/);
-  assert.doesNotMatch(player, /setInterval|requestAnimationFrame|getContext\("webgl"/);
+  assert.match(player, /getContext\("webgl"/);
+  assert.match(player, /requestAnimationFrame/);
+  assert.match(player, /document\.hidden/, "the field pauses while the tab is hidden");
+  assert.doesNotMatch(player, /setInterval|<video/);
 
   for (const locale of ["ru", "en"]) {
     const catalog = require(`../messages/${locale}.json`);
@@ -521,7 +505,7 @@ test("Interface depth uses borders and outlines, never shadows or focus rings", 
   }
 });
 
-test("All eight agent shader fallbacks render their own exact final field", () => {
+test("every agent shader fallback renders its own deterministic field", () => {
   const scenes = Object.keys(AGENT_FIELD_FRAGMENT_SHADERS);
   const views = {};
   let enhancedView;
@@ -535,21 +519,26 @@ test("All eight agent shader fallbacks render their own exact final field", () =
     enhancedView = create(React.createElement(AgentDiagram, { agent: "lumi", enhanced: true }));
   });
 
-  const posterContents = new Set();
+  const fields = new Set();
   for (const [scene, view] of Object.entries(views)) {
-    const image = view.root.findByType("img");
-    assert.equal(image.props["data-scene"], AGENT_SHADER_SCENE_NAMES[scene]);
-    assert.equal(image.props["data-static-field"], scene);
-    assert.equal(image.props.src, `/assets/agents/${scene}-poster.webp`);
-    assert.equal(image.props.loading, "lazy");
-    const poster = fs.readFileSync(path.resolve(__dirname, `../public${image.props.src}`));
-    assert.ok(poster.length > 1000, `${scene} poster must not be empty`);
-    posterContents.add(poster.toString("base64"));
-    assert.equal(view.root.findAllByType("svg").length, 0);
-    assert.equal(view.root.findAllByType("path").length, 0);
+    const field = view.root.findAll((node) => node.props?.["data-static-field"] === scene);
+    assert.equal(field.length, 1, `${scene} renders its own static field`);
+    assert.equal(view.root.findAllByType("svg").length, 1, "the fallback is vector, not a bitmap");
+    assert.equal(view.root.findAllByType("img").length, 0);
+    // Геометрия кадра отличает сцены друг от друга.
+    const geometry = view.root
+      .findAll((node) => typeof node.props?.d === "string" || typeof node.props?.x === "number")
+      .map((node) => `${node.props.d ?? ""}${node.props.x ?? ""}:${node.props.y ?? ""}:${node.props.width ?? ""}`)
+      .join("|");
+    assert.ok(geometry.length > 0, `${scene} renders bars`);
+    fields.add(geometry);
   }
-  assert.equal(posterContents.size, 8);
-  assert.equal(enhancedView.root.findAllByType("img").length, 0);
+  assert.equal(fields.size, scenes.length, "each scene keeps a distinct final frame");
+  assert.equal(
+    enhancedView.root.findAll((node) => node.props?.["data-static-field"] !== undefined).length,
+    0,
+    "the enhanced view hands the field to the shader",
+  );
 
   act(() => {
     Object.values(views).forEach((view) => view.unmount());
@@ -680,6 +669,35 @@ test("Footer7 renders public contact and social settings with icon controls", ()
   assert.ok(links.some((link) => link.props.href === "tel:+79001234567"));
   assert.ok(links.some((link) => link.props.href === "https://vk.com/custom-studio" && link.props["aria-label"] === "VK"));
   assert.ok(links.some((link) => link.props.href === "https://t.me/custom_studio" && link.props["aria-label"] === "Telegram"));
+  act(() => view.unmount());
+});
+
+test("every footer link shows a keyboard focus outline", () => {
+  let view;
+  act(() => {
+    view = create(
+      React.createElement(Footer7, {
+        contactEmail: "hello@example.test",
+        contactPhone: "+7 (900) 123-45-67",
+        socialLinks: { vk: "https://vk.com/a", telegram: "https://t.me/a", youtube: "https://youtube.com/@a" },
+      }),
+    );
+  });
+
+  // Ховер в футере — только цвет текста, поэтому фокус обязан быть явным:
+  // иначе с клавиатуры виден дефолтный UA-обвод, который легко принять за
+  // «серую плашку» и который выбивается из остального интерфейса.
+  const links = view.root.findAllByType("a");
+  assert.ok(links.length >= 10, "the footer must render its link columns");
+  for (const link of links) {
+    const className = String(link.props.className ?? "");
+    assert.match(className, /focus-visible:outline-2/, `missing focus outline on ${link.props.href}`);
+    assert.match(className, /focus-visible:outline-ring/, `focus must use the brand ring on ${link.props.href}`);
+    assert.doesNotMatch(className, /focus-visible:ring|shadow/, `focus must be an outline, not a ring or shadow`);
+  }
+
+  const source = fs.readFileSync(path.resolve(__dirname, "../components/blocks/footer7.tsx"), "utf8");
+  assert.doesNotMatch(source, /hover:bg-/, "footer links keep the flat colour-only hover");
   act(() => view.unmount());
 });
 
@@ -1068,7 +1086,7 @@ test("Feature314, Community3, and Cta13 render exact studio advantages, SVG logo
   });
 });
 
-test("public UI uses neutral media slots and adds no ambient glow anywhere", () => {
+test("public UI uses neutral media slots instead of retired stock mockups", () => {
   const artworkFreeFiles = [
     "components/site/hero.tsx",
     "components/site/features.tsx",
@@ -1080,7 +1098,7 @@ test("public UI uses neutral media slots and adds no ambient glow anywhere", () 
     "lib/studio-catalog.ts",
     "lib/data.ts",
     "lib/cart.ts",
-    "payload/collections/catalog.ts",
+    "lib/commerce-data.ts",
     "scripts/seed-services.ts",
   ];
   for (const file of artworkFreeFiles) {
@@ -1107,29 +1125,17 @@ test("public UI uses neutral media slots and adds no ambient glow anywhere", () 
     false,
   );
 
-  for (const file of [
-    "components/blocks/feature314.tsx",
-    "components/blocks/community3.tsx",
-    "components/blocks/cta13.tsx",
-  ]) {
-    const source = fs.readFileSync(path.resolve(__dirname, "..", file), "utf8");
-    assert.match(source, /glass-surface/);
-    assert.doesNotMatch(source, /clip-path|border-t border-l|rounded-tl-md/);
-    assert.doesNotMatch(
-      source,
-      /blur-3xl|radial-gradient|feGaussianBlur/,
-      `${file} must not add ambient glow below the hero`,
-    );
-  }
-
+  // Hero показывает нейтральную медиа-сцену: подпись и плейсхолдер, без стоковых макетов.
   const heroSource = fs.readFileSync(
     path.resolve(__dirname, "../components/blocks/hero138.tsx"),
     "utf8",
   );
-  assert.match(heroSource, /PixelMosaic/);
-  assert.match(heroSource, /DotLattice/);
-  assert.doesNotMatch(heroSource, /glass-surface|hero-pillar|blur-3xl|radial-gradient/);
-  assert.doesNotMatch(heroSource, /MediaPlaceholder|mockup/i);
+  assert.match(heroSource, /MediaPlaceholder|DecryptText/);
+  assert.doesNotMatch(heroSource, /\/assets\/shop\//);
+
+  // Тени запрещены во всём интерфейсе.
+  const styles = fs.readFileSync(path.resolve(__dirname, "../styles/globals.css"), "utf8");
+  assert.doesNotMatch(styles, /box-shadow:|text-shadow:/);
 
   for (const file of [
     "public/assets/placeholders/service-cover.svg",
@@ -1138,11 +1144,6 @@ test("public UI uses neutral media slots and adds no ambient glow anywhere", () 
     const source = fs.readFileSync(path.resolve(__dirname, "..", file), "utf8");
     assert.doesNotMatch(source, /filter|feGaussianBlur|<circle/);
   }
-
-  const styles = fs.readFileSync(path.resolve(__dirname, "../styles/globals.css"), "utf8");
-  assert.match(styles, /\.glass-surface\s*\{[^}]*border:\s*0;[^}]*backdrop-filter:/s);
-  assert.doesNotMatch(styles, /hero-media-frame/);
-  assert.doesNotMatch(styles, /box-shadow:|text-shadow:/);
 
   const placeholders = require("../lib/content-placeholders.ts");
   assert.equal(

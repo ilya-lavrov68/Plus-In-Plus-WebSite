@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils";
 
 const DEFAULT_GLYPHS = "#%&@$?!*+=/{}[]<>~^";
 const CYCLE_SPREAD = 35;
-const MIN_FRAME_INTERVAL = 1000 / 30;
 
 interface DecryptCharacter {
   char: string;
@@ -138,17 +137,8 @@ export function DecryptText({
     });
 
     const startedAt = performance.now();
-    let previousPaint = -Infinity;
     const draw = () => {
-      const now = performance.now();
-      const elapsed = now - startedAt;
-      // Glyph changes are already timed in milliseconds; avoid walking every
-      // character on every 60/120 Hz display refresh when nothing is due.
-      if (now - previousPaint < MIN_FRAME_INTERVAL) {
-        frameRef.current = requestAnimationFrame(draw);
-        return;
-      }
-      previousPaint = now;
+      const elapsed = performance.now() - startedAt;
 
       for (let index = 0; index < cells.length; index += 1) {
         if (locked[index]) continue;

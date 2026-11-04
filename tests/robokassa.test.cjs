@@ -1,11 +1,11 @@
 const assert = require("node:assert/strict");
-const { test, beforeEach, describe } = require("node:test");
+const { after, before, beforeEach, describe, test } = require("node:test");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
-const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
+const { createTestDatabase } = require("./helpers/test-db.cjs");
 
 require.extensions[".ts"] = (module, filename) =>
   module._compile(
@@ -15,131 +15,87 @@ require.extensions[".ts"] = (module, filename) =>
     filename,
   );
 
-/** В памяти: только платежи одного заказа — логику выставления проверяем. */
-const invoiceDb = {
-  payments: new Map(),
-  orders: new Map(),
-  logs: [],
-  sequence: 0,
-  reset() {
-    this.payments = new Map();
-    this.orders = new Map();
-    this.logs = [];
-    this.sequence = 0;
-  },
-  seed(rows) {
-    for (const row of rows) {
-      this.payments.set(row.id, {
-        orderId: "ord-7",
-        provider: "robokassa",
-        createdAt: new Date("2026-01-01T00:00:00Z"),
-        ...row,
-      });
-    }
-    // Счётчик продолжается после подсунутых записей, иначе новый платёж
-    // получит тот же id, что уже лежит в базе.
-    this.sequence = Math.max(this.sequence, rows.length);
-  },
-  db: {
-    payment: {
-      findMany: async ({ where = {} } = {}) =>
-        [...invoiceDb.payments.values()]
-          .filter((p) =>
-            (!where.id || p.id === where.id) &&
-            (!where.orderId || p.orderId === where.orderId) &&
-            (!where.provider || p.provider === where.provider) &&
-            (!where.externalId || p.externalId === where.externalId) &&
-            (!where.status || p.status === where.status))
-          .sort((a, b) => b.createdAt - a.createdAt)
-          .map((row) => structuredClone(row)),
-      findFirst: async ({ where = {} } = {}) => {
-        const rows = [...invoiceDb.payments.values()]
-          .filter((p) =>
-            (!where.id || p.id === where.id) &&
-            (!where.orderId || p.orderId === where.orderId) &&
-            (!where.provider || p.provider === where.provider) &&
-            (!where.externalId || p.externalId === where.externalId) &&
-            (!where.status || p.status === where.status))
-          .sort((a, b) => b.createdAt - a.createdAt);
-        return structuredClone(rows[0] ?? null);
-      },
-      aggregate: async ({ where = {} } = {}) => {
-        const rows = [...invoiceDb.payments.values()].filter((payment) =>
-          (!where.orderId || payment.orderId === where.orderId) &&
-          (!where.status || payment.status === where.status));
-        return {
-          _sum: { amount: rows.reduce((sum, payment) => sum + payment.amount, 0) },
-          _count: { _all: rows.length },
-        };
-      },
-      create: async ({ data }) => {
-        if (data.externalId != null && [...invoiceDb.payments.values()].some((payment) =>
-          payment.provider === data.provider && payment.externalId === data.externalId)) {
-          throw Object.assign(new Error("duplicate provider invoice"), { code: "PAYLOAD_UNIQUE_CONSTRAINT" });
-        }
-        const row = { id: `pay-${++invoiceDb.sequence}`, createdAt: new Date(), ...data };
-        invoiceDb.payments.set(row.id, row);
-        return { id: row.id, paymentUrl: row.paymentUrl };
-      },
-      updateMany: async ({ where, data }) => {
-        let count = 0;
-        for (const row of invoiceDb.payments.values()) {
-          if (where.id && row.id !== where.id) continue;
-          if (where.orderId && row.orderId !== where.orderId) continue;
-          if (where.status && row.status !== where.status) continue;
-          if (where.amount !== undefined && row.amount !== where.amount) continue;
-          if (where.paymentUrl !== undefined && row.paymentUrl !== where.paymentUrl) continue;
-          Object.assign(row, structuredClone(data));
-          count += 1;
-        }
-        return { count };
-      },
-    },
-    order: {
-      findUnique: async ({ where }) => structuredClone(invoiceDb.orders.get(where.id) ?? null),
-      count: async ({ where = {} } = {}) => [...invoiceDb.orders.values()]
-        .filter((order) =>
-          (!where.status?.in || where.status.in.includes(order.status)) &&
-          (!where.payments?.some || [...invoiceDb.payments.values()].some((payment) =>
-            payment.orderId === order.id &&
-            (!where.payments.some.status || payment.status === where.payments.some.status)))).length,
-      updateMany: async ({ where, data }) => {
-        const order = invoiceDb.orders.get(where.id);
-        if (!order || (where.status && order.status !== where.status) ||
-          (where.total !== undefined && order.total !== where.total)) return { count: 0 };
-        Object.assign(order, structuredClone(data));
-        return { count: 1 };
-      },
-    },
-    siteSetting: { findMany: async () => [] },
-    queryRaw: async () => {
-      const succeeded = [...invoiceDb.payments.values()].filter((payment) => payment.status === "succeeded");
-      const paidOrderIds = new Set(succeeded.map((payment) => payment.orderId));
-      return [{
-        queue: [...invoiceDb.orders.values()].filter((order) => ["pending", "quote_requested", "negotiating"].includes(order.status)).length,
-        revenue: succeeded.reduce((sum, payment) => sum + payment.amount, 0),
-        paidCount: [...invoiceDb.orders.values()].filter((order) => paidOrderIds.has(order.id)).length,
-      }];
-    },
-    activityLog: {
-      create: async ({ data }) => { invoiceDb.logs.push(structuredClone(data)); return data; },
-    },
-    transaction: async (callback) => callback(invoiceDb.db),
-  },
-};
-
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
   // Сгенерированный Prisma-клиент — ESM, из .cjs его не подключить.
   // invoice.ts всё равно работает только с базой, а здесь проверяется
   // чистая арифметика номера счёта.
-  if (name === "@/lib/payload-native") return createNativeModuleMock(invoiceDb.db);
   if (name.startsWith("@/")) name = path.resolve(__dirname, "..", name.slice(2));
   return originalLoad.call(this, name, parent, isMain);
 };
 
 const robokassa = require("../lib/payments/robokassa.ts");
 const { invoiceNumber } = require("../lib/payments/invoice.ts");
+const { getOrderStats } = require("../lib/admin-analytics.ts");
+
+/* --- настоящая SQLite вместо объектного двойника ------------------------- */
+
+const ORDER_ID = "ord-7";
+const ORDER_NUMBER = "ПИП-000007";
+const now = () => new Date().toISOString();
+
+let database;
+
+before(async () => {
+  database = createTestDatabase("pip-robokassa-");
+  await database.ready;
+});
+
+after(async () => {
+  await database?.close();
+});
+
+/** Чистая база: аккаунт и услуга нужны только ради внешних ключей заказа. */
+async function resetInvoices() {
+  await database.reset();
+  await database.exec(
+    `insert into accounts (id, email, role, is_blocked) values ('usr-1', 'client@test', 'USER', 0)`,
+  );
+  await database.exec(
+    `insert into services (id, title, slug, category, short_desc, full_desc, result_text, base_price,
+       price_type, currency, is_orderable, is_published, is_active, sort_order)
+     values ('svc-1', 'Вывеска', 'sign-design', 'small', '', '', '', 10000, 'from', 'RUB', 1, 1, 1, 0)`,
+  );
+}
+
+async function insertOrder({
+  id = ORDER_ID,
+  number = ORDER_NUMBER,
+  status = "awaiting_payment",
+  total = 10000,
+} = {}) {
+  await database.exec(
+    `insert into orders (id, order_number, number, user_id_id, status, estimated_amount, subtotal, discount,
+       total, currency, created_at, updated_at)
+     values (?, ?, ?, 'usr-1', ?, ?, 0, 0, ?, 'RUB', ?, ?)`,
+    [id, number, number, status, total, total, now(), now()],
+  );
+  return id;
+}
+
+async function insertInvoiceRow({
+  id,
+  orderId = ORDER_ID,
+  status = "pending",
+  amount = 10000,
+  externalId = "7000",
+  paymentUrl = null,
+  createdAt = now(),
+}) {
+  await database.exec(
+    `insert into payments (id, order_id_id, provider, external_id, provider_key, status, amount, currency,
+       payment_url, created_at, updated_at)
+     values (?, ?, 'robokassa', ?, ?, ?, ?, 'RUB', ?, ?, ?)`,
+    [id, orderId, externalId, `${orderId}:${externalId}:${id}`, status, amount, paymentUrl, createdAt, createdAt],
+  );
+}
+
+const invoiceRow = (id) =>
+  database.one("select status, amount, payment_url from payments where id = ?", [id]);
+const orderRow = (id = ORDER_ID) =>
+  database.one("select status, paid_at from orders where id = ?", [id]);
+const invoiceRows = () => database.rows("select id, status, amount from payments");
+const paymentLogs = () => database.rows("select action, entity_type from activity_logs");
 
 const LOGIN = "shop";
 const PASS1 = "password-one";
@@ -366,85 +322,100 @@ describe("номер счёта", () => {
 
 
 describe("повторное выставление счёта", () => {
+  const input = {
+    orderId: ORDER_ID,
+    orderNumber: ORDER_NUMBER,
+    amount: 1_600_000,
+    currency: "RUB",
+    customerEmail: "c@test",
+  };
+
+  beforeEach(async () => {
+    await resetInvoices();
+    await insertOrder({ total: 1_600_000 });
+  });
+
   test("та же сумма — тот же счёт, а не новый", async () => {
     const { issueInvoice } = require("../lib/payments/invoice.ts");
-    invoiceDb.reset();
-    invoiceDb.seed([{ id: "pay-1", status: "pending", amount: 1600000, externalId: "7000", paymentUrl: "https://pay/7000" }]);
-
-    const again = await issueInvoice({
-      orderId: "ord-7", orderNumber: "ПИП-000007", amount: 1_600_000,
-      currency: "RUB", customerEmail: "c@test",
+    await insertInvoiceRow({
+      id: "pay-1",
+      status: "pending",
+      amount: 1_600_000,
+      externalId: "7000",
+      paymentUrl: "https://pay/7000",
     });
 
+    const again = await issueInvoice(input);
+
     assert.equal(again.paymentId, "pay-1", "ссылка должна остаться прежней");
-    assert.equal(invoiceDb.payments.size, 1, "новый счёт не создаётся");
+    assert.equal((await invoiceRows()).length, 1, "новый счёт не создаётся");
   });
 
   test("pending счёт без ссылки подписывается на месте после подключения провайдера", async () => {
     const { issueInvoice } = require("../lib/payments/invoice.ts");
-    invoiceDb.reset();
-    invoiceDb.seed([{ id: "pay-existing", status: "pending", amount: 1600000, externalId: "7000", paymentUrl: null }]);
-    const input = {
-      orderId: "ord-7", orderNumber: "ПИП-000007", amount: 1_600_000,
-      currency: "RUB", customerEmail: "c@test",
-    };
+    await insertInvoiceRow({
+      id: "pay-existing",
+      status: "pending",
+      amount: 1_600_000,
+      externalId: "7000",
+      paymentUrl: null,
+    });
 
     const regenerated = await issueInvoice(input);
     assert.equal(regenerated.paymentId, "pay-existing");
     assert.equal(regenerated.invId, 7000);
-    assert.equal(invoiceDb.payments.size, 1);
-    assert.equal(invoiceDb.payments.get("pay-existing").status, "pending");
+    assert.equal((await invoiceRows()).length, 1);
+    assert.equal((await invoiceRow("pay-existing")).status, "pending");
     assert.equal(new URL(regenerated.paymentUrl).searchParams.get("InvId"), "7000");
 
     const repeated = await issueInvoice(input);
     assert.equal(repeated.paymentId, "pay-existing");
-    assert.equal(invoiceDb.payments.size, 1);
+    assert.equal((await invoiceRows()).length, 1);
   });
 
   test("concurrent invoice requests reuse one unique InvId", async () => {
     const { issueInvoice } = require("../lib/payments/invoice.ts");
-    const collection = fs.readFileSync(path.join(__dirname, "..", "payload", "collections", "commerce.ts"), "utf8");
-    assert.match(collection, /name: "providerKey", type: "text", unique: true/);
-    invoiceDb.reset();
-    const input = {
-      orderId: "ord-7", orderNumber: "ПИП-000007", amount: 1_600_000,
-      currency: "RUB", customerEmail: "c@test",
-    };
+    const schema = fs.readFileSync(path.join(__dirname, "..", "db", "schema.sql"), "utf8");
+    assert.match(schema, /CREATE UNIQUE INDEX `payments_provider_key_idx`/,
+      "гонку гасит уникальный ключ провайдера");
+
     const [first, second] = await Promise.all([issueInvoice(input), issueInvoice(input)]);
     assert.equal(first.paymentId, second.paymentId);
     assert.equal(first.invId, 7000);
     assert.equal(second.invId, 7000);
-    assert.equal(invoiceDb.payments.size, 1);
+    assert.equal((await invoiceRows()).length, 1);
   });
 
   test("другая сумма — старый счёт закрывается, выставляется новый", async () => {
     const { issueInvoice } = require("../lib/payments/invoice.ts");
-    invoiceDb.reset();
-    invoiceDb.seed([{ id: "pay-1", status: "pending", amount: 1600000, externalId: "7000", paymentUrl: "https://pay/7000" }]);
-
-    const changed = await issueInvoice({
-      orderId: "ord-7", orderNumber: "ПИП-000007", amount: 1_750_000,
-      currency: "RUB", customerEmail: "c@test",
+    await insertInvoiceRow({
+      id: "pay-1",
+      status: "pending",
+      amount: 1_600_000,
+      externalId: "7000",
+      paymentUrl: "https://pay/7000",
     });
 
+    const changed = await issueInvoice({ ...input, amount: 1_750_000 });
+
     assert.notEqual(changed.paymentId, "pay-1");
-    assert.equal(invoiceDb.payments.get("pay-1").status, "failed", "старый счёт больше недействителен");
-    assert.equal(invoiceDb.payments.get(changed.paymentId).amount, 1_750_000);
-    // У клиента не должно быть двух ссылок на разные суммы.
-    const pending = [...invoiceDb.payments.values()].filter((p) => p.status === "pending");
-    assert.equal(pending.length, 1);
+    assert.equal((await invoiceRow("pay-1")).status, "failed", "старый счёт больше недействителен");
+    assert.equal((await invoiceRow(changed.paymentId)).amount, 1_750_000);
+    const pending = (await invoiceRows()).filter((row) => row.status === "pending");
+    assert.equal(pending.length, 1, "у клиента не должно быть двух ссылок на разные суммы");
   });
 
   test("номер нового счёта не сталкивается с предыдущим", async () => {
     const { issueInvoice } = require("../lib/payments/invoice.ts");
-    invoiceDb.reset();
-    invoiceDb.seed([{ id: "pay-1", status: "pending", amount: 1600000, externalId: "7000", paymentUrl: "https://pay/7000" }]);
-
-    const second = await issueInvoice({
-      orderId: "ord-7", orderNumber: "ПИП-000007", amount: 1_900_000,
-      currency: "RUB", customerEmail: "c@test",
+    await insertInvoiceRow({
+      id: "pay-1",
+      status: "pending",
+      amount: 1_600_000,
+      externalId: "7000",
+      paymentUrl: "https://pay/7000",
     });
 
+    const second = await issueInvoice({ ...input, amount: 1_900_000 });
     assert.equal(second.invId, 7001, "вторая попытка — следующий номер счёта");
   });
 
@@ -455,12 +426,8 @@ describe("повторное выставление счёта", () => {
     delete process.env.ROBOKASSA_MERCHANT_LOGIN;
     delete process.env.ROBOKASSA_PASSWORD1;
 
-    invoiceDb.reset();
     try {
-      const result = await issueInvoice({
-        orderId: "ord-7", orderNumber: "ПИП-000007", amount: 1_600_000,
-        currency: "RUB", customerEmail: "c@test",
-      });
+      const result = await issueInvoice(input);
       // Демо-режим из ТЗ: оплата проверяется без регистрации магазина.
       assert.equal(new URL(result.paymentUrl).searchParams.get("MerchantLogin"), "TestMerchant");
       assert.ok(result.paymentId, "счёт в базе остаётся: историю не теряем");
@@ -480,12 +447,8 @@ describe("повторное выставление счёта", () => {
     process.env.NODE_ENV = "production";
     delete process.env.ROBOKASSA_DEMO_MODE;
 
-    invoiceDb.reset();
     try {
-      const result = await issueInvoice({
-        orderId: "ord-7", orderNumber: "ПИП-000007", amount: 1_600_000,
-        currency: "RUB", customerEmail: "c@test",
-      });
+      const result = await issueInvoice(input);
       assert.equal(result.paymentUrl, null, "ссылки нет — провайдер не настроен");
       assert.ok(result.paymentId, "счёт в базе остаётся: историю не теряем");
     } finally {
@@ -556,18 +519,7 @@ describe("выбор конфигурации (Settings → env → демо)", 
 describe("Result URL: целостность оплаты", () => {
   const { handleRobokassaResult } = require("../lib/payments/robokassa-result.ts");
 
-  function seedAwaitingOrder(overrides = {}) {
-    invoiceDb.orders.set("ord-7", {
-      id: "ord-7",
-      orderNumber: "ПИП-000007",
-      number: "ПИП-000007",
-      status: "awaiting_payment",
-      total: 10000,
-      ...overrides,
-    });
-  }
-
-  function callback({ invId = "7000", outSum = "100.00", orderId = "ord-7", signedOrderId = orderId } = {}) {
+  function callback({ invId = "7000", outSum = "100.00", orderId = ORDER_ID, signedOrderId = orderId } = {}) {
     const config = robokassa.readConfig();
     const signature = robokassa.resultSignature(
       config,
@@ -588,137 +540,141 @@ describe("Result URL: целостность оплаты", () => {
     });
   }
 
-  beforeEach(() => {
-    invoiceDb.reset();
-    seedAwaitingOrder();
-    invoiceDb.seed([{
+  beforeEach(async () => {
+    await resetInvoices();
+    await insertOrder({ status: "awaiting_payment", total: 10000 });
+    await insertInvoiceRow({
       id: "pay-current",
       externalId: "7000",
       status: "pending",
       amount: 10000,
       paymentUrl: "https://pay.test/7000",
-    }]);
+      createdAt: "2026-01-01T00:00:00.000Z",
+    });
   });
 
   test("валидный актуальный callback оплачивает заказ один раз", async () => {
     const first = await handleRobokassaResult(callback());
     assert.equal(await first.text(), "OK7000");
-    assert.equal(invoiceDb.payments.get("pay-current").status, "succeeded");
-    assert.equal(invoiceDb.orders.get("ord-7").status, "paid");
-    assert.ok(Number.isFinite(new Date(invoiceDb.orders.get("ord-7").paidAt).getTime()));
-    assert.equal(invoiceDb.logs.length, 1);
+    assert.equal((await invoiceRow("pay-current")).status, "succeeded");
+    assert.equal((await orderRow()).status, "paid");
+    assert.ok(Number.isFinite(new Date((await orderRow()).paid_at).getTime()));
+    assert.equal((await paymentLogs()).length, 1);
 
-    invoiceDb.orders.get("ord-7").status = "in_progress";
+    await database.exec("update orders set status = 'in_progress' where id = ?", [ORDER_ID]);
     const repeated = await handleRobokassaResult(callback());
     assert.equal(await repeated.text(), "OK7000");
-    assert.equal(invoiceDb.orders.get("ord-7").status, "in_progress");
-    assert.equal(invoiceDb.logs.length, 1, "повтор не создаёт вторую запись журнала");
+    assert.equal((await orderRow()).status, "in_progress");
+    assert.equal((await paymentLogs()).length, 1, "повтор не создаёт вторую запись журнала");
   });
 
   test("старый pending-счёт не принимается после выставления нового", async () => {
-    invoiceDb.seed([{
+    await insertInvoiceRow({
       id: "pay-new",
       externalId: "7001",
       status: "pending",
       amount: 10000,
-      createdAt: new Date("2026-01-02T00:00:00Z"),
-    }]);
+      createdAt: "2026-01-02T00:00:00.000Z",
+    });
 
     const response = await handleRobokassaResult(callback());
     assert.equal(await response.text(), "OK7000");
-    assert.equal(invoiceDb.payments.get("pay-current").status, "pending");
-    assert.equal(invoiceDb.orders.get("ord-7").status, "awaiting_payment");
-    assert.equal(invoiceDb.logs.length, 0);
+    assert.equal((await invoiceRow("pay-current")).status, "pending");
+    assert.equal((await orderRow()).status, "awaiting_payment");
+    assert.equal((await paymentLogs()).length, 0);
   });
 
   test("текущий счёт не принимается после изменения цены заказа", async () => {
-    seedAwaitingOrder({ total: 12000 });
+    await database.exec("update orders set total = 12000 where id = ?", [ORDER_ID]);
     const response = await handleRobokassaResult(callback());
     assert.equal(await response.text(), "OK7000");
-    assert.equal(invoiceDb.payments.get("pay-current").status, "pending");
-    assert.equal(invoiceDb.orders.get("ord-7").status, "awaiting_payment");
+    assert.equal((await invoiceRow("pay-current")).status, "pending");
+    assert.equal((await orderRow()).status, "awaiting_payment");
   });
 
   test("подписанный, но чужой Shp_OrderId не привязывает оплату", async () => {
     const response = await handleRobokassaResult(callback({ orderId: "ord-other" }));
     assert.equal(await response.text(), "OK7000");
-    assert.equal(invoiceDb.payments.get("pay-current").status, "pending");
-    assert.equal(invoiceDb.orders.get("ord-7").status, "awaiting_payment");
+    assert.equal((await invoiceRow("pay-current")).status, "pending");
+    assert.equal((await orderRow()).status, "awaiting_payment");
   });
 
   test("без Shp_OrderId уведомление не меняет данные", async () => {
     const response = await handleRobokassaResult(callback({ orderId: "", signedOrderId: "" }));
     assert.equal(await response.text(), "OK7000");
-    assert.equal(invoiceDb.payments.get("pay-current").status, "pending");
+    assert.equal((await invoiceRow("pay-current")).status, "pending");
   });
 
   test("закрытый заказ и не-pending счёт не принимают оплату", async () => {
     for (const status of ["completed", "cancelled", "refunded"]) {
-      invoiceDb.reset();
-      seedAwaitingOrder({ status });
-      invoiceDb.seed([{ id: "pay-current", externalId: "7000", status: "pending", amount: 10000 }]);
+      await database.exec("update orders set status = ? where id = ?", [status, ORDER_ID]);
+      await database.exec("update payments set status = 'pending' where id = 'pay-current'");
       await handleRobokassaResult(callback());
-      assert.equal(invoiceDb.payments.get("pay-current").status, "pending");
-      assert.equal(invoiceDb.orders.get("ord-7").status, status);
+      assert.equal((await invoiceRow("pay-current")).status, "pending");
+      assert.equal((await orderRow()).status, status);
     }
 
-    invoiceDb.reset();
-    seedAwaitingOrder();
-    invoiceDb.seed([{ id: "pay-current", externalId: "7000", status: "failed", amount: 10000 }]);
+    await database.exec("update orders set status = 'awaiting_payment' where id = ?", [ORDER_ID]);
+    await database.exec("update payments set status = 'failed' where id = 'pay-current'");
     await handleRobokassaResult(callback());
-    assert.equal(invoiceDb.payments.get("pay-current").status, "failed");
-    assert.equal(invoiceDb.orders.get("ord-7").status, "awaiting_payment");
+    assert.equal((await invoiceRow("pay-current")).status, "failed");
+    assert.equal((await orderRow()).status, "awaiting_payment");
   });
 });
 
 describe("выставление счетов: актуальная попытка", () => {
   const { issueInvoice } = require("../lib/payments/invoice.ts");
 
-  beforeEach(() => invoiceDb.reset());
+  beforeEach(async () => {
+    await resetInvoices();
+    await insertOrder({ total: 10000 });
+  });
 
   test("успешный платёж запрещает новый счёт при любом статусе заказа", async () => {
-    invoiceDb.seed([{ id: "pay-success", status: "succeeded", amount: 10000, externalId: "7000" }]);
+    await insertInvoiceRow({ id: "pay-success", status: "succeeded", amount: 10000, externalId: "7000" });
     const result = await issueInvoice({
-      orderId: "ord-7", orderNumber: "ПИП-000007", amount: 10000,
+      orderId: ORDER_ID, orderNumber: ORDER_NUMBER, amount: 10000,
       currency: "RUB", customerEmail: "client@test",
     });
     assert.equal(result, null);
-    assert.equal(invoiceDb.payments.size, 1);
+    assert.equal((await invoiceRows()).length, 1);
   });
 
   test("старый pending не воскресает, если последний счёт уже закрыт", async () => {
-    invoiceDb.seed([
-      { id: "pay-old", status: "pending", amount: 10000, externalId: "7000", paymentUrl: "https://pay.test/old", createdAt: new Date("2026-01-01") },
-      { id: "pay-latest", status: "failed", amount: 10000, externalId: "7001", createdAt: new Date("2026-01-02") },
-    ]);
+    await insertInvoiceRow({
+      id: "pay-old", status: "pending", amount: 10000, externalId: "7000",
+      paymentUrl: "https://pay.test/old", createdAt: "2026-01-01T00:00:00.000Z",
+    });
+    await insertInvoiceRow({
+      id: "pay-latest", status: "failed", amount: 10000, externalId: "7001",
+      createdAt: "2026-01-02T00:00:00.000Z",
+    });
     const result = await issueInvoice({
-      orderId: "ord-7", orderNumber: "ПИП-000007", amount: 10000,
+      orderId: ORDER_ID, orderNumber: ORDER_NUMBER, amount: 10000,
       currency: "RUB", customerEmail: "client@test",
     });
     assert.notEqual(result.paymentId, "pay-old");
-    assert.equal(invoiceDb.payments.get("pay-old").status, "failed");
+    assert.equal((await invoiceRow("pay-old")).status, "failed");
   });
 });
 
 describe("статистика заказов: деньги по успешным платежам", () => {
-  const { getOrderStats } = require("../lib/admin-analytics.ts");
-
   test("статус paid без платежа не создаёт выручку", async () => {
-    invoiceDb.reset();
+    await resetInvoices();
     for (const [id, status, total] of [
       ["ord-queue", "quote_requested", 0],
       ["ord-status-only", "paid", 99900],
       ["ord-paid", "completed", 12345],
       ["ord-stale", "awaiting_payment", 77700],
-    ]) invoiceDb.orders.set(id, { id, status, total });
-    invoiceDb.seed([
-      { id: "pay-1", orderId: "ord-paid", status: "succeeded", amount: 20000 },
-      { id: "pay-2", orderId: "ord-stale", status: "succeeded", amount: 10000 },
-    ]);
+    ]) {
+      await insertOrder({ id, number: `ПИП-${id.slice(-4)}`, status, total });
+    }
+    await insertInvoiceRow({ id: "pay-1", orderId: "ord-paid", status: "succeeded", amount: 20000, externalId: "9001" });
+    await insertInvoiceRow({ id: "pay-2", orderId: "ord-stale", status: "succeeded", amount: 10000, externalId: "9002" });
 
     const stats = await getOrderStats();
-    assert.equal(stats.queue, 1);
-    assert.equal(stats.revenue, 30000);
+    assert.equal(stats.queue, 1, "в очереди только реально ждущие заказы");
+    assert.equal(stats.revenue, 30000, "выручка считается по платежам, а не по статусу");
     assert.equal(stats.paidCount, 2);
     assert.equal(stats.averageOrder, 15000);
   });

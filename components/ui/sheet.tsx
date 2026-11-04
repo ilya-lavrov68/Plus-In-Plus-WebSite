@@ -3,9 +3,8 @@
 import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { cva, type VariantProps } from "class-variance-authority";
-import { XIcon } from "lucide-animated";
+import { X } from "lucide-react";
 
-import { AnimatedIcon } from "@/components/ui/animated-icon";
 import { cn } from "@/lib/utils";
 
 const Sheet = DialogPrimitive.Root;
@@ -63,8 +62,8 @@ const SheetContent = React.forwardRef<
       {...props}
     >
       {children}
-      <DialogPrimitive.Close data-pip-icon-trigger className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-solid focus:outline-2 focus:outline-offset-2 focus:outline-ring disabled:pointer-events-none">
-        <AnimatedIcon icon={XIcon} size={16} />
+      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-solid focus:outline-2 focus:outline-offset-2 focus:outline-ring disabled:pointer-events-none">
+        <X className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>

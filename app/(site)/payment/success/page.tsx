@@ -3,7 +3,7 @@ import { CheckCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getPayloadClient } from "@/lib/payload-native";
+import { findPaymentByExternalId } from "@/lib/commerce-data";
 import { signatureMatches, successSignature } from "@/lib/payments/robokassa";
 import { resolveRobokassaConfig } from "@/lib/payments/robokassa-config";
 import { getRequestTranslations } from "@/lib/server-i18n";
@@ -47,16 +47,7 @@ export default async function PaymentSuccessPage({ searchParams }: PaymentPagePr
   let status: string | null = null;
   if (invId) {
     try {
-      const payload = await getPayloadClient();
-      const result = await payload.find({
-        collection: "payments",
-        depth: 0,
-        limit: 1,
-        overrideAccess: true,
-        select: { status: true },
-        where: { and: [{ externalId: { equals: invId } }, { provider: { equals: "robokassa" } }] },
-      });
-      status = result.docs[0]?.status ?? null;
+      status = (await findPaymentByExternalId(invId, "robokassa"))?.status ?? null;
     } catch {
       status = null;
     }

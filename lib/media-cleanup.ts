@@ -1,14 +1,25 @@
-import { getPayloadClient } from "@/lib/payload-native";
+import { rows } from "@/lib/db";
 import { cleanupUpload } from "@/lib/uploads";
-import type { Post } from "@/payload/payload-types";
 
-/** Файл удаляется только после committed mutation и проверки оставшихся ссылок. */
+/**
+ * Файл удаляется только после committed mutation и повторной проверки ссылок:
+ * картинка может использоваться в другой услуге, обложке поста или галерее.
+ */
+async function referenced(path: string): Promise<boolean> {
+  const found = await rows<{ total: number }>(
+    `select (select count(*) from services where cover_image = ?)
+          + (select count(*) from posts where cover_image = ?)
+          + (select count(*) from products where cover_image = ?)
+          + (select count(*) from posts_rels r join media m on m.id = r.media_id where m.url = ?) total`,
+    [path, path, path, path],
+  );
+  return Number(found[0]?.total ?? 0) > 0;
+}
+
 export async function cleanupServiceCoverIfUnused(publicPath: string | null): Promise<void> {
   if (!publicPath) return;
   try {
-    const payload = await getPayloadClient();
-    const references = await payload.count({ collection: "services", overrideAccess: true, where: { coverImage: { equals: publicPath } } });
-    if (references.totalDocs === 0) await cleanupUpload(publicPath, "services");
+    if (!(await referenced(publicPath))) await cleanupUpload(publicPath, "services");
   } catch (error) {
     console.error("Service cover reference check failed; preserving the upload:", error);
   }
@@ -17,14 +28,26 @@ export async function cleanupServiceCoverIfUnused(publicPath: string | null): Pr
 export async function cleanupPostCoverIfUnused(publicPath: string | null): Promise<void> {
   if (!publicPath) return;
   try {
-    const payload = await getPayloadClient();
-    const references = await payload.count({ collection: "posts", overrideAccess: true, where: { coverImage: { equals: publicPath } } });
-    if (references.totalDocs > 0) return;
-    const posts = await payload.find({ collection: "posts", depth: 1, pagination: false, overrideAccess: true });
-    const documents = posts.docs as Post[];
-    const galleryUsesPath = documents.some((post) => (post.gallery ?? []).some((media) => (typeof media === "object" ? media.url : null) === publicPath));
-    if (!galleryUsesPath) await cleanupUpload(publicPath, "blog");
+    if (!(await referenced(publicPath))) await cleanupUpload(publicPath, "blog");
   } catch (error) {
     console.error("Post cover reference check failed; preserving the upload:", error);
+  }
+}
+
+export async function cleanupProductCoverIfUnused(publicPath: string | null): Promise<void> {
+  if (!publicPath) return;
+  try {
+    if (!(await referenced(publicPath))) await cleanupUpload(publicPath, "services");
+  } catch (error) {
+    console.error("Product cover reference check failed; preserving the upload:", error);
+  }
+}
+
+export async function cleanupGalleryImageIfUnused(publicPath: string | null): Promise<void> {
+  if (!publicPath) return;
+  try {
+    if (!(await referenced(publicPath))) await cleanupUpload(publicPath, "blog");
+  } catch (error) {
+    console.error("Gallery reference check failed; preserving the upload:", error);
   }
 }

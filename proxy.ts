@@ -25,13 +25,11 @@ const requestPathname = (request: { nextUrl?: { pathname?: string }; url?: strin
 
 function isProtectedPath(pathname: string): {
   isAdminArea: boolean;
-  isPayloadArea: boolean;
   isManagerArea: boolean;
   isOrdersArea: boolean;
   isFounderSettings: boolean;
 } {
   const isAdminArea = pathname === "/admin" || pathname.startsWith("/admin/");
-  const isPayloadArea = pathname === "/payload" || pathname.startsWith("/payload/");
   const isManagerArea = pathname === "/manager" || pathname.startsWith("/manager/");
   const isOrdersArea =
     pathname === "/orders" ||
@@ -42,7 +40,7 @@ function isProtectedPath(pathname: string): {
     pathname.startsWith("/profile/");
   const isFounderSettings =
     pathname === "/admin/settings" || pathname.startsWith("/admin/settings/");
-  return { isAdminArea, isPayloadArea, isManagerArea, isOrdersArea, isFounderSettings };
+  return { isAdminArea, isManagerArea, isOrdersArea, isFounderSettings };
 }
 
 /**
@@ -106,9 +104,8 @@ function carryOver(from: unknown, to: NextResponse): void {
 
 const authMiddleware = NextAuth(authConfig).auth((request) => {
   const pathname = requestPathname(request);
-  const { isAdminArea, isPayloadArea, isManagerArea, isOrdersArea } =
-    isProtectedPath(pathname);
-  if (!isAdminArea && !isPayloadArea && !isManagerArea && !isOrdersArea) {
+  const { isAdminArea, isManagerArea, isOrdersArea } = isProtectedPath(pathname);
+  if (!isAdminArea && !isManagerArea && !isOrdersArea) {
     return NextResponse.next();
   }
 
@@ -118,9 +115,9 @@ const authMiddleware = NextAuth(authConfig).auth((request) => {
 
   if (!signedIn) {
     const mayRefresh = request.cookies?.get(REFRESH_PRESENT_COOKIE)?.value === "1";
-    const target = new URL(isOrdersArea || mayRefresh || isPayloadArea || isAdminArea ? "/login" : "/", publicUrl);
-    if (isPayloadArea || isAdminArea) target.searchParams.set("mode", "admin");
-    if (mayRefresh || isPayloadArea || isAdminArea) {
+    const target = new URL(isOrdersArea || mayRefresh || isAdminArea ? "/login" : "/", publicUrl);
+    if (isAdminArea) target.searchParams.set("mode", "admin");
+    if (mayRefresh || isAdminArea) {
       const requestedPath = `${pathname}${request.nextUrl?.search ?? ""}`;
       target.searchParams.set("callbackUrl", requestedPath);
     }
@@ -130,8 +127,8 @@ const authMiddleware = NextAuth(authConfig).auth((request) => {
   if (role !== "FOUNDER" && role !== "ADMIN" && role !== "MANAGER") {
     return NextResponse.redirect(new URL("/", publicUrl));
   }
-  // Payload /admin един для всех staff-ролей. Collection access и field-level
-  // правила ограничивают менеджера уже внутри панели и REST API.
+  // /admin — единая staff-панель: менеджера ограничивают серверные guards
+  // и правила доступа на самих страницах.
   return NextResponse.next();
 });
 
@@ -143,14 +140,14 @@ export async function proxy(
   const pathname = requestPathname(request);
 
   // Legacy staff URLs have one destination; no second admin application remains.
-  if (pathname === "/admin/dashboard" || pathname === "/payload" || pathname.startsWith("/payload/") || pathname === "/manager" || pathname.startsWith("/manager/")) {
+  if (pathname === "/admin/dashboard" || pathname === "/manager" || pathname.startsWith("/manager/")) {
     const targetUrl = publicRequestUrl(request);
     if (pathname === "/admin/dashboard") {
       targetUrl.pathname = "/admin";
     } else if (pathname.startsWith("/manager/orders")) {
-      targetUrl.pathname = pathname.replace(/^\/manager\/orders/, "/admin/collections/orders");
+      targetUrl.pathname = pathname.replace(/^\/manager\/orders/, "/admin/orders");
     } else if (pathname.startsWith("/manager/users")) {
-      targetUrl.pathname = pathname.replace(/^\/manager\/users/, "/admin/collections/accounts");
+      targetUrl.pathname = pathname.replace(/^\/manager\/users/, "/admin/accounts");
     } else {
       targetUrl.pathname = "/admin";
     }
@@ -165,7 +162,6 @@ export async function proxy(
     const strippedGuards = isProtectedPath(stripped);
     if (
       strippedGuards.isAdminArea ||
-      strippedGuards.isPayloadArea ||
       strippedGuards.isManagerArea ||
       strippedGuards.isOrdersArea
     ) {
@@ -185,10 +181,9 @@ export async function proxy(
     }
   }
 
-  const { isAdminArea, isPayloadArea, isManagerArea, isOrdersArea } =
-    isProtectedPath(pathname);
+  const { isAdminArea, isManagerArea, isOrdersArea } = isProtectedPath(pathname);
 
-  if (isAdminArea || isPayloadArea || isManagerArea || isOrdersArea) {
+  if (isAdminArea || isManagerArea || isOrdersArea) {
     const decision = await authMiddleware(request, event);
     const location = (decision as NextResponse | undefined)?.headers?.get(
       "location"

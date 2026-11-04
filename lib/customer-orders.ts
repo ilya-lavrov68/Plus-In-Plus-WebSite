@@ -1,6 +1,12 @@
 import { auth } from "@/auth";
-import { getPayloadClient, payloadDate, payloadId } from "@/lib/payload-native";
-import type { Order, OrderItem, OrderService, Payment } from "@/payload/payload-types";
+import {
+  listOrderItemsForOrders,
+  listOrderServicesForOrders,
+  listOrdersForUser,
+  listPaymentsForOrders,
+  type PaymentRecord,
+} from "@/lib/commerce-data";
+import { getServicesByIds } from "@/lib/data";
 
 export interface CustomerOrderItem { id: string; itemType: string; itemId: string; title: string; quantity: number; totalPrice: number; estimatedUnitPrice: number }
 export interface CustomerOrderServiceLink { id: string; serviceId: string; quantity: number; service: { id: string; title: string; slug: string; basePrice: number; category: string } }
@@ -12,40 +18,32 @@ export interface CustomerOrder {
   items: CustomerOrderItem[]; services: CustomerOrderServiceLink[]; invoices: CustomerInvoice[];
 }
 
-/** Читает заказы клиента четырьм bounded queries, без N+1 по позициям и платежам. */
+/**
+ * Заказы клиента: четыре bounded-запроса (заказы, позиции, связи услуг,
+ * счета) без N+1. Названия услуг добираются одним запросом по id.
+ */
 export async function getCustomerOrders(): Promise<CustomerOrder[]> {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return [];
   try {
-    const payload = await getPayloadClient();
-    const result = await payload.find({
-      collection: "orders", depth: 0, pagination: false, sort: "-createdAt", overrideAccess: true,
-      where: { and: [{ userId: { equals: userId } }, { status: { not_equals: "cart" } }] },
-    });
-    const orders = result.docs as Order[];
+    const orders = await listOrdersForUser(userId);
     if (!orders.length) return [];
     const ids = orders.map((order) => order.id);
-    const [itemResult, serviceResult, paymentResult] = await Promise.all([
-      payload.find({ collection: "order-items", depth: 1, pagination: false, overrideAccess: true, where: { orderId: { in: ids } } }),
-      payload.find({ collection: "order-services", depth: 1, pagination: false, overrideAccess: true, where: { orderId: { in: ids } } }),
-      payload.find({ collection: "payments", depth: 0, pagination: false, sort: "-createdAt", overrideAccess: true, where: { orderId: { in: ids } } }),
+    const [items, links, payments] = await Promise.all([
+      listOrderItemsForOrders(ids),
+      listOrderServicesForOrders(ids),
+      listPaymentsForOrders(ids),
     ]);
-    const itemsByOrder = new Map<string, OrderItem[]>();
-    for (const item of itemResult.docs as OrderItem[]) {
-      const id = payloadId(item.orderId)!;
-      itemsByOrder.set(id, [...(itemsByOrder.get(id) ?? []), item]);
-    }
-    const servicesByOrder = new Map<string, OrderService[]>();
-    for (const link of serviceResult.docs as OrderService[]) {
-      const id = payloadId(link.orderId)!;
-      servicesByOrder.set(id, [...(servicesByOrder.get(id) ?? []), link]);
-    }
-    const paymentsByOrder = new Map<string, Payment[]>();
-    for (const payment of paymentResult.docs as Payment[]) {
-      const id = payloadId(payment.orderId)!;
-      paymentsByOrder.set(id, [...(paymentsByOrder.get(id) ?? []), payment]);
-    }
+    const services = await getServicesByIds([...new Set(links.map((link) => link.serviceId))]);
+    const serviceMap = new Map(services.map((service) => [service.id, service]));
+
+    const itemsByOrder = new Map<string, typeof items>();
+    for (const item of items) itemsByOrder.set(item.orderId, [...(itemsByOrder.get(item.orderId) ?? []), item]);
+    const servicesByOrder = new Map<string, typeof links>();
+    for (const link of links) servicesByOrder.set(link.orderId, [...(servicesByOrder.get(link.orderId) ?? []), link]);
+    const paymentsByOrder = new Map<string, PaymentRecord[]>();
+    for (const payment of payments) paymentsByOrder.set(payment.orderId, [...(paymentsByOrder.get(payment.orderId) ?? []), payment]);
 
     return orders.map((order) => {
       const displayNumber = order.orderNumber ?? order.number ?? order.id;
@@ -58,38 +56,39 @@ export async function getCustomerOrders(): Promise<CustomerOrder[]> {
         total: order.total,
         finalPrice: order.finalPrice ?? null,
         currency: order.currency,
-        deadline: payloadDate(order.deadline),
+        deadline: order.deadline,
         description: order.description ?? null,
         customerNote: order.customerNote ?? null,
         managerNote: order.managerNote ?? null,
-        isLocked: Boolean(order.isLocked),
-        createdAt: payloadDate(order.createdAt) ?? new Date(0),
-        paidAt: payloadDate(order.paidAt),
+        isLocked: order.isLocked,
+        createdAt: order.createdAt,
+        paidAt: order.paidAt,
         items: (itemsByOrder.get(order.id) ?? []).map((item) => {
-          const service = typeof item.serviceId === "object" ? item.serviceId : null;
-          const product = typeof item.productId === "object" ? item.productId : null;
+          const service = item.serviceId ? serviceMap.get(item.serviceId) : undefined;
           return {
             id: item.id,
             itemType: item.itemType || "service",
             itemId: item.itemId || "",
-            title: item.title || service?.title || product?.name || item.itemId || "—",
+            title: item.title || service?.title || item.itemId || "—",
             quantity: item.quantity,
             totalPrice: item.totalPrice ?? 0,
-            estimatedUnitPrice: item.estimatedUnitPrice > 0 ? item.estimatedUnitPrice : item.itemType === "product" && product ? Math.round(product.price * 100) : service?.basePrice ?? 0,
+            estimatedUnitPrice: item.estimatedUnitPrice > 0 ? item.estimatedUnitPrice : service?.basePrice ?? 0,
           };
         }),
         services: (servicesByOrder.get(order.id) ?? []).map((link) => {
-          const service = typeof link.serviceId === "object" ? link.serviceId : null;
+          const service = serviceMap.get(link.serviceId);
           return {
             id: link.id,
-            serviceId: payloadId(link.serviceId) ?? "",
+            serviceId: link.serviceId,
             quantity: link.quantity,
-            service: service ?? { id: payloadId(link.serviceId) ?? "", title: "", slug: "", basePrice: 0, category: "small" },
+            service: service
+              ? { id: service.id, title: service.title, slug: service.slug, basePrice: service.basePrice, category: service.category }
+              : { id: link.serviceId, title: "", slug: "", basePrice: 0, category: "small" },
           };
         }),
         invoices: (paymentsByOrder.get(order.id) ?? []).map((payment) => ({
           id: payment.id, status: payment.status, amount: payment.amount, paymentUrl: payment.paymentUrl ?? null,
-          createdAt: payloadDate(payment.createdAt) ?? new Date(0), paidAt: payloadDate(payment.paidAt),
+          createdAt: payment.createdAt, paidAt: payment.paidAt,
         })),
       };
     });

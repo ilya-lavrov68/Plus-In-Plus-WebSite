@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { LegalLineBand } from "@/components/site/page-geometry";
 import { Separator } from "@/components/ui/separator";
 import { getRequestLocale } from "@/lib/request-locale";
 import { createPageMetadata } from "@/lib/seo";
@@ -27,8 +26,7 @@ export default async function TermsPage() {
   const isRu = locale === "ru";
 
   return (
-    <section className="relative isolate overflow-hidden py-24 md:py-32">
-      <LegalLineBand />
+    <section className="section-y">
       <div className="container max-w-3xl">
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           {isRu ? "Правовая информация" : "Legal"}
@@ -36,16 +34,16 @@ export default async function TermsPage() {
         <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">
           {isRu ? "Условия использования" : "Terms of Use"}
         </h1>
-        <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
+        <p className="mt-5 max-w-[62ch] text-lg leading-[1.75] text-muted-foreground">
           {isRu
             ? "Эти условия описывают использование сайта Plus In Plus и порядок отправки заявок на услуги студии."
             : "These terms govern use of the Plus In Plus website and requests submitted to the studio."}
         </p>
 
-        <Separator className="my-10" />
+        <Separator className="my-12" />
 
-        <div className="space-y-8 text-base leading-7 text-muted-foreground">
-          <section className="space-y-3">
+        <div className="space-y-10 text-base leading-[1.8] text-muted-foreground">
+          <section className="space-y-3.5">
             <h2 className="text-2xl font-semibold tracking-tight text-foreground">
               {isRu ? "1. Сайт и аккаунт" : "1. Website and accounts"}
             </h2>
@@ -56,7 +54,7 @@ export default async function TermsPage() {
             </p>
           </section>
 
-          <section className="space-y-3">
+          <section className="space-y-3.5">
             <h2 className="text-2xl font-semibold tracking-tight text-foreground">
               {isRu ? "2. Заявки, сметы и цены" : "2. Requests, estimates, and pricing"}
             </h2>
@@ -67,7 +65,7 @@ export default async function TermsPage() {
             </p>
           </section>
 
-          <section className="space-y-3">
+          <section className="space-y-3.5">
             <h2 className="text-2xl font-semibold tracking-tight text-foreground">
               {isRu ? "3. Материалы и результаты работы" : "3. Materials and project deliverables"}
             </h2>
@@ -78,7 +76,7 @@ export default async function TermsPage() {
             </p>
           </section>
 
-          <section className="space-y-3">
+          <section className="space-y-3.5">
             <h2 className="text-2xl font-semibold tracking-tight text-foreground">
               {isRu ? "4. Конфиденциальность и связь с нами" : "4. Privacy and contact"}
             </h2>

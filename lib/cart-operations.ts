@@ -1,5 +1,21 @@
-import type { PayloadRequest, Where } from "payload";
-
+import { isUniqueConstraintError, recordActivity } from "@/lib/accounts";
+import { getOrCreateCartOrder } from "@/lib/cart";
+import {
+  countOrdersExceptCart,
+  deleteOrderItem,
+  findCartOrder,
+  findOrderItem,
+  findProductById,
+  insertOrderItem,
+  listOrderItems,
+  listProductsByIds,
+  replaceOrderServices,
+  transitionOrder,
+  updateOrder,
+  updateOrderItem,
+  type OrderItemRecord,
+  type ProductRecord,
+} from "@/lib/commerce-data";
 import {
   MAX_CART_QUANTITY,
   calculateServiceSelection,
@@ -7,8 +23,13 @@ import {
   canAddServiceToCart,
   optionIdsFromSnapshot,
 } from "@/lib/commerce";
-import { getPayloadClient, isPayloadUniqueError, payloadId, withPayloadTransaction } from "@/lib/payload-native";
-import type { Order, OrderItem, Product, Service } from "@/payload/payload-types";
+import { withTransaction, type DbTransaction } from "@/lib/db";
+import { findServiceById } from "@/lib/data";
+
+/**
+ * Правила корзины и оформления заказа. Каждая мутация выполняется одной
+ * SQLite-транзакцией: пересчёт суммы и переход статуса не разъезжаются.
+ */
 
 export type CartOperationErrorCode =
   | "cartEmpty"
@@ -27,7 +48,6 @@ export class CartOperationError extends Error {
   }
 }
 
-type PayloadClient = Awaited<ReturnType<typeof getPayloadClient>>;
 type CartMutationResult = { count: number };
 
 function validId(value: unknown): value is string {
@@ -44,110 +64,15 @@ function normalizeExactQuantity(value: unknown): number {
   return number;
 }
 
-async function findOwnedCart(payload: PayloadClient, userId: string, req?: PayloadRequest) {
-  const result = await payload.find({
-    collection: "orders",
-    depth: 0,
-    limit: 1,
-    sort: "-createdAt",
-    overrideAccess: true,
-    ...(req ? { req } : {}),
-    where: { and: [{ userId: { equals: userId } }, { status: { equals: "cart" } }] },
-  });
-  return (result.docs[0] as Order | undefined) ?? null;
-}
-
-async function findOwnedCartWithItems(payload: PayloadClient, userId: string, req?: PayloadRequest) {
-  const cart = await findOwnedCart(payload, userId, req);
-  if (!cart) return null;
-  const items = await payload.find({
-    collection: "order-items",
-    depth: 0,
-    pagination: false,
-    sort: "id",
-    overrideAccess: true,
-    ...(req ? { req } : {}),
-    where: { orderId: { equals: cart.id } },
-  });
-  return { ...cart, items: items.docs as OrderItem[] };
-}
-
-async function getOrCreateOwnedCart(payload: PayloadClient, req: PayloadRequest, userId: string) {
-  const existing = await findOwnedCartWithItems(payload, userId, req);
-  if (existing) return existing;
-  try {
-    const cart = await payload.create({
-      collection: "orders",
-      data: { userId, status: "cart", cartKey: userId, estimatedAmount: 0, subtotal: 0, discount: 0, total: 0, currency: "RUB" },
-      depth: 0,
-      overrideAccess: true,
-      req,
-    });
-    return { ...cart, items: [] as OrderItem[] };
-  } catch (error) {
-    if (!isPayloadUniqueError(error)) throw error;
-    // Параллельный первый запрос уже создал уникальный cartKey.
-    const cart = await findOwnedCartWithItems(payload, userId, req);
-    if (cart) return cart;
-    throw error;
-  }
-}
-
-async function syncEstimatedAmount(payload: PayloadClient, req: PayloadRequest, orderId: string): Promise<number> {
-  const result = await payload.find({
-    collection: "order-items",
-    depth: 0,
-    pagination: false,
-    overrideAccess: true,
-    req,
-    where: { orderId: { equals: orderId } },
-  });
-  const items = result.docs as OrderItem[];
+async function syncEstimatedAmount(tx: DbTransaction, orderId: string): Promise<number> {
+  const items = await listOrderItems(orderId, tx);
   const estimatedAmount = items.reduce((sum, item) => sum + item.estimatedUnitPrice * item.quantity, 0);
-  await payload.update({ collection: "orders", id: orderId, data: { estimatedAmount }, overrideAccess: true, req });
+  await updateOrder(orderId, { estimatedAmount }, tx);
   return items.reduce((sum, item) => sum + item.quantity, 0);
 }
 
-async function findService(payload: PayloadClient, req: PayloadRequest, id: string) {
-  const result = await payload.find({
-    collection: "services",
-    depth: 2,
-    limit: 1,
-    overrideAccess: true,
-    req,
-    where: { id: { equals: id } },
-  });
-  return (result.docs[0] as Service | undefined) ?? null;
-}
-async function findProduct(payload: PayloadClient, req: PayloadRequest, id: string) {
-  const result = await payload.find({
-    collection: "products",
-    depth: 0,
-    limit: 1,
-    overrideAccess: true,
-    req,
-    where: { id: { equals: id } },
-  });
-  return (result.docs[0] as Product | undefined) ?? null;
-}
-async function findLine(payload: PayloadClient, req: PayloadRequest, where: Where) {
-  const result = await payload.find({
-    collection: "order-items",
-    depth: 0,
-    limit: 1,
-    overrideAccess: true,
-    req,
-    where,
-  });
-  return (result.docs[0] as OrderItem | undefined) ?? null;
-}
-async function writeActivity(payload: PayloadClient, req: PayloadRequest, data: { action: string; entityId: string; title: string; actorId: string }) {
-  await payload.create({
-    collection: "activity-logs",
-    data: { ...data, entityType: "order" },
-    overrideAccess: true,
-    req,
-  });
+async function writeActivity(tx: DbTransaction, data: { action: string; entityId: string; title: string; actorId: string }) {
+  await recordActivity({ ...data, entityType: "order" }, tx);
 }
 
 export async function addCartItem(
@@ -156,88 +81,95 @@ export async function addCartItem(
 ): Promise<CartMutationResult> {
   if (!validId(userId) || !validId(input.itemId)) throw new CartOperationError("itemUnavailable");
   const quantity = normalizeAddQuantity(input.quantity);
-  const payload = await getPayloadClient();
-  return withPayloadTransaction(payload, async (req) => {
-    const cart = await getOrCreateOwnedCart(payload, req, userId);
+  // Корзина создаётся до транзакции: уникальный `cart_key` делает это безопасным.
+  const cart = await getOrCreateCartOrder(userId);
+  return withTransaction(async (tx) => {
     if (input.itemType === "service") {
-      const service = await findService(payload, req, input.itemId);
+      const service = await findServiceById(input.itemId, { withOptions: true });
       if (!service || !canAddServiceToCart(service)) throw new CartOperationError("itemUnavailable");
       const estimate = calculateServiceSelection(service, input.optionIds ?? []);
       if (!estimate) throw new CartOperationError("incompleteOptions");
       const optionsSnapshot = JSON.stringify(estimate.selected);
-      const existing = await findLine(payload, req, {
-        and: [{ orderId: { equals: cart.id } }, { itemType: { equals: "service" } }, { itemId: { equals: service.id } }, { optionsSnapshot: { equals: optionsSnapshot } }],
-      });
+      const existing = await findOrderItem(cart.id, { itemType: "service", itemId: service.id, optionsSnapshot }, tx);
       const nextQuantity = Math.min(MAX_CART_QUANTITY, (existing?.quantity ?? 0) + quantity);
       if (existing) {
-        await payload.update({ collection: "order-items", id: existing.id, data: { quantity: nextQuantity, title: service.title, estimatedUnitPrice: estimate.estimatedAmount }, overrideAccess: true, req });
+        await updateOrderItem(existing.id, { quantity: nextQuantity, title: service.title, estimatedUnitPrice: estimate.estimatedAmount }, tx);
       } else {
-        await payload.create({
-          collection: "order-items",
-          data: { orderId: cart.id, itemType: "service", itemId: service.id, serviceId: service.id, title: service.title, quantity, estimatedUnitPrice: estimate.estimatedAmount, unitPrice: 0, totalPrice: 0, optionsSnapshot },
-          overrideAccess: true,
-          req,
-        });
+        await insertOrderItem({
+          orderId: cart.id,
+          itemType: "service",
+          itemId: service.id,
+          serviceId: service.id,
+          title: service.title,
+          quantity,
+          estimatedUnitPrice: estimate.estimatedAmount,
+          optionsSnapshot,
+        }, tx);
       }
     } else {
-      const product = await findProduct(payload, req, input.itemId);
+      const product = await findProductById(input.itemId, tx);
       if (!product || !product.isActive) throw new CartOperationError("itemUnavailable");
-      const existing = await findLine(payload, req, {
-        and: [{ orderId: { equals: cart.id } }, { itemType: { equals: "product" } }, { itemId: { equals: product.id } }],
-      });
+      const existing = await findOrderItem(cart.id, { itemType: "product", itemId: product.id }, tx);
       const nextQuantity = Math.min(MAX_CART_QUANTITY, (existing?.quantity ?? 0) + quantity);
       if (!canAddProductToCart(product, nextQuantity)) throw new CartOperationError("insufficientStock");
       const estimatedUnitPrice = Math.round(product.price * 100);
       if (existing) {
-        await payload.update({ collection: "order-items", id: existing.id, data: { quantity: nextQuantity, title: product.name, estimatedUnitPrice }, overrideAccess: true, req });
+        await updateOrderItem(existing.id, { quantity: nextQuantity, title: product.name, estimatedUnitPrice }, tx);
       } else {
-        await payload.create({
-          collection: "order-items",
-          data: { orderId: cart.id, itemType: "product", itemId: product.id, productId: product.id, title: product.name, quantity, estimatedUnitPrice, unitPrice: 0, totalPrice: 0, optionsSnapshot: "[]" },
-          overrideAccess: true,
-          req,
-        });
+        await insertOrderItem({
+          orderId: cart.id,
+          itemType: "product",
+          itemId: product.id,
+          productId: product.id,
+          title: product.name,
+          quantity,
+          estimatedUnitPrice,
+          optionsSnapshot: "[]",
+        }, tx);
       }
     }
-    return { count: await syncEstimatedAmount(payload, req, cart.id) };
+    return { count: await syncEstimatedAmount(tx, cart.id) };
   });
 }
 
 export async function updateOwnedCartItem(userId: string, input: { id: string; quantity: number }): Promise<CartMutationResult> {
   if (!validId(input.id)) throw new CartOperationError("cartItemNotFound");
   const quantity = normalizeExactQuantity(input.quantity);
-  const payload = await getPayloadClient();
-  return withPayloadTransaction(payload, async (req) => {
-    const cart = await findOwnedCart(payload, userId, req);
+  return withTransaction(async (tx) => {
+    const cart = await findCartOrder(userId, tx);
     if (!cart) throw new CartOperationError("cartItemNotFound");
-    const line = await findLine(payload, req, { and: [{ id: { equals: input.id } }, { orderId: { equals: cart.id } }] });
+    const line = await findOrderItem(cart.id, { itemRowId: input.id }, tx);
     if (!line) throw new CartOperationError("cartItemNotFound");
     if (line.itemType === "service") {
-      const service = await findService(payload, req, line.itemId || payloadId(line.serviceId) || "");
+      const service = await findServiceById(line.itemId || line.serviceId || "", { withOptions: true });
       if (!service || !canAddServiceToCart(service)) throw new CartOperationError("itemUnavailable");
       const optionIds = optionIdsFromSnapshot(line.optionsSnapshot);
       const estimate = optionIds === null ? null : calculateServiceSelection(service, optionIds);
       if (!estimate) throw new CartOperationError("incompleteOptions");
-      await payload.update({ collection: "order-items", id: line.id, data: { quantity, title: service.title, estimatedUnitPrice: estimate.estimatedAmount, optionsSnapshot: JSON.stringify(estimate.selected) }, overrideAccess: true, req });
+      await updateOrderItem(line.id, {
+        quantity,
+        title: service.title,
+        estimatedUnitPrice: estimate.estimatedAmount,
+        optionsSnapshot: JSON.stringify(estimate.selected),
+      }, tx);
     } else if (line.itemType === "product") {
-      const product = await findProduct(payload, req, line.itemId || payloadId(line.productId) || "");
+      const product = await findProductById(line.itemId || line.productId || "", tx);
       if (!product || !product.isActive) throw new CartOperationError("itemUnavailable");
       if (!canAddProductToCart(product, quantity)) throw new CartOperationError("insufficientStock");
-      await payload.update({ collection: "order-items", id: line.id, data: { quantity, title: product.name, estimatedUnitPrice: Math.round(product.price * 100) }, overrideAccess: true, req });
+      await updateOrderItem(line.id, { quantity, title: product.name, estimatedUnitPrice: Math.round(product.price * 100) }, tx);
     } else throw new CartOperationError("itemUnavailable");
-    return { count: await syncEstimatedAmount(payload, req, cart.id) };
+    return { count: await syncEstimatedAmount(tx, cart.id) };
   });
 }
 
 export async function removeOwnedCartItem(userId: string, id: string): Promise<CartMutationResult> {
   if (!validId(id)) throw new CartOperationError("cartItemNotFound");
-  const payload = await getPayloadClient();
-  return withPayloadTransaction(payload, async (req) => {
-    const cart = await findOwnedCart(payload, userId, req);
+  return withTransaction(async (tx) => {
+    const cart = await findCartOrder(userId, tx);
     if (!cart) return { count: 0 };
-    const removed = await payload.delete({ collection: "order-items", where: { and: [{ id: { equals: id } }, { orderId: { equals: cart.id } }] }, overrideAccess: true, req });
-    if (removed.docs.length === 0) throw new CartOperationError("cartItemNotFound");
-    return { count: await syncEstimatedAmount(payload, req, cart.id) };
+    const removed = await deleteOrderItem(cart.id, id, tx);
+    if (removed === 0) throw new CartOperationError("cartItemNotFound");
+    return { count: await syncEstimatedAmount(tx, cart.id) };
   });
 }
 
@@ -256,36 +188,39 @@ function orderNumber(sequence: number): string {
   return `ПИП-${String(sequence).padStart(6, "0")}`;
 }
 
+function lineTargetId(item: OrderItemRecord): string {
+  return item.itemId || item.serviceId || item.productId || "";
+}
+
 export async function checkoutOwnedCart(
   userId: string,
   input: { note?: string | null; deadline?: string | null } = {},
 ): Promise<{ orderNumber: string }> {
   const deadline = parseDeadline(input.deadline);
   const note = typeof input.note === "string" ? input.note.trim().slice(0, 4000) : "";
-  const payload = await getPayloadClient();
-  const baseCount = await payload.count({ collection: "orders", overrideAccess: true, where: { status: { not_equals: "cart" } } });
+  // Уникальный номер заказа: инкремент от количества оформленных заказов.
+  const baseCount = await countOrdersExceptCart();
 
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    const number = orderNumber(baseCount.totalDocs + 1 + attempt);
+    const number = orderNumber(baseCount + 1 + attempt);
     try {
-      return await withPayloadTransaction(payload, async (req) => {
-        const cart = await findOwnedCartWithItems(payload, userId, req);
-        if (!cart || cart.items.length === 0) throw new CartOperationError("cartEmpty");
-        const cartItems = cart.items;
-        const serviceIds = [...new Set(cartItems.filter((item) => item.itemType === "service").map((item) => item.itemId || payloadId(item.serviceId) || "").filter(Boolean))];
-        const productIds = [...new Set(cartItems.filter((item) => item.itemType === "product").map((item) => item.itemId || payloadId(item.productId) || "").filter(Boolean))];
-        const [serviceResult, productResult] = await Promise.all([
-          serviceIds.length ? payload.find({ collection: "services", depth: 2, pagination: false, overrideAccess: true, req, where: { id: { in: serviceIds } } }) : Promise.resolve({ docs: [] }),
-          productIds.length ? payload.find({ collection: "products", depth: 0, pagination: false, overrideAccess: true, req, where: { id: { in: productIds } } }) : Promise.resolve({ docs: [] }),
-        ]);
-        const services = serviceResult.docs as Service[];
-        const products = productResult.docs as Product[];
-        const serviceMap = new Map(services.map((service) => [service.id, service]));
-        const productMap = new Map(products.map((product) => [product.id, product]));
+      return await withTransaction(async (tx) => {
+        const cart = await findCartOrder(userId, tx);
+        if (!cart) throw new CartOperationError("cartEmpty");
+        const cartItems = await listOrderItems(cart.id, tx);
+        if (cartItems.length === 0) throw new CartOperationError("cartEmpty");
+
+        const serviceIds = [...new Set(cartItems.filter((item) => item.itemType === "service").map(lineTargetId).filter(Boolean))];
+        const productIds = [...new Set(cartItems.filter((item) => item.itemType === "product").map(lineTargetId).filter(Boolean))];
+        const services = await Promise.all(serviceIds.map((id) => findServiceById(id, { withOptions: true })));
+        const products = await listProductsByIds(productIds, tx);
+        const serviceMap = new Map(services.filter((service) => service !== null).map((service) => [service.id, service]));
+        const productMap = new Map<string, ProductRecord>(products.map((product) => [product.id, product]));
+
         const productQuantities = new Map<string, number>();
         for (const line of cartItems) {
           if (line.itemType !== "product") continue;
-          const id = line.itemId || payloadId(line.productId) || "";
+          const id = lineTargetId(line);
           productQuantities.set(id, (productQuantities.get(id) ?? 0) + line.quantity);
         }
         for (const [id, quantity] of productQuantities) {
@@ -299,8 +234,8 @@ export async function checkoutOwnedCart(
         const refreshedTitles: string[] = [];
         for (const line of cartItems) {
           if (!Number.isInteger(line.quantity) || line.quantity < 1 || line.quantity > MAX_CART_QUANTITY) throw new CartOperationError("invalidQuantity");
+          const id = lineTargetId(line);
           if (line.itemType === "service") {
-            const id = line.itemId || payloadId(line.serviceId) || "";
             const service = serviceMap.get(id);
             if (!service || !canAddServiceToCart(service)) throw new CartOperationError("itemUnavailable");
             const optionIds = optionIdsFromSnapshot(line.optionsSnapshot);
@@ -309,36 +244,49 @@ export async function checkoutOwnedCart(
             estimatedAmount += estimate.estimatedAmount * line.quantity;
             serviceQuantities.set(id, (serviceQuantities.get(id) ?? 0) + line.quantity);
             refreshedTitles.push(service.title);
-            await payload.update({ collection: "order-items", id: line.id, data: { title: service.title, estimatedUnitPrice: estimate.estimatedAmount, optionsSnapshot: JSON.stringify(estimate.selected) }, overrideAccess: true, req });
+            await updateOrderItem(line.id, {
+              title: service.title,
+              estimatedUnitPrice: estimate.estimatedAmount,
+              optionsSnapshot: JSON.stringify(estimate.selected),
+            }, tx);
           } else if (line.itemType === "product") {
-            const id = line.itemId || payloadId(line.productId) || "";
             const product = productMap.get(id);
             if (!product) throw new CartOperationError("itemUnavailable");
             const unitEstimate = Math.round(product.price * 100);
             estimatedAmount += unitEstimate * line.quantity;
             refreshedTitles.push(product.name);
-            await payload.update({ collection: "order-items", id: line.id, data: { title: product.name, estimatedUnitPrice: unitEstimate }, overrideAccess: true, req });
+            await updateOrderItem(line.id, { title: product.name, estimatedUnitPrice: unitEstimate }, tx);
           } else throw new CartOperationError("itemUnavailable");
         }
 
-        await payload.delete({ collection: "order-services", where: { orderId: { equals: cart.id } }, overrideAccess: true, req });
-        for (const [serviceId, quantity] of serviceQuantities) {
-          await payload.create({ collection: "order-services", data: { orderId: cart.id, serviceId, quantity }, overrideAccess: true, req });
-        }
-        const transitioned = await payload.update({
-          collection: "orders",
-          data: { status: "pending", cartKey: null, orderNumber: number, number, deadline: deadline?.toISOString() ?? null, description: note || null, customerNote: note || null, estimatedAmount },
-          overrideAccess: true,
-          req,
-          where: { and: [{ id: { equals: cart.id } }, { userId: { equals: userId } }, { status: { equals: "cart" } }] },
+        await replaceOrderServices(
+          cart.id,
+          [...serviceQuantities].map(([serviceId, quantity]) => ({ serviceId, quantity })),
+          tx,
+        );
+
+        const transitioned = await transitionOrder(cart.id, "cart", {
+          status: "pending",
+          cartKey: null,
+          orderNumber: number,
+          number,
+          deadline: deadline ?? null,
+          description: note || null,
+          customerNote: note || null,
+          estimatedAmount,
+        }, tx);
+        if (!transitioned) throw new CartOperationError("staleCart");
+        await writeActivity(tx, {
+          action: "create",
+          entityId: cart.id,
+          title: `${number} — ${refreshedTitles.join(", ").slice(0, 180)}`,
+          actorId: userId,
         });
-        if (transitioned.docs.length !== 1) throw new CartOperationError("staleCart");
-        await writeActivity(payload, req, { action: "create", entityId: cart.id, title: `${number} — ${refreshedTitles.join(", ").slice(0, 180)}`, actorId: userId });
         return { orderNumber: number };
       });
     } catch (error) {
       if (error instanceof CartOperationError) throw error;
-      if (!isPayloadUniqueError(error) || attempt === 4) throw error;
+      if (!isUniqueConstraintError(error) || attempt === 4) throw error;
     }
   }
   throw new Error("Unable to allocate an order number");

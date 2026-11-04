@@ -48,9 +48,6 @@
       ],
       "@/public/*": [
         "./public/*"
-      ],
-      "@payload-config": [
-        "./payload.config.ts"
       ]
     },
     "target": "ES2017",

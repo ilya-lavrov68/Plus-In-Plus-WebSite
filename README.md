@@ -3,7 +3,7 @@
 Официальная веб-платформа **Plus In Plus** объединяет два направления: существующую дизайн-практику и анонсируемые ИИ-технологии. На сайте — витрина дизайн-услуг с конфигуратором опций и корзиной, презентация ИИ-агентов Lumi Q1 и Kairo, двухшаговая форма брифа и заявок с прямой записью в БД, блог со статьями и галереями, личный кабинет клиента, рабочее место менеджера и полная админ-панель. Главный акцент интерфейса — жёлтый `#FFFF01`, вторичный — periwinkle `#8F9CFC` из референса, основа графитовая `#181819`: основные кнопки и несущие поверхности прямоугольные, вторичные кнопки — pill с прозрачным фоном и обводкой, публичные страницы держат крупные технические сетки.
 
 **Стек текущей версии:**
-`Next.js 16 (App Router)` · `React 19` · `TypeScript` · `Tailwind CSS 4` · `Shadcnblocks UI (палитра Hero 138)` · `Motion` · `Payload 3 + SQLite/libSQL (Turso)` · `Auth.js v5` · `next-intl (RU / EN)` · `TipTap` · `Robokassa` · `Sharp (WebP)`
+`Next.js 16 (App Router)` · `React 19` · `TypeScript` · `Tailwind CSS 4` · `Shadcnblocks UI (палитра Hero 138)` · `Motion` · `SQLite/libSQL (Turso) без CMS` · `Auth.js v5` · `next-intl (RU / EN)` · `TipTap` · `Robokassa` · `Sharp (WebP)`
 
 ---
 
@@ -11,7 +11,7 @@
 
 ### Что нужно установить
 
-- **Node.js `24.22.1` или новее.** Версия `24.14.1` не подходит: проект использует более новые возможности Node и Payload.
+- **Node.js `24.22.1` или новее.** Версия `24.14.1` не подходит: проект использует более новые возможности Node.
 - **Git**.
 
 Для локальной разработки не нужны Turso, PM2, Nginx или отдельный сервер базы данных. Сайт хранит данные в файле `payload/pip.db` внутри проекта.
@@ -42,7 +42,7 @@ npm ci
 Copy-Item .env.example .env
 ```
 
-Создайте два разных секретных ключа. Это случайные строки для защиты входа и админ-панели, а не пароли от сайта.
+Создайте секретный ключ сессий. Это случайная строка для защиты входа и админ-панели, а не пароль от сайта.
 
 1. Выполните команду и скопируйте результат в `AUTH_SECRET`:
 
@@ -50,14 +50,12 @@ Copy-Item .env.example .env
    node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
    ```
 
-2. Выполните её ещё раз и скопируйте новый результат в `PAYLOAD_SECRET`.
-3. Откройте файл командой `notepad .env` и вставьте оба значения. Начало файла должно выглядеть примерно так:
+2. Откройте файл командой `notepad .env` и вставьте значение. Начало файла должно выглядеть примерно так:
 
    ```env
-   PAYLOAD_DATABASE_URL="file:./payload/pip.db"
-   PAYLOAD_DATABASE_AUTH_TOKEN=""
-   AUTH_SECRET="первый_результат_генератора"
-   PAYLOAD_SECRET="второй_результат_генератора"
+   DATABASE_URL="file:./payload/pip.db"
+   DATABASE_AUTH_TOKEN=""
+   AUTH_SECRET="результат_генератора"
    ```
 
 Остальные значения для обычной локальной разработки менять не нужно. Файл `.env` содержит секреты и не должен попадать в Git.
@@ -65,11 +63,11 @@ Copy-Item .env.example .env
 Теперь создайте таблицы базы данных и проверьте их:
 
 ```powershell
-npm run payload:migrate
+npm run db:migrate
 npm run db:check
 ```
 
-Первая команда создаёт файл `payload/pip.db` и все необходимые таблицы. Повторный запуск безопасен: уже применённая миграция не выполняется заново.
+Первая команда создаёт файл `payload/pip.db` и все таблицы из `db/schema.sql`. Повторный запуск безопасен: уже существующие объекты не пересоздаются.
 
 Если нужны начальные услуги в каталоге, выполните необязательную команду:
 
@@ -102,7 +100,7 @@ npm ci
 cp .env.example .env
 ```
 
-Дважды выполните генератор и вставьте разные результаты в `AUTH_SECRET` и `PAYLOAD_SECRET` внутри `.env`:
+Выполните генератор и вставьте результат в `AUTH_SECRET` внутри `.env`:
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
@@ -112,7 +110,7 @@ nano .env
 Затем:
 
 ```bash
-npm run payload:migrate
+npm run db:migrate
 npm run db:check
 npm run dev
 ```
@@ -140,7 +138,7 @@ npm run dev
 Используйте тот же `.env`, затем выполните:
 
 ```bash
-npm run payload:migrate
+npm run db:migrate
 npm run build
 npm start
 ```
@@ -160,10 +158,9 @@ npm start
 В серверном `.env` обязательно укажите свои значения:
 
 ```env
-PAYLOAD_DATABASE_URL="libsql://адрес-вашей-базы"
-PAYLOAD_DATABASE_AUTH_TOKEN="токен-базы"
-AUTH_SECRET="первый_случайный_секрет"
-PAYLOAD_SECRET="второй_случайный_секрет"
+DATABASE_URL="libsql://адрес-вашей-базы"
+DATABASE_AUTH_TOKEN="токен-базы"
+AUTH_SECRET="случайный_секрет"
 AUTH_URL="https://your-domain.example"
 NEXT_PUBLIC_SITE_URL="https://your-domain.example"
 WEBAUTHN_ORIGIN="https://your-domain.example"
@@ -178,7 +175,7 @@ WEBAUTHN_RP_ID="your-domain.example"
 cd /opt/plus-in-plus
 npm ci
 set -a; source .env; set +a
-npm run payload:migrate
+npm run db:migrate
 npm run db:check
 npm run build
 pm2 start npm --name plus-in-plus -- start
@@ -198,12 +195,12 @@ npm run deploy:verify -- https://your-domain.example
 
 | Сообщение | Что сделать |
 | --- | --- |
-| `ERR_UNSUPPORTED_ESM_URL_SCHEME` и путь начинается с `D:` | Обновите проект до версии с исправленным `scripts/payload-cli.cjs`. Затем повторите команду на Node `24.22.1+`: Windows-путь теперь преобразуется в корректный `file://` URL. |
+| `ERR_UNSUPPORTED_ESM_URL_SCHEME` и путь начинается с `D:` | Повторите команду на Node `24.22.1+`: Windows-путь преобразуется в корректный `file://` URL. |
 | Node `24.14.1` или другая старая версия | Установите Node `24.22.1+` и проверьте `node -v` в новом окне терминала. |
-| `PAYLOAD_SECRET must be configured...` | Проверьте, что существует `.env`, а оба секрета заполнены разными строками длиной не менее 32 символов. |
-| `Missing tables` | Выполните `npm run payload:migrate`, затем `npm run db:check`. |
+| `AUTH_SECRET must be configured...` | Проверьте, что существует `.env` и `AUTH_SECRET` заполнен строкой длиной не менее 32 символов. |
+| `Missing tables` | Выполните `npm run db:migrate`, затем `npm run db:check`. |
 | Порт `3000` уже занят | Запустите dev-сервер на другом порту: `npm run dev -- -p 3001`. |
-| Нужна общая диагностика | Выполните `npm run doctor`: команда проверит Node, пакеты, файлы Payload, базу и наличие секретов, не печатая их значения. |
+| Нужна общая диагностика | Выполните `npm run doctor`: команда проверит Node, пакеты, `db/schema.sql`, админ-панель, базу и наличие секретов, не печатая их значения. |
 
 ---
 
@@ -347,8 +344,8 @@ ROBOKASSA_HASH_ALGO="md5"
 | `502 Bad Gateway` | Приложение не запущено на `:3000` → проверьте `pm2 status`, `pm2 logs plus-in-plus` и `curl http://127.0.0.1:3000/api/health`. |
 | Staff не попадает в `/admin` | Проверьте, что включён **«Режим администратора»** и пройден второй фактор. Если открыт `/profile?mfa=required`, сначала настройте TOTP/passkey, сохраните backup codes и повторите вход. |
 | Google Authenticator отклоняет код при первичной привязке | Создайте текущий QR, удалите прежнюю запись Plus In Plus для аккаунта в приложении и отсканируйте QR заново. Включите автоматические дату и время на телефоне; если отказ сохраняется, проверьте `date -u`/NTP на сервере и только redacted event `auth.mfa.failed`. Не расширяйте TOTP window и не отправляйте QR/secret/code в тикет. |
-| Вход/регистрация пишут «временно недоступны» | На сервере не задан `PAYLOAD_DATABASE_URL` или `AUTH_SECRET` короче 32 символов → заполните `.env` и выполните `pm2 restart plus-in-plus`. |
-| `npm run payload:migrate` применяется не к той базе | CLI читает переменные окружения шелла → проверьте `PAYLOAD_DATABASE_URL` и перед запуском выполните `set -a; source .env; set +a`. |
+| Вход/регистрация пишут «временно недоступны» | На сервере не задан `DATABASE_URL` или `AUTH_SECRET` короче 32 символов → заполните `.env` и выполните `pm2 restart plus-in-plus`. |
+| `npm run db:migrate` применяется не к той базе | Скрипт читает переменные окружения шелла → проверьте `DATABASE_URL` и перед запуском выполните `set -a; source .env; set +a`. |
 | `JavaScript heap out of memory` при `npm run build` | На VPS с 1 ГБ RAM добавьте swap 2 ГБ: `sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile`. |
 
 </details>
@@ -368,7 +365,7 @@ ROBOKASSA_HASH_ALGO="md5"
 
 ### Обязательный UI/UX-документ
 
-Перед изменением интерфейса читайте [`docs/ui-ux-pro-max.md`](docs/ui-ux-pro-max.md): постоянный стандарт доступности, адаптивности, микроанимаций, производительности и browser evidence, закреплённый также в `AGENTS.md`. Цветовая композиция следует 60/30/10: главный жёлтый `#FFFF01`, вторичный periwinkle `#8F9CFC`, оба остаются ограниченными акцентами, основные кнопки и поверхности прямоугольные, вторичные — pill с обводкой; тени и ring-as-shadow запрещены, keyboard focus строится на outline. Язык форм, палитра, орнаменты и контентные решения зафиксированы в [`docs/brand-rebrand.md`](docs/brand-rebrand.md).
+Перед изменением интерфейса читайте [`docs/ui-ux-pro-max.md`](docs/ui-ux-pro-max.md): постоянный стандарт доступности, адаптивности, микроанимаций, производительности и browser evidence, закреплённый также в `AGENTS.md`. Цветовая композиция следует 60/30/10: главный жёлтый `#FFFF01`, вторичный periwinkle `#8F9CFC`, оба остаются ограниченными акцентами, основные кнопки и поверхности прямоугольные, вторичные — pill с обводкой; тени и ring-as-shadow запрещены, keyboard focus строится на outline. Дизайн публичного сайта соответствует снимку PR #69; ребрендинг на periwinkle и его геометрия удалены.
 
 Тематические 24-кадровые sprites направлений с циклом 2,4 с воспроизводятся командой `npm run sprites:directions`. Генератор и палитра находятся в `scripts/generate-direction-sprites.cjs`, готовые локальные PNG — в `public/assets/pixels/`; ручное редактирование PNG без обновления генератора не допускается. Сохранённые SpriteCook workflow skills и лицензия находятся в `.agents/skills/`.
 
@@ -383,9 +380,11 @@ ROBOKASSA_HASH_ALGO="md5"
 
 Перед любой разработкой или проверкой применяйте [`docs/agent-workflow.md`](docs/agent-workflow.md): он требует завершать не только UI, но и связанные server/data/auth/mutation/error/revalidation слои с end-to-end доказательствами. Для оптимизации дополнительно используйте [`docs/next-forge-optimization.md`](docs/next-forge-optimization.md): там отделены изученные практики `vercel/next-forge` от решений PIP и обозначены будущие измеримые этапы без автоматической смены архитектуры.
 
-Переход на Payload `3.92.1` завершён без параллельной legacy-админки и Prisma: `/admin` использует Payload Admin Panel, а `/api/payload` — native REST. Контент, услуги, медиа, настройки, аккаунты, Auth.js/MFA-сессии, заказы, корзина, платежи, аналитика и audit-записи хранятся в Payload collections и обрабатываются через Local API, hooks и access control. Публичные reads, customer checkout/cancel/payment и manager scope используют ту же БД; manager не получает customers и carts. SQLite схема применяется только reviewed migrations из `payload/migrations/` с `push: false`; runbook и проверки описаны в `DEPLOYMENT.md`.
+CMS-слоя в проекте больше нет: Payload удалён вместе с его админкой, REST API и хуками. Контент, услуги, медиа, настройки, аккаунты, сессии с MFA, заказы, корзина, платежи, аналитика и audit-записи хранятся в обычных таблицах SQLite/libSQL; приложение читает и пишет их собственным параметризованным SQL через `lib/db.ts`. Схема — `db/schema.sql`, применяется `npm run db:migrate` и проверяется `npm run db:check`; правила жизненного цикла заказа живут в `lib/order-rules.ts`, а не в хуках CMS. Staff-доступ проверяют серверные guards (`requireStaff` / `requireAdmin` / `requireFounder`), панель `/admin` построена на shadcn-компонентах, manager видит только разрешённые заказы без customers и carts. Runbook и проверки описаны в `DEPLOYMENT.md`.
 
-Админ-панель забрендирована Plus In Plus: фирменный SVG используется без рамки, подложки и обрезки, базовый текст увеличен до 16 px, элементы управления имеют щедрые touch/focus-цели, а разделы навигации — содержательные иконки. Header и nav выровнены общей сеткой; согласованные светлые и тёмные нейтральные поверхности переключаются штатной Payload theme-настройкой аккаунта, а `#FFFF01` остаётся точечным акцентом. Фирменная навигация сохраняет Payload permissions, RU/EN labels и пользовательские preferences сворачиваемых групп. `lucide-animated` подключён через общий wrapper: в админке иконки реагируют только на pointer press и Enter/Space, но не на hover или простой focus; публичные ключевые действия сохраняют прежние hover/focus/tap-отклики. Декоративные иконки остаются статичными, а `prefers-reduced-motion` отключает необязательное движение.
+Панель `/admin` закрывает то, что раньше умела CMS, без CMS: услуги, товары и материалы блога можно создавать и редактировать прямо в браузере, обложки загружаются файлом (проверка сигнатуры, пережатие в WebP, строка в `media`), блок «история» правит таблицы `story`/`story_events`, а платёжные ключи, SEO и контакты доступны только основателю в `/admin/settings` (секреты write-only — пустое поле не стирает сохранённое значение). Бизнес-правила вынесены из хуков в модули `lib/service-rules.ts`, `lib/post-rules.ts`, `lib/product-rules.ts`, `lib/story-editor.ts`, `lib/site-settings-write.ts` и `lib/cover-images.ts`; каждое изменение пишется в журнал `activity_logs`, а не только в таблицу контента.
+
+Админ-панель собрана из собственных компонентов Plus In Plus: фирменный SVG без рамки и подложки, укрупнённый базовый текст, щедрые touch/focus-цели и содержательные иконки разделов; `#FFFF01` остаётся точечным акцентом. Публичный сайт сохраняет дизайн снимка PR #69: тёмная графитовая палитра, жёлтый акцент, острые углы и отсутствие теней.
 
 Воспроизводимые baselines, результаты последовательных пакетов и границы доказанности находятся в [`docs/performance-baseline.md`](docs/performance-baseline.md). Для новой bundle-карты выполните `npm run analyze`: это отдельная production-сборка с reports в `.next/analyze/`; analyzer не включается в обычный runtime.
 
@@ -393,7 +392,7 @@ ROBOKASSA_HASH_ALGO="md5"
 
 | Маршрут | Блок UI / Модуль | Назначение |
 | --- | --- | --- |
-| `/` (`/[locale]`) | `Navbar 10` · `Hero 138` · `BrandDirections` · `Feature 314` · `Community 3` · `Blog 11` · `CTA 13` · `Footer 7` | Главная в графитовой палитре с жёлтым акцентом `#FFFF01` и вторичным periwinkle `#8F9CFC`: сигнальный hero с крупной сеткой, пиксельной мозаикой и dot-lattice, два равноправных направления — ИИ и дизайн, партнёры, статьи блога и призыв к действию |
+| `/` (`/[locale]`) | `Navbar 10` · `Hero 138` · `BrandDirections` · `Feature 314` · `Community 3` · `Blog 11` · `CTA 13` · `Footer 7` | Главная в графитовой палитре с жёлтым акцентом `#FFFF01`: сигнальный hero, два равноправных направления — ИИ и дизайн, история студии, партнёры, статьи блога и призыв к действию |
 | `/ai` | `AiPageView` · `AgentShaderPlayer` · `AgentDiagram` | Анонс Lumi Q1 и Kairo с текстовыми сценариями и разными зацикленными предрендеренными визуализациями Tool calls/RAG; рабочие чат, код и юридические запросы не имитируются |
 | `/services` | `ServicesCatalogView` · `ServiceCard` | Каталог активных опубликованных услуг из БД с переходом к конфигуратору и добавлением в корзину |
 | `/shop` | `ShopCatalogView` | Каталог активных товаров; пока товаров нет, показывает локализованную заглушку и остаётся `noindex` |
@@ -402,7 +401,7 @@ ROBOKASSA_HASH_ALGO="md5"
 | `/blog`, `/blog/[slug]` | `Blog 11` · `Blogpost 11` | Публикации с фильтрацией по категориям, обложками, цитатами и санитизированной вёрсткой |
 | `/cart` | Единая корзина и заказы `Order` / `OrderItem` + `OrderCard` | Корзина и список заказов на одной странице: услуги и товары с серверной проверкой цены и остатков, отправка одной заявки на согласование, статусы и счета по отправленным заказам, отмена своего неоплаченного заказа |
 | `/login`, `/register`, `/signup` | `SignUp 10` в композиции `login5` + `AccountModal` | Локализованные вход и регистрация без OAuth-кнопок, с отдельным режимом служебного входа и сохранёнными MFA/passkeys |
-| `/admin`, `/api/payload` | Payload Admin + Auth.js staff strategy | Единая staff-панель и native REST; manager видит только разрешённые заказы, без customers/carts |
+| `/admin` | shadcn admin-панель + серверные guards | Единая staff-панель с графиками; manager видит только разрешённые заказы, без customers/carts. ADMIN/FOUNDER создают и правят услуги, товары, материалы и историю, загружают обложки; `/admin/settings` — только основатель |
 | `/orders` | Редирект на `/cart` | Отдельной страницы заказов больше нет: корзина и заказы объединены на `/cart`. Маршрут сохранён для старых ссылок и возврата с оплаты |
 | `/profile` | `ProfileForm` · `SecuritySettings` · `SessionRefresh` | Профиль, аватар, смена пароля с отзывом старых сессий, TOTP/passkeys, backup codes и refresh короткой access session |
 
@@ -410,15 +409,15 @@ ROBOKASSA_HASH_ALGO="md5"
 
 | Путь | Содержимое |
 | --- | --- |
-| `app/(site)/`, `app/(payload)/` | Два root layout без изменения публичных URL: существующий сайт и изолированный Payload Admin |
+| `app/(site)/`, `app/(admin)/` | Публичный сайт и staff-панель `/admin`, каждый со своим layout |
 | `app/actions/`, `app/api/`, `app/uploads/` | Существующие server actions и прикладные route handlers на прежних путях |
 | `components/blocks/` | Базовые секции на базе **Shadcnblocks** (`navbar10`, `hero138`, `feature314`, `community3`, `blog11`, `blogpost11`, `services11`, `product-detail1`, `contact29`, `signup10`, `cta13`, `footer7`) |
-| `components/site/`, `orders/`, `ui/`, `spectrumui/` | Обёртки секций с данными Payload, заказы, UI-примитивы и графики |
+| `components/site/`, `admin/`, `ui/`, `spectrumui/` | Обёртки секций с данными из SQL, админ-панель, UI-примитивы и графики |
 | `components/ai/` | Презентация ИИ-направления, video-плеер предрендеренных сцен и poster-схемы агентов без интеграционных API |
 | `public/assets/logos/` | Официальная векторная айдентика: полный логотип `npip.svg` (шапка и футер), знак `lnpip.svg` и логотип партнёра `ts-connect.svg` |
 | `public/uploads/` | Локальное хранилище перекодированных в `.webp` аватаров и обложек (вне Git) |
-| `lib/` | Payload Local API и SQLite/libSQL helpers, Auth.js и RBAC-проверки, валидация Zod, санитизация HTML, загрузка изображений, Robokassa, i18n |
-| `payload.config.ts`, `payload/` | Единый Payload config, Auth.js strategy, collections/hooks/access, Admin views, generated types и reviewed migrations |
+| `lib/` | Слой SQL (`db.ts`, `data.ts`, `commerce-data.ts`, `accounts.ts`), правила заказов, Auth.js и RBAC-проверки, валидация, санитизация HTML, загрузка изображений, Robokassa, i18n |
+| `db/`, `payload/pip.db` | `schema.sql` — источник правды по таблицам и индексам; локальный файл базы остаётся вне Git |
 | `messages/{ru,en}.json` | Полная двуязычная локализация интерфейса (`ru` / `en`) |
 | `scripts/` и `tests/` | CLI-скрипты обслуживания БД/деплоя и полный набор автотестов на `node --test` |
 
@@ -434,9 +433,8 @@ ROBOKASSA_HASH_ALGO="md5"
 | `npm run lint` / `npx tsc --noEmit` | Проверка ESLint и строгой типизации TypeScript |
 | `npm test` | Запуск полного набора автотестов (`tests/*.test.cjs`) |
 | `npm run security:audit` / `npm run security:dependencies` | Проверка security-политик исходников и полный аудит зависимостей |
-| `npm run payload:migrate` / `npm run payload -- migrate:status` | Явное применение / проверка reviewed migrations для единой `PAYLOAD_DATABASE_URL`; автоматический `push` выключен |
-| `npm run payload:importmap` / `npm run payload:types` | Повторная генерация Payload import map и TypeScript-типов после согласованного изменения config |
-| `npm run db:check` | Read-only проверка подключения и всех 16 обязательных Payload tables |
+| `npm run db:migrate` | Применяет `db/schema.sql` к базе из `DATABASE_URL`; повторный запуск безопасен |
+| `npm run db:check` | Read-only проверка подключения ко всем обязательным таблицам схемы |
 | `npm run db:audit-retention -- --older-than-days=365` | Dry-run псевдонимизации старых ActivityLog; apply требует отдельный ключ и `--apply --confirm=PSEUDONYMIZE` |
 | `npm run db:seed:services` | Идемпотентное добавление базовых услуг в локальную/test БД; тестовые аккаунты с известными паролями не создаются |
 | `npm run db:promote-admin -- <email>` | Выдача служебной роли: по умолчанию `ADMIN`, `--founder` — `FOUNDER`, `--manager` — `MANAGER`, `--revoke` возвращает роль `USER`; без аргументов — список аккаунтов |
@@ -452,7 +450,7 @@ ROBOKASSA_HASH_ALGO="md5"
 - **Access/refresh:** access session действует 15 минут, refresh — 7 дней с ротацией и device binding; одновременно не более трёх сессий. Повтор старого refresh token отзывает активные сессии аккаунта. Понижение роли сохраняется в серверной сессии; позднее повышение не восстанавливает staff mode без нового входа. Единый источник чисел — `lib/session-policy.ts`.
 - **`USER`** — клиент: создаёт заявки и видит только свои.
 - **`MANAGER`** — только заявки: согласовывает цену, выставляет счёт и может **зафиксировать цену и заблокировать заказ** (`isLocked`). Заблокированный заказ не редактируется никем, кроме основателя; снять блокировку может только `FOUNDER`.
-- **`ADMIN`** — управление сайтом и пользователями через Payload collections, включая назначение ролей `USER → MANAGER → ADMIN` в **Accounts**. **Не** видит защищённые платёжные настройки и блок финансов в аналитике, **не** может редактировать заблокированные заказы и аккаунт основателя.
+- **`ADMIN`** — управление сайтом и пользователями через панель `/admin`, включая назначение ролей `USER → MANAGER → ADMIN`. **Не** видит защищённые платёжные настройки и блок финансов в аналитике, **не** может редактировать заблокированные заказы и аккаунт основателя.
 - **`FOUNDER`** — основатель: полный доступ, включая **Settings** (ключи Робокассы, токен Telegram — хранятся в таблице `site_settings` и имеют приоритет над `.env`), финансы и редактирование заблокированных заказов. **Защищён в админке:** его нельзя понизить, заблокировать или сбросить ему пароль через пользовательские management actions (ошибка `Action denied. Founder is invulnerable.`).
-- **Выдача роли `FOUNDER`** — только server CLI через Payload Local API: `npm run db:promote-admin -- you@domain.ru --founder`. Через интерфейс основателя ни создать, ни изменить нельзя; после изменения роли существующие сессии отзываются.
+- **Выдача роли `FOUNDER`** — только server CLI (SQL-обновление + отзыв сессий): `npm run db:promote-admin -- you@domain.ru --founder`. Через интерфейс основателя ни создать, ни изменить нельзя; после изменения роли существующие сессии отзываются.
 - **Оплата (Робокасса):** ключи берутся по приоритету — вкладка **Settings** (БД) → переменные `ROBOKASSA_*` в `.env` → демо-магазин `TestMerchant` (только вне production либо при явном `ROBOKASSA_DEMO_MODE=1`; публичный demo-пароль делает production demo небезопасным). Ссылку создаёт только same-origin authenticated `POST /api/payment/create` с form field `orderId`, после согласования цены. Уведомления принимает `/api/payments/robokassa/result` (алиас `/api/payment/result`). Реальные платежи сейчас не принимаются; mocked tests не заменяют live verification.

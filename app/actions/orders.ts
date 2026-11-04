@@ -3,20 +3,22 @@
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
+import { findAccountById, isUniqueConstraintError, recordActivity } from "@/lib/accounts";
 import { getActionTranslator } from "@/lib/action-i18n";
 import { isAuthConfigured } from "@/lib/auth-secret";
 import { calculateServiceSelection, canRequestServiceQuote } from "@/lib/commerce";
 import {
-  getPayloadClient,
-  isPayloadUniqueError,
-  payloadDate,
-  payloadId,
-  withPayloadTransaction,
-} from "@/lib/payload-native";
+  countOrdersExceptCart,
+  countPaymentsByStatus,
+  findOrderById,
+  insertOrder,
+  insertOrderItem,
+  replaceOrderServices,
+  transitionOrder,
+} from "@/lib/commerce-data";
+import { withTransaction, type DbTransaction } from "@/lib/db";
+import { findServiceById, getServicesByIds } from "@/lib/data";
 import { createOrderSchema } from "@/lib/validators";
-import type { Order, OrderService, Service } from "@/payload/payload-types";
-
-type CreatedOrder = Omit<Order, "services"> & { services: OrderService[] };
 
 export interface QuoteActionResult {
   ok: boolean;
@@ -29,15 +31,7 @@ async function requireCustomer(): Promise<{ id: string; email: string } | null> 
     if (!isAuthConfigured()) return null;
     const session = await auth();
     if (!session?.user?.id) return null;
-    const payload = await getPayloadClient();
-    const result = await payload.find({
-      collection: "accounts",
-      depth: 0,
-      limit: 1,
-      overrideAccess: true,
-      where: { id: { equals: session.user.id } },
-    });
-    const account = result.docs[0];
+    const account = await findAccountById(session.user.id);
     if (!account || account.isBlocked) return null;
     return { id: account.id, email: account.email };
   } catch (error) {
@@ -50,29 +44,18 @@ function formatOrderNumber(sequence: number): string {
   return `ПИП-${String(sequence).padStart(6, "0")}`;
 }
 
-async function nextOrderNumber(payload: Awaited<ReturnType<typeof getPayloadClient>>, attempt: number): Promise<string> {
-  const result = await payload.count({
-    collection: "orders",
-    overrideAccess: true,
-    where: { status: { not_equals: "cart" } },
-  });
-  return formatOrderNumber(result.totalDocs + 1 + attempt);
+async function nextOrderNumber(attempt: number): Promise<string> {
+  return formatOrderNumber((await countOrdersExceptCart()) + 1 + attempt);
 }
 
 async function writeOrderActivity(
-  payload: Awaited<ReturnType<typeof getPayloadClient>>,
-  req: Parameters<Parameters<typeof withPayloadTransaction>[1]>[0],
+  tx: DbTransaction,
   data: { action: string; entityId: string; title: string; actorId: string | null },
-) {
-  await payload.create({
-    collection: "activity-logs",
-    data: { action: data.action, entityType: "order", entityId: data.entityId, title: data.title, actorId: data.actorId },
-    overrideAccess: true,
-    req,
-  });
+): Promise<void> {
+  await recordActivity({ ...data, entityType: "order" }, tx);
 }
 
-/** Клиентская заявка на расчёт; manager price/invoice живут в Payload Orders. */
+/** Клиентская заявка на расчёт по конкретной услуге. */
 export async function requestQuote(input: {
   serviceId: string;
   optionIds: string[];
@@ -83,15 +66,7 @@ export async function requestQuote(input: {
   if (!customer) return { ok: false, error: t("unauthorized") };
 
   try {
-    const payload = await getPayloadClient();
-    const result = await payload.find({
-      collection: "services",
-      depth: 2,
-      limit: 1,
-      overrideAccess: true,
-      where: { id: { equals: input.serviceId } },
-    });
-    const service = result.docs[0] as Service | undefined;
+    const service = typeof input?.serviceId === "string" ? await findServiceById(input.serviceId, { withOptions: true }) : null;
     if (!service || !canRequestServiceQuote(service)) return { ok: false, error: t("serviceNotFound") };
     const estimate = calculateServiceSelection(service, input.optionIds ?? []);
     if (!estimate) return { ok: false, error: t("incompleteOptions") };
@@ -99,51 +74,33 @@ export async function requestQuote(input: {
     let orderNumber = "";
 
     for (let attempt = 0; attempt < 5; attempt += 1) {
-      orderNumber = await nextOrderNumber(payload, attempt);
+      orderNumber = await nextOrderNumber(attempt);
       try {
-        await withPayloadTransaction(payload, async (req) => {
-          const order = await payload.create({
-            collection: "orders",
-            data: {
-              orderNumber,
-              number: orderNumber,
-              userId: customer.id,
-              status: "quote_requested",
-              estimatedAmount: estimate.estimatedAmount,
-              subtotal: 0,
-              discount: 0,
-              total: 0,
-              currency: service.currency,
-              customerNote: note || null,
-            },
-            depth: 0,
-            overrideAccess: true,
-            req,
-          });
-          await payload.create({
-            collection: "order-services",
-            data: { orderId: order.id, serviceId: service.id, quantity: 1 },
-            overrideAccess: true,
-            req,
-          });
-          await payload.create({
-            collection: "order-items",
-            data: {
-              orderId: order.id,
-              itemType: "service",
-              itemId: service.id,
-              serviceId: service.id,
-              title: service.title,
-              quantity: 1,
-              estimatedUnitPrice: estimate.estimatedAmount,
-              unitPrice: 0,
-              totalPrice: 0,
-              optionsSnapshot: JSON.stringify(estimate.selected),
-            },
-            overrideAccess: true,
-            req,
-          });
-          await writeOrderActivity(payload, req, {
+        await withTransaction(async (tx) => {
+          const order = await insertOrder({
+            userId: customer.id,
+            status: "quote_requested",
+            orderNumber,
+            number: orderNumber,
+            estimatedAmount: estimate.estimatedAmount,
+            subtotal: 0,
+            discount: 0,
+            total: 0,
+            currency: service.currency,
+            customerNote: note || null,
+          }, tx);
+          await replaceOrderServices(order.id, [{ serviceId: service.id, quantity: 1 }], tx);
+          await insertOrderItem({
+            orderId: order.id,
+            itemType: "service",
+            itemId: service.id,
+            serviceId: service.id,
+            title: service.title,
+            quantity: 1,
+            estimatedUnitPrice: estimate.estimatedAmount,
+            optionsSnapshot: JSON.stringify(estimate.selected),
+          }, tx);
+          await writeOrderActivity(tx, {
             action: "create",
             entityId: order.id,
             title: `${orderNumber} — ${service.title}`,
@@ -152,7 +109,7 @@ export async function requestQuote(input: {
         });
         break;
       } catch (error) {
-        if (!isPayloadUniqueError(error) || attempt === 4) throw error;
+        if (!isUniqueConstraintError(error) || attempt === 4) throw error;
       }
     }
     revalidatePath("/cart");
@@ -169,7 +126,7 @@ export interface CreateOrderInput {
   description?: string;
 }
 
-/** Публичная форма /contact: только native Payload documents и transactions. */
+/** Публичная форма /contact: одна транзакция на заказ, услуги и позиции. */
 export async function createOrder(data: CreateOrderInput) {
   const t = await getActionTranslator();
   const customer = await requireCustomer();
@@ -199,111 +156,94 @@ export async function createOrder(data: CreateOrderInput) {
     parsedDeadline = candidateDay;
   }
 
-  const payload = await getPayloadClient();
-  const serviceResult = await payload.find({
-    collection: "services",
-    depth: 0,
-    overrideAccess: true,
-    pagination: false,
-    where: { and: [{ id: { in: uniqueServiceIds } }, { isActive: { equals: true } }, { isPublished: { equals: true } }] },
-  });
-  const services = serviceResult.docs as Service[];
-  if (services.length !== uniqueServiceIds.length) throw new Error(t("serviceInactiveOrMissing"));
-  const serviceById = new Map(services.map((service) => [service.id, service]));
+  const found = await getServicesByIds(uniqueServiceIds);
+  const available = found.filter((service) => service.isActive && service.isPublished);
+  if (available.length !== uniqueServiceIds.length) throw new Error(t("serviceInactiveOrMissing"));
+  const serviceById = new Map(available.map((service) => [service.id, service]));
   const orderedServices = uniqueServiceIds.map((id) => serviceById.get(id)!);
   const estimatedAmount = orderedServices.reduce((sum, service) => sum + (service.basePrice ?? 0), 0);
   const description = typeof data?.description === "string" ? data.description.trim().slice(0, 4000) : "";
   const currency = orderedServices[0]?.currency ?? "RUB";
 
-  let createdOrder: CreatedOrder | null = null;
+  let created: { id: string; orderNumber: string; status: string } | null = null;
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    const orderNumber = await nextOrderNumber(payload, attempt);
+    const orderNumber = await nextOrderNumber(attempt);
     try {
-      createdOrder = await withPayloadTransaction(payload, async (req) => {
-        const order = await payload.create({
-          collection: "orders",
-          data: {
-            orderNumber,
-            number: orderNumber,
-            userId: customer.id,
-            status: "quote_requested",
-            deadline: parsedDeadline?.toISOString() ?? null,
-            description: description || null,
-            customerNote: description || null,
-            estimatedAmount,
-            subtotal: 0,
-            discount: 0,
-            total: 0,
-            finalPrice: null,
-            currency,
-          },
-          depth: 0,
-          overrideAccess: true,
-          req,
-        });
-        const links: OrderService[] = [];
+      created = await withTransaction(async (tx) => {
+        const order = await insertOrder({
+          userId: customer.id,
+          status: "quote_requested",
+          orderNumber,
+          number: orderNumber,
+          deadline: parsedDeadline ?? null,
+          description: description || null,
+          customerNote: description || null,
+          estimatedAmount,
+          subtotal: 0,
+          discount: 0,
+          total: 0,
+          currency,
+        }, tx);
+        await replaceOrderServices(
+          order.id,
+          orderedServices.map((service) => ({ serviceId: service.id, quantity: 1 })),
+          tx,
+        );
         for (const service of orderedServices) {
-          const link = await payload.create({
-            collection: "order-services",
-            data: { orderId: order.id, serviceId: service.id, quantity: 1 },
-            depth: 1,
-            overrideAccess: true,
-            req,
-          });
-          links.push(link);
-          await payload.create({
-            collection: "order-items",
-            data: {
-              orderId: order.id,
-              itemType: "service",
-              itemId: service.id,
-              serviceId: service.id,
-              title: service.title,
-              quantity: 1,
-              estimatedUnitPrice: service.basePrice,
-              unitPrice: 0,
-              totalPrice: 0,
-              optionsSnapshot: "[]",
-            },
-            overrideAccess: true,
-            req,
-          });
+          await insertOrderItem({
+            orderId: order.id,
+            itemType: "service",
+            itemId: service.id,
+            serviceId: service.id,
+            title: service.title,
+            quantity: 1,
+            estimatedUnitPrice: service.basePrice,
+            optionsSnapshot: "[]",
+          }, tx);
         }
-        await writeOrderActivity(payload, req, {
+        await writeOrderActivity(tx, {
           action: "create",
           entityId: order.id,
           title: `${orderNumber} — ${orderedServices.map((service) => service.title).join(", ").slice(0, 180)}`,
           actorId: customer.id,
         });
-        return { ...order, services: links };
+        return { id: order.id, orderNumber, status: order.status };
       });
       break;
     } catch (error) {
-      if (!isPayloadUniqueError(error) || attempt === 4) {
+      if (!isUniqueConstraintError(error) || attempt === 4) {
         console.error("Failed to create order:", error);
         throw new Error(t("genericError"));
       }
     }
   }
-  if (!createdOrder) throw new Error(t("genericError"));
+  if (!created) throw new Error(t("genericError"));
 
   revalidatePath("/cart");
-  const resolvedNumber = createdOrder.orderNumber ?? createdOrder.number ?? "";
   return {
-    id: createdOrder.id,
-    number: resolvedNumber,
-    orderNumber: resolvedNumber,
-    status: createdOrder.status,
-    deadline: payloadDate(createdOrder.deadline),
-    description: createdOrder.description,
-    estimatedAmount: createdOrder.estimatedAmount,
-    total: createdOrder.total,
-    finalPrice: createdOrder.finalPrice,
-    services: createdOrder.services.map((link) => ({
-      id: link.id,
-      serviceId: payloadId(link.serviceId) ?? "",
-      quantity: link.quantity,
-      service: orderedServices.find((service) => service.id === payloadId(link.serviceId)) ?? null,
+    id: created.id,
+    number: created.orderNumber,
+    orderNumber: created.orderNumber,
+    status: created.status,
+    deadline: parsedDeadline,
+    description: description || null,
+    estimatedAmount,
+    total: 0,
+    finalPrice: null,
+    services: orderedServices.map((service) => ({
+      id: `${created!.id}:${service.id}`,
+      serviceId: service.id,
+      quantity: 1,
+      service: {
+        id: service.id,
+        title: service.title,
+        slug: service.slug,
+        basePrice: service.basePrice,
+        priceType: service.priceType,
+        currency: service.currency,
+        category: service.category,
+        isOrderable: service.isOrderable,
+      },
     })),
   };
 }
@@ -330,37 +270,15 @@ export async function cancelMyOrder(input: { orderId: string }): Promise<OrderAc
   if (!orderId) return { ok: false, error: t("orderNotFound") };
 
   try {
-    const payload = await getPayloadClient();
-    const updated = await withPayloadTransaction(payload, async (req) => {
-      const result = await payload.find({
-        collection: "orders",
-        depth: 0,
-        limit: 1,
-        overrideAccess: true,
-        req,
-        where: { id: { equals: orderId } },
-      });
-      const order = result.docs[0] as Order | undefined;
-      if (!order || payloadId(order.userId) !== customer.id || order.status === "cart") return "not-found" as const;
+    const outcome = await withTransaction(async (tx) => {
+      const order = await findOrderById(orderId, tx);
+      if (!order || order.userId !== customer.id || order.status === "cart") return "not-found" as const;
       if (order.status === "cancelled" || order.status === "refunded") return "closed" as const;
       if (order.status === "paid") return "paid" as const;
       if (!CUSTOMER_CANCELLABLE_STATUSES.includes(order.status)) return "started" as const;
-      const paid = await payload.count({
-        collection: "payments",
-        overrideAccess: true,
-        req,
-        where: { and: [{ orderId: { equals: order.id } }, { status: { equals: "succeeded" } }] },
-      });
-      if (paid.totalDocs > 0) return "paid" as const;
-      const changed = await payload.update({
-        collection: "orders",
-        data: { status: "cancelled" },
-        overrideAccess: true,
-        req,
-        where: { and: [{ id: { equals: order.id } }, { userId: { equals: customer.id } }, { status: { equals: order.status } }] },
-      });
-      if (changed.docs.length !== 1) return "failed" as const;
-      await writeOrderActivity(payload, req, {
+      if ((await countPaymentsByStatus(order.id, "succeeded", tx)) > 0) return "paid" as const;
+      if (!(await transitionOrder(order.id, order.status, { status: "cancelled" }, tx))) return "failed" as const;
+      await writeOrderActivity(tx, {
         action: "cancelled",
         entityId: order.id,
         title: `${order.orderNumber ?? order.number ?? order.id} — отменён клиентом`,
@@ -368,16 +286,18 @@ export async function cancelMyOrder(input: { orderId: string }): Promise<OrderAc
       });
       return "ok" as const;
     });
-    if (updated === "not-found") return { ok: false, error: t("orderNotFound") };
-    if (updated === "closed") return { ok: false, error: t("orderClosed") };
-    if (updated === "started") return { ok: false, error: t("cancelStartedOrder") };
-    if (updated === "paid") return { ok: false, error: t("cancelPaidOrder") };
-    if (updated !== "ok") return { ok: false, error: t("cancelFailed") };
+    if (outcome === "not-found") return { ok: false, error: t("orderNotFound") };
+    if (outcome === "closed") return { ok: false, error: t("orderClosed") };
+    if (outcome === "started") return { ok: false, error: t("cancelStartedOrder") };
+    if (outcome === "paid") return { ok: false, error: t("cancelPaidOrder") };
+    if (outcome !== "ok") return { ok: false, error: t("cancelFailed") };
   } catch (error) {
     console.error("Failed to cancel the order:", error);
     return { ok: false, error: t("genericError") };
   }
 
   revalidatePath("/cart");
+  revalidatePath("/admin/orders");
+  revalidatePath("/admin");
   return { ok: true };
 }

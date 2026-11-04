@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { ProfileForm } from "@/components/site/profile-form";
-import { getPayloadClient } from "@/lib/payload-native";
+import { findAccountById, listPasskeys } from "@/lib/accounts";
 import { getRequestTranslations } from "@/lib/server-i18n";
 import { localAvatarPath } from "@/lib/upload-policy";
 
@@ -18,27 +18,10 @@ export default async function ProfilePage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const payload = await getPayloadClient();
-  const [accountResult, credentialsResult] = await Promise.all([
-    payload.find({
-      collection: "accounts",
-      depth: 0,
-      limit: 1,
-      overrideAccess: true,
-      showHiddenFields: true,
-      where: { id: { equals: session.user.id } },
-    }),
-    payload.find({
-      collection: "webauthn-credentials",
-      depth: 0,
-      pagination: false,
-      sort: "createdAt",
-      overrideAccess: true,
-      select: { name: true },
-      where: { userId: { equals: session.user.id } },
-    }),
+  const [dbUser, credentials] = await Promise.all([
+    findAccountById(session.user.id),
+    listPasskeys(session.user.id),
   ]);
-  const dbUser = accountResult.docs[0];
   if (dbUser?.isBlocked) redirect("/login");
 
   return (
@@ -47,7 +30,7 @@ export default async function ProfilePage() {
       security={{
         required: ["FOUNDER", "ADMIN", "MANAGER"].includes(dbUser?.role ?? ""),
         initialTotpEnabled: Boolean(dbUser?.mfaSecret),
-        initialPasskeys: credentialsResult.docs.map((credential) => ({
+        initialPasskeys: credentials.map((credential) => ({
           id: credential.id,
           name: credential.name,
         })),

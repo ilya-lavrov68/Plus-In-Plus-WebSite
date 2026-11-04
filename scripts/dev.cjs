@@ -48,12 +48,12 @@ async function main() {
     if (warning) console.warn(`[dev] ${warning}`);
     const config = resolveDatabaseConfig({ allowDevelopmentFallback: true });
     if (config) {
-      env.PAYLOAD_DATABASE_URL = config.url;
-      console.log(`[dev] Payload database: ${describeDatabaseUrl(config.url)} (${config.remote ? "remote libSQL" : "local file"})`);
+      env.DATABASE_URL = config.url;
+      console.log(`[dev] Database: ${describeDatabaseUrl(config.url)} (${config.remote ? "remote libSQL" : "local file"})`);
       try {
         const status = await checkSchema(config);
-        if (status.ok) console.log("[dev] Payload tables are present. Pending migrations: npm run payload -- migrate:status.");
-        else console.warn(`[dev] Missing tables: ${status.missingTables.join(", ")}. Run npm run payload:migrate before using /admin.`);
+        if (status.ok) console.log("[dev] Schema is up to date.");
+        else console.warn(`[dev] Missing tables: ${status.missingTables.join(", ")}. Run npm run db:migrate before using the admin panel.`);
       } catch (error) {
         console.warn(`[dev] Database check failed: ${error.message}`);
       }

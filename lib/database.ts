@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 
 /**
@@ -10,8 +11,9 @@ import path from "node:path";
  *   - `file:./db/dev.db`         — a local SQLite file, no server needed
  *   - `:memory:`                     — throwaway database, scripts only
  *
- * PAYLOAD_DATABASE_URL is the canonical variable in both environments — that is the
- * whole point of this setup: no dev/prod difference in code or schema.
+ * DATABASE_URL — каноническая переменная в обоих окружениях: dev и prod ходят
+ * в одну и ту же схему из db/schema.sql. Legacy-имя PAYLOAD_DATABASE_URL остаётся алиасом
+ * для уже настроенных окружений.
  */
 
 export const LOCAL_DATABASE_FILE = path.join("payload", "pip.db");
@@ -26,8 +28,6 @@ export interface DatabaseConfig {
   authToken?: string;
   /** True when the database is reached over the network. */
   remote: boolean;
-  /** Set when the environment contained a DATABASE_URL this app can no longer use. */
-  ignoredUrl?: string;
 }
 
 export interface ResolveDatabaseOptions {
@@ -54,6 +54,23 @@ export function isSupportedDatabaseUrl(url: string): boolean {
   return trimmed === ":memory:" || isRemoteDatabaseUrl(trimmed) || trimmed.startsWith("file:");
 }
 
+/**
+ * libSQL не создаёт каталог для `file:`-URL. На свежем клоне папки `payload/`
+ * ещё нет, и первое же подключение падало бы с SQLITE_CANTOPEN — это ломало
+ * `npm run db:migrate`, dev-сервер и CI. Создаём каталог заранее.
+ */
+export function ensureLocalDatabaseDirectory(
+  url: string,
+  rootDir: string = process.cwd(),
+): void {
+  const trimmed = url.trim();
+  if (!trimmed.startsWith("file:")) return;
+  const target = trimmed.slice("file:".length).split("?")[0];
+  if (!target || target === ":memory:" || target.startsWith("//")) return;
+  const filePath = path.isAbsolute(target) ? target : path.resolve(rootDir, target);
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+}
+
 /** `file:local.db` is relative to the process, not to db/schema.db. */
 function normalizeFileUrl(url: string, rootDir: string): string {
   if (!url.startsWith("file:")) return url;
@@ -68,13 +85,20 @@ export function resolveDatabaseConfig(options: ResolveDatabaseOptions = {}): Dat
   const allowDevelopmentFallback =
     options.allowDevelopmentFallback ?? env.NODE_ENV !== "production";
 
-  const authToken = env.PAYLOAD_DATABASE_AUTH_TOKEN?.trim() || env.TURSO_AUTH_TOKEN?.trim() || undefined;
-  const tursoUrl = env.PAYLOAD_DATABASE_URL?.trim() || env.TURSO_DATABASE_URL?.trim();
+  const authToken =
+    env.DATABASE_AUTH_TOKEN?.trim() ||
+    env.PAYLOAD_DATABASE_AUTH_TOKEN?.trim() ||
+    env.TURSO_AUTH_TOKEN?.trim() ||
+    undefined;
+  const tursoUrl =
+    env.DATABASE_URL?.trim() ||
+    env.TURSO_DATABASE_URL?.trim() ||
+    env.PAYLOAD_DATABASE_URL?.trim();
   if (tursoUrl) {
     if (!isSupportedDatabaseUrl(tursoUrl)) {
       throw new Error(
-        `PAYLOAD_DATABASE_URL must start with "libsql:", "http(s):" or "file:" — got "${describeDatabaseUrl(tursoUrl)}".` +
-          " Payload SQLite/libSQL is not a PostgreSQL server; see README → Database.",
+        `DATABASE_URL must start with "libsql:", "http(s):" or "file:" — got "${describeDatabaseUrl(tursoUrl)}".` +
+          " The app runs on SQLite/libSQL only; see README → Database.",
       );
     }
     return {
@@ -82,20 +106,6 @@ export function resolveDatabaseConfig(options: ResolveDatabaseOptions = {}): Dat
       authToken,
       remote: isRemoteDatabaseUrl(tursoUrl),
     };
-  }
-
-  // Legacy variable from the PostgreSQL setup: keep the app booting, but never
-  // silently connect somewhere unexpected.
-  const legacyUrl = env.DATABASE_URL?.trim();
-  const ignoredUrl = legacyUrl && isSupportedDatabaseUrl(legacyUrl) ? undefined : legacyUrl;
-
-  if (legacyUrl && !ignoredUrl) {
-    const config: DatabaseConfig = {
-      url: normalizeFileUrl(legacyUrl, rootDir),
-      authToken,
-      remote: isRemoteDatabaseUrl(legacyUrl),
-    };
-    return config;
   }
 
   // Production fails closed: an empty configuration renders empty states and
@@ -106,18 +116,21 @@ export function resolveDatabaseConfig(options: ResolveDatabaseOptions = {}): Dat
     url: localDatabaseUrl(rootDir),
     authToken: undefined,
     remote: false,
-    ignoredUrl,
   };
 }
 
-/** Explains a leftover `DATABASE_URL` that this app no longer understands. */
+/** Explains a `DATABASE_URL`/alias that this app cannot use (e.g. a PostgreSQL URL). */
 export function unsupportedDatabaseUrlMessage(env: NodeJS.ProcessEnv = process.env): string | null {
-  const legacyUrl = env.DATABASE_URL?.trim();
-  if (!legacyUrl || isSupportedDatabaseUrl(legacyUrl)) return null;
-  return (
-    `DATABASE_URL is set to "${describeDatabaseUrl(legacyUrl)}", which is not a libSQL/SQLite URL. ` +
-    "The app now runs on Payload SQLite/libSQL — set PAYLOAD_DATABASE_URL (or remove DATABASE_URL). See README → Database."
-  );
+  for (const name of ["DATABASE_URL", "PAYLOAD_DATABASE_URL", "TURSO_DATABASE_URL"]) {
+    const value = env[name]?.trim();
+    if (value && !isSupportedDatabaseUrl(value)) {
+      return (
+        `${name} is set to "${describeDatabaseUrl(value)}", which is not a libSQL/SQLite URL. ` +
+        `Set DATABASE_URL to a "file:" or "libsql:" URL (or remove ${name}). See README → Database.`
+      );
+    }
+  }
+  return null;
 }
 
 /** Safe for logs: keeps the host, hides credentials and query parameters. */

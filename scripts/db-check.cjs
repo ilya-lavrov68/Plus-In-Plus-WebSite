@@ -1,12 +1,13 @@
-// Проверяет подключение и таблицы Payload, ничего не изменяя в базе.
+// Проверяет подключение и таблицы схемы, ничего не изменяя в базе.
 const { loadDatabaseModule } = require("./lib/database-module.cjs");
 const { EXPECTED_TABLES, checkSchema } = require("./lib/schema-check.cjs");
 
 async function main() {
-  const { resolveDatabaseConfig, describeDatabaseUrl } = loadDatabaseModule();
+  const { resolveDatabaseConfig, describeDatabaseUrl, ensureLocalDatabaseDirectory } = loadDatabaseModule();
   const config = resolveDatabaseConfig({ allowDevelopmentFallback: true });
-  if (!config) throw new Error("Set PAYLOAD_DATABASE_URL (see .env.example).");
+  if (!config) throw new Error("Set DATABASE_URL (see .env.example).");
 
+  ensureLocalDatabaseDirectory(config.url);
   const { createClient } = require("@libsql/client");
   const client = createClient({ url: config.url, authToken: config.authToken });
   console.log(`[db:check] ${describeDatabaseUrl(config.url)} (${config.remote ? "remote" : "local file"})`);
@@ -15,13 +16,13 @@ async function main() {
     console.log(`[db:check] Connected — SQLite ${version.rows[0]?.version}.`);
     const status = await checkSchema(config);
     if (!status.ok) {
-      throw new Error(`Missing Payload tables: ${status.missingTables.join(", ")}. Run npm run payload:migrate.`);
+      throw new Error(`Missing tables: ${status.missingTables.join(", ")}. Run npm run db:migrate.`);
     }
     for (const table of EXPECTED_TABLES) {
       const count = await client.execute(`select count(*) as total from "${table}"`);
       console.log(`[db:check] ok  ${table.padEnd(24)} ${count.rows[0]?.total ?? 0} row(s)`);
     }
-    console.log("[db:check] Payload schema is present. Review pending migrations with npm run payload -- migrate:status.");
+    console.log("[db:check] Schema matches db/schema.sql. Apply missing changes with npm run db:migrate.");
   } finally {
     client.close();
   }

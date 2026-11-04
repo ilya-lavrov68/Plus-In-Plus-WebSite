@@ -1,10 +1,10 @@
 const assert = require("node:assert/strict");
-const { test, beforeEach } = require("node:test");
+const { after, before, test, beforeEach } = require("node:test");
 const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
-const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
+const { createTestDatabase } = require("./helpers/test-db.cjs");
 
 require.extensions[".ts"] = (module, filename) =>
   module._compile(
@@ -249,7 +249,42 @@ Module._load = function (name, parent, isMain) {
     compare: async (password, hash) => password === "current-password" && hash === "current-hash",
     hash: async (password) => `hash:${password}`,
   };
-  if (name === "@/lib/payload-native") return createNativeModuleMock(db);
+  if (name === "@/lib/db") {
+    // Публичные чтения услуг идут через собственный SQL-слой: отдаём фикстуры
+    // по тем же правилам фильтрации, что и настоящий запрос.
+    const real = originalLoad.call(this, path.join(__dirname, "..", "lib", "db.ts"), parent, isMain);
+    return {
+      ...real,
+      rows: async (sql, args = []) => {
+        const query = String(sql).replace(/\s+/g, " ");
+        // Всё, что не является публичным списком услуг, читает настоящая база:
+        // аккаунты, аудит и профиль живут в SQLite.
+        if (!query.includes("from services s")) return real.rows(sql, args);
+        return [...services.values()]
+          .filter((service) => service.isActive && service.isPublished)
+          .map((service) => ({
+            id: service.id,
+            title: service.title,
+            slug: service.slug,
+            category: service.category,
+            short_desc: service.shortDesc ?? "",
+            full_desc: service.fullDesc ?? "",
+            result_text: service.resultText ?? "",
+            cover_image: service.coverImage ?? null,
+            cover_url: null,
+            base_price: service.basePrice ?? 0,
+            price_type: service.priceType ?? "quote",
+            currency: service.currency ?? "RUB",
+            is_orderable: service.isOrderable ? 1 : 0,
+            is_published: service.isPublished ? 1 : 0,
+            is_active: service.isActive ? 1 : 0,
+            sort_order: service.sortOrder ?? 0,
+            created_at: "2026-01-01T00:00:00.000Z",
+            updated_at: "2026-01-02T00:00:00.000Z",
+          }));
+      },
+    };
+  }
   if (name === "@/lib/password-breach") return {
     CompromisedPasswordError: class CompromisedPasswordError extends Error {},
     assertPasswordNotCompromised: async () => {},
@@ -307,12 +342,51 @@ Module._load = function (name, parent, isMain) {
   return originalLoad.call(this, name, parent, isMain);
 };
 
+let database;
+
+/** Аккаунты из `users` живут в настоящей SQLite: профиль и пароль пишутся туда. */
+async function mirrorUsers() {
+  for (const user of users.values()) {
+    await database.insertAccount({
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      isBlocked: user.isBlocked,
+      avatar: user.avatar,
+      passwordHash: user.passwordHash ?? null,
+    });
+  }
+}
+
+async function storedUser(id) {
+  const row = await database.one("select * from accounts where id = ?", [id]);
+  return {
+    firstName: row.first_name,
+    lastName: row.last_name,
+    email: row.email,
+    role: row.role,
+    passwordHash: row.password_hash,
+  };
+}
+
 const { GET: getServicesApi } = require("../app/api/services/route.ts");
 const { createOrder } = require("../app/actions/orders.ts");
 const { changePassword, updateUserProfile } = require("../app/actions/user.ts");
 
-beforeEach(() => {
+before(async () => {
+  database = createTestDatabase("pip-profile-");
+  await database.ready;
+});
+
+after(async () => {
+  await database?.close();
+});
+
+beforeEach(async () => {
   seq = 0;
+  await database.reset();
   admin = { id: "usr-admin", email: "admin@pip.test", role: "ADMIN" };
   sessionUser = { id: "usr-client" };
   users = new Map([
@@ -342,6 +416,7 @@ beforeEach(() => {
       },
     ],
   ]);
+  await mirrorUsers();
   services = new Map([
     [
       "svc-small",
@@ -398,6 +473,34 @@ beforeEach(() => {
       },
     ],
   ]);
+  // Те же услуги лежат и в настоящей базе: заказы ссылаются на них по FK.
+  const seededAt = new Date().toISOString();
+  for (const service of services.values()) {
+    await database.exec(
+      `insert into services (id, title, slug, category, short_desc, full_desc, result_text, cover_image,
+         base_price, price_type, currency, is_orderable, is_published, is_active, sort_order, created_at, updated_at)
+       values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        service.id,
+        service.title,
+        service.slug,
+        service.category,
+        service.shortDesc,
+        service.fullDesc ?? "",
+        service.resultText ?? "",
+        service.coverImage,
+        service.basePrice,
+        service.priceType,
+        service.currency,
+        service.isOrderable ? 1 : 0,
+        service.isPublished ? 1 : 0,
+        service.isActive ? 1 : 0,
+        service.sortOrder ?? 0,
+        seededAt,
+        seededAt,
+      ],
+    );
+  }
   orders = new Map();
   orderItems = new Map();
   orderServices = new Map();
@@ -468,12 +571,21 @@ test("createOrder generates ПИП-XXXXXX and persists native service links and 
   assert.match(order.orderNumber, /^ПИП-\d{6}$/);
   assert.equal(order.services.length, 2);
   assert.equal(order.estimatedAmount, 5_000_000);
-  assert.equal(orders.size, 1);
-  assert.equal(orderServices.size, 2);
-  assert.equal(orderItems.size, 2);
-  assert.ok([...orderItems.values()].every((item) => item.itemType === "service" && item.optionsSnapshot === "[]"));
-  assert.equal(logs[0].entityType, "order");
-  assert.equal(logs[0].actorId, "usr-client");
+
+  const stored = await database.one("select id, user_id_id, status, total from orders");
+  assert.equal(stored.user_id_id, "usr-client");
+  assert.equal(stored.status, "quote_requested");
+  assert.equal(Number(stored.total), 0, "цена появляется только после согласования");
+  assert.equal((await database.one("select count(*) total from order_services")).total, 2);
+  const items = await database.rows("select item_type, options_snapshot, estimated_unit_price from order_items");
+  assert.equal(items.length, 2);
+  assert.ok(items.every((item) => item.item_type === "service" && item.options_snapshot === "[]"));
+  const amounts = items.map((item) => Number(item.estimated_unit_price)).sort((a, b) => a - b);
+  assert.deepEqual(amounts, [1_500_000, 3_500_000]);
+
+  const entry = await database.one("select entity_type, actor_id_id from activity_logs where entity_id = ?", [stored.id]);
+  assert.equal(entry.entity_type, "order");
+  assert.equal(entry.actor_id_id, "usr-client");
 });
 
 test("HARD CONSTRAINT: updateUserProfile requires authorization and never mutates email or role", async () => {
@@ -502,7 +614,7 @@ test("HARD CONSTRAINT: updateUserProfile requires authorization and never mutate
   assert.equal(updated.firstName, "Alexey");
   assert.equal(updated.lastName, "Smirnov");
 
-  const stored = users.get("usr-client");
+  const stored = await storedUser("usr-client");
   assert.equal(stored.firstName, "Alexey");
   assert.equal(stored.lastName, "Smirnov");
   assert.equal(stored.email, "client@pip.test");
@@ -519,16 +631,17 @@ test("password changes verify the current password, validate the replacement and
     () => changePassword({ ...valid, currentPassword: "wrong-password" }),
     /current password is incorrect/i,
   );
-  assert.equal(users.get("usr-client").passwordHash, "current-hash");
+  assert.equal((await storedUser("usr-client")).passwordHash, "current-hash");
   await assert.rejects(
     () => changePassword({ ...valid, confirmPassword: "different-passphrase" }),
     /do not match/i,
   );
 
   assert.deepEqual(await changePassword(valid), { ok: true });
-  assert.equal(users.get("usr-client").passwordHash, "hash:a-New-long-passphrase1");
-  assert.equal(logs.at(-1).action, "password changed");
-  assert.equal(logs.at(-1).actorId, "usr-client");
+  assert.equal((await storedUser("usr-client")).passwordHash, "hash:a-New-long-passphrase1");
+  const audit = await database.rows("select * from activity_logs where entity_id = 'usr-client' order by created_at");
+  assert.equal(audit.at(-1).action, "password changed");
+  assert.equal(audit.at(-1).actor_id_id, "usr-client");
 
   sessionUser = null;
   await assert.rejects(() => changePassword(valid), /log in/i);

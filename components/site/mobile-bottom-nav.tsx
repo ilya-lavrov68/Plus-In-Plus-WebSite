@@ -157,7 +157,6 @@ export function MobileBottomNav({
       data-testid="mobile-bottom-nav"
       className="fixed inset-x-0 bottom-0 z-50 bg-background/90 pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] backdrop-blur-2xl lg:hidden"
     >
-      <div aria-hidden="true" className="absolute inset-x-0 top-0 h-px bg-border" />
       <div className="mx-auto grid h-[var(--mobile-bottom-nav-height)] max-w-xl grid-cols-4 items-stretch gap-1 px-2">
         {ITEMS.map((item) => {
           const active = isMobileNavigationActive(pathname, item.href);

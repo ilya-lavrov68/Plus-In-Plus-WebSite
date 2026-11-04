@@ -7,7 +7,6 @@ import { Newspaper } from "lucide-react";
 
 import { EmptyState } from "@/components/site/empty-state";
 import { DecryptText } from "@/components/site/motion/decrypt-text";
-import { BlogLatticeField } from "@/components/site/page-geometry";
 import { Separator } from "@/components/ui/separator";
 import type { BlogCardData } from "@/lib/blog-card";
 
@@ -54,10 +53,9 @@ const Blog11 = ({
   const HeadingTag = asPageHeading ? "h1" : "h2";
 
   return (
-    <section id={id} className="motion-section relative isolate overflow-hidden py-32">
-      <BlogLatticeField />
+    <section id={id} className="motion-section section-y">
       <div className="container">
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-12">
+        <div className="grid grid-cols-1 gap-14 lg:grid-cols-12 lg:gap-16">
           <div className="lg:col-span-4">
             <div className="lg:sticky lg:top-28">
               <HeadingTag className="text-4xl font-semibold tracking-tight md:text-5xl">
@@ -66,7 +64,7 @@ const Blog11 = ({
               <p
                 data-reveal=""
                 data-reveal-delay={60}
-                className="mt-4 text-base leading-relaxed text-muted-foreground"
+                className="mt-5 text-base leading-[1.75] text-muted-foreground"
               >
                 {description}
               </p>
@@ -110,7 +108,7 @@ const Blog11 = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:col-span-8">
+          <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 lg:col-span-8">
             {posts.length === 0 ? (
               <div data-reveal="" className="sm:col-span-2">
                 <EmptyState
@@ -129,11 +127,11 @@ const Blog11 = ({
                 >
                   <Link
                     href={`/blog/${post.slug}`}
-                    className="group relative flex h-80 flex-col justify-between overflow-hidden rounded-none border border-border bg-muted p-6 transition-colors duration-200 hover:border-primary/50 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    className="group relative flex h-80 flex-col justify-between overflow-hidden rounded-xl bg-muted p-7 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                   >
                     <div
                       aria-hidden="true"
-                      className={`pointer-events-none absolute inset-0 transition-[clip-path] duration-300 ease-out ${
+                      className={`pointer-events-none absolute inset-0 transition-[clip-path] duration-300 ease-out will-change-[clip-path] ${
                         isFeatured
                           ? "[clip-path:inset(0_0_0%_0)]"
                           : "[clip-path:inset(0_0_100%_0)] group-hover:[clip-path:inset(0_0_0%_0)] group-focus-visible:[clip-path:inset(0_0_0%_0)]"
@@ -142,9 +140,6 @@ const Blog11 = ({
                       <img
                         src={post.image}
                         alt={post.title}
-                        loading={index < 2 ? "eager" : "lazy"}
-                        decoding="async"
-                        fetchPriority={index === 0 ? "high" : "auto"}
                         className="size-full object-contain"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/30" />

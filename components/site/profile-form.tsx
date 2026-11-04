@@ -137,7 +137,7 @@ export function ProfileForm({ initialUser, sessionRole, security }: ProfileFormP
   };
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-24 md:py-32">
+    <div className="mx-auto max-w-2xl px-6 section-y">
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
           {t("title")}

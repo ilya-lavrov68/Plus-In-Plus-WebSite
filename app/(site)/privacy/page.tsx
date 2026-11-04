@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { LegalLineBand } from "@/components/site/page-geometry";
 import { Separator } from "@/components/ui/separator";
 import { getRequestLocale } from "@/lib/request-locale";
 import { createPageMetadata } from "@/lib/seo";
@@ -26,8 +25,7 @@ export default async function PrivacyPage() {
   const isRu = locale === "ru";
 
   return (
-    <section className="relative isolate overflow-hidden py-24 md:py-32">
-      <LegalLineBand />
+    <section className="section-y">
       <div className="container max-w-3xl">
         <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
           {isRu ? "Правовая информация" : "Legal"}
@@ -35,16 +33,16 @@ export default async function PrivacyPage() {
         <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">
           {isRu ? "Политика конфиденциальности" : "Privacy Policy"}
         </h1>
-        <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
+        <p className="mt-5 max-w-[62ch] text-lg leading-[1.75] text-muted-foreground">
           {isRu
             ? "Конфиденциальность — один из базовых принципов студии Plus In Plus. В этом документе описано, какие данные мы собираем при использовании сайта, создании аккаунта или отправке заявки на дизайн."
             : "Confidentiality is one of the core principles of Plus In Plus. This policy explains what data we collect when you use our website, create an account, or submit a design request."}
         </p>
 
-        <Separator className="my-10" />
+        <Separator className="my-12" />
 
-        <div className="space-y-8 text-base leading-7 text-muted-foreground">
-          <div className="space-y-3">
+        <div className="space-y-10 text-base leading-[1.8] text-muted-foreground">
+          <div className="space-y-3.5">
             <h2 className="text-2xl font-semibold tracking-tight text-foreground">
               {isRu ? "1. Какие данные мы собираем" : "1. Information We Collect"}
             </h2>
@@ -55,7 +53,7 @@ export default async function PrivacyPage() {
             </p>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3.5">
             <h2 className="text-2xl font-semibold tracking-tight text-foreground">
               {isRu ? "2. Строгая конфиденциальность" : "2. Strict Confidentiality"}
             </h2>
@@ -66,7 +64,7 @@ export default async function PrivacyPage() {
             </p>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3.5">
             <h2 className="text-2xl font-semibold tracking-tight text-foreground">
               {isRu ? "3. Контакты и управление данными" : "3. Contact & Data Requests"}
             </h2>

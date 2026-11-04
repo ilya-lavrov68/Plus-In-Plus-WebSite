@@ -1,30 +1,19 @@
 const assert = require("node:assert/strict");
-const { beforeEach, test } = require("node:test");
+const { test } = require("node:test");
 const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
-const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
+const { after, before } = require("node:test");
+const { createTestDatabase } = require("./helpers/test-db.cjs");
 
 require.extensions[".ts"] = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename, "utf8"), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true, target: ts.ScriptTarget.ES2022 },
 }).outputText, filename);
 
-let stored;
-let storyQueries;
-let audits;
-const db = {
-  story: {
-    findFirst: async (options) => {
-      storyQueries.push(structuredClone(options));
-      return stored ? structuredClone(stored) : { heading: null, description: null, events: [] };
-    },
-  },
-  activityLog: { create: async ({ data }) => { audits.push(structuredClone(data)); return data; } },
-};
+let database;
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/payload-native") return createNativeModuleMock(db);
   if (name.startsWith("@/")) name = path.resolve(__dirname, "..", name.slice(2));
   return originalLoad.call(this, name, parent, isMain);
 };
@@ -36,8 +25,6 @@ const {
   STORY_CONTENT_LIMITS,
 } = require("../lib/story-content.ts");
 const { getStoryContent } = require("../lib/story.ts");
-const { Story } = require("../payload/collections/system.ts");
-const { activityAfterStoryChange } = require("../payload/hooks.ts");
 
 function validStory() {
   return {
@@ -50,7 +37,14 @@ function validStory() {
   };
 }
 
-beforeEach(() => { stored = null; storyQueries = []; audits = []; });
+before(async () => {
+  database = createTestDatabase("pip-story-");
+  await database.ready;
+});
+
+after(async () => {
+  await database?.close();
+});
 
 test("story content is trimmed and strictly validated, including limits and unique IDs", () => {
   const normalized = normalizeStoryContent(validStory());
@@ -81,34 +75,61 @@ test("missing or malformed legacy content fails closed without fabricated milest
   assert.deepEqual(createEmptyStoryContent().events, []);
 });
 
-test("public story reads only the native global projection and returns author content", async () => {
-  stored = validStory();
+test("public story reads the story tables and returns author content", async () => {
+  await database.exec("delete from story_events");
+  await database.exec("delete from story");
+  assert.deepEqual(await getStoryContent(), createEmptyStoryContent(), "no rows means an honest empty state");
+
+  const now = new Date().toISOString();
+  await database.exec("insert into story (id, heading, description, created_at, updated_at) values ('story-1', ?, ?, ?, ?)", [
+    "Our real history",
+    "Written by the studio.",
+    now,
+    now,
+  ]);
+  const stored = validStory();
+  let order = 0;
+  for (const event of stored.events) {
+    await database.exec(
+      "insert into story_events (_order, _parent_id, id, period, title, description) values (?, 'story-1', ?, ?, ?, ?)",
+      [order++, `ev-${event.id}`, event.period, event.title, event.description],
+    );
+  }
+
   const content = await getStoryContent();
+  assert.equal(content.heading, "Our real history");
   assert.equal(content.events.length, 2);
   assert.equal(content.events[0].title, "The first milestone");
-  assert.deepEqual(storyQueries[0], { select: { heading: true, description: true, events: true } });
-  stored = { heading: "Broken", description: null, events: [{ id: "bad", period: "", title: "", description: "" }] };
-  assert.deepEqual(await getStoryContent(), createEmptyStoryContent());
-  stored = null;
+
+  // Испорченные данные не превращаются в выдуманную хронологию.
+  await database.exec("update story_events set period = '' where id = 'ev-origin'");
   assert.deepEqual(await getStoryContent(), createEmptyStoryContent());
 });
 
-test("Story global excludes guests and managers, while admin updates are audited", async () => {
-  const guest = { req: { user: null } };
-  const manager = { req: { user: { collection: "accounts", role: "MANAGER" } } };
-  const admin = { req: { user: { collection: "accounts", role: "ADMIN" } } };
-  for (const actor of [guest, manager]) {
-    assert.equal(Story.access.read(actor), false);
-    assert.equal(Story.access.update(actor), false);
-  }
-  assert.equal(Story.access.read(admin), true);
-  assert.equal(Story.access.update(admin), true);
+test("lib/story-editor.ts is the only writer of the story tables", () => {
+  const root = path.resolve(__dirname, "..");
+  const writers = [];
+  const walk = (relative) => {
+    for (const entry of fs.readdirSync(path.join(root, relative), { withFileTypes: true })) {
+      const next = path.join(relative, entry.name);
+      if (entry.isDirectory()) walk(next);
+      else if (
+        /\.(ts|tsx)$/.test(entry.name) &&
+        /(insert into|update|delete from)\s+story/i.test(fs.readFileSync(path.join(root, next), "utf8"))
+      ) {
+        writers.push(next.split(path.sep).join("/"));
+      }
+    }
+  };
+  for (const directory of ["app", "lib", "scripts"]) walk(directory);
 
-  const req = { user: { id: "story-admin" }, payload: db.activityLog ? { create: async (options) => db.activityLog.create(options) } : null };
-  await activityAfterStoryChange({ doc: validStory(), req });
-  assert.equal(audits.length, 1);
-  assert.equal(audits[0].entityId, "story");
-  assert.equal(audits[0].actorId, "story-admin");
-  await activityAfterStoryChange({ doc: validStory(), req: { ...req, user: null } });
-  assert.equal(audits.length, 1);
+  // Историю правит панель через один модуль: никакие сиды, карусели и
+  // публичные страницы не переписывают вехи за спиной администратора.
+  assert.deepEqual(writers, ["lib/story-editor.ts"]);
+  assert.equal(fs.existsSync(path.join(root, "payload", "collections", "system.ts")), false);
+  assert.equal(
+    fs.readFileSync(path.join(root, "app", "(admin)", "admin", "story", "page.tsx"), "utf8").includes("saveStoryAction"),
+    true,
+    "the panel editor posts to the story action",
+  );
 });

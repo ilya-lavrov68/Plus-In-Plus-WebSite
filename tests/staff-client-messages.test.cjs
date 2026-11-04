@@ -20,12 +20,21 @@ test("legacy staff client bundles and their action-message dependencies stay rem
   }
 });
 
-test("the remaining Payload panel owns RU/EN chrome and accessibility provider", () => {
-  const config = fs.readFileSync(path.join(root, "payload.config.ts"), "utf8");
-  assert.match(config, /supportedLanguages: \{ en, ru \}/);
-  assert.match(config, /fallbackLanguage: "ru"/);
-  assert.match(config, /admin-a11y-provider#AdminA11yProvider/);
-  assert.match(config, /routes: \{[\s\S]*?admin: "\/admin"/);
-  const provider = fs.readFileSync(path.join(root, "payload", "components", "admin-a11y-provider.tsx"), "utf8");
-  assert.doesNotMatch(provider, /box-shadow|drop-shadow/);
+test("staff panel is ours: RU/EN chrome, skip link and no shadows", () => {
+  const layout = fs.readFileSync(path.join(root, "app", "(admin)", "admin", "layout.tsx"), "utf8");
+  const labels = fs.readFileSync(path.join(root, "components", "admin", "labels.ts"), "utf8");
+  const nav = fs.readFileSync(path.join(root, "components", "admin", "admin-nav.tsx"), "utf8");
+
+  // Единственная staff-панель — наша: guard, skip-link и подписи RU/EN рядом.
+  assert.match(layout, /requireStaff\(\)/);
+  assert.match(layout, /href="#admin-main"/);
+  assert.match(layout, /adminLabels\(locale\)/);
+  assert.match(labels, /locale === "ru"/);
+  assert.doesNotMatch(nav, /box-shadow|drop-shadow|text-shadow/);
+
+  // CMS-слой удалён целиком: ни UI, ни конфига, ни локального API.
+  assert.equal(fs.existsSync(path.join(root, "app", "(payload)")), false);
+  assert.equal(fs.existsSync(path.join(root, "payload", "components")), false);
+  assert.equal(fs.existsSync(path.join(root, "payload.config.ts")), false);
+  assert.equal(fs.existsSync(path.join(root, "lib", "payload-native.ts")), false);
 });

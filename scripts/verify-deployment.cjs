@@ -26,8 +26,8 @@ async function main() {
     if (!response.ok) {
       failures += 1;
       console.error(
-        "[verify] The deployment is not healthy. Run `npm run payload:migrate` with the production\n" +
-          "[verify] PAYLOAD_DATABASE_URL / PAYLOAD_DATABASE_AUTH_TOKEN, then check /api/health again.",
+        "[verify] The deployment is not healthy. Run `npm run db:migrate` with the production\n" +
+          "[verify] DATABASE_URL / DATABASE_AUTH_TOKEN, then check /api/health again.",
       );
     }
   } catch (error) {

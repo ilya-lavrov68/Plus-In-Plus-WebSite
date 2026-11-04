@@ -4,7 +4,6 @@ const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
-const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
 
 require.extensions[".ts"] = (module, filename) => {
   module._compile(
@@ -28,7 +27,6 @@ Module._load = function (name, parent, isMain) {
     auth: async () => { authCalls += 1; return null; },
     signIn: async () => { signInCalls += 1; },
   };
-  if (name === "@/lib/payload-native") return createNativeModuleMock({});
   if (name === "@/lib/payments/invoice") return {
     issueInvoice: async () => { invoiceCalls += 1; return null; },
   };

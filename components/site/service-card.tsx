@@ -97,14 +97,14 @@ export function ServiceCard({
 
       <CardContent className="flex flex-1 flex-col justify-between pt-0">
         {service.description ? (
-          <p className="mb-5 text-sm leading-relaxed text-muted-foreground">
+          <p className="mb-6 text-sm leading-[1.65] text-muted-foreground">
             {service.description}
           </p>
         ) : (
           <div className="mb-5" />
         )}
 
-        <div className="space-y-3 border-t border-border/60 pt-4">
+        <div className="space-y-3.5 border-t border-border/60 pt-5">
           <div className="flex items-center justify-between gap-3">
             <div className="text-lg font-bold tabular-nums">{priceLabel}</div>
             <Button

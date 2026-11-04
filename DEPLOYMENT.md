@@ -49,10 +49,9 @@ Windows: installer и shell-команды выполняйте в WSL или Gi
 
 | Переменная | Обязательность | Назначение |
 | --- | --- | --- |
-| `PAYLOAD_DATABASE_URL` | Да | Единый Payload SQLite/libSQL target для CMS, auth, заказов и аналитики; в production обычно `libsql://…` |
-| `PAYLOAD_DATABASE_AUTH_TOKEN` | Для Turso Cloud | Token доступа к единой БД |
+| `DATABASE_URL` | Да | Единый SQLite/libSQL target для сайта, auth, заказов и аналитики; в production обычно `libsql://…` |
+| `DATABASE_AUTH_TOKEN` | Для Turso Cloud | Token доступа к единой БД |
 | `AUTH_SECRET` | Да | Уникальный секрет не короче 32 символов |
-| `PAYLOAD_SECRET` | Да | Независимый секрет Payload не короче 32 символов; не копировать `AUTH_SECRET` |
 | `AUTH_URL` | Да в production | Реальный HTTPS origin сайта |
 | `NEXT_PUBLIC_SITE_URL` | Рекомендуется | Тот же публичный origin для SEO/sitemap |
 | `WEBAUTHN_ORIGIN` | Для passkeys в production | Например, `https://www.example.com` |
@@ -62,9 +61,9 @@ Windows: installer и shell-команды выполняйте в WSL или Gi
 | `PIP_HIBP_CHECK` / `PIP_HIBP_REQUIRED` | Нет | Политика проверки скомпрометированных паролей |
 | `ROBOKASSA_*` | Только для согласованной интеграции | Настройки платёжного provider |
 
-`TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` поддерживаются только как aliases для существующего secret manager; вторую БД настраивать не нужно. Приоритет у canonical `PAYLOAD_*` переменных.
+`TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` поддерживаются только как aliases для существующего secret manager; вторую БД настраивать не нужно. Приоритет у canonical `DATABASE_*`; legacy-имена `PAYLOAD_DATABASE_*` читаются только как fallback и в новой конфигурации не нужны.
 
-Генерация `AUTH_SECRET` (повторите отдельно для `PAYLOAD_SECRET`):
+Генерация `AUTH_SECRET`:
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
@@ -76,35 +75,33 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 
 Access/refresh durations и concurrent-session limit не дублируются в env. Их единственный источник — `lib/session-policy.ts`.
 
-## 4. Backup и применение Payload migrations
+## 4. Backup и применение схемы
 
 **Не запускайте миграции против реальной БД без review, проверенного backup и согласования.** Единая база содержит контент, аккаунты, auth-сессии, заказы, платежи и аналитику. Автоматический schema `push` отключён (`push: false`); старые Prisma/PostgreSQL-миграции не описывают текущую схему и не используются.
 
 Порядок:
 
 1. Сделать и проверить наличие backup БД и `public/uploads/`; для критичного окружения выполнить restore drill на isolated copy.
-2. Проверить все новые файлы в `payload/migrations/`, применить их к non-production копии и выполнить smoke tests.
-3. Убедиться, что код, `payload/payload-types.ts` и migrations соответствуют одному commit.
+2. Проверить diff `db/schema.sql`, применить его к non-production копии и выполнить smoke tests.
+3. Убедиться, что код и `db/schema.sql` соответствуют одному commit.
 4. Проверить pending status и только после approval применить migrations к целевой БД:
 
 ```bash
 set -a; source .env; set +a
-npm run payload -- migrate:status
-npm run payload:migrate
+npm run db:migrate
 npm run db:check
 ```
 
 PowerShell:
 
 ```powershell
-$env:PAYLOAD_DATABASE_URL="libsql://plus-in-plus-<org>.turso.io"
-$env:PAYLOAD_DATABASE_AUTH_TOKEN="<token>"
-npm run payload -- migrate:status
-npm run payload:migrate
+$env:DATABASE_URL="libsql://plus-in-plus-<org>.turso.io"
+$env:DATABASE_AUTH_TOKEN="<token>"
+npm run db:migrate
 npm run db:check
 ```
 
-`db:check` только читает БД и проверяет 16 обязательных прикладных таблиц; у Payload также есть служебные таблицы. Не используйте демо-seed и не создавайте аккаунты с известными паролями в production. При последующих изменениях схемы создавайте новую reviewed migration через `npm run payload:migrate:create`, проверяйте её diff и повторяйте весь процесс.
+`db:check` только читает БД и проверяет обязательные прикладные таблицы. Не используйте демо-seed и не создавайте аккаунты с известными паролями в production. При последующих изменениях схемы правьте `db/schema.sql`, проверяйте diff и повторяйте весь процесс.
 
 ## 5. Сборка, запуск и HTTPS
 
@@ -130,7 +127,7 @@ curl -fsS https://your-domain.example/api/health
 Ожидаемый health при актуальной схеме:
 
 ```json
-{"status":"ok","database":{"driver":"payload-sqlite","remote":true,"tables":16}}
+{"status":"ok","database":{"driver":"libsql","remote":true,"tables":16}}
 ```
 
 - `503 schema-out-of-date` и `missingTables`: схема не применена к этой БД.
@@ -257,10 +254,10 @@ turso db shell plus-in-plus-restore < backup-YYYY-MM-DD.sql
 2. repository security audit и полный `npm audit`;
 3. ESLint и TypeScript;
 4. полный `npm test`;
-5. reviewed `payload:migrate`, `migrate:status` и read-only `db:check` на disposable SQLite;
+5. `db:migrate` и read-only `db:check` на disposable SQLite;
 6. production build;
 7. HTTP smoke с health и ключевыми страницами;
-8. отдельная проверка на `windows-latest` дополнительно выполняет `payload:migrate`, `migrate:status` и `db:check`, чтобы эти команды продолжали работать с Windows-путями.
+8. отдельная проверка на `windows-latest` дополнительно выполняет `db:migrate` и `db:check`, чтобы эти команды продолжали работать с Windows-путями.
 
 CI не подключается к staging/production и не применяет там схему. Не создавайте второй дублирующий workflow для тех же проверок.
 

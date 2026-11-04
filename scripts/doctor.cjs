@@ -72,12 +72,12 @@ function collectFindings({ env = process.env, versions = process.versions.node }
     }
   }
 
-  const payloadTypes = path.join(rootDir, "payload", "payload-types.ts");
-  const importMap = path.join(rootDir, "app", "(payload)", "admin", "importMap.js");
-  if (fs.existsSync(payloadTypes) && fs.existsSync(importMap)) {
-    add("ok", "db", "Payload types and admin import map are generated.");
+  const schemaFile = path.join(rootDir, "db", "schema.sql");
+  const adminPage = path.join(rootDir, "app", "(admin)", "admin", "page.tsx");
+  if (fs.existsSync(schemaFile) && fs.existsSync(adminPage)) {
+    add("ok", "db", "Schema source (db/schema.sql) and the custom admin panel are present.");
   } else {
-    add("error", "db", "Payload artifacts are missing — run: npm run payload:types && npm run payload:importmap");
+    add("error", "db", "db/schema.sql or the admin panel is missing — run: npm run db:migrate");
   }
 
   try {
@@ -100,13 +100,6 @@ function collectFindings({ env = process.env, versions = process.versions.node }
     add("warn", "auth", `AUTH_SECRET is ${secret.length} characters; at least 32 are required for sessions to be issued.`);
   } else {
     add("ok", "auth", "AUTH_SECRET is set and long enough (value not printed).");
-  }
-
-  const payloadSecret = (env.PAYLOAD_SECRET || fileEnv.PAYLOAD_SECRET || "").trim();
-  if (payloadSecret.length < 32) {
-    add("error", "payload", "PAYLOAD_SECRET must contain at least 32 characters (value not printed).");
-  } else {
-    add("ok", "payload", "PAYLOAD_SECRET is set and long enough (value not printed).");
   }
 
   const isProduction = (env.NODE_ENV ?? "").toLowerCase() === "production";

@@ -1,8 +1,8 @@
 name: CI
 
 # Полный cutover проверяется без внешних сервисов и production-секретов:
-# reviewed Payload migrations применяются к одноразовой SQLite БД, затем та же
-# база используется production build и smoke test.
+# db/schema.sql применяется к одноразовой SQLite БД, затем та же база
+# используется production build и smoke test.
 on:
   push:
     branches: ["**"]
@@ -14,14 +14,13 @@ concurrency:
 
 jobs:
   verify:
-    name: Payload migrations, tests, types and build
+    name: Schema, tests, types and build
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
-      PAYLOAD_DATABASE_URL: "file:./payload/ci.db"
-      PAYLOAD_DATABASE_AUTH_TOKEN: ""
+      DATABASE_URL: "file:./payload/ci.db"
+      DATABASE_AUTH_TOKEN: ""
       AUTH_SECRET: "ci-only-secret-used-by-the-test-suite-32ch"
-      PAYLOAD_SECRET: "ci-only-payload-secret-not-for-production-32ch"
     steps:
       - uses: actions/checkout@v4
 
@@ -41,7 +40,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Check environment and generated Payload artifacts
+      - name: Check environment and project artifacts
         run: npm run doctor
 
       - name: Repository security policy audit
@@ -56,11 +55,10 @@ jobs:
       - name: Type check
         run: npm run typecheck
 
-      - name: Apply and verify reviewed Payload migrations
+      - name: Apply and verify the reviewed schema
         run: |
           rm -f payload/ci.db payload/ci.db-*
-          npm run payload:migrate
-          npm run payload -- migrate:status
+          npm run db:migrate
           npm run db:check
 
       - name: Tests
@@ -84,14 +82,13 @@ jobs:
           echo "Smoke test passed."
 
   windows-payload-cli:
-    name: Windows Payload CLI migrations
+    name: Windows schema migrations
     runs-on: windows-latest
     timeout-minutes: 15
     env:
-      PAYLOAD_DATABASE_URL: "file:./payload/ci-windows.db"
-      PAYLOAD_DATABASE_AUTH_TOKEN: ""
+      DATABASE_URL: "file:./payload/ci-windows.db"
+      DATABASE_AUTH_TOKEN: ""
       AUTH_SECRET: "ci-only-secret-used-by-the-test-suite-32ch"
-      PAYLOAD_SECRET: "ci-only-payload-secret-not-for-production-32ch"
     steps:
       - uses: actions/checkout@v4
 
@@ -106,23 +103,20 @@ jobs:
       - name: Apply and verify migrations through a Windows file URL
         shell: pwsh
         run: |
-          npm run payload:migrate
-          npm run payload -- migrate:status
+          npm run db:migrate
           npm run db:check
 
-      - name: Verify Payload and db scripts load .env on Windows
+      - name: Verify db scripts load .env on Windows
         shell: pwsh
         run: |
           @(
-            'PAYLOAD_DATABASE_URL="file:./payload/ci-windows-dotenv.db"'
-            'PAYLOAD_DATABASE_AUTH_TOKEN=""'
+            'DATABASE_URL="file:./payload/ci-windows-dotenv.db"'
+            'DATABASE_AUTH_TOKEN=""'
             'AUTH_SECRET="ci-only-secret-loaded-from-dotenv-32ch"'
-            'PAYLOAD_SECRET="ci-only-payload-secret-from-dotenv-32ch"'
           ) | Set-Content -Path .env -Encoding utf8
-          Remove-Item Env:PAYLOAD_DATABASE_URL -ErrorAction SilentlyContinue
-          Remove-Item Env:PAYLOAD_DATABASE_AUTH_TOKEN -ErrorAction SilentlyContinue
+          Remove-Item Env:DATABASE_URL -ErrorAction SilentlyContinue
+          Remove-Item Env:DATABASE_AUTH_TOKEN -ErrorAction SilentlyContinue
           Remove-Item Env:AUTH_SECRET -ErrorAction SilentlyContinue
-          Remove-Item Env:PAYLOAD_SECRET -ErrorAction SilentlyContinue
-          npm run payload:migrate
+          npm run db:migrate
           npm run db:check
           npm run db:promote-admin

@@ -2,7 +2,6 @@ import Link from "next/link";
 import { ArrowRight, CircuitBoard, Code2, PenTool, Scale, type LucideIcon } from "lucide-react";
 
 import { AgentShaderPlayer } from "@/components/ai/agent-shader-player";
-import { AiGridBand } from "@/components/site/page-geometry";
 import { Button } from "@/components/ui/button";
 import { getRequestTranslations } from "@/lib/server-i18n";
 import { cn } from "@/lib/utils";
@@ -58,7 +57,7 @@ function AgentSection({
             <span className="font-medium text-muted-foreground">{status}</span>
           </div>
           <div className="mt-6 aspect-[36/23] w-full border-y border-border bg-background text-foreground">
-            <AgentShaderPlayer key={agent} agent={agent} labels={shaderLabels} />
+            <AgentShaderPlayer agent={agent} labels={shaderLabels} />
           </div>
           <figcaption className="sr-only">{visualLabel}</figcaption>
         </figure>
@@ -110,16 +109,15 @@ export async function AiPageView() {
 
   return (
     <>
-      <section className="relative isolate overflow-hidden bg-background pt-20 pb-24 md:pt-28 md:pb-32">
-        <AiGridBand />
-        <div className="container relative z-10">
+      <section className="relative overflow-hidden bg-background pb-24 pt-20 md:pb-32 md:pt-28">
+        <div className="container">
           <div className="grid gap-12 lg:grid-cols-[1.15fr_0.85fr] lg:items-end lg:gap-20">
             <div>
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-                <p className="pip-eyebrow">{t("eyebrow")}</p>
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">{t("eyebrow")}</p>
                 <span className="text-xs text-muted-foreground">{t("announcement")}</span>
               </div>
-              <h1 className="mt-8 max-w-4xl text-4xl font-semibold tracking-[-0.03em] sm:text-5xl md:text-6xl lg:text-7xl">
+              <h1 className="mt-8 max-w-4xl text-4xl font-medium tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
                 {t("title")}
               </h1>
             </div>
@@ -186,7 +184,7 @@ export async function AiPageView() {
         reverse
       />
 
-      <section className="border-t border-border py-24 md:py-32">
+      <section className="border-t border-border section-y-tight">
         <div className="container">
           <div
             data-reveal=""

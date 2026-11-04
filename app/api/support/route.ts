@@ -1,10 +1,16 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
-import type { Where } from "payload";
 
-import { recordActivity } from "@/lib/activity-log";
+import { isUniqueConstraintError, recordActivity } from "@/lib/accounts";
 import { requireActiveCustomer } from "@/lib/cart";
-import { getPayloadClient, isPayloadUniqueError, withPayloadTransaction } from "@/lib/payload-native";
+import {
+  countOrdersExceptCart,
+  insertOrder,
+  insertOrderItem,
+  replaceOrderServices,
+} from "@/lib/commerce-data";
+import { withTransaction } from "@/lib/db";
+import { findServiceBySlugAny, getServicesByIds } from "@/lib/data";
 import { checkRateLimitAsync, getClientAddress, hashRateLimitIdentifier, retryAfterHeaders } from "@/lib/rate-limit";
 import { isJsonObject, readJsonBody } from "@/lib/request-body";
 import { isSameOriginRequest } from "@/lib/request-origin";
@@ -94,100 +100,71 @@ export async function POST(request: Request) {
   }
 
   try {
-    const payload = await getPayloadClient();
-    const serviceSelector: Where = serviceId
-      ? { or: [{ id: { equals: serviceId } }, { slug: { equals: serviceSlug || serviceId } }] }
-      : serviceSlug
-        ? { slug: { equals: serviceSlug } }
-        : { title: { equals: subject } };
-    const serviceResult = await payload.find({
-      collection: "services",
-      depth: 0,
-      limit: 1,
-      overrideAccess: true,
-      where: {
-        and: [
-          serviceSelector,
-          { isActive: { equals: true } },
-          { isPublished: { equals: true } },
-        ],
-      },
-    });
-    const matchedService = serviceResult.docs[0] ?? null;
+    // Услуга ищется по id или slug и должна быть активной и опубликованной.
+    const bySlug = serviceSlug ? await findServiceBySlugAny(serviceSlug) : null;
+    const candidates = serviceId
+      ? await getServicesByIds([serviceId])
+      : bySlug
+        ? [bySlug]
+        : [];
+    const matchedService =
+      candidates.find((service) => service.isActive && service.isPublished) ?? null;
     const itemTitle = matchedService?.title || subject || "Design inquiry";
     const estimatedAmount = matchedService?.basePrice ?? 0;
     const currency = matchedService?.currency ?? "RUB";
     const formattedCustomerNote = `Contact: ${firstName} ${lastName} <${email}>\nService: ${itemTitle}\n\n${message}`;
 
     let orderNumber = "";
+    const baseCount = await countOrdersExceptCart();
     for (let attempt = 0; attempt < 5; attempt += 1) {
-      const sequence = (await payload.count({ collection: "orders", overrideAccess: true })).totalDocs + 1 + attempt;
-      orderNumber = formatOrderNumber(sequence);
+      orderNumber = formatOrderNumber(baseCount + 1 + attempt);
       try {
-        await withPayloadTransaction(payload, async (req) => {
-          const order = await payload.create({
-            collection: "orders",
-            data: {
-              orderNumber,
-              number: orderNumber,
-              userId: customer.id,
-              status: "quote_requested",
-              estimatedAmount,
-              subtotal: 0,
-              discount: 0,
-              total: 0,
-              currency,
-              customerNote: formattedCustomerNote,
-            },
-            depth: 0,
-            overrideAccess: true,
-            req,
-          });
-          await payload.create({
-            collection: "order-items",
-            data: {
-              orderId: order.id,
-              serviceId: matchedService?.id ?? null,
-              itemType: "service",
-              itemId: matchedService?.id ?? "",
-              title: itemTitle,
-              quantity: 1,
-              estimatedUnitPrice: estimatedAmount,
-              unitPrice: 0,
-              totalPrice: 0,
-              optionsSnapshot: JSON.stringify([{
-                group: "Source",
-                option: "Contact Us form",
-                priceDelta: 0,
-                priceFactor: 1,
-              }]),
-            },
-            overrideAccess: true,
-            req,
-          });
+        await withTransaction(async (tx) => {
+          const order = await insertOrder({
+            userId: customer.id,
+            status: "quote_requested",
+            orderNumber,
+            number: orderNumber,
+            estimatedAmount,
+            subtotal: 0,
+            discount: 0,
+            total: 0,
+            currency,
+            customerNote: formattedCustomerNote,
+          }, tx);
+          await insertOrderItem({
+            orderId: order.id,
+            itemType: "service",
+            itemId: matchedService?.id ?? "",
+            serviceId: matchedService?.id ?? null,
+            title: itemTitle,
+            quantity: 1,
+            estimatedUnitPrice: estimatedAmount,
+            optionsSnapshot: JSON.stringify([{
+              group: "Source",
+              option: "Contact Us form",
+              priceDelta: 0,
+              priceFactor: 1,
+            }]),
+          }, tx);
           if (matchedService) {
-            await payload.create({
-              collection: "order-services",
-              data: { orderId: order.id, serviceId: matchedService.id, quantity: 1 },
-              overrideAccess: true,
-              req,
-            });
+            await replaceOrderServices(order.id, [{ serviceId: matchedService.id, quantity: 1 }], tx);
           }
-          await recordActivity(payload, req, {
+          await recordActivity({
             action: "create",
             entityType: "order",
             entityId: order.id,
             title: `${orderNumber} — ${itemTitle}`,
             actorId: customer.id,
-          });
+          }, tx);
         });
         break;
       } catch (error) {
-        if (!isPayloadUniqueError(error) || attempt === 4) throw error;
+        if (!isUniqueConstraintError(error) || attempt === 4) throw error;
       }
     }
 
-    revalidatePath("/admin/collections/orders");
+    revalidatePath("/admin/orders");
     revalidatePath("/admin");
     revalidatePath("/orders");
     revalidatePath("/cart");

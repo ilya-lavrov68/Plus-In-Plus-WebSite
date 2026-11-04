@@ -24,7 +24,7 @@ const Blogpost11 = ({
   navigationLabel = "Article navigation",
 }: Blogpost11Props) => {
   return (
-    <article className="py-24 md:py-32">
+    <article className="section-y">
       <div className="container">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
           <div className="lg:col-span-5">
@@ -42,7 +42,7 @@ const Blogpost11 = ({
             <h1 className="mt-4 text-4xl font-semibold tracking-tight md:text-5xl">
               {post.title}
             </h1>
-            <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
+            <p className="mt-6 text-lg leading-[1.75] text-muted-foreground">
               {post.lead}
             </p>
 
@@ -68,7 +68,7 @@ const Blogpost11 = ({
 
             {post.quote?.trim() ? (
               <figure className="rounded-xl border border-border bg-card p-6 md:p-8">
-                <blockquote className="text-lg leading-relaxed font-medium text-foreground">
+                <blockquote className="text-lg leading-[1.7] font-medium text-foreground">
                   &ldquo;{post.quote}&rdquo;
                 </blockquote>
                 {post.quoteAttribution && (
@@ -80,9 +80,9 @@ const Blogpost11 = ({
             ) : null}
 
             {!post.htmlContent && post.sections && post.sections.length > 0 ? (
-              <div className="mt-12 space-y-10">
+              <div className="mt-14 space-y-12">
                 {post.sections.map((section, idx) => (
-                  <section key={idx} className="space-y-4">
+                  <section key={idx} className="space-y-5">
                     <h2 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
                       {section.title}
                     </h2>
@@ -94,7 +94,7 @@ const Blogpost11 = ({
                     {section.paragraphs.map((paragraph, pIdx) => (
                       <p
                         key={pIdx}
-                        className="text-base leading-7 text-muted-foreground"
+                        className="text-base leading-[1.8] text-muted-foreground"
                       >
                         {paragraph}
                       </p>

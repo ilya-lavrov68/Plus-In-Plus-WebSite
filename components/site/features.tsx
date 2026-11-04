@@ -5,7 +5,6 @@ export async function Features() {
   const t = await getRequestTranslations("features");
   return (
     <Feature314
-      eyebrow={t("eyebrow")}
       heading={t("heading")}
       button={{ text: t("button"), url: "/contact" }}
       smallCards={[

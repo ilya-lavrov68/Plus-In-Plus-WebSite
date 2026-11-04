@@ -4,7 +4,6 @@ const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
-const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
 
 for (const extension of [".ts", ".tsx"]) {
   require.extensions[extension] = (module, filename) =>
@@ -28,24 +27,27 @@ let publishedPosts = [];
 let settingRows = [];
 let settingQueries = [];
 
-const db = {
-  product: {
-    findMany: async ({ where } = {}) =>
-      productRows.filter((row) => !where?.isActive || row.isActive),
-    count: async ({ where } = {}) =>
-      productRows.filter((row) => !where?.isActive || row.isActive).length,
-  },
-  siteSetting: {
-    findMany: async (query) => {
-      settingQueries.push(structuredClone(query));
-      return structuredClone(settingRows);
-    },
-  },
-};
 
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/payload-native") return createNativeModuleMock(db);
+  if (name === "@/lib/db") {
+    const real = originalLoad.call(this, path.join(__dirname, "..", "lib", "db.ts"), parent, isMain);
+    return {
+      ...real,
+      // Настройки читаются SQL-запросом с allowlist в параметрах.
+      rows: async (sql, args = []) => {
+        const query = String(sql).replace(/\s+/g, " ");
+        // Счётчик товаров для sitemap идёт тем же SQL-слоем.
+        if (query.includes("count(*)" ) && query.includes("from products")) {
+          return [{ total: productRows.filter((row) => row.isActive).length }];
+        }
+        if (!query.includes("from site_settings")) return [];
+        settingQueries.push({ sql: query, args });
+        const allowed = new Set(args.map(String));
+        return structuredClone(settingRows.filter((row) => allowed.has(row.key)));
+      },
+    };
+  }
   if (name === "@/lib/request-locale") {
     return { getRequestLocale: async () => "en" };
   }
@@ -57,6 +59,7 @@ Module._load = function (name, parent, isMain) {
   }
   if (name === "@/lib/seo") {
     return {
+      SITE_URL: new URL("https://example.test"),
       absoluteUrl: (value) => new URL(value, "https://example.test").toString(),
       createPageMetadata: (options) => ({
         title: options.title,
@@ -69,6 +72,26 @@ Module._load = function (name, parent, isMain) {
       getSitemapServices: async () => publishedServices,
       getSitemapPosts: async () => publishedPosts,
       serviceHref: (service) => `/shop/${encodeURIComponent(service.slug || service.id)}`,
+    };
+  }
+  if (name === "@/lib/commerce-data") {
+    const real = originalLoad.call(this, path.join(__dirname, "..", "lib", "commerce-data.ts"), parent, isMain);
+    return {
+      ...real,
+      // Каталог читает активные товары один раз и маппит их в карточки.
+      listActiveProducts: async () =>
+        productRows.filter((row) => row.isActive).map((row) => ({
+          id: row.id,
+          name: row.name,
+          slug: row.slug,
+          description: row.description,
+          price: row.price,
+          coverImage: row.coverImage,
+          cover: { url: row.coverImage },
+          category: row.category,
+          stock: row.stock,
+          isActive: row.isActive,
+        })),
     };
   }
   if (name === "@/components/site/shop-catalog-view") {
@@ -86,6 +109,7 @@ Module._load = function (name, parent, isMain) {
 const shopPage = require("../app/(site)/shop/(index)/page.tsx");
 const aiPage = require("../app/(site)/ai/page.tsx");
 const sitemap = require("../app/(site)/sitemap.ts").default;
+const robots = require("../app/robots.ts").default;
 const { getPublicSiteSettings } = require("../lib/public-site-settings.ts");
 const {
   normalizePublicSiteSettings,
@@ -206,8 +230,9 @@ test("public site settings apply only validated non-secret values", async () => 
   assert.equal(settings.vkUrl, "https://vk.com/plusinplus");
   assert.equal(settings.telegramUrl, undefined);
   assert.equal(JSON.stringify(settings).includes("must-not-leak"), false);
-  assert.deepEqual(settingQueries[0].where.key.in, [...PUBLIC_SITE_SETTING_KEYS]);
-  assert.deepEqual(settingQueries[0].select, { key: true, value: true });
+  assert.match(settingQueries[0].sql, /from site_settings/);
+  assert.deepEqual(settingQueries[0].args, [...PUBLIC_SITE_SETTING_KEYS]);
+  assert.equal(settingQueries[0].args.includes("robokassaPassword1"), false);
 
   const normalized = normalizePublicSiteSettings([
     { key: "contactEmail", value: "not-an-email" },
@@ -224,9 +249,34 @@ test("public settings have a server-only loader and are wired to metadata and th
   const footer = fs.readFileSync(path.resolve(__dirname, "../components/site/footer.tsx"), "utf8");
 
   assert.equal(shared.includes("@/lib/payload-db"), false);
-  assert.ok(loader.includes("@/lib/payload-native"));
+  // Загрузчик читает SQLite напрямую и не зависит от CMS-слоя.
+  assert.ok(loader.includes("@/lib/db"));
+  assert.equal(loader.includes("@/lib/payload-native"), false);
   assert.ok(layout.includes("getPublicSiteSettings"));
   assert.ok(layout.includes("settings.metaTitle"));
   assert.ok(footer.includes("getPublicSiteSettings"));
   assert.ok(footer.includes("settings.vkUrl"));
+});
+
+test("robots.txt is generated from the app root, not from a route group", () => {
+  const root = path.resolve(__dirname, "..");
+  // Next.js регистрирует `robots` только на верхнем уровне app/: файл внутри
+  // группы `(site)` собирается, но маршрут `/robots.txt` не появляется и
+  // страница отдаёт 404 — именно так и было до этого теста.
+  assert.equal(fs.existsSync(path.join(root, "app", "robots.ts")), true, "app/robots.ts must exist");
+  for (const group of ["(site)", "(admin)"]) {
+    assert.equal(
+      fs.existsSync(path.join(root, "app", group, "robots.ts")),
+      false,
+      `robots.ts inside app/${group} is never served`,
+    );
+  }
+
+  const rules = robots();
+  const disallow = Array.isArray(rules.rules) ? rules.rules.flatMap((rule) => rule.disallow ?? []) : rules.rules.disallow;
+  assert.ok(disallow.includes("/admin/"), "the panel must stay out of search results");
+  assert.ok(disallow.includes("/api/auth/"), "auth endpoints must stay out of search results");
+  assert.equal(rules.rules.allow ?? rules.rules[0]?.allow, "/");
+  assert.equal(rules.host, "https://example.test", "the host directive points at the public origin");
+  assert.equal(String(rules.sitemap), "https://example.test/sitemap.xml");
 });

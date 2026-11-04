@@ -3,7 +3,7 @@ import { XCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getPayloadClient } from "@/lib/payload-native";
+import { findPaymentByExternalId } from "@/lib/commerce-data";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getRequestTranslations } from "@/lib/server-i18n";
 
@@ -36,16 +36,7 @@ export default async function PaymentFailPage({ searchParams }: PaymentPageProps
   let alreadyPaid = false;
   if (invId) {
     try {
-      const payload = await getPayloadClient();
-      const result = await payload.find({
-        collection: "payments",
-        depth: 0,
-        limit: 1,
-        overrideAccess: true,
-        select: { status: true },
-        where: { and: [{ externalId: { equals: invId } }, { provider: { equals: "robokassa" } }] },
-      });
-      alreadyPaid = result.docs[0]?.status === "succeeded";
+      alreadyPaid = (await findPaymentByExternalId(invId, "robokassa"))?.status === "succeeded";
     } catch {
       alreadyPaid = false;
     }

@@ -1,6 +1,7 @@
 import { CredentialsSignin } from "next-auth";
 import bcrypt from "bcryptjs";
 import { verifyAuthenticationResponse } from "@simplewebauthn/server";
+import { consumeBackupCode, findAccountWithPasskeysByEmail, updatePasskeyCounter } from "@/lib/accounts";
 import { isAuthConfigured } from "@/lib/auth-secret";
 import { rotateAuthSession } from "@/lib/auth-sessions";
 import { parseJsonArray } from "@/lib/db-helpers";
@@ -11,16 +12,11 @@ import {
   readPendingLogin,
   recordPendingLoginFailure,
 } from "@/lib/pending-login";
-import { getPayloadClient } from "@/lib/payload-native";
 import { checkRateLimitAsync, getClientAddress, hashRateLimitIdentifier, progressiveLoginDelayMs } from "@/lib/rate-limit";
 import { logSecurityEvent, logServerError } from "@/lib/security-log";
 import { localAvatarPath } from "@/lib/upload-policy";
 import { profileName, type UserRole } from "@/lib/user-profile";
 import { webAuthnConfigFromRequest } from "@/lib/webauthn-config";
-import type { Account, WebauthnCredential } from "@/payload/payload-types";
-
-type CredentialsAccount = Account & { webAuthnCredentials: WebauthnCredential[] };
-
 type AuthenticationResponseJSON = Parameters<typeof verifyAuthenticationResponse>[0]["response"];
 
 const MAX_WEBAUTHN_RESPONSE_LENGTH = 16_384;
@@ -140,7 +136,6 @@ async function authorizePendingLogin(
   }
   const pending = await readPendingLogin(pendingLoginId, pendingLoginSecret);
   if (!pending) return null;
-  const payload = await getPayloadClient();
 
   let verified = false;
   const rawResponse = credentials.webAuthnResponse;
@@ -170,15 +165,7 @@ async function authorizePendingLogin(
           },
         });
         if (verification.verified) {
-          await payload.update({
-            collection: "webauthn-credentials",
-            id: stored.id,
-            data: {
-              counter: String(verification.authenticationInfo.newCounter),
-              lastUsedAt: new Date().toISOString(),
-            },
-            overrideAccess: true,
-          });
+          await updatePasskeyCounter(stored.id, String(verification.authenticationInfo.newCounter));
           verified = true;
         }
       } catch (error) {
@@ -192,23 +179,7 @@ async function authorizePendingLogin(
     } else {
       const normalized = normalizeBackupCode(code);
       if (normalized.length === 12) {
-        const backupResult = await payload.find({
-          collection: "mfa-backup-codes",
-          depth: 0,
-          limit: 1,
-          overrideAccess: true,
-          where: { and: [{ userId: { equals: pending.user.id } }, { codeHash: { equals: hashBackupCode(normalized) } }, { usedAt: { exists: false } }] },
-        });
-        const backup = backupResult.docs[0];
-        if (backup) {
-          const consumed = await payload.update({
-            collection: "mfa-backup-codes",
-            data: { usedAt: new Date().toISOString() },
-            overrideAccess: true,
-            where: { and: [{ id: { equals: backup.id } }, { usedAt: { exists: false } }] },
-          });
-          verified = consumed.docs.length === 1;
-        }
+        verified = await consumeBackupCode(pending.user.id, hashBackupCode(normalized));
       }
     }
   }
@@ -261,22 +232,9 @@ export async function authorizeCredentials(
     return null;
   }
 
-  let account: CredentialsAccount | null = null;
+  let account: Awaited<ReturnType<typeof findAccountWithPasskeysByEmail>> = null;
   try {
-    const payload = await getPayloadClient();
-    const result = await payload.find({
-      collection: "accounts",
-      depth: 0,
-      limit: 1,
-      overrideAccess: true,
-      showHiddenFields: true,
-      where: { email: { equals: email } },
-    });
-    const found = result.docs[0] as Account | undefined;
-    const passkeys = found
-      ? await payload.find({ collection: "webauthn-credentials", depth: 0, limit: 1, overrideAccess: true, where: { userId: { equals: found.id } } })
-      : { docs: [] };
-    account = found ? { ...found, webAuthnCredentials: passkeys.docs as WebauthnCredential[] } : null;
+    account = await findAccountWithPasskeysByEmail(email);
   } catch (error) {
     logServerError("auth.credentials.lookup_failed", error);
     await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
@@ -292,7 +250,7 @@ export async function authorizeCredentials(
 
   const hasTotp = Boolean(account.mfaSecret);
   const hasPasskeys = account.webAuthnCredentials.length > 0;
-  const desiredRole: UserRole = adminMode && isStaffRole ? account.role as UserRole : "USER";
+  const desiredRole: UserRole = adminMode && isStaffRole ? account.role : "USER";
 
   // Staff without MFA may still enter ordinary customer mode to enroll. Admin
   // mode deliberately receives only a USER session until enrollment completes.

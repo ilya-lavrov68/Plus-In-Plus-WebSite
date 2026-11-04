@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { resolveDatabaseConfig } from "@/lib/database";
-import { queryPayloadRows } from "@/lib/payload-native";
+import { rows as queryPayloadRows } from "@/lib/db";
 import { logServerError } from "@/lib/security-log";
 
 /** Безопасный deployment check: только booleans и имена отсутствующих таблиц. */
@@ -33,7 +33,7 @@ export async function GET() {
       {
         status: "unavailable",
         database: "not-configured",
-        hint: "Set PAYLOAD_DATABASE_URL (and PAYLOAD_DATABASE_AUTH_TOKEN for remote libSQL) and redeploy.",
+        hint: "Set DATABASE_URL (and DATABASE_AUTH_TOKEN for remote libSQL) and redeploy.",
       },
       { status: 503 },
     );
@@ -49,23 +49,23 @@ export async function GET() {
       return NextResponse.json(
         {
           status: "schema-out-of-date",
-          database: { driver: "payload-sqlite", remote: config.remote, missingTables: missing },
-          hint: "Run `npm run payload:migrate` against this database.",
+          database: { driver: "libsql", remote: config.remote, missingTables: missing },
+          hint: "Run `npm run db:migrate` against this database.",
         },
         { status: 503 },
       );
     }
     return NextResponse.json({
       status: "ok",
-      database: { driver: "payload-sqlite", remote: config.remote, tables: REQUIRED_TABLES.length },
+      database: { driver: "libsql", remote: config.remote, tables: REQUIRED_TABLES.length },
     });
   } catch (error) {
     logServerError("health.check_failed", error);
     return NextResponse.json(
       {
         status: "unavailable",
-        database: { driver: "payload-sqlite", remote: config.remote, reachable: false },
-        hint: "Check PAYLOAD_DATABASE_URL / PAYLOAD_DATABASE_AUTH_TOKEN and the libSQL database.",
+        database: { driver: "libsql", remote: config.remote, reachable: false },
+        hint: "Check DATABASE_URL / DATABASE_AUTH_TOKEN and the libSQL database.",
       },
       { status: 503 },
     );

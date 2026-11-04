@@ -5,7 +5,6 @@ import { useLocale, useTranslations } from "next-intl";
 
 import { AddToCartButton } from "@/components/site/add-to-cart-button";
 import { Badge } from "@/components/ui/badge";
-import { ShopSideGrid } from "@/components/site/page-geometry";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -31,8 +30,7 @@ export function ShopCatalogView({
 
   if (products.length === 0) {
     return (
-      <div className="relative isolate flex min-h-[60vh] items-center justify-center overflow-hidden px-4 py-24">
-        <ShopSideGrid />
+      <div className="flex min-h-[60vh] items-center justify-center px-4 py-24">
         <div className="text-center">
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
             {tShop("comingSoonTitle")}
@@ -54,15 +52,14 @@ export function ShopCatalogView({
   }
 
   return (
-    <div className="container relative isolate py-24 md:py-32">
-      <ShopSideGrid />
+    <div className="container section-y">
       <div className="border-b border-border/60 pb-10">
         <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
           {tShop("pageTitle")}
         </h1>
       </div>
 
-      <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-14 grid grid-cols-1 gap-7 md:grid-cols-2 lg:grid-cols-4">
         {products.map((product) => (
           <Card
             key={product.id}
@@ -95,7 +92,7 @@ export function ShopCatalogView({
 
             <CardContent className="flex flex-1 flex-col justify-between pt-0">
               {product.description ? (
-                <p className="mb-5 text-sm leading-relaxed text-muted-foreground">
+                <p className="mb-6 text-sm leading-[1.65] text-muted-foreground">
                   {product.description}
                 </p>
               ) : (

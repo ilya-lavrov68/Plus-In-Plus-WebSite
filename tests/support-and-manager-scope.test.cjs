@@ -1,68 +1,36 @@
 const assert = require("node:assert/strict");
-const { test, beforeEach } = require("node:test");
+const { after, before, beforeEach, test } = require("node:test");
 const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
 const ts = require("typescript");
-const { createNativeModuleMock } = require("./helpers/native-payload-mock.cjs");
+const { createTestDatabase } = require("./helpers/test-db.cjs");
 
-require.extensions[".ts"] = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename, "utf8"), {
-  compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true, target: ts.ScriptTarget.ES2022 },
-}).outputText, filename);
+require.extensions[".ts"] = (module, filename) =>
+  module._compile(
+    ts.transpileModule(fs.readFileSync(filename, "utf8"), {
+      compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true, target: ts.ScriptTarget.ES2022 },
+    }).outputText,
+    filename,
+  );
 
 let customer;
-let staff;
-let orders;
-let activities;
-let userCreates;
-let serviceWhere;
-let orderItems;
-let orderServices;
+let database;
 let addressSequence = 10;
-
-const db = {
-  user: {
-    create: async () => { userCreates += 1; throw new Error("support must never create accounts"); },
-  },
-  service: {
-    findFirst: async ({ where }) => {
-      serviceWhere = where;
-      return { id: "service-1", title: "Sign Design", basePrice: 1000, currency: "RUB", isActive: true, isPublished: true };
-    },
-  },
-  order: {
-    count: async () => 0,
-    create: async ({ data }) => { orders.push(structuredClone(data)); return { id: "order-1", ...data }; },
-  },
-  orderItem: {
-    create: async ({ data }) => { orderItems.push(structuredClone(data)); return { id: "item-1", ...data }; },
-  },
-  orderService: {
-    create: async ({ data }) => { orderServices.push(structuredClone(data)); return { id: "link-1", ...data }; },
-  },
-  activityLog: {
-    create: async ({ data }) => { activities.push(structuredClone(data)); return data; },
-  },
-  transaction: async (callback) => callback(db),
-};
 
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "@/lib/payload-native") return createNativeModuleMock(db);
   if (name === "@/lib/cart") return { requireActiveCustomer: async () => customer };
-  if (name === "@/lib/admin-session") return {
-    requireStaff: async () => staff,
-    requireAdmin: async () => null,
-    requireFounder: async () => null,
-  };
   if (name === "next/cache") return { revalidatePath: () => {} };
-  if (name === "next/navigation") return { redirect: (target) => { throw new Error(`redirect:${target}`); } };
+  if (name === "next/navigation") {
+    return { redirect: (target) => { throw new Error(`redirect:${target}`); } };
+  }
   if (name.startsWith("@/")) name = path.resolve(__dirname, "..", name.slice(2));
   return originalLoad.call(this, name, parent, isMain);
 };
 
 const { POST: postSupport } = require("../app/api/support/route.ts");
-const { readAccounts, readSubmittedOrders } = require("../payload/access.ts");
+const { getOrders } = require("../lib/admin-queries.ts");
 
 function supportRequest(email = "form@example.com") {
   return new Request("http://localhost/api/support", {
@@ -83,46 +51,95 @@ function supportRequest(email = "form@example.com") {
   });
 }
 
-beforeEach(() => {
+before(async () => {
+  database = createTestDatabase("pip-support-");
+  await database.ready;
+});
+
+after(async () => {
+  await database?.close();
+});
+
+beforeEach(async () => {
   customer = null;
-  staff = { id: "manager-1", role: "MANAGER" };
-  orders = [];
-  activities = [];
-  userCreates = 0;
-  serviceWhere = null;
-  orderItems = [];
-  orderServices = [];
+  await database.reset();
+  const now = new Date().toISOString();
+  await database.exec(
+    `insert into accounts (id, email, password_hash, role, is_blocked, created_at, updated_at)
+     values ('customer-1', 'session@example.com', 'hash', 'USER', 0, ?, ?)`,
+    [now, now],
+  );
+  await database.exec(
+    `insert into services (id, title, slug, category, short_desc, full_desc, result_text, base_price, price_type,
+       currency, is_orderable, is_published, is_active, sort_order, created_at, updated_at)
+     values ('service-1', 'Sign Design', 'sign-design', 'small', 'Short', 'Full', 'Result', 100000, 'from',
+       'RUB', 1, 1, 1, 0, ?, ?)`,
+    [now, now],
+  );
 });
 
 test("guest support requests are rejected without account or order creation", async () => {
   const response = await postSupport(supportRequest());
   assert.equal(response.status, 401);
-  assert.equal(orders.length, 0);
-  assert.equal(userCreates, 0);
-  assert.equal(serviceWhere, null);
+  const orders = await database.rows("select id from orders");
+  assert.deepEqual(orders, [], "a guest cannot create an order");
+  const accounts = await database.rows("select id from accounts");
+  assert.equal(accounts.length, 1, "support never creates accounts");
 });
 
 test("support links only to the authenticated customer and only eligible services", async () => {
-  customer = { id: "session-customer", email: "session@example.com" };
+  customer = { id: "customer-1", email: "session@example.com" };
   const response = await postSupport(supportRequest("somebody-else@example.com"));
   assert.equal(response.status, 200);
-  assert.equal(orders.length, 1);
-  assert.equal(orders[0].userId, "session-customer");
-  assert.equal(activities[0].actorId, "session-customer");
-  assert.equal(userCreates, 0);
-  assert.equal(serviceWhere.isActive, true);
-  assert.equal(serviceWhere.isPublished, true);
-  assert.equal(orderItems[0].itemId, "service-1");
-  assert.equal(orderItems[0].orderId, "order-1");
-  assert.equal(orderServices[0].serviceId, "service-1");
+  const body = await response.json();
+  assert.match(body.orderNumber, /^ПИП-\d{6}$/);
+
+  const order = await database.one("select id, user_id_id, status, estimated_amount, customer_note from orders");
+  assert.equal(order.user_id_id, "customer-1", "the order belongs to the session, not to the typed email");
+  assert.equal(order.status, "quote_requested");
+  assert.equal(Number(order.estimated_amount), 100000);
+  assert.match(String(order.customer_note), /somebody-else@example\.com/);
+
+  const item = await database.one("select order_id_id, service_id_id, title, quantity from order_items");
+  assert.equal(item.order_id_id, order.id);
+  assert.equal(item.service_id_id, "service-1");
+  assert.equal(item.title, "Sign Design");
+  assert.equal(Number(item.quantity), 1);
+
+  const link = await database.one("select order_id_id, service_id_id from order_services");
+  assert.equal(link.service_id_id, "service-1");
+
+  const activity = await database.one("select actor_id_id, entity_type, entity_id from activity_logs");
+  assert.equal(activity.actor_id_id, "customer-1");
+  assert.equal(activity.entity_type, "order");
+  assert.equal(activity.entity_id, order.id);
 });
 
-test("manager Payload scope excludes the customer directory and every cart", () => {
-  const manager = { req: { user: { id: "manager-1", collection: "accounts", role: "MANAGER" } } };
-  const admin = { req: { user: { id: "admin-1", collection: "accounts", role: "ADMIN" } } };
-  assert.equal(readAccounts(manager), false);
-  assert.equal(readAccounts(admin), true);
-  assert.deepEqual(readSubmittedOrders(manager), { status: { not_equals: "cart" } });
-  assert.deepEqual(readSubmittedOrders(admin), { status: { not_equals: "cart" } });
-  assert.equal(readSubmittedOrders({ req: { user: null } }), false);
+test("an unpublished or inactive service never becomes an order line", async () => {
+  customer = { id: "customer-1", email: "session@example.com" };
+  await database.exec("update services set is_published = 0 where id = 'service-1'");
+  const response = await postSupport(supportRequest());
+  assert.equal(response.status, 200);
+  const item = await database.one("select service_id_id, title from order_items");
+  assert.equal(item.service_id_id, null, "the request is kept as a plain inquiry");
+  assert.equal(item.title, "Sign Design", "the typed subject still labels the request");
+  const links = await database.rows("select id from order_services");
+  assert.deepEqual(links, []);
+});
+
+test("the manager board never lists carts or another customer's draft", async () => {
+  const now = new Date().toISOString();
+  await database.exec(
+    `insert into orders (id, order_number, number, user_id_id, cart_key, status, created_at, updated_at)
+     values ('cart-1', null, null, 'customer-1', 'customer-1', 'cart', ?, ?)`,
+    [now, now],
+  );
+  await database.exec(
+    `insert into orders (id, order_number, number, user_id_id, status, created_at, updated_at)
+     values ('order-1', 'ПИП-000001', 'ПИП-000001', 'customer-1', 'quote_requested', ?, ?)`,
+    [now, now],
+  );
+  const listed = await getOrders();
+  assert.deepEqual(listed.map((row) => row.id), ["order-1"]);
+  assert.equal(listed[0].customer, "", "an account without a name is not turned into a fake one");
 });
