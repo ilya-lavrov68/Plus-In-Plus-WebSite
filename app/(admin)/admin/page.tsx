@@ -13,7 +13,7 @@ import {
   getTrafficSources,
   getTrafficSummary,
 } from "@/lib/admin-analytics";
-import { getActivity, getContentCounts, getOrders, getRevenueSeries } from "@/lib/admin-queries";
+import { getActivity, getContentCounts, getOrderStatusCounts, getOrders, getRevenueSeries } from "@/lib/admin-queries";
 import { requireStaff } from "@/lib/admin-session";
 import { getRequestLocale } from "@/lib/request-locale";
 
@@ -23,7 +23,7 @@ export default async function AdminOverviewPage() {
   const t = adminLabels(locale);
   const isAdmin = Boolean(staff?.isAdmin);
 
-  const [orderStats, traffic, daily, topPages, sources, devices, recentOrders, counts, revenue, activity] =
+  const [orderStats, traffic, daily, topPages, sources, devices, recentOrders, counts, revenue, activity, statusCounts] =
     await Promise.all([
       getOrderStats(),
       isAdmin ? getTrafficSummary(30) : null,
@@ -35,6 +35,7 @@ export default async function AdminOverviewPage() {
       isAdmin ? getContentCounts() : null,
       isAdmin ? getRevenueSeries(14) : null,
       isAdmin ? getActivity(6) : null,
+      getOrderStatusCounts(),
     ]);
 
   const money = new Intl.NumberFormat(locale === "ru" ? "ru-RU" : "en-GB", {
@@ -57,7 +58,7 @@ export default async function AdminOverviewPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <AdminPageHeader eyebrow="Plus In Plus" title={t.overview.title} description={t.overview.subtitle} />
+      <AdminPageHeader title={t.overview.title} description={t.overview.subtitle} />
 
       <section aria-label={t.overview.title} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label={t.overview.queue} value={number.format(orderStats.queue)} hint={t.overview.queueHint} accent />
@@ -163,6 +164,15 @@ export default async function AdminOverviewPage() {
         </SectionCard>
 
         <div className="flex flex-col gap-4">
+          <SectionCard title={t.overview.statusTitle} description={t.overview.statusHint}>
+            <BarList
+              items={statusCounts
+                .filter((item) => item.count > 0)
+                .map((item) => ({ label: statusLabel(item.status), value: item.count }))}
+              emptyLabel={t.overview.empty}
+              formatValue={(value) => number.format(value)}
+            />
+          </SectionCard>
           {isAdmin && sources ? (
             <SectionCard title={t.overview.sourcesTitle}>
               <BarList
