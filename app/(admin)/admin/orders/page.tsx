@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { adminLabels } from "@/components/admin/labels";
+import { AdminPageHeader, adminFilledButtonClass, adminSelectClass } from "@/components/admin/ui";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getOrders, getOrderStatusCounts } from "@/lib/admin-queries";
@@ -33,21 +34,20 @@ export default async function AdminOrdersPage({
     timeStyle: "short",
   });
   const canEdit = Boolean(staff?.isAdmin);
+  const activeChipClass =
+    "inline-flex items-center gap-1.5 rounded-full bg-secondary-container px-3.5 py-1.5 text-xs font-medium text-on-secondary-container transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
+  const inactiveChipClass =
+    "inline-flex items-center gap-1.5 rounded-full bg-surface-container px-3.5 py-1.5 text-xs text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold sm:text-3xl">{t.orders.title}</h1>
-        <p className="text-sm text-muted-foreground">{t.orders.subtitle}</p>
-      </header>
+      <AdminPageHeader title={t.orders.title} description={t.orders.subtitle} />
 
       <nav aria-label={t.orders.filter} className="flex flex-wrap gap-2">
         <Link
           href="/admin/orders"
           aria-current={filter ? undefined : "page"}
-          className={`border px-3 py-1.5 text-xs ${
-            filter ? "border-border text-muted-foreground hover:text-foreground" : "border-brand-signal bg-muted text-foreground"
-          }`}
+          className={filter ? inactiveChipClass : activeChipClass}
         >
           {t.orders.all}
         </Link>
@@ -59,9 +59,7 @@ export default async function AdminOrdersPage({
               key={value}
               href={`/admin/orders?status=${value}`}
               aria-current={active ? "page" : undefined}
-              className={`border px-3 py-1.5 text-xs ${
-                active ? "border-brand-signal bg-muted text-foreground" : "border-border text-muted-foreground hover:text-foreground"
-              }`}
+              className={active ? activeChipClass : inactiveChipClass}
             >
               {t.statuses[value] ?? value} · {count}
             </Link>
@@ -82,7 +80,7 @@ export default async function AdminOrdersPage({
         <TableBody>
           {orders.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-muted-foreground">
+              <TableCell colSpan={5} className="text-on-surface-variant">
                 {t.table.empty}
               </TableCell>
             </TableRow>
@@ -92,9 +90,9 @@ export default async function AdminOrdersPage({
                 <TableCell className="font-medium">#{order.orderNumber}</TableCell>
                 <TableCell className="max-w-[220px]">
                   <span className="block truncate">{order.customer || "—"}</span>
-                  <span className="block truncate text-xs text-muted-foreground">{order.email}</span>
+                  <span className="block truncate text-xs text-on-surface-variant">{order.email}</span>
                 </TableCell>
-                <TableCell className="whitespace-nowrap text-muted-foreground">
+                <TableCell className="whitespace-nowrap text-on-surface-variant">
                   {order.createdAt ? dateTime.format(new Date(order.createdAt)) : "—"}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">{money.format(order.total)}</TableCell>
@@ -109,7 +107,7 @@ export default async function AdminOrdersPage({
                         id={`status-${order.id}`}
                         name="status"
                         defaultValue={order.status}
-                        className="h-9 border border-border bg-background px-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-signal"
+                        className={`${adminSelectClass} h-9 w-auto min-w-40 py-0 text-xs`}
                       >
                         {ORDER_STATUSES.map((value) => (
                           <option key={value} value={value}>
@@ -119,7 +117,7 @@ export default async function AdminOrdersPage({
                       </select>
                       <button
                         type="submit"
-                        className="h-9 border border-brand-signal bg-brand-signal px-3 text-sm font-medium text-[#12131B] transition-colors hover:bg-brand-signal-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-signal"
+                        className={`${adminFilledButtonClass} h-9 px-4 text-xs`}
                       >
                         {t.table.save}
                       </button>

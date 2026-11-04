@@ -174,6 +174,45 @@
   --color-destructive-foreground: hsl(var(--destructive-foreground));
   --color-destructive-text: hsl(var(--destructive-text));
 
+  /*
+   * Фирменный сигнальный цвет. Токен был нужен разметке админки
+   * (`outline-brand-signal`, `bg-brand-signal`), но не был объявлен: CSS для
+   * этих классов не генерировался, поэтому кнопки и фокус-рамки оставались
+   * невидимыми. Объявлен здесь, чтобы такие утилиты существовали.
+   */
+  --color-brand-signal: var(--brand-signal);
+  --color-brand-signal-strong: var(--brand-signal-strong);
+  --color-brand-ink: var(--brand-signal-ink);
+
+  /*
+   * Роли Material Design 3 для админ-панели. Значения задаются в `.admin-md`
+   * (см. ниже), поэтому публичный сайт сохраняет собственные токены.
+   */
+  --color-primary-container: var(--md-primary-container);
+  --color-on-primary-container: var(--md-on-primary-container);
+  --color-secondary-container: var(--md-secondary-container);
+  --color-on-secondary-container: var(--md-on-secondary-container);
+  --color-tertiary: var(--md-tertiary);
+  --color-on-tertiary: var(--md-on-tertiary);
+  --color-tertiary-container: var(--md-tertiary-container);
+  --color-on-tertiary-container: var(--md-on-tertiary-container);
+  --color-surface: var(--md-surface);
+  --color-surface-dim: var(--md-surface-dim);
+  --color-surface-bright: var(--md-surface-bright);
+  --color-surface-container-lowest: var(--md-surface-container-lowest);
+  --color-surface-container-low: var(--md-surface-container-low);
+  --color-surface-container: var(--md-surface-container);
+  --color-surface-container-high: var(--md-surface-container-high);
+  --color-surface-container-highest: var(--md-surface-container-highest);
+  --color-on-surface: var(--md-on-surface);
+  --color-on-surface-variant: var(--md-on-surface-variant);
+  --color-outline: var(--md-outline);
+  --color-outline-variant: var(--md-outline-variant);
+  --color-error: var(--md-error);
+  --color-on-error: var(--md-on-error);
+  --color-error-container: var(--md-error-container);
+  --color-on-error-container: var(--md-on-error-container);
+
   --radius-lg: 0.625rem;
   --radius-md: 0.5rem;
   --radius-sm: 0.375rem;
@@ -250,6 +289,13 @@
     --mobile-bottom-nav-height: 4.5rem;
     --mobile-bottom-nav-clearance: 0px;
 
+    --brand-signal: #ffff01;
+    --brand-signal-strong: #e6e601;
+    --brand-signal-ink: #12131b;
+    /* Цвета графиков: сигнальный жёлтый и вторичный periwinkle. */
+    --pip-signal: #ffff01;
+    --pip-violet: #8f9cfc;
+
     --hero-pillar-1: 60 100% 50%;
     --hero-pillar-2: 0 0% 32%;
     --hero-pillar-3: 0 0% 62%;
@@ -271,6 +317,96 @@
     --spectrum-radius-full: 9999px;
     --spectrum-duration-base: 200ms;
     --spectrum-ease: cubic-bezier(0, 0, 0.2, 1);
+  }
+
+  /*
+   * Material Design 3, dark scheme. Палитра выведена из фирменного жёлтого:
+   * primary — тон 80, on-primary — тон 20, поверхности — нейтральные тона
+   * 6–22. Все пары «текст на фоне» проверены на контраст ≥ 4.5:1, поэтому
+   * подписи и кнопки админки читаются, а не сливаются с фоном.
+   *
+   * Класс живёт только на <body> админки: публичный сайт сохраняет прежние
+   * токены и внешний вид.
+   */
+  .admin-md {
+    /* Primary — сигнальный жёлтый PIP в тональности MD3. */
+    --md-primary: #e6e32c;
+    --md-on-primary: #3a3a00;
+    --md-primary-container: #4d4d00;
+    --md-on-primary-container: #ffff9e;
+    --md-inverse-primary: #626200;
+
+    /* Secondary — приглушённая тёплая пара к жёлтому. */
+    --md-secondary: #cbc6a4;
+    --md-on-secondary: #33321c;
+    --md-secondary-container: #4a4931;
+    --md-on-secondary-container: #e8e3c0;
+
+    /* Tertiary — вторичный periwinkle бренда. */
+    --md-tertiary: #bbc3ff;
+    --md-on-tertiary: #202a60;
+    --md-tertiary-container: #384178;
+    --md-on-tertiary-container: #dde1ff;
+
+    /* Error. */
+    --md-error: #ffb4ab;
+    --md-on-error: #690005;
+    --md-error-container: #93000a;
+    --md-on-error-container: #ffdad6;
+
+    /* Поверхности и текст. */
+    --md-surface-dim: #101010;
+    --md-surface: #121212;
+    --md-surface-bright: #383838;
+    --md-surface-container-lowest: #0d0d0d;
+    --md-surface-container-low: #1a1a1a;
+    --md-surface-container: #1e1e1e;
+    --md-surface-container-high: #292929;
+    --md-surface-container-highest: #333333;
+    --md-on-surface: #e6e2e0;
+    --md-on-surface-variant: #cac5be;
+    --md-outline: #948f89;
+    --md-outline-variant: #625c54;
+    --md-inverse-surface: #e6e2e0;
+    --md-inverse-on-surface: #313030;
+
+    /* Графики админки берут роли MD3, а не хардкод. */
+    --pip-signal: var(--md-primary);
+    --pip-violet: var(--md-tertiary);
+
+    /* Существующие токены shadcn-компонентов внутри админки. */
+    --background: 0 0% 7.1%;
+    --foreground: 40 4% 89%;
+    --card: 0 0% 12%;
+    --card-foreground: 40 4% 89%;
+    --popover: 0 0% 16%;
+    --popover-foreground: 40 4% 89%;
+    --primary: var(--md-primary);
+    --primary-foreground: var(--md-on-primary);
+    --secondary: 58 19% 24%;
+    --secondary-foreground: 53 46% 83%;
+    --muted: 0 0% 16%;
+    --muted-foreground: 35 10% 77%;
+    --accent: 0 0% 20%;
+    --accent-foreground: 40 4% 89%;
+    --destructive: 6 100% 84%;
+    --destructive-foreground: 357 100% 21%;
+    --destructive-text: 6 100% 84%;
+    --border: 33 6% 36%;
+    --input: 33 7% 34%;
+    --ring: 59 79% 54%;
+
+    /* Форма MD3: мягкие радиусы вместо острых углов публичного сайта. */
+    --radius-sm: 0.5rem;
+    --radius-md: 0.75rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.25rem;
+    --radius-2xl: 1.5rem;
+  }
+
+  /* MD3-типографика админки: спокойные заголовки и читаемый label. */
+  .admin-md :where(h1, h2, h3, h4) {
+    letter-spacing: -0.01em;
   }
 
   @media (width < 1024px) {

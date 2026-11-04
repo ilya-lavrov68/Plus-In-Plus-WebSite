@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { AreaChart, BarList, ColumnChart } from "@/components/admin/charts";
 import { adminLabels } from "@/components/admin/labels";
+import { AdminPageHeader } from "@/components/admin/ui";
 import { SectionCard, StatCard } from "@/components/admin/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -57,11 +58,7 @@ export default async function AdminOverviewPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Plus In Plus</p>
-        <h1 className="text-2xl font-semibold sm:text-3xl">{t.overview.title}</h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">{t.overview.subtitle}</p>
-      </header>
+      <AdminPageHeader eyebrow="Plus In Plus" title={t.overview.title} description={t.overview.subtitle} />
 
       <section aria-label={t.overview.title} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label={t.overview.queue} value={number.format(orderStats.queue)} hint={t.overview.queueHint} accent />
@@ -110,12 +107,12 @@ export default async function AdminOverviewPage() {
                   ariaLabel={t.overview.revenueTitle}
                   formatValue={(value) => money.format(value)}
                 />
-                <p className="mt-3 text-xs text-muted-foreground">
+                <p className="mt-3 text-xs text-on-surface-variant">
                   {number.format(revenue.reduce((sum, point) => sum + point.revenue, 0))} ₽ · 14d
                 </p>
               </>
             ) : (
-              <p className="text-sm text-muted-foreground">{t.overview.revenueEmpty}</p>
+              <p className="text-sm text-on-surface-variant">{t.overview.revenueEmpty}</p>
             )}
           </SectionCard>
         </div>
@@ -128,7 +125,7 @@ export default async function AdminOverviewPage() {
           action={
             <Link
               href="/admin/orders"
-              className="whitespace-nowrap text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+              className="whitespace-nowrap text-xs text-on-surface-variant underline-offset-4 hover:text-on-surface hover:underline"
             >
               {t.overview.allOrders}
             </Link>
@@ -146,7 +143,7 @@ export default async function AdminOverviewPage() {
             <TableBody>
               {recentOrders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-muted-foreground">
+                  <TableCell colSpan={4} className="text-on-surface-variant">
                     {t.table.empty}
                   </TableCell>
                 </TableRow>
@@ -203,7 +200,7 @@ export default async function AdminOverviewPage() {
               <TableBody>
                 {!topPages || topPages.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-muted-foreground">
+                    <TableCell colSpan={4} className="text-on-surface-variant">
                       {t.overview.empty}
                     </TableCell>
                   </TableRow>
@@ -223,13 +220,13 @@ export default async function AdminOverviewPage() {
 
           <SectionCard title={t.overview.activityTitle}>
             {!activity || activity.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t.overview.empty}</p>
+              <p className="text-sm text-on-surface-variant">{t.overview.empty}</p>
             ) : (
               <ul className="flex flex-col gap-3">
                 {activity.map((entry) => (
-                  <li key={entry.id} className="border-b border-border pb-3 last:border-0 last:pb-0">
+                  <li key={entry.id} className="border-b border-outline-variant pb-3 last:border-0 last:pb-0">
                     <p className="text-sm">{entry.title}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
+                    <p className="mt-1 text-xs text-on-surface-variant">
                       {entry.action} · {entry.entityType} · {entry.createdAt.slice(0, 10)}
                     </p>
                   </li>

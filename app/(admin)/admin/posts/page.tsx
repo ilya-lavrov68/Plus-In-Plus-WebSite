@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { adminLabels } from "@/components/admin/labels";
+import { AdminPageHeader, adminFilledButtonClass } from "@/components/admin/ui";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getPosts } from "@/lib/admin-queries";
@@ -16,20 +17,17 @@ export default async function AdminPostsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-semibold sm:text-3xl">{t.posts.title}</h1>
-          <p className="text-sm text-muted-foreground">{t.posts.subtitle}</p>
-        </div>
-        {staff?.isAdmin ? (
-          <Link
-            href="/admin/posts/new"
-            className="inline-flex h-10 items-center border border-brand-signal bg-brand-signal px-4 text-sm font-medium text-[#12131B] transition-colors hover:bg-brand-signal-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-signal"
-          >
-            {t.post.create}
-          </Link>
-        ) : null}
-      </header>
+      <AdminPageHeader
+        title={t.posts.title}
+        description={t.posts.subtitle}
+        actions={
+          staff?.isAdmin ? (
+            <Link href="/admin/posts/new" className={adminFilledButtonClass}>
+              {t.post.create}
+            </Link>
+          ) : null
+        }
+      />
       <Table>
         <TableHeader>
           <TableRow>
@@ -43,7 +41,7 @@ export default async function AdminPostsPage() {
         <TableBody>
           {posts.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-muted-foreground">
+              <TableCell colSpan={5} className="text-on-surface-variant">
                 {t.table.empty}
               </TableCell>
             </TableRow>
@@ -51,10 +49,10 @@ export default async function AdminPostsPage() {
             posts.map((post) => (
               <TableRow key={post.id}>
                 <TableCell className="max-w-[420px] truncate font-medium">{post.title}</TableCell>
-                <TableCell className="whitespace-nowrap text-muted-foreground">
+                <TableCell className="whitespace-nowrap text-on-surface-variant">
                   {post.date ? date.format(new Date(post.date)) : "—"}
                 </TableCell>
-                <TableCell className="text-muted-foreground">{post.source}</TableCell>
+                <TableCell className="text-on-surface-variant">{post.source}</TableCell>
                 <TableCell>
                   <Badge variant={post.published ? "default" : "outline"}>
                     {post.published ? t.table.yes : t.table.no}
@@ -72,7 +70,7 @@ export default async function AdminPostsPage() {
                     ) : null}
                     <Link
                       href={`/blog/${post.slug}`}
-                      className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+                      className="text-xs text-on-surface-variant underline-offset-4 hover:underline"
                       target="_blank"
                       rel="noreferrer"
                     >

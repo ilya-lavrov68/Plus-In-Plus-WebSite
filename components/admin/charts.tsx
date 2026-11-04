@@ -68,7 +68,7 @@ export function AreaChart({
             x2={pad.left + innerWidth}
             y1={y(value)}
             y2={y(value)}
-            stroke="var(--border)"
+            stroke="hsl(var(--border))"
             strokeWidth="1"
             strokeDasharray={value === 0 ? undefined : "2 6"}
           />
@@ -99,9 +99,9 @@ export function AreaChart({
           </text>
         ))}
       </svg>
-      <figcaption className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-muted-foreground">
+      <figcaption className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-on-surface-variant">
         <span className="inline-flex items-center gap-2">
-          <span aria-hidden="true" className="inline-block h-0.5 w-4 bg-brand-signal" />
+          <span aria-hidden="true" className="inline-block h-0.5 w-4 bg-primary" />
           {primaryLabel}
         </span>
         {secondaryLabel ? (
@@ -126,17 +126,17 @@ export function BarList({
 }) {
   const max = Math.max(1, ...items.map((item) => item.value));
   if (items.length === 0) {
-    return <p className="text-sm text-muted-foreground">{emptyLabel}</p>;
+    return <p className="text-sm text-on-surface-variant">{emptyLabel}</p>;
   }
   return (
     <ul className="flex flex-col gap-3">
       {items.map((item) => (
         <li key={item.label} className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 gap-y-1">
           <span className="truncate text-sm">{item.label}</span>
-          <span className="text-sm tabular-nums text-muted-foreground">{formatValue(item.value)}</span>
-          <span aria-hidden="true" className="col-span-2 block h-1.5 w-full bg-muted">
+          <span className="text-sm tabular-nums text-on-surface-variant">{formatValue(item.value)}</span>
+          <span aria-hidden="true" className="col-span-2 block h-1.5 w-full bg-surface-container-high">
             <span
-              className="block h-full bg-brand-signal"
+              className="block h-full bg-primary"
               style={{ width: `${Math.max(2, Math.round((item.value / max) * 100))}%` }}
             />
           </span>
@@ -160,7 +160,7 @@ export function ColumnChart({
   const max = Math.max(1, ...data.map((point) => point.value));
   const total = data.reduce((sum, point) => sum + point.value, 0);
   if (data.length === 0) {
-    return <p className="text-sm text-muted-foreground">{ariaLabel}: 0</p>;
+    return <p className="text-sm text-on-surface-variant">{ariaLabel}: 0</p>;
   }
   return (
     <div
@@ -173,7 +173,7 @@ export function ColumnChart({
         <span
           key={point.label}
           title={`${point.label}: ${formatValue(point.value)}`}
-          className="flex-1 bg-brand-signal/70 transition-colors hover:bg-brand-signal"
+          className="flex-1 bg-primary/70 transition-colors hover:bg-primary"
           style={{ height: `${Math.max(2, Math.round((point.value / max) * 100))}%` }}
         />
       ))}

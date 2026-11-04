@@ -18,6 +18,7 @@ import {
 } from "@/lib/commerce-data";
 import { withTransaction, type DbTransaction } from "@/lib/db";
 import { findServiceById, getServicesByIds } from "@/lib/data";
+import { notifyNewOrder } from "@/lib/notifications";
 import { createOrderSchema } from "@/lib/validators";
 
 export interface QuoteActionResult {
@@ -218,6 +219,20 @@ export async function createOrder(data: CreateOrderInput) {
     }
   }
   if (!created) throw new Error(t("genericError"));
+
+  // Уведомление в Telegram — best-effort: заявка уже сохранена, поэтому сбой
+  // доставки не превращается в ошибку оформления, но и не теряется молча.
+  try {
+    await notifyNewOrder({
+      orderNumber: created.orderNumber,
+      services: orderedServices.map((service) => service.title),
+      amount: estimatedAmount,
+      customerEmail: customer.email,
+      deadline: parsedDeadline ? parsedDeadline.toISOString() : null,
+    });
+  } catch (error) {
+    console.warn("[orders] notification failed", (error as Error)?.name ?? "unknown");
+  }
 
   revalidatePath("/cart");
   return {

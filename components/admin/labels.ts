@@ -205,14 +205,51 @@ export function adminLabels(locale: RequestLocale) {
         ? "Публичные данные студии и ключи платёжного провайдера. Доступно только основателю."
         : "Public studio details and payment provider keys. Founder only.",
       saved: ru ? "Настройки сохранены." : "Settings saved.",
+      savedCount: ru ? "Сохранено изменений:" : "Changes saved:",
+      nothingChanged: ru
+        ? "Изменений нет — значения совпадают с сохранёнными."
+        : "Nothing changed — the values match what is already stored.",
+      errorPrefix: ru ? "Не сохранено:" : "Not saved:",
       secretSet: ru ? "уже задан — оставьте пустым, чтобы не менять" : "already set — leave empty to keep it",
       secretEmpty: ru ? "не задан" : "not set",
       secretHint: ru
         ? "Значение хранится в базе и никогда не показывается обратно."
         : "The value is stored in the database and never shown again.",
+      secretStatusSet: ru ? "задан" : "set",
+      secretStatusEmpty: ru ? "не задан" : "not set",
+      clearSecret: ru ? "Очистить сохранённое значение" : "Clear the stored value",
+      saveHint: ru
+        ? "Изменения применяются сразу: публичные поля — на сайте, ключи — в оплате и уведомлениях."
+        : "Changes apply immediately: public fields on the site, keys in payments and notifications.",
+      errors: {
+        required: ru ? "Заполните поле." : "This field is required.",
+        tooLong: ru ? "Значение слишком длинное." : "The value is too long.",
+        invalidEmail: ru ? "Нужен корректный e-mail, например name@studio.ru." : "Enter a valid e-mail, e.g. name@studio.ru.",
+        invalidUrl: ru ? "Нужен полный адрес http:// или https://." : "Enter a full http:// or https:// address.",
+        invalidPhone: ru ? "Телефон может содержать цифры, пробелы, +, -, точки и скобки." : "A phone may contain digits, spaces, +, -, dots and brackets.",
+        invalidValue: ru ? "Недопустимое значение для этого поля." : "This value is not allowed for the field.",
+        controlCharacters: ru ? "Уберите служебные символы из значения." : "Remove control characters from the value.",
+      } as Record<string, string>,
+      test: {
+        button: ru ? "Проверить отправку" : "Send a test",
+        ok: ru ? "Проверка прошла: тестовое сообщение отправлено в Telegram." : "Test passed: the message was delivered to Telegram.",
+        not_configured: ru
+          ? "Проверка не запущена: заполните токен бота и chat ID."
+          : "Nothing to test yet: fill in the bot token and chat ID.",
+        invalid_config: ru
+          ? "Telegram отклонил токен или chat ID. Проверьте значения."
+          : "Telegram rejected the token or chat ID. Check both values.",
+        network: ru
+          ? "Не удалось связаться с Telegram из этого окружения. Попробуйте позже."
+          : "Telegram is unreachable from this environment. Try again later.",
+        api: ru ? "Telegram вернул ошибку. Подробности — в журнале сервера." : "Telegram returned an error. See the server log.",
+      },
       groups: {
         public: {
           title: ru ? "Студия и SEO" : "Studio and SEO",
+          hint: ru
+            ? "Эти значения читает публичный сайт: заголовок вкладки, описание, подвал и контакты."
+            : "The public site reads these values: tab title, description, footer and contacts.",
           keys: [
             "studioName",
             "studioDescription",
@@ -235,7 +272,13 @@ export function adminLabels(locale: RequestLocale) {
         },
         notification: {
           title: ru ? "Уведомления" : "Notifications",
-          keys: ["notificationEmail", "telegramBotToken", "telegramChatId"],
+          hint: ru
+            ? "Telegram-бот присылает сообщение о каждой новой заявке. Кнопка проверки отправляет тестовое сообщение с текущими значениями формы."
+            : "The Telegram bot messages you about every new request. The test button sends a message using the values currently in the form.",
+          emailHint: ru
+            ? "E-mail сохранён как запасной контакт; отправку писем пока выполняет почтовый сервис хостинга, а не сайт."
+            : "The e-mail is stored as a fallback contact; sending is handled by the hosting mail service, not by the site.",
+          keys: ["telegramBotToken", "telegramChatId", "notificationEmail"],
         },
       },
       labels: {
@@ -252,7 +295,7 @@ export function adminLabels(locale: RequestLocale) {
         robokassaLogin: ru ? "Логин магазина" : "Merchant login",
         robokassaPassword1: ru ? "Пароль №1" : "Password #1",
         robokassaPassword2: ru ? "Пароль №2" : "Password #2",
-        robokassaTestMode: ru ? "Тестовый режим (1/0)" : "Test mode (1/0)",
+        robokassaTestMode: ru ? "Режим оплаты" : "Payment mode",
         robokassaHashAlgo: ru ? "Алгоритм подписи" : "Signature algorithm",
         notificationEmail: ru ? "E-mail уведомлений" : "Notification e-mail",
         telegramBotToken: ru ? "Токен Telegram-бота" : "Telegram bot token",

@@ -2,17 +2,21 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-/** Таблица shadcn-стиля в геометрии PIP: острые углы, hairline, без теней. */
+/**
+ * Таблица админки в тональности Material 3: поверхность `surface-container`,
+ * hairline-разделители `outline-variant`, без теней. Таблицы используются только
+ * в панели, поэтому стиль задан здесь, а не на каждой странице.
+ */
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
-    <div className="relative w-full overflow-x-auto">
-      <table className={cn("w-full caption-bottom text-sm", className)} {...props} />
+    <div className="relative w-full overflow-x-auto rounded-2xl bg-surface-container">
+      <table className={cn("w-full caption-bottom text-sm text-on-surface", className)} {...props} />
     </div>
   );
 }
 
 function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
-  return <thead className={cn("[&_tr]:border-b [&_tr]:border-border", className)} {...props} />;
+  return <thead className={cn("[&_tr]:border-b [&_tr]:border-outline-variant", className)} {...props} />;
 }
 
 function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
@@ -20,13 +24,13 @@ function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
 }
 
 function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
-  return <tfoot className={cn("border-t border-border font-medium", className)} {...props} />;
+  return <tfoot className={cn("border-t border-outline-variant font-medium", className)} {...props} />;
 }
 
 function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
   return (
     <tr
-      className={cn("border-b border-border transition-colors hover:bg-muted/40 data-[state=selected]:bg-muted", className)}
+      className={cn("border-b border-outline-variant transition-colors last:border-b-0 hover:bg-surface-container-high data-[state=selected]:bg-surface-container-highest", className)}
       {...props}
     />
   );
@@ -36,7 +40,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
   return (
     <th
       className={cn(
-        "h-10 px-3 text-left align-middle text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground",
+        "h-12 px-4 text-left align-middle text-[11px] font-medium uppercase tracking-[0.14em] text-on-surface-variant",
         className,
       )}
       {...props}
@@ -45,7 +49,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
 }
 
 function TableCell({ className, ...props }: React.ComponentProps<"td">) {
-  return <td className={cn("px-3 py-3 align-middle", className)} {...props} />;
+  return <td className={cn("px-4 py-3.5 align-middle", className)} {...props} />;
 }
 
 function TableCaption({ className, ...props }: React.ComponentProps<"caption">) {

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { adminLabels } from "@/components/admin/labels";
+import { AdminPageHeader, adminFilledButtonClass } from "@/components/admin/ui";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getServices } from "@/lib/admin-queries";
@@ -20,20 +21,17 @@ export default async function AdminServicesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-semibold sm:text-3xl">{t.services.title}</h1>
-          <p className="text-sm text-muted-foreground">{t.services.subtitle}</p>
-        </div>
-        {staff?.isAdmin ? (
-          <Link
-            href="/admin/services/new"
-            className="inline-flex h-10 items-center border border-brand-signal bg-brand-signal px-4 text-sm font-medium text-[#12131B] transition-colors hover:bg-brand-signal-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-signal"
-          >
-            {t.service.create}
-          </Link>
-        ) : null}
-      </header>
+      <AdminPageHeader
+        title={t.services.title}
+        description={t.services.subtitle}
+        actions={
+          staff?.isAdmin ? (
+            <Link href="/admin/services/new" className={adminFilledButtonClass}>
+              {t.service.create}
+            </Link>
+          ) : null
+        }
+      />
       <Table>
         <TableHeader>
           <TableRow>
@@ -48,7 +46,7 @@ export default async function AdminServicesPage() {
         <TableBody>
           {services.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-muted-foreground">
+              <TableCell colSpan={6} className="text-on-surface-variant">
                 {t.table.empty}
               </TableCell>
             </TableRow>
@@ -56,7 +54,7 @@ export default async function AdminServicesPage() {
             services.map((service) => (
               <TableRow key={service.id}>
                 <TableCell className="font-medium">{service.title}</TableCell>
-                <TableCell className="text-muted-foreground">{service.category}</TableCell>
+                <TableCell className="text-on-surface-variant">{service.category}</TableCell>
                 <TableCell className="text-right tabular-nums">
                   {service.priceType === "quote" ? t.table.quote : money.format(service.basePrice)}
                 </TableCell>
@@ -82,7 +80,7 @@ export default async function AdminServicesPage() {
                     ) : null}
                     <Link
                       href={`/services/${service.slug}`}
-                      className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+                      className="text-xs text-on-surface-variant underline-offset-4 hover:underline"
                       target="_blank"
                       rel="noreferrer"
                     >
