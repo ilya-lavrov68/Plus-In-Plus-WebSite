@@ -106,7 +106,7 @@ export function AreaChart({
         </span>
         {secondaryLabel ? (
           <span className="inline-flex items-center gap-2">
-            <span aria-hidden="true" className="inline-block h-0.5 w-4 bg-brand-violet" />
+            <span aria-hidden="true" className="inline-block h-0.5 w-4 bg-tertiary" />
             {secondaryLabel}
           </span>
         ) : null}

@@ -53,7 +53,7 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
 }
 
 function TableCaption({ className, ...props }: React.ComponentProps<"caption">) {
-  return <caption className={cn("mt-4 text-sm text-muted-foreground", className)} {...props} />;
+  return <caption className={cn("mt-4 text-sm text-on-surface-variant", className)} {...props} />;
 }
 
 export { Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow };

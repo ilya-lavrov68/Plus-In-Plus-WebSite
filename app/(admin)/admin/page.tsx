@@ -2,9 +2,8 @@ import Link from "next/link";
 
 import { AreaChart, BarList, ColumnChart } from "@/components/admin/charts";
 import { adminLabels } from "@/components/admin/labels";
-import { AdminPageHeader } from "@/components/admin/ui";
+import { AdminChip, AdminPageHeader } from "@/components/admin/ui";
 import { SectionCard, StatCard } from "@/components/admin/stat-card";
-import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   getDailySeries,
@@ -153,7 +152,7 @@ export default async function AdminOverviewPage() {
                     <TableCell className="font-medium">#{order.orderNumber}</TableCell>
                     <TableCell className="max-w-[180px] truncate">{order.customer || order.email || "—"}</TableCell>
                     <TableCell>
-                      <Badge variant="outline">{statusLabel(order.status)}</Badge>
+                      <AdminChip>{statusLabel(order.status)}</AdminChip>
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{money.format(order.total)}</TableCell>
                   </TableRow>

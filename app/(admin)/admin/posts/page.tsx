@@ -1,8 +1,7 @@
 import Link from "next/link";
 
 import { adminLabels } from "@/components/admin/labels";
-import { AdminPageHeader, adminFilledButtonClass } from "@/components/admin/ui";
-import { Badge } from "@/components/ui/badge";
+import { AdminChip, AdminPageHeader, adminFilledButtonClass } from "@/components/admin/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getPosts } from "@/lib/admin-queries";
 import { requireStaff } from "@/lib/admin-session";
@@ -54,9 +53,9 @@ export default async function AdminPostsPage() {
                 </TableCell>
                 <TableCell className="text-on-surface-variant">{post.source}</TableCell>
                 <TableCell>
-                  <Badge variant={post.published ? "default" : "outline"}>
+                  <AdminChip tone={post.published ? "primary" : "neutral"}>
                     {post.published ? t.table.yes : t.table.no}
-                  </Badge>
+                  </AdminChip>
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-4">

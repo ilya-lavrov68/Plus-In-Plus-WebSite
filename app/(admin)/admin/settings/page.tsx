@@ -226,7 +226,7 @@ export default async function AdminSettingsPage({
           </p>
         </AdminPanel>
 
-        <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-surface-container px-5 py-4">
+        <div className="sticky bottom-4 z-10 flex flex-wrap items-center gap-3 rounded-2xl border border-outline-variant bg-surface-container px-5 py-4">
           <button type="submit" className={adminFilledButtonClass}>
             {t.table.save}
           </button>

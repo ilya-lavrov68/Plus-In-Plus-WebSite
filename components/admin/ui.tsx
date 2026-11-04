@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 
 import { cn } from "@/lib/utils";
 
@@ -22,22 +23,37 @@ export const adminLabelClass = "flex flex-col gap-1.5 text-sm font-medium text-o
 export const adminHintClass = "text-xs leading-relaxed text-on-surface-variant";
 
 export const adminFieldsetClass =
-  "flex flex-col gap-5 rounded-2xl bg-surface-container p-5 sm:p-6";
+  "flex flex-col gap-5 rounded-2xl bg-surface-container-low p-5 sm:p-6";
+
+/** Вложенный блок внутри формы: группа полей на чуть более тёмной подложке. */
+export const adminInsetPanelClass =
+  "flex flex-col gap-4 rounded-xl bg-surface-container p-4 sm:p-5";
 
 export function AdminPageHeader({
   eyebrow,
   title,
   description,
   actions,
+  back,
 }: {
   eyebrow?: string;
   title: string;
   description?: string;
   actions?: ReactNode;
+  back?: { href: string; label: string };
 }) {
   return (
     <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="flex min-w-0 flex-col gap-1.5">
+        {back ? (
+          <Link
+            href={back.href}
+            className="mb-1 inline-flex w-fit items-center gap-1.5 text-xs font-medium text-on-surface-variant transition-colors hover:text-on-surface focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <span aria-hidden="true">←</span>
+            {back.label}
+          </Link>
+        ) : null}
         {eyebrow ? (
           <p className="text-[11px] font-medium tracking-[0.16em] text-on-surface-variant uppercase">
             {eyebrow}
@@ -72,7 +88,7 @@ export function AdminPanel({
 }) {
   const Tag = as;
   return (
-    <Tag className={cn("rounded-2xl bg-surface-container p-5 sm:p-6", className)}>
+    <Tag className={cn("rounded-2xl bg-surface-container-low p-5 sm:p-6", className)}>
       {title || description || actions ? (
         <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
@@ -159,14 +175,49 @@ export function AdminChip({
   );
 }
 
-/** Заливная кнопка MD3 (filled) для native-форм без shadcn. */
-export const adminFilledButtonClass =
-  "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-medium text-on-primary transition-colors duration-200 hover:bg-primary/90 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50";
+/**
+ * Кнопки MD3. Вариант задаёт пару «фон/текст» из ролей, поэтому текст всегда
+ * читаем: заливная — `primary` + `on-primary`, тональная — `secondary-container`
+ * + `on-secondary-container`, контурная — прозрачный фон + рамка `outline`.
+ *
+ * Правило экрана: заливная кнопка одна — главное действие страницы. Действия
+ * в строках таблиц и повторяющиеся кнопки — тональные или контурные, иначе
+ * десяток жёлтых плашек превращает список в световую стену.
+ */
+const adminButtonBase =
+  "inline-flex shrink-0 items-center justify-center gap-2 rounded-full text-sm font-medium transition-colors duration-200 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40 aria-disabled:cursor-not-allowed aria-disabled:opacity-40";
 
-/** Тональная кнопка MD3 (filled tonal). */
-export const adminTonalButtonClass =
-  "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-secondary-container px-6 text-sm font-medium text-on-secondary-container transition-colors duration-200 hover:bg-secondary-container/80 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50";
+const adminButtonVariants = {
+  filled: "bg-primary text-on-primary hover:bg-primary/85",
+  tonal: "bg-secondary-container text-on-secondary-container hover:bg-secondary-container/85",
+  outlined: "border border-outline text-on-surface hover:bg-on-surface/8",
+  text: "text-primary hover:bg-primary/12",
+  danger: "text-error hover:bg-error/12",
+} as const;
 
+const adminButtonSizes = {
+  md: "h-10 px-5",
+  sm: "h-9 px-3.5 text-xs",
+} as const;
+
+export type AdminButtonVariant = keyof typeof adminButtonVariants;
+export type AdminButtonSize = keyof typeof adminButtonSizes;
+
+/** Единая кнопка админки: `adminButton("filled", "sm")`. */
+export function adminButton(
+  variant: AdminButtonVariant = "tonal",
+  size: AdminButtonSize = "md",
+): string {
+  return `${adminButtonBase} ${adminButtonVariants[variant]} ${adminButtonSizes[size]}`;
+}
+
+/** Заливная кнопка MD3 (filled) — главное действие экрана. */
+export const adminFilledButtonClass = adminButton("filled");
+/** Тональная кнопка MD3 (filled tonal) — вторичные действия. */
+export const adminTonalButtonClass = adminButton("tonal");
+/** Контурная кнопка MD3 (outlined) — действия в строках таблиц и списках. */
+export const adminOutlinedButtonClass = adminButton("outlined");
 /** Текстовая кнопка MD3 (text). */
-export const adminTextButtonClass =
-  "inline-flex h-10 items-center justify-center gap-2 rounded-full px-4 text-sm font-medium text-primary transition-colors duration-200 hover:bg-primary/12 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50";
+export const adminTextButtonClass = adminButton("text");
+/** Опасное действие: только текст `error` и мягкая подложка при наведении. */
+export const adminDangerButtonClass = adminButton("danger");

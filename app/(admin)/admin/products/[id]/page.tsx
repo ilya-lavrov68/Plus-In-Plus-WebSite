@@ -3,9 +3,12 @@ import { notFound } from "next/navigation";
 
 import { adminLabels } from "@/components/admin/labels";
 import {
+  AdminPageHeader,
   AdminStatus,
+  adminFieldsetClass,
   adminFilledButtonClass,
   adminInputClass,
+  adminInsetPanelClass,
   adminLabelClass,
   adminTonalButtonClass,
 } from "@/components/admin/ui";
@@ -54,13 +57,11 @@ export default async function AdminProductPage({
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <Link href="/admin/products" className="text-xs text-on-surface-variant underline-offset-4 hover:underline">
-          ← {t.products.title}
-        </Link>
-        <h1 className="text-2xl font-semibold sm:text-3xl">{product.name}</h1>
-        <p className="text-sm text-on-surface-variant">/{product.slug}</p>
-      </header>
+      <AdminPageHeader
+        back={{ href: "/admin/products", label: t.products.title }}
+        title={product.name}
+        description={`/${product.slug}`}
+      />
 
       {error ? (
         <AdminStatus tone="error">{error}</AdminStatus>
@@ -70,7 +71,7 @@ export default async function AdminProductPage({
       ) : null}
 
       {canEdit ? (
-        <form action={saveProduct} className="flex flex-col gap-5">
+        <form action={saveProduct} className={adminFieldsetClass}>
           <input type="hidden" name="id" value={product.id} />
 
           <label className={labelClass}>
@@ -126,14 +127,14 @@ export default async function AdminProductPage({
             />
           </label>
 
-        <fieldset className="flex flex-col gap-3 border border-outline-variant p-4">
-          <legend className="px-2 text-sm font-semibold">{t.image.title}</legend>
+        <fieldset className={adminInsetPanelClass}>
+          <legend className="text-sm font-medium text-on-surface">{t.image.title}</legend>
           <input type="hidden" name="currentCover" value={product.cover_image ?? ""} />
           {product.cover_image ? (
             <div className="flex flex-col gap-2">
               <img src={product.cover_image} alt="" className="h-32 w-auto border border-outline-variant object-cover" />
               <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="removeCover" />
+                <input type="checkbox" className="size-4 accent-primary" name="removeCover" />
                 {t.image.remove}
               </label>
             </div>
@@ -146,7 +147,7 @@ export default async function AdminProductPage({
         </fieldset>
 
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="isActive" defaultChecked={Boolean(product.is_active)} />
+            <input type="checkbox" className="size-4 accent-primary" name="isActive" defaultChecked={Boolean(product.is_active)} />
             {t.product.isActive}
           </label>
 

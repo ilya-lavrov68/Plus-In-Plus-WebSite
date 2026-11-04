@@ -3,9 +3,12 @@ import { notFound } from "next/navigation";
 
 import { adminLabels } from "@/components/admin/labels";
 import {
+  AdminPageHeader,
   AdminStatus,
+  adminFieldsetClass,
   adminFilledButtonClass,
   adminInputClass,
+  adminInsetPanelClass,
   adminLabelClass,
   adminTonalButtonClass,
 } from "@/components/admin/ui";
@@ -62,16 +65,11 @@ export default async function AdminPostPage({
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <Link href="/admin/posts" className="text-xs text-on-surface-variant underline-offset-4 hover:underline">
-          ← {t.posts.title}
-        </Link>
-        <h1 className="text-2xl font-semibold sm:text-3xl">{post.title}</h1>
-        <p className="text-sm text-on-surface-variant">
-          /blog/{post.slug}
-          {post.published_at ? ` · ${new Date(post.published_at).toLocaleDateString(locale === "ru" ? "ru-RU" : "en-GB")}` : ""}
-        </p>
-      </header>
+      <AdminPageHeader
+        back={{ href: "/admin/posts", label: t.posts.title }}
+        title={post.title}
+        description={`/blog/${post.slug}${post.published_at ? ` · ${new Date(post.published_at).toLocaleDateString(locale === "ru" ? "ru-RU" : "en-GB")}` : ""}`}
+      />
 
       {error ? (
         <AdminStatus tone="error">{error}</AdminStatus>
@@ -81,7 +79,7 @@ export default async function AdminPostPage({
       ) : null}
 
       {canEdit ? (
-        <form action={savePost} className="flex flex-col gap-5">
+        <form action={savePost} className={adminFieldsetClass}>
           <input type="hidden" name="id" value={post.id} />
 
           <label className={labelClass}>
@@ -135,7 +133,7 @@ export default async function AdminPostPage({
               <div className="flex flex-col gap-2">
                 <img src={post.cover_image} alt="" className="h-32 w-auto border border-outline-variant object-cover" />
                 <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" name="removeCover" />
+                  <input type="checkbox" className="size-4 accent-primary" name="removeCover" />
                   {t.image.remove}
                 </label>
               </div>
@@ -149,11 +147,11 @@ export default async function AdminPostPage({
 
           <div className="flex flex-wrap gap-6">
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="isPublished" defaultChecked={Boolean(post.is_published)} />
+              <input type="checkbox" className="size-4 accent-primary" name="isPublished" defaultChecked={Boolean(post.is_published)} />
               {t.post.isPublished}
             </label>
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="isFeatured" defaultChecked={Boolean(post.is_featured)} />
+              <input type="checkbox" className="size-4 accent-primary" name="isFeatured" defaultChecked={Boolean(post.is_featured)} />
               {t.post.isFeatured}
             </label>
           </div>
@@ -180,7 +178,7 @@ export default async function AdminPostPage({
       )}
 
       {staff?.isAdmin ? (
-        <form action={savePostGallery} className="flex flex-col gap-4 border border-outline-variant p-4">
+        <form action={savePostGallery} className={adminInsetPanelClass}>
           <input type="hidden" name="id" value={post.id} />
           <div className="flex flex-col gap-1">
             <h2 className="text-sm font-semibold">{t.gallery.title}</h2>
@@ -190,10 +188,10 @@ export default async function AdminPostPage({
           {gallery.length > 0 ? (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {gallery.map((image) => (
-                <label key={image.mediaId} className="flex flex-col gap-2 border border-outline-variant p-2 text-xs">
+                <label key={image.mediaId} className="flex flex-col gap-2 rounded-lg bg-surface-container p-2 text-xs">
                   <img src={image.url} alt="" className="h-24 w-full object-cover" />
                   <span className="flex items-center gap-2">
-                    <input type="checkbox" name="removeGallery" value={image.mediaId} />
+                    <input type="checkbox" className="size-4 accent-primary" name="removeGallery" value={image.mediaId} />
                     {t.gallery.remove}
                   </span>
                 </label>

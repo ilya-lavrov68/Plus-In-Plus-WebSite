@@ -1,8 +1,7 @@
 import Link from "next/link";
 
 import { adminLabels } from "@/components/admin/labels";
-import { AdminPageHeader, adminFilledButtonClass } from "@/components/admin/ui";
-import { Badge } from "@/components/ui/badge";
+import { AdminChip, AdminPageHeader, adminFilledButtonClass } from "@/components/admin/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getServices } from "@/lib/admin-queries";
 import { requireStaff } from "@/lib/admin-session";
@@ -59,14 +58,14 @@ export default async function AdminServicesPage() {
                   {service.priceType === "quote" ? t.table.quote : money.format(service.basePrice)}
                 </TableCell>
                 <TableCell>
-                  <Badge variant={service.published ? "default" : "outline"}>
+                  <AdminChip tone={service.published ? "primary" : "neutral"}>
                     {service.published ? t.table.yes : t.table.no}
-                  </Badge>
+                  </AdminChip>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={service.active ? "default" : "outline"}>
+                  <AdminChip tone={service.active ? "primary" : "neutral"}>
                     {service.active ? t.table.visible : t.table.hidden}
-                  </Badge>
+                  </AdminChip>
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-4">

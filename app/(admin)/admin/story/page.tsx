@@ -4,6 +4,7 @@ import { adminLabels } from "@/components/admin/labels";
 import {
   AdminPageHeader,
   AdminStatus,
+  adminFieldsetClass,
   adminFilledButtonClass,
   adminInputClass,
   adminLabelClass,
@@ -48,7 +49,7 @@ export default async function AdminStoryPage({
         <AdminStatus tone="success">{t.story.saved}</AdminStatus>
       ) : null}
 
-      <form action={saveStoryAction} className="flex flex-col gap-6">
+      <form action={saveStoryAction} className={adminFieldsetClass}>
         <label className={labelClass}>
           {t.story.heading}
           <input name="heading" defaultValue={content.heading} maxLength={STORY_CONTENT_LIMITS.heading} className={inputClass} />

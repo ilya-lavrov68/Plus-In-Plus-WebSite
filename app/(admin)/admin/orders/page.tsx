@@ -1,8 +1,7 @@
 import Link from "next/link";
 
 import { adminLabels } from "@/components/admin/labels";
-import { AdminPageHeader, adminFilledButtonClass, adminSelectClass } from "@/components/admin/ui";
-import { Badge } from "@/components/ui/badge";
+import { AdminChip, AdminPageHeader, adminButton, adminSelectClass } from "@/components/admin/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getOrders, getOrderStatusCounts } from "@/lib/admin-queries";
 import { requireStaff } from "@/lib/admin-session";
@@ -117,13 +116,13 @@ export default async function AdminOrdersPage({
                       </select>
                       <button
                         type="submit"
-                        className={`${adminFilledButtonClass} h-9 px-4 text-xs`}
+                        className={adminButton("outlined", "sm")}
                       >
                         {t.table.save}
                       </button>
                     </form>
                   ) : (
-                    <Badge variant="outline">{t.statuses[order.status] ?? order.status}</Badge>
+                    <AdminChip>{t.statuses[order.status] ?? order.status}</AdminChip>
                   )}
                 </TableCell>
               </TableRow>
