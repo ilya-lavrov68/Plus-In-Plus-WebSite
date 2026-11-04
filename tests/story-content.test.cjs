@@ -126,7 +126,7 @@ test("lib/story-editor.ts is the only writer of the story tables", () => {
   // Историю правит панель через один модуль: никакие сиды, карусели и
   // публичные страницы не переписывают вехи за спиной администратора.
   assert.deepEqual(writers, ["lib/story-editor.ts"]);
-  assert.equal(fs.existsSync(path.join(root, "payload", "collections", "system.ts")), false);
+  assert.equal(fs.existsSync(path.join(root, "data", "collections", "system.ts")), false);
   assert.equal(
     fs.readFileSync(path.join(root, "app", "(admin)", "admin", "story", "page.tsx"), "utf8").includes("saveStoryAction"),
     true,

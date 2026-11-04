@@ -130,7 +130,7 @@ test("a concurrent status change is never overwritten", async () => {
 
 test("the deleted CMS hooks are not needed for these rules", () => {
   const root = path.resolve(__dirname, "..");
-  assert.equal(fs.existsSync(path.join(root, "payload", "hooks.ts")), false);
+  assert.equal(fs.existsSync(path.join(root, "data", "hooks.ts")), false);
   assert.equal(fs.existsSync(path.join(root, "app", "(payload)")), false);
   const source = fs.readFileSync(path.join(root, "lib", "order-guards.ts"), "utf8");
   assert.match(source, /ORDER_TRANSITIONS/);

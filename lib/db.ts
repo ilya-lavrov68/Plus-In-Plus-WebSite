@@ -11,7 +11,7 @@ import { ensureLocalDatabaseDirectory } from "./database";
  * как алиас, чтобы существующие .env и скрипты продолжали работать.
  */
 
-const DEFAULT_DATABASE_URL = "file:./payload/pip.db";
+const DEFAULT_DATABASE_URL = "file:./data/pip.db";
 
 function databaseUrl(): string {
   return process.env.DATABASE_URL || process.env.PAYLOAD_DATABASE_URL || DEFAULT_DATABASE_URL;

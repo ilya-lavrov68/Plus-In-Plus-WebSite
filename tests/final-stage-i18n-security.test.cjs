@@ -132,7 +132,7 @@ test("site settings keep secrets out of the public projection", () => {
   const publicLoader = fs.readFileSync(path.resolve(__dirname, "../lib/public-site-settings.ts"), "utf8");
   assert.ok(publicLoader.includes("normalizePublicSiteSettings"));
   assert.equal(publicLoader.includes("robokassaPassword"), false);
-  assert.equal(fs.existsSync(path.resolve(__dirname, "../payload/collections")), false);
+  assert.equal(fs.existsSync(path.resolve(__dirname, "../data/collections")), false);
 });
 
 test("service localization translates seeded studio services to RU without overwriting custom admin titles", () => {

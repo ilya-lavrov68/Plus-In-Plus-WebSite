@@ -34,7 +34,7 @@ test("staff panel is ours: RU/EN chrome, skip link and no shadows", () => {
 
   // CMS-слой удалён целиком: ни UI, ни конфига, ни локального API.
   assert.equal(fs.existsSync(path.join(root, "app", "(payload)")), false);
-  assert.equal(fs.existsSync(path.join(root, "payload", "components")), false);
+  assert.equal(fs.existsSync(path.join(root, "data", "components")), false);
   assert.equal(fs.existsSync(path.join(root, "payload.config.ts")), false);
   assert.equal(fs.existsSync(path.join(root, "lib", "payload-native.ts")), false);
 });

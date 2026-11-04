@@ -11,7 +11,7 @@ test("plain Node CLI loads env files without overriding the shell", async () => 
     await fs.promises.writeFile(path.join(directory, ".env"), [
       "EXTRA_SECRET=base-extra-secret",
       "AUTH_SECRET=base-auth-secret",
-      "DATABASE_URL=file:./payload/from-base.db",
+      "DATABASE_URL=file:./data/from-base.db",
       "BASE_ONLY=present",
       "",
     ].join("\n"));
@@ -25,7 +25,7 @@ test("plain Node CLI loads env files without overriding the shell", async () => 
     loadProjectEnv(directory, env);
     assert.equal(env.EXTRA_SECRET, "local-extra-secret", ".env.local has priority over .env");
     assert.equal(env.AUTH_SECRET, "explicit-shell-secret", "an exported variable is never overwritten");
-    assert.equal(env.DATABASE_URL, "file:./payload/from-base.db");
+    assert.equal(env.DATABASE_URL, "file:./data/from-base.db");
     assert.equal(env.BASE_ONLY, "present");
 
     const productionEnv = { NODE_ENV: "production" };

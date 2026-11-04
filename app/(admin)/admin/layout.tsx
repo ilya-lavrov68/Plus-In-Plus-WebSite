@@ -4,7 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 
-import { AdminNav, type AdminNavItem } from "@/components/admin/admin-nav";
+import { AdminNav, type AdminNavGroup } from "@/components/admin/admin-nav";
 import { adminLabels } from "@/components/admin/labels";
 import { Providers } from "@/app/providers";
 import { requireStaff } from "@/lib/admin-session";
@@ -19,6 +19,12 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Plus In Plus — Админ",
   robots: { index: false, follow: false },
+  // Вкладка админки узнаётся по знаку, а не по тексту.
+  icons: {
+    icon: "/assets/logos/lnpip.svg",
+    shortcut: "/assets/logos/lnpip.svg",
+    apple: "/assets/logos/lnpip.svg",
+  },
 };
 
 export const viewport: Viewport = {
@@ -35,18 +41,39 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const locale = await getRequestLocale();
   const t = adminLabels(locale);
 
-  const items: AdminNavItem[] = [
-    { href: "/admin", label: t.nav.overview },
-    { href: "/admin/orders", label: t.nav.orders },
-    { href: "/admin/services", label: t.nav.services },
-    { href: "/admin/products", label: t.nav.products },
-    { href: "/admin/posts", label: t.nav.posts },
-    ...(staff.isAdmin ? [{ href: "/admin/story", label: t.nav.story }] : []),
-    ...(staff.isAdmin ? [{ href: "/admin/media", label: t.nav.media }] : []),
-    ...(staff.isAdmin ? [{ href: "/admin/accounts", label: t.nav.accounts }] : []),
-    ...(staff.isAdmin ? [{ href: "/admin/activity", label: t.nav.activity }] : []),
-    ...(staff.isFounder ? [{ href: "/admin/settings", label: t.nav.settings }] : []),
-  ];
+  // Разделы сгруппированы: десять ссылок подряд читаются как список, а не как панель.
+  const groups: AdminNavGroup[] = [
+    {
+      label: t.shell.groups.main,
+      items: [
+        { href: "/admin", label: t.nav.overview },
+        { href: "/admin/orders", label: t.nav.orders },
+      ],
+    },
+    {
+      label: t.shell.groups.catalog,
+      items: [
+        { href: "/admin/services", label: t.nav.services },
+        { href: "/admin/products", label: t.nav.products },
+      ],
+    },
+    {
+      label: t.shell.groups.content,
+      items: [
+        { href: "/admin/posts", label: t.nav.posts },
+        ...(staff.isAdmin ? [{ href: "/admin/story", label: t.nav.story }] : []),
+        ...(staff.isAdmin ? [{ href: "/admin/media", label: t.nav.media }] : []),
+      ],
+    },
+    {
+      label: t.shell.groups.system,
+      items: [
+        ...(staff.isAdmin ? [{ href: "/admin/accounts", label: t.nav.accounts }] : []),
+        ...(staff.isAdmin ? [{ href: "/admin/activity", label: t.nav.activity }] : []),
+        ...(staff.isFounder ? [{ href: "/admin/settings", label: t.nav.settings }] : []),
+      ],
+    },
+  ].filter((group) => group.items.length > 0);
 
   return (
     <html lang={locale} data-locale={locale} className="dark">
@@ -71,13 +98,23 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             </a>
             <div className="mx-auto flex min-h-screen w-full max-w-[1680px] flex-col lg:flex-row">
               <aside className="bg-surface-container-low lg:w-72 lg:shrink-0 lg:py-4">
-                <div className="flex items-center justify-between gap-3 px-5 pb-4 pt-5 lg:pt-2">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-on-surface">{t.brand}</p>
-                    <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.16em] text-on-surface-variant">
-                      {t.shell.title}
-                    </p>
-                  </div>
+                <div className="flex items-center justify-between gap-3 px-4 pb-4 pt-5 lg:pt-3">
+                  <Link
+                    href="/admin"
+                    className="flex min-w-0 items-center gap-3 rounded-2xl py-1 pl-1 pr-2 transition-colors duration-200 hover:bg-surface-container-high focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  >
+                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-surface-container-high">
+                      <img
+                        src="/assets/logos/lnpip.svg"
+                        alt=""
+                        aria-hidden="true"
+                        width={54}
+                        height={42}
+                        className="h-5 w-auto select-none"
+                      />
+                    </span>
+                    <span className="min-w-0 truncate text-sm font-medium text-on-surface">{t.shell.title}</span>
+                  </Link>
                   <Link
                     href="/"
                     className="whitespace-nowrap rounded-full px-3 py-1.5 text-xs text-on-surface-variant transition-colors duration-200 hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
@@ -85,7 +122,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
                     {t.shell.viewSite}
                   </Link>
                 </div>
-                <AdminNav items={items} label={t.shell.nav} />
+                <AdminNav groups={groups} label={t.shell.nav} />
                 <div className="mt-auto hidden gap-1 px-5 pb-2 pt-6 text-xs text-on-surface-variant lg:flex lg:flex-col">
                   <span className="truncate font-medium text-on-surface" title={staff.email}>
                     {staff.email}

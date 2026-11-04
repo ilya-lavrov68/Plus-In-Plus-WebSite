@@ -16,6 +16,12 @@ export function adminLabels(locale: RequestLocale) {
       role: ru ? "Роль" : "Role",
       skip: ru ? "К основному содержимому" : "Skip to content",
       menu: ru ? "Меню" : "Menu",
+      groups: {
+        main: ru ? "Основное" : "Overview",
+        catalog: ru ? "Каталог" : "Catalog",
+        content: ru ? "Контент" : "Content",
+        system: ru ? "Система" : "System",
+      },
     },
     nav: {
       overview: ru ? "Обзор" : "Overview",
@@ -69,6 +75,10 @@ export function adminLabels(locale: RequestLocale) {
       devicesTitle: ru ? "Устройства" : "Devices",
       topPagesTitle: ru ? "Популярные страницы" : "Top pages",
       recentOrdersTitle: ru ? "Последние заказы" : "Recent orders",
+      statusTitle: ru ? "Заказы по статусам" : "Orders by status",
+      statusHint: ru
+        ? "Сколько заявок и заказов находится в каждом статусе"
+        : "How many requests and orders sit in each status",
       activityTitle: ru ? "Активность" : "Activity",
       allOrders: ru ? "Все заказы" : "All orders",
       contentTitle: ru ? "Контент" : "Content",
