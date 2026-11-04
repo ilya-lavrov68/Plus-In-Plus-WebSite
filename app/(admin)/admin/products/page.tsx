@@ -1,8 +1,7 @@
 import Link from "next/link";
 
 import { adminLabels } from "@/components/admin/labels";
-import { AdminPageHeader, adminFilledButtonClass } from "@/components/admin/ui";
-import { Badge } from "@/components/ui/badge";
+import { AdminChip, AdminPageHeader, adminFilledButtonClass } from "@/components/admin/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getProducts } from "@/lib/admin-queries";
 import { requireStaff } from "@/lib/admin-session";
@@ -58,9 +57,9 @@ export default async function AdminProductsPage() {
                 <TableCell className="text-right tabular-nums">{money.format(product.price)}</TableCell>
                 <TableCell className="text-right tabular-nums">{product.stock}</TableCell>
                 <TableCell>
-                  <Badge variant={product.active ? "default" : "outline"}>
+                  <AdminChip tone={product.active ? "primary" : "neutral"}>
                     {product.active ? t.table.visible : t.table.hidden}
-                  </Badge>
+                  </AdminChip>
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-4">

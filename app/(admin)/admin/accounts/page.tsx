@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { adminLabels } from "@/components/admin/labels";
-import { AdminPageHeader } from "@/components/admin/ui";
-import { Badge } from "@/components/ui/badge";
+import { AdminChip, AdminPageHeader } from "@/components/admin/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getAccounts } from "@/lib/admin-queries";
 import { requireStaff } from "@/lib/admin-session";
@@ -44,7 +43,7 @@ export default async function AdminAccountsPage() {
                 <TableCell className="max-w-[260px] truncate font-medium">{account.email}</TableCell>
                 <TableCell className="max-w-[200px] truncate text-on-surface-variant">{account.name || "—"}</TableCell>
                 <TableCell>
-                  <Badge variant="outline">{t.roles[account.role] ?? account.role}</Badge>
+                  <AdminChip tone={account.role === "FOUNDER" ? "primary" : account.role === "USER" ? "neutral" : "tertiary"}>{t.roles[account.role] ?? account.role}</AdminChip>
                 </TableCell>
                 <TableCell className="text-on-surface-variant">{account.blocked ? t.table.yes : t.table.no}</TableCell>
                 <TableCell className="whitespace-nowrap text-on-surface-variant">

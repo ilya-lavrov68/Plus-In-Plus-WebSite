@@ -3,7 +3,9 @@ import { notFound } from "next/navigation";
 
 import { adminLabels } from "@/components/admin/labels";
 import {
+  AdminPageHeader,
   AdminStatus,
+  adminFieldsetClass,
   adminFilledButtonClass,
   adminInputClass,
   adminLabelClass,
@@ -61,15 +63,11 @@ export default async function AdminServicePage({
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <Link href="/admin/services" className="text-xs text-on-surface-variant underline-offset-4 hover:underline">
-          ← {t.services.title}
-        </Link>
-        <h1 className="text-2xl font-semibold sm:text-3xl">{service.title}</h1>
-        <p className="text-sm text-on-surface-variant">
-          /{service.slug} · {t.services.subtitle}
-        </p>
-      </header>
+      <AdminPageHeader
+        back={{ href: "/admin/services", label: t.services.title }}
+        title={service.title}
+        description={`/${service.slug} · ${t.services.subtitle}`}
+      />
 
       {error ? (
         <AdminStatus tone="error">{error}</AdminStatus>
@@ -84,7 +82,7 @@ export default async function AdminServicePage({
       ) : null}
 
       {canEdit ? (
-        <form action={saveService} className="flex flex-col gap-5">
+        <form action={saveService} className={adminFieldsetClass}>
           <input type="hidden" name="id" value={service.id} />
 
           <label className={labelClass}>
@@ -152,7 +150,7 @@ export default async function AdminServicePage({
             <div className="flex flex-col gap-2">
               <img src={service.cover_image} alt="" className="h-32 w-auto border border-outline-variant object-cover" />
               <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="removeCover" />
+                <input type="checkbox" className="size-4 accent-primary" name="removeCover" />
                 {t.image.remove}
               </label>
             </div>
@@ -166,11 +164,11 @@ export default async function AdminServicePage({
 
           <div className="flex flex-wrap gap-6">
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="isPublished" defaultChecked={Boolean(service.is_published)} />
+              <input type="checkbox" className="size-4 accent-primary" name="isPublished" defaultChecked={Boolean(service.is_published)} />
               {t.service.isPublished}
             </label>
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="isActive" defaultChecked={Boolean(service.is_active)} />
+              <input type="checkbox" className="size-4 accent-primary" name="isActive" defaultChecked={Boolean(service.is_active)} />
               {t.service.isActive}
             </label>
           </div>

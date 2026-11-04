@@ -23,7 +23,7 @@ export function StatCard({
     <div
       className={cn(
         "flex flex-col gap-3 rounded-2xl p-5",
-        accent ? "bg-primary-container text-on-primary-container" : "bg-surface-container text-on-surface",
+        accent ? "bg-primary-container text-on-primary-container" : "bg-surface-container-low text-on-surface",
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -70,7 +70,7 @@ export function SectionCard({
   className?: string;
 }) {
   return (
-    <section className={cn("rounded-2xl bg-surface-container p-5 sm:p-6", className)}>
+    <section className={cn("rounded-2xl bg-surface-container-low p-5 sm:p-6", className)}>
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-base font-medium text-on-surface">{title}</h2>

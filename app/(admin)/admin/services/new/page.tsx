@@ -3,9 +3,12 @@ import { redirect } from "next/navigation";
 
 import { adminLabels } from "@/components/admin/labels";
 import {
+  AdminPageHeader,
   AdminStatus,
+  adminFieldsetClass,
   adminFilledButtonClass,
   adminInputClass,
+  adminInsetPanelClass,
   adminLabelClass,
   adminTonalButtonClass,
 } from "@/components/admin/ui";
@@ -32,18 +35,13 @@ export default async function NewServicePage({
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <Link href="/admin/services" className="text-xs text-on-surface-variant underline-offset-4 hover:underline">
-          ← {t.services.title}
-        </Link>
-        <h1 className="text-2xl font-semibold sm:text-3xl">{t.service.create}</h1>
-      </header>
+      <AdminPageHeader back={{ href: "/admin/services", label: t.services.title }} title={t.service.create} />
 
       {error ? (
         <AdminStatus tone="error">{error}</AdminStatus>
       ) : null}
 
-      <form action={createService} className="flex flex-col gap-5">
+      <form action={createService} className={adminFieldsetClass}>
         <label className={labelClass}>
           {t.service.title}
           <input name="title" maxLength={120} minLength={2} required autoFocus className={inputClass} />
@@ -87,8 +85,8 @@ export default async function NewServicePage({
           <textarea name="fullDesc" rows={8} className={`${inputClass} h-auto py-2`} />
         </label>
 
-        <fieldset className="flex flex-col gap-3 border border-outline-variant p-4">
-          <legend className="px-2 text-sm font-semibold">{t.image.title}</legend>
+        <fieldset className={adminInsetPanelClass}>
+          <legend className="text-sm font-medium text-on-surface">{t.image.title}</legend>
           <label className={labelClass}>
             {t.image.upload}
             <input type="file" name="cover" accept={IMAGE_ACCEPT} className="text-sm text-on-surface-variant file:mr-3 file:rounded-full file:border file:border-outline file:bg-transparent file:px-4 file:py-2 file:text-sm file:font-medium file:text-on-surface hover:file:border-primary" />
@@ -98,11 +96,11 @@ export default async function NewServicePage({
 
         <div className="flex flex-wrap gap-6">
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="isActive" defaultChecked />
+            <input type="checkbox" className="size-4 accent-primary" name="isActive" defaultChecked />
             {t.service.isActive}
           </label>
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="isPublished" />
+            <input type="checkbox" className="size-4 accent-primary" name="isPublished" />
             {t.service.isPublished}
           </label>
         </div>

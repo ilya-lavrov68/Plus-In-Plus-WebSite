@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { adminLabels } from "@/components/admin/labels";
-import { AdminPageHeader } from "@/components/admin/ui";
-import { Badge } from "@/components/ui/badge";
+import { AdminChip, AdminPageHeader } from "@/components/admin/ui";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getActivity } from "@/lib/admin-queries";
 import { requireStaff } from "@/lib/admin-session";
@@ -47,7 +46,7 @@ export default async function AdminActivityPage() {
                   {entry.createdAt ? dateTime.format(new Date(entry.createdAt)) : "—"}
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline">{entry.action}</Badge>
+                  <AdminChip>{entry.action}</AdminChip>
                 </TableCell>
                 <TableCell className="text-on-surface-variant">{entry.entityType}</TableCell>
                 <TableCell className="max-w-[420px] truncate">{entry.title}</TableCell>

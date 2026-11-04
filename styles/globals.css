@@ -164,6 +164,12 @@
   --color-popover-foreground: hsl(var(--popover-foreground));
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  /* Без этих строк `text-on-primary` / `text-on-secondary` не генерируются,
+   * и текст заливных кнопок наследует цвет страницы — светлый на светлом. */
+  --color-on-primary: var(--md-on-primary);
+  --color-on-secondary: var(--md-on-secondary);
+  --color-inverse-surface: var(--md-inverse-surface);
+  --color-inverse-on-surface: var(--md-inverse-on-surface);
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
   --color-muted: hsl(var(--muted));
@@ -329,72 +335,78 @@
    * токены и внешний вид.
    */
   .admin-md {
-    /* Primary — сигнальный жёлтый PIP в тональности MD3. */
-    --md-primary: #e6e32c;
-    --md-on-primary: #3a3a00;
-    --md-primary-container: #4d4d00;
-    --md-on-primary-container: #ffff9e;
-    --md-inverse-primary: #626200;
+    /*
+     * Палитра снята с фирменного жёлтого, но приглушена: заливка CTA — спокойный
+     * лимон (`#c6bf60`) с тёмной краской, а не неоновый `#FFFF01`. Прежний набор
+     * давал 13–14:1 на тексте и 13.6:1 на кнопке — это читаемо, но бьёт по глазам
+     * при долгой работе, а повторяющиеся ярко-жёлтые блоки превращали таблицу
+     * заказов в световую стену. Сейчас текст живёт в комфортной полосе 5–12:1.
+     */
+    --md-primary: #c6bf60;
+    --md-on-primary: #2a2809;
+    --md-primary-container: #3d3b16;
+    --md-on-primary-container: #e4dfab;
+    --md-inverse-primary: #5d5a1f;
 
-    /* Secondary — приглушённая тёплая пара к жёлтому. */
-    --md-secondary: #cbc6a4;
-    --md-on-secondary: #33321c;
-    --md-secondary-container: #4a4931;
-    --md-on-secondary-container: #e8e3c0;
+    /* Secondary — нейтрально-тёплая пара, основной тон для тональных кнопок. */
+    --md-secondary: #c0bcae;
+    --md-on-secondary: #2a2822;
+    --md-secondary-container: #33322c;
+    --md-on-secondary-container: #dcd8cd;
 
-    /* Tertiary — вторичный periwinkle бренда. */
-    --md-tertiary: #bbc3ff;
-    --md-on-tertiary: #202a60;
-    --md-tertiary-container: #384178;
-    --md-on-tertiary-container: #dde1ff;
+    /* Tertiary — приглушённый periwinkle бренда. */
+    --md-tertiary: #b9c0e4;
+    --md-on-tertiary: #222740;
+    --md-tertiary-container: #2f3450;
+    --md-on-tertiary-container: #d8dbf2;
 
-    /* Error. */
-    --md-error: #ffb4ab;
-    --md-on-error: #690005;
-    --md-error-container: #93000a;
-    --md-on-error-container: #ffdad6;
+    /* Error — тёмный контейнер вместо кричащего `#93000a`. */
+    --md-error: #e9a29c;
+    --md-on-error: #4f1210;
+    --md-error-container: #4a1614;
+    --md-on-error-container: #f2cbc7;
 
-    /* Поверхности и текст. */
-    --md-surface-dim: #101010;
-    --md-surface: #121212;
-    --md-surface-bright: #383838;
-    --md-surface-container-lowest: #0d0d0d;
-    --md-surface-container-low: #1a1a1a;
-    --md-surface-container: #1e1e1e;
-    --md-surface-container-high: #292929;
-    --md-surface-container-highest: #333333;
-    --md-on-surface: #e6e2e0;
-    --md-on-surface-variant: #cac5be;
-    --md-outline: #948f89;
-    --md-outline-variant: #625c54;
-    --md-inverse-surface: #e6e2e0;
-    --md-inverse-on-surface: #313030;
+    /* Поверхности: тёплый графит, шаг между уровнями ровный и небольшой. */
+    --md-surface-dim: #121211;
+    --md-surface: #161614;
+    --md-surface-bright: #3a3a34;
+    --md-surface-container-lowest: #111110;
+    --md-surface-container-low: #1c1c1a;
+    --md-surface-container: #21211e;
+    --md-surface-container-high: #2a2a26;
+    --md-surface-container-highest: #34342f;
+    --md-on-surface: #d7d2ca;
+    --md-on-surface-variant: #a8a196;
+    --md-outline: #7c766c;
+    --md-outline-variant: #494540;
+    --md-inverse-surface: #d7d2ca;
+    --md-inverse-on-surface: #2f2e29;
 
     /* Графики админки берут роли MD3, а не хардкод. */
     --pip-signal: var(--md-primary);
     --pip-violet: var(--md-tertiary);
 
     /* Существующие токены shadcn-компонентов внутри админки. */
-    --background: 0 0% 7.1%;
-    --foreground: 40 4% 89%;
-    --card: 0 0% 12%;
-    --card-foreground: 40 4% 89%;
-    --popover: 0 0% 16%;
-    --popover-foreground: 40 4% 89%;
+    --background: 60 5% 8%;
+    --foreground: 37 14% 82%;
+    --card: 60 5% 12%;
+    --card-foreground: 37 14% 82%;
+    --popover: 60 5% 16%;
+    --popover-foreground: 37 14% 82%;
     --primary: var(--md-primary);
     --primary-foreground: var(--md-on-primary);
-    --secondary: 58 19% 24%;
-    --secondary-foreground: 53 46% 83%;
-    --muted: 0 0% 16%;
-    --muted-foreground: 35 10% 77%;
-    --accent: 0 0% 20%;
-    --accent-foreground: 40 4% 89%;
-    --destructive: 6 100% 84%;
-    --destructive-foreground: 357 100% 21%;
-    --destructive-text: 6 100% 84%;
-    --border: 33 6% 36%;
-    --input: 33 7% 34%;
-    --ring: 59 79% 54%;
+    --secondary: 51 7% 19%;
+    --secondary-foreground: 44 18% 83%;
+    --muted: 60 5% 12%;
+    --muted-foreground: 37 9% 62%;
+    --accent: 60 5% 16%;
+    --accent-foreground: 37 14% 82%;
+    --destructive: 5 64% 76%;
+    --destructive-foreground: 2 66% 19%;
+    --destructive-text: 5 64% 76%;
+    --border: 33 7% 27%;
+    --input: 33 7% 31%;
+    --ring: 56 47% 58%;
 
     /* Форма MD3: мягкие радиусы вместо острых углов публичного сайта. */
     --radius-sm: 0.5rem;

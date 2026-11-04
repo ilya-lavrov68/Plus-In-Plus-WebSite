@@ -3,9 +3,12 @@ import { redirect } from "next/navigation";
 
 import { adminLabels } from "@/components/admin/labels";
 import {
+  AdminPageHeader,
   AdminStatus,
+  adminFieldsetClass,
   adminFilledButtonClass,
   adminInputClass,
+  adminInsetPanelClass,
   adminLabelClass,
   adminTonalButtonClass,
 } from "@/components/admin/ui";
@@ -32,18 +35,13 @@ export default async function NewProductPage({
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <Link href="/admin/products" className="text-xs text-on-surface-variant underline-offset-4 hover:underline">
-          ← {t.products.title}
-        </Link>
-        <h1 className="text-2xl font-semibold sm:text-3xl">{t.product.create}</h1>
-      </header>
+      <AdminPageHeader back={{ href: "/admin/products", label: t.products.title }} title={t.product.create} />
 
       {error ? (
         <AdminStatus tone="error">{error}</AdminStatus>
       ) : null}
 
-      <form action={createProduct} className="flex flex-col gap-5">
+      <form action={createProduct} className={adminFieldsetClass}>
         <label className={labelClass}>
           {t.service.title}
           <input name="name" minLength={2} maxLength={120} required autoFocus className={inputClass} />
@@ -76,8 +74,8 @@ export default async function NewProductPage({
           <textarea name="description" rows={5} className={`${inputClass} h-auto py-2`} />
         </label>
 
-        <fieldset className="flex flex-col gap-3 border border-outline-variant p-4">
-          <legend className="px-2 text-sm font-semibold">{t.image.title}</legend>
+        <fieldset className={adminInsetPanelClass}>
+          <legend className="text-sm font-medium text-on-surface">{t.image.title}</legend>
           <label className={labelClass}>
             {t.image.upload}
             <input type="file" name="cover" accept={IMAGE_ACCEPT} className="text-sm text-on-surface-variant file:mr-3 file:rounded-full file:border file:border-outline file:bg-transparent file:px-4 file:py-2 file:text-sm file:font-medium file:text-on-surface hover:file:border-primary" />
@@ -86,7 +84,7 @@ export default async function NewProductPage({
         </fieldset>
 
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="isActive" defaultChecked />
+          <input type="checkbox" className="size-4 accent-primary" name="isActive" defaultChecked />
           {t.product.isActive}
         </label>
 

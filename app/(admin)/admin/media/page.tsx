@@ -77,7 +77,7 @@ export default async function AdminMediaPage({
                   <input type="hidden" name="id" value={item.id} />
                   <button
                     type="submit"
-                    className="h-9 w-full rounded-full border border-outline-variant px-3 text-xs text-on-surface-variant transition-colors hover:border-error hover:text-error focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    className="inline-flex h-9 w-full items-center justify-center rounded-full text-xs font-medium text-on-surface-variant transition-colors hover:bg-error/12 hover:text-error focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     {t.media.remove}
                   </button>
