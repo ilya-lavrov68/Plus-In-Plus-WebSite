@@ -28,7 +28,7 @@ const Blogpost11 = ({
       <div className="container">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
           <div className="lg:col-span-5">
-            <div className="overflow-hidden rounded-2xl border border-border bg-muted lg:sticky lg:top-28">
+            <div className="overflow-hidden rounded-2xl bg-muted lg:sticky lg:top-28">
               <img
                 src={post.image}
                 alt={post.title}
@@ -48,7 +48,7 @@ const Blogpost11 = ({
 
             {post.author ? (
               <div className="mt-8 flex items-center gap-3.5">
-                <Avatar className="size-11 border border-border">
+                <Avatar className="size-11">
                   <AvatarFallback className="bg-secondary text-xs font-semibold text-foreground">
                     {post.author.initials}
                   </AvatarFallback>
@@ -67,7 +67,7 @@ const Blogpost11 = ({
             {post.author || post.quote?.trim() ? <Separator className="my-8" /> : null}
 
             {post.quote?.trim() ? (
-              <figure className="rounded-xl border border-border bg-card p-6 md:p-8">
+              <figure className="rounded-xl bg-card p-6 md:p-8">
                 <blockquote className="text-lg leading-[1.7] font-medium text-foreground">
                   &ldquo;{post.quote}&rdquo;
                 </blockquote>
@@ -122,7 +122,7 @@ const Blogpost11 = ({
                   className="flex flex-wrap items-center justify-between gap-4"
                 >
                   {previousPost ? (
-                    <Button variant="outline" asChild>
+                    <Button variant="outline"asChild>
                       <Link
                         href={`/blog/${previousPost.slug}`}
                         className="group"
@@ -136,7 +136,7 @@ const Blogpost11 = ({
                   )}
 
                   {nextPost ? (
-                    <Button variant="outline" asChild>
+                    <Button variant="outline"asChild>
                       <Link href={`/blog/${nextPost.slug}`} className="group">
                         {nextLabel}
                         <ArrowRight className="size-4 transition-transform duration-200 ease-out group-hover:translate-x-1" />

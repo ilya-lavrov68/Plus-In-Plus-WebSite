@@ -132,7 +132,7 @@ export function ServiceConfigurator({
       <section
         aria-live="polite"
         className={cn(
-          "rounded-2xl border border-border bg-card p-6 sm:p-8",
+          "rounded-2xl bg-card p-6 sm:p-8",
           className
         )}
       >
@@ -157,7 +157,7 @@ export function ServiceConfigurator({
     <form
       onSubmit={handleSubmit}
       className={cn(
-        "rounded-2xl border border-border bg-card p-6 sm:p-8",
+        "rounded-2xl bg-card p-6 sm:p-8",
         className
       )}
     >
@@ -188,11 +188,11 @@ export function ServiceConfigurator({
                     <label
                       key={option.id}
                       className={cn(
-                        "cursor-pointer rounded-xl border px-4 py-2.5 text-sm transition-colors",
+                        "cursor-pointer rounded-xl px-4 py-2.5 text-sm transition-colors",
                         "focus-within:outline-solid focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring",
                         active
-                          ? "border-foreground bg-foreground text-background"
-                          : "border-border bg-secondary/40 text-foreground hover:border-foreground/40 hover:bg-hover-surface hover:text-signal"
+                          ? "bg-foreground text-background"
+                          : "bg-secondary/40 text-foreground hover:bg-secondary hover:text-foreground"
                       )}
                     >
                       <input
@@ -247,7 +247,7 @@ export function ServiceConfigurator({
         })}
       </div>
 
-      <div className="mt-7 border-t border-border pt-5">
+      <div className="mt-7 pt-5">
         {publicPrice ? (
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <span className="text-sm text-muted-foreground">
@@ -269,7 +269,7 @@ export function ServiceConfigurator({
         </p>
 
         {estimate.breakdown.length > 1 && (
-          <ul className="mt-4 space-y-1 border-t border-border pt-3">
+          <ul className="mt-4 space-y-1 pt-3">
             {estimate.breakdown.map((line, index) => (
               <li
                 key={`${line.label}-${index}`}
@@ -311,7 +311,7 @@ export function ServiceConfigurator({
                 loading={cartPending}
                 disabled={!estimate.complete || cartPending}
                 onClick={() => void handleAddToCart()}
-                className={cn(addedToCart && "border-primary text-foreground")}
+                className={cn(addedToCart && "text-foreground")}
               >
                 {addedToCart ? (
                   <>
@@ -337,7 +337,7 @@ export function ServiceConfigurator({
           </div>
         ) : (
           <div className="space-y-2">
-            <Button type="button" size="lg" variant="outline" disabled>
+            <Button type="button"size="lg"variant="outline"disabled>
               {t("signInToOrder")}
             </Button>
             <p className="text-xs text-muted-foreground">{t("signInHint")}</p>

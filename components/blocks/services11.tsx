@@ -37,7 +37,7 @@ const Services11Catalog = ({
   return (
     <section
       id={id}
-      className={cn("border-t border-border/60 section-y", className)}
+      className={cn("section-y", className)}
     >
       <div className="container">
         <div className="grid grid-cols-1 gap-8 pb-14 lg:grid-cols-12 lg:items-end">
@@ -67,7 +67,7 @@ const Services11Catalog = ({
 
           <div className="lg:col-span-2 lg:flex lg:justify-end">
             {ctaLabel && (
-              <Button variant="outline" asChild>
+              <Button variant="outline"asChild>
                 <Link href={ctaHref}>{ctaLabel}</Link>
               </Button>
             )}
@@ -78,7 +78,7 @@ const Services11Catalog = ({
           {services.map((service) => (
             <div
               key={service.slug}
-              className="group relative flex aspect-[3/4] flex-col justify-between overflow-hidden rounded-xl border border-border bg-card p-6 transition-colors duration-200 ease-out hover:border-foreground/30"
+              className="group relative flex aspect-[3/4] flex-col justify-between overflow-hidden rounded-xl bg-card p-6 transition-colors duration-200 ease-out"
             >
               <Link
                 href={`/shop/${service.slug}`}
@@ -99,7 +99,7 @@ const Services11Catalog = ({
                     ? largeCategoryLabel
                     : smallCategoryLabel}
                 </span>
-                <span className="flex size-9 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white backdrop-blur-2xl transition-colors duration-200 group-hover:border-white/50">
+                <span className="flex size-9 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-2xl transition-colors duration-200">
                   <ArrowUpRight className="size-4 transition-transform duration-200 ease-out group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </span>
               </div>

@@ -30,9 +30,9 @@ function DirectionCard({
   return (
     <Link
       href={href}
-      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-colors duration-200 hover:border-foreground/30 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+      className="group flex h-full flex-col overflow-hidden rounded-2xl bg-card transition-colors duration-200 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
     >
-      <div className="relative h-40 shrink-0 overflow-hidden border-b border-border bg-background sm:h-48">
+      <div className="relative h-40 shrink-0 overflow-hidden bg-background sm:h-48">
         <PixelDirectionSprite variant={pattern} className="absolute inset-0 size-full" />
       </div>
       <div className="flex flex-1 flex-col p-7 sm:p-9">
@@ -41,8 +41,8 @@ function DirectionCard({
           <span
             className={
               accent
-                ? "rounded-full border border-signal/30 bg-signal/10 px-3 py-1 font-medium text-signal"
-                : "rounded-full border border-border px-3 py-1 font-medium text-muted-foreground"
+                ? "rounded-full bg-signal/12 px-3 py-1 font-medium text-signal"
+                : "rounded-full bg-secondary/60 px-3 py-1 font-medium text-muted-foreground"
             }
           >
             {status}
@@ -55,7 +55,7 @@ function DirectionCard({
           {linkLabel}
           <ArrowUpRight
             aria-hidden="true"
-            className="size-4 text-muted-foreground transition-[color,transform] duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-signal"
+            className="size-4 text-muted-foreground transition-[color,transform] duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground"
           />
         </span>
       </div>
@@ -68,7 +68,7 @@ export async function BrandDirections() {
   const t = await getRequestTranslations("directions");
 
   return (
-    <section id="directions" className="border-y border-border bg-background section-y">
+    <section id="directions" className="bg-background section-y">
       <div className="container">
         <div data-reveal="" className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
           <div>

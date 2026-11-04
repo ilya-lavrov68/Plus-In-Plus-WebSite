@@ -28,7 +28,7 @@ function minHeightForRows(rows: number | undefined): number {
 
 /**
  * Brand textarea, now backed by Spectrum UI's AutosizeTextarea: the field grows
- * with its content instead of scrolling inside a fixed box. Same border, radius,
+ * with its content instead of scrolling inside a fixed box. Same, radius,
  * type scale and focus ring as before, and the initial height still comes from
  * `rows` so every existing form looks identical on first paint.
  */
@@ -50,7 +50,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         // min-height inline makes the first paint correct.
         style={{ minHeight, ...style }}
         className={cn(
-          "w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-[height,border-color,outline-color] duration-200 ease-out placeholder:text-muted-foreground hover:border-foreground/25 focus-visible:border-foreground/50 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50",
+          "w-full rounded-md bg-secondary/60 px-3 py-2 text-sm transition-[height,background-color,outline-color] duration-200 ease-out hover:bg-secondary/80 placeholder:text-muted-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50",
           className
         )}
         {...props}

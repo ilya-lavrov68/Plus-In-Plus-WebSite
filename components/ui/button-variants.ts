@@ -19,11 +19,11 @@ export const buttonVariants = cva(
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/85",
         outline:
-          "border border-border bg-transparent text-foreground hover:border-foreground/30 hover:bg-hover-surface hover:text-signal",
+          "bg-transparent text-foreground hover:bg-white/[0.08] hover:text-foreground",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-hover-surface hover:text-signal",
+          "bg-secondary text-secondary-foreground hover:bg-white/[0.14] hover:text-foreground",
         ghost:
-          "text-foreground hover:bg-hover-surface hover:text-signal",
+          "text-foreground hover:bg-white/[0.07] hover:text-foreground",
         link: "text-signal underline-offset-4 hover:underline",
       },
       size: {
@@ -46,7 +46,7 @@ export const headerButtonVariants = cva(
     variants: {
       variant: {
         outline:
-          "border border-border bg-transparent text-foreground hover:border-foreground/30 hover:bg-hover-surface hover:text-signal",
+          "bg-transparent text-foreground hover:bg-white/[0.08] hover:text-foreground",
         primary:
           "bg-foreground text-background hover:bg-hover-surface hover:text-signal",
       },

@@ -9,7 +9,7 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-xl border border-border bg-card text-card-foreground ",
+      "rounded-xl bg-card text-card-foreground ",
       className
     )}
     {...props}
@@ -56,6 +56,22 @@ const CardDescription = React.forwardRef<
 ));
 CardDescription.displayName = "CardDescription";
 
+/**
+ * Действие в шапке карточки (бейдж тренда, ссылка, кнопка). Живёт в правом
+ * верхнем углу и не сдвигает заголовок при разной ширине текста.
+ */
+const CardAction = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("col-start-2 row-span-2 row-start-1 self-start justify-self-end", className)}
+    {...props}
+  />
+));
+CardAction.displayName = "CardAction";
+
 const CardContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
@@ -83,4 +99,5 @@ export {
   CardTitle,
   CardDescription,
   CardContent,
+  CardAction,
 };

@@ -108,7 +108,7 @@ const Footer7 = ({
   ];
 
   return (
-    <footer className="border-t border-border bg-background py-24 md:py-28">
+    <footer className="bg-background py-24 md:py-28">
       <div className="container">
         <div className="flex flex-col justify-between gap-14 lg:flex-row lg:items-start lg:gap-16">
           <div className="flex max-w-xs flex-col gap-5">
@@ -151,7 +151,7 @@ const Footer7 = ({
                   target="_blank"
                   rel="noreferrer"
                   aria-label={label}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors duration-200 hover:border-foreground/25 hover:text-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-secondary/50 text-muted-foreground transition-colors duration-200 hover:text-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 >
                   <Icon aria-hidden="true" className="h-4 w-4" />
                 </a>
@@ -182,7 +182,7 @@ const Footer7 = ({
           </div>
         </div>
 
-        <div className="mt-20 flex flex-col justify-between gap-4 border-t border-border pt-8 text-xs text-muted-foreground md:flex-row md:items-center">
+        <div className="mt-20 flex flex-col justify-between gap-4 pt-8 text-xs text-muted-foreground md:flex-row md:items-center">
           <p>© 2026 Plus In Plus</p>
           <div className="flex items-center gap-6">
             <Link

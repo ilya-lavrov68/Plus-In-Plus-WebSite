@@ -10,19 +10,19 @@ import { cn } from "@/lib/utils";
  * dark Hero 138 neutral palette.
  */
 const STATUS_STYLES: Record<string, string> = {
-  pending: "border-amber-500/35 bg-amber-500/15 text-amber-200",
-  quote_requested: "border-amber-500/35 bg-amber-500/15 text-amber-200",
-  negotiating: "border-amber-500/35 bg-amber-500/15 text-amber-200",
-  priced: "border-sky-500/35 bg-sky-500/15 text-sky-200",
-  awaiting_payment: "border-sky-500/35 bg-sky-500/15 text-sky-200",
-  paid: "border-emerald-500/35 bg-emerald-500/15 text-emerald-200",
-  in_progress: "border-sky-500/35 bg-sky-500/15 text-sky-200",
-  completed: "border-emerald-500/35 bg-emerald-500/15 text-emerald-200",
-  cancelled: "border-border bg-muted text-muted-foreground",
-  refunded: "border-border bg-muted text-muted-foreground",
+  pending: " bg-amber-500/15 text-amber-200",
+  quote_requested: " bg-amber-500/15 text-amber-200",
+  negotiating: " bg-amber-500/15 text-amber-200",
+  priced: " bg-sky-500/15 text-sky-200",
+  awaiting_payment: " bg-sky-500/15 text-sky-200",
+  paid: " bg-emerald-500/15 text-emerald-200",
+  in_progress: " bg-sky-500/15 text-sky-200",
+  completed: " bg-emerald-500/15 text-emerald-200",
+  cancelled: " bg-muted text-muted-foreground",
+  refunded: " bg-muted text-muted-foreground",
 };
 
-const FALLBACK_STYLE = "border-border bg-muted text-muted-foreground";
+const FALLBACK_STYLE = " bg-muted text-muted-foreground";
 
 export interface OrderStatusBadgeProps {
   status: string;

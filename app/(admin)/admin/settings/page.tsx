@@ -146,7 +146,7 @@ export default async function AdminSettingsPage({
                   type="checkbox"
                   name={`clear:${key}`}
                   value="1"
-                  className="size-4 rounded border-outline bg-transparent accent-[var(--md-primary)]"
+                  className="size-4 rounded bg-transparent accent-[var(--md-primary)]"
                 />
                 {settingsLabels.clearSecret}
               </label>
@@ -213,7 +213,7 @@ export default async function AdminSettingsPage({
           title={settingsLabels.groups.notification.title}
           description={settingsLabels.groups.notification.hint}
           actions={
-            <button type="submit" formAction={testNotifications} formNoValidate className={adminTonalButtonClass}>
+            <button type="submit"formAction={testNotifications} formNoValidate className={adminTonalButtonClass}>
               {settingsLabels.test.button}
             </button>
           }
@@ -226,7 +226,7 @@ export default async function AdminSettingsPage({
           </p>
         </AdminPanel>
 
-        <div className="sticky bottom-4 z-10 flex flex-wrap items-center gap-3 rounded-2xl border border-outline-variant/70 bg-surface/70 px-5 py-4 backdrop-blur-2xl">
+        <div className="sticky bottom-4 z-10 flex flex-wrap items-center gap-3 rounded-2xl bg-surface/85 px-5 py-4 backdrop-blur-xl">
           <button type="submit" className={adminFilledButtonClass}>
             {t.table.save}
           </button>

@@ -49,7 +49,7 @@ const ProductDetail1 = ({
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
           <div className="space-y-4 lg:col-span-6">
             {primaryImage && (
-              <div className="overflow-hidden rounded-2xl border border-border bg-card">
+              <div className="overflow-hidden rounded-2xl bg-card">
                 <AspectRatio ratio={4 / 3}>
                   <img
                     src={primaryImage}
@@ -65,7 +65,7 @@ const ProductDetail1 = ({
                 {secondaryImages.map((imageSrc, idx) => (
                   <div
                     key={idx}
-                    className="overflow-hidden rounded-xl border border-border bg-card"
+                    className="overflow-hidden rounded-xl bg-card"
                   >
                     <AspectRatio ratio={4 / 3}>
                       <img
@@ -94,7 +94,7 @@ const ProductDetail1 = ({
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
-              <Button size="lg" className="sm:px-10" asChild>
+              <Button size="lg" className="sm:px-10"asChild>
                 <Link href={`/contact?service=${service.slug}`}>
                   {labels?.order ?? "Order"}
                 </Link>
@@ -136,7 +136,7 @@ const ProductDetail1 = ({
                 </dd>
               </div>
 
-              <div className="relative before:absolute before:-top-10 before:right-0 before:left-0 before:border-t before:border-border before:content-['']">
+              <div className="relative before:absolute before:-top-10 before:right-0 before:left-0 before:content-['']">
                 <dt className="text-xl font-semibold text-foreground">
                   {labels?.shapesTitle ?? "Any shape, any idea"}
                 </dt>
@@ -150,7 +150,7 @@ const ProductDetail1 = ({
                     {service.shapes.map((shape, idx) => (
                       <li
                         key={idx}
-                        className="rounded-lg border border-border bg-card px-3.5 py-2.5 text-sm text-foreground"
+                        className="rounded-lg bg-card px-3.5 py-2.5 text-sm text-foreground"
                       >
                         {shape}
                       </li>
@@ -159,7 +159,7 @@ const ProductDetail1 = ({
                 </dd>
               </div>
 
-              <div className="relative rounded-xl border border-border bg-card p-6 before:absolute before:-top-10 before:right-0 before:left-0 before:border-t before:border-border before:content-['']">
+              <div className="relative rounded-xl bg-card p-6 before:absolute before:-top-10 before:right-0 before:left-0 before:content-['']">
                 <dt className="text-xl font-semibold text-foreground">
                   {labels?.resultTitle ?? "The result"}
                 </dt>

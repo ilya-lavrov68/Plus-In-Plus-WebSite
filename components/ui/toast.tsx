@@ -29,12 +29,12 @@ const ToastViewport = React.forwardRef<
 ToastViewport.displayName = ToastPrimitives.Viewport.displayName;
 
 const toastVariants = cva(
-  "pointer-events-auto relative flex w-full items-center justify-between gap-4 overflow-hidden rounded-md border p-4 pr-6 transition-all duration-250 ease-out data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=cancel]:translate-x-0 data-[state=closed]:fade-out-80 data-[state=open]:fade-in",
+  "pointer-events-auto relative flex w-full items-center justify-between gap-4 overflow-hidden rounded-md p-4 pr-6 transition-all duration-250 ease-out data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=cancel]:translate-x-0 data-[state=closed]:fade-out-80 data-[state=open]:fade-in",
   {
     variants: {
       variant: {
-        default: "border-border bg-background text-foreground",
-        destructive: "border-destructive/50 bg-destructive text-destructive-foreground",
+        default: " bg-background text-foreground",
+        destructive: " bg-destructive text-destructive-foreground",
       },
     },
     defaultVariants: {
@@ -63,7 +63,7 @@ const ToastAction = React.forwardRef<
   <ToastPrimitives.Action
     ref={ref}
     className={cn(
-      "inline-flex h-8 shrink-0 items-center justify-center rounded-md border border-border bg-transparent px-3 text-sm font-medium transition-colors duration-200 ease-out focus:outline-solid focus:outline-2 focus:outline-offset-2 focus:outline-ring disabled:pointer-events-none disabled:opacity-50",
+      "inline-flex h-8 shrink-0 items-center justify-center rounded-md bg-transparent px-3 text-sm font-medium transition-colors duration-200 ease-out focus:outline-solid focus:outline-2 focus:outline-offset-2 focus:outline-ring disabled:pointer-events-none disabled:opacity-50",
       className
     )}
     {...props}

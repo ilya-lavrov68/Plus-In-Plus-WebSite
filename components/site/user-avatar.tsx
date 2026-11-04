@@ -29,7 +29,7 @@ export function UserAvatar({
   return (
     <span
       className={cn(
-        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-secondary font-semibold text-foreground",
+        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary font-semibold text-foreground",
         size === 64 ? "h-16 w-16 text-xl" : "h-9 w-9 text-sm",
         className
       )}

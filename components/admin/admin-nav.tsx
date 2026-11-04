@@ -61,12 +61,12 @@ export function AdminNav({ groups, label }: { groups: AdminNavGroup[]; label: st
                         href={item.href}
                         aria-current={active ? "page" : undefined}
                         className={cn(
-                          // Пункт меню — кнопка: рамка, подложка и явные состояния.
-                          "flex min-h-11 items-center justify-center whitespace-nowrap rounded-xl border px-4 text-sm transition-colors duration-200 lg:min-h-10 lg:w-full lg:justify-start lg:px-3",
+                          // Пункт меню — кнопка без рамок: подложка и явные состояния.
+                          "flex min-h-11 items-center justify-center whitespace-nowrap rounded-xl px-4 text-sm transition-colors duration-200 lg:min-h-10 lg:w-full lg:justify-start lg:px-3",
                           "focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
                           active
-                            ? "border-signal/45 bg-surface-container-high font-medium text-signal"
-                            : "border-outline-variant/70 bg-surface-container/50 text-on-surface-variant hover:border-outline hover:bg-hover-surface hover:text-signal",
+                            ? "bg-surface-container-high font-medium text-signal"
+                            : "text-on-surface-variant hover:bg-hover-surface hover:text-on-surface",
                         )}
                       >
                         {item.label}

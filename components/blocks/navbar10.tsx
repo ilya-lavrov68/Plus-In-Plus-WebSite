@@ -55,6 +55,7 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -112,19 +113,6 @@ interface MobileNavigationMenuProps {
   menuLabel: string;
   closeLabel: string;
 }
-
-/**
- * Пункты меню — кнопки, а не текстовые ссылки. В покое у них спокойная
- * поверхность с рамкой, при наведении (и при раскрытом выпадающем списке)
- * подложка темнеет до --hover-surface, а текст становится сигнальным жёлтым.
- * Тот же ритм, что у Button variant="outline", поэтому шапка читается как одна
- * система, а не как набор разных элементов.
- */
-const menuButtonClass =
-  "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-border bg-foreground/[0.04] px-3.5 text-sm font-medium text-foreground/80 transition-[background-color,color,border-color] duration-200 ease-out hover:border-foreground/30 hover:bg-hover-surface hover:text-signal focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring data-[state=open]:border-foreground/30 data-[state=open]:bg-hover-surface data-[state=open]:text-signal";
-
-const mobileMenuButtonClass =
-  "flex min-h-12 w-full items-center justify-between gap-2 rounded-xl border border-border bg-foreground/[0.04] px-4 text-base font-normal text-foreground transition-[background-color,border-color,color] duration-200 ease-out hover:border-foreground/30 hover:bg-hover-surface hover:text-signal hover:no-underline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
 type NavLinkProps = {
   link: MenuLink;
@@ -375,7 +363,16 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
 
   return (
     <Fragment>
-      <section className="pointer-events-auto fixed top-0 z-50 flex w-full items-center justify-center border-b-0 bg-background/65 backdrop-blur-2xl">
+      <section className="pointer-events-auto fixed top-0 z-50 flex w-full items-center justify-center">
+        {/*
+          Стекло шапки живёт на отдельном слое. backdrop-filter на самой секции
+          создавал бы для выпадающего меню новый backdrop root, и его блюр
+          перестал бы размазывать контент страницы.
+        */}
+        <div
+          aria-hidden="true"
+          className="site-header-glass pointer-events-none absolute inset-0"
+        />
         <NavigationMenu className="h-20 max-w-full after:absolute after:inset-0 after:z-40 after:block after:size-full after:bg-transparent after:content-[''] [&>div:last-child>div]:mt-0 [&>div:last-child>div]:rounded-none [&>div:last-child>div]:border-0 [&>div:last-child>div]:border-b-0">
           <div className="container relative z-50 grid w-full grid-cols-2 items-center justify-between gap-4 lg:grid-cols-3 lg:gap-8">
             <Link
@@ -387,7 +384,7 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
             </Link>
 
             <div className="hidden justify-self-center lg:flex">
-              <NavigationMenuList className="gap-1.5">
+              <NavigationMenuList>
                 {navigation.map((item, index) => (
                   <DesktopMenuItem
                     key={`desktop-link-${index}`}
@@ -402,13 +399,13 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
               <div className="hidden items-center gap-2.5 lg:flex">
                 <LanguageSwitcher />
                 {session?.user ? <CartIcon count={cartCount} /> : null}
-                <Button variant="outline" size="sm" asChild>
+                <Button variant="outline"size="sm"asChild>
                   <Link href="/contact">{t("contact")}</Link>
                 </Button>
                 {session?.user ? (
                   <div className="flex items-center gap-2">
                     {dashboardHref && (
-                      <Button variant="secondary" size="sm" asChild>
+                      <Button variant="secondary"size="sm"asChild>
                         <Link href={dashboardHref}>
                           <LayoutDashboard className="size-3.5" />
                           {t("admin")}
@@ -427,7 +424,7 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
                         setAccountReturnFocusId("account-trigger");
                         setAccountOpen(true);
                       }}
-                      className="inline-flex items-center gap-2 rounded-full border border-border p-0.5 pr-3 text-xs font-medium text-foreground transition-colors duration-200 ease-out hover:border-foreground/25 hover:bg-white/[0.06] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                      className="inline-flex items-center gap-2 rounded-full p-0.5 pr-3 text-xs font-medium text-foreground transition-colors duration-200 ease-out hover:bg-white/[0.06] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     >
                       <UserAvatar user={session.user} size={36} />
                       <span className="max-w-24 truncate">
@@ -491,7 +488,7 @@ const DesktopMenuItem = ({ item, index }: DesktopMenuItemProps) => {
   if (item.links || item.featuredLinks || item.groupLinks) {
     return (
       <NavigationMenuItem key={`desktop-menu-item-${index}`} value={`${index}`}>
-        <NavigationMenuTrigger className={menuButtonClass}>
+        <NavigationMenuTrigger className="h-fit bg-transparent font-normal text-foreground/70 hover:text-foreground">
           {item.title}
         </NavigationMenuTrigger>
         <NavigationMenuContent className="hidden !rounded-xl !border-0 !p-0 lg:block">
@@ -521,7 +518,7 @@ const DesktopMenuItem = ({ item, index }: DesktopMenuItemProps) => {
     <NavigationMenuItem key={`desktop-menu-item-${index}`} value={`${index}`}>
       <NavigationMenuLink
         href={item.url}
-        className={menuButtonClass}
+        className={`${navigationMenuTriggerStyle()} h-fit bg-transparent font-normal text-foreground/70`}
       >
         {item.title}
       </NavigationMenuLink>
@@ -803,7 +800,7 @@ const NavLink = forwardRef<HTMLAnchorElement, NavLinkProps>(
           onClick={onClick}
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
-          className="group/navlink -m-2 flex w-full gap-2 rounded-xl p-2 transition-[background-color,color,opacity] duration-200 hover:bg-hover-surface/70 hover:text-signal focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className="group/navlink flex w-full gap-2 transition-opacity duration-200"
         >
           {inner}
         </a>
@@ -817,7 +814,7 @@ const NavLink = forwardRef<HTMLAnchorElement, NavLinkProps>(
         onClick={onClick}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
-        className="group/navlink -m-2 flex w-full gap-2 rounded-xl p-2 transition-[background-color,color,opacity] duration-200 hover:bg-hover-surface/70 hover:text-signal focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className="group/navlink flex w-full gap-2 transition-opacity duration-200"
       >
         {inner}
       </Link>
@@ -878,7 +875,7 @@ const MobileNavigationMenu = ({
             </Accordion>
 
             <div className="flex flex-col gap-3 [&_a]:min-h-12 [&_button]:min-h-12">
-              <Button variant="outline" asChild>
+              <Button variant="outline"asChild>
                 <Link href="/contact" onClick={onClose}>
                   {contactLabel}
                 </Link>
@@ -892,18 +889,18 @@ const MobileNavigationMenu = ({
                   >
                     {accountLabel}
                   </Button>
-                  <Button variant="outline" asChild>
+                  <Button variant="outline"asChild>
                     <Link href="/profile" onClick={onClose}>
                       {profileLabel}
                     </Link>
                   </Button>
-                  <Button variant="outline" asChild>
+                  <Button variant="outline"asChild>
                     <Link href="/cart" onClick={onClose}>
                       {cartLabel}
                     </Link>
                   </Button>
                   {dashboardHref ? (
-                    <Button variant="secondary" asChild>
+                    <Button variant="secondary"asChild>
                       <Link href={dashboardHref} onClick={onClose}>
                         {adminLabel}
                       </Link>
@@ -937,7 +934,7 @@ const renderMobileMenuItem = (
         value={`nav-${index}`}
         className="border-b-0"
       >
-        <AccordionTrigger className={mobileMenuButtonClass}>
+        <AccordionTrigger className="min-h-12 items-center text-base font-normal text-foreground hover:no-underline">
           {item.title}
         </AccordionTrigger>
         <AccordionContent className="flex flex-col gap-6 p-2 [&_a]:min-h-12 [&_a]:rounded-xl [&_a]:p-3 [&_a]:transition-colors [&_a]:active:bg-accent">

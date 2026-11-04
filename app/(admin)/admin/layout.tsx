@@ -1,10 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import Link from "next/link";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 
-import { AdminNav, type AdminNavGroup } from "@/components/admin/admin-nav";
+import { AdminHeader, type AdminHeaderSection } from "@/components/admin/admin-header";
+import { AdminSidebar } from "@/components/admin/admin-sidebar";
+import type { AdminNavGroup } from "@/components/admin/admin-nav";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { adminLabels } from "@/components/admin/labels";
 import { Providers } from "@/app/providers";
 import { requireStaff } from "@/lib/admin-session";
@@ -75,6 +78,13 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     },
   ].filter((group) => group.items.length > 0);
 
+  // Состояние панели приходит из cookie: серверный рендер не «прыгает» при гидрации.
+  const cookieStore = await cookies();
+  const sidebarOpen = cookieStore.get("sidebar_state")?.value !== "false";
+
+  // Заголовок шапки берётся из того же списка разделов, что и навигация.
+  const sections: AdminHeaderSection[] = groups.flatMap((group) => group.items);
+
   return (
     <html lang={locale} data-locale={locale} className="dark">
       <head>
@@ -96,49 +106,33 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             >
               {t.shell.skip}
             </a>
-            <div className="mx-auto flex min-h-screen w-full max-w-[1680px] flex-col lg:flex-row">
-              <aside className="border-b border-outline-variant/60 bg-surface/60 backdrop-blur-2xl lg:sticky lg:top-0 lg:h-screen lg:w-72 lg:shrink-0 lg:overflow-y-auto lg:border-b-0 lg:border-r lg:py-4">
-                <div className="flex items-center justify-between gap-3 px-4 pb-4 pt-5 lg:pt-3">
-                  <Link
-                    href="/admin"
-                    className="flex min-w-0 items-center gap-3 rounded-2xl py-1 pl-1 pr-2 transition-colors duration-200 hover:bg-surface-container-high focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                  >
-                    <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-outline-variant/70 bg-surface-container-high">
-                      <img
-                        src="/assets/logos/lnpip.svg"
-                        alt=""
-                        aria-hidden="true"
-                        width={54}
-                        height={42}
-                        className="h-5 w-auto select-none"
-                      />
-                    </span>
-                    <span className="min-w-0 truncate text-sm font-medium text-on-surface">{t.shell.title}</span>
-                  </Link>
-                  <Link
-                    href="/"
-                    className="whitespace-nowrap rounded-xl px-3 py-1.5 text-xs text-on-surface-variant transition-colors duration-200 hover:bg-hover-surface hover:text-signal focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                  >
-                    {t.shell.viewSite}
-                  </Link>
+            <SidebarProvider defaultOpen={sidebarOpen}>
+              <AdminSidebar
+                groups={groups}
+                quickCreateItems={[
+                  { href: "/admin/services/new", label: t.shell.newService },
+                  { href: "/admin/products/new", label: t.shell.newProduct },
+                  { href: "/admin/posts/new", label: t.shell.newPost },
+                ]}
+                labels={{
+                  title: t.shell.title,
+                  navLabel: t.shell.nav,
+                  quickCreate: t.shell.quickCreate,
+                  quickCreateHint: t.shell.quickCreateHint,
+                  account: t.shell.account,
+                  viewSite: t.shell.viewSite,
+                  settings: t.nav.settings,
+                }}
+                user={{ email: staff.email, roleLabel: t.roles[staff.role] ?? staff.role }}
+                settingsHref={staff.isFounder ? "/admin/settings" : undefined}
+              />
+              <SidebarInset id="admin-main">
+                <AdminHeader sections={sections} viewSite={t.shell.viewSite} />
+                <div className="@container/main flex flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+                  {children}
                 </div>
-                <AdminNav groups={groups} label={t.shell.nav} />
-                <div className="mt-auto hidden gap-1 px-5 pb-2 pt-6 text-xs text-on-surface-variant lg:flex lg:flex-col">
-                  <span className="truncate font-medium text-on-surface" title={staff.email}>
-                    {staff.email}
-                  </span>
-                  <span className="rounded-full border border-outline-variant/60 px-2.5 py-1 text-[11px] text-on-surface-variant">
-                    {t.shell.role}: {t.roles[staff.role]}
-                  </span>
-                </div>
-              </aside>
-              <main
-                id="admin-main"
-                className="min-w-0 flex-1 bg-surface px-4 py-6 sm:px-6 lg:px-10 lg:py-8"
-              >
-                <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-6">{children}</div>
-              </main>
-            </div>
+              </SidebarInset>
+            </SidebarProvider>
           </Providers>
         </NextIntlClientProvider>
       </body>

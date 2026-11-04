@@ -17,7 +17,7 @@ export default async function NotFound() {
       <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground">
         {t("notFoundDescription")}
       </p>
-      <Button size="lg" className="mt-8" asChild>
+      <Button size="lg" className="mt-8"asChild>
         <Link href="/">{t("backHome")}</Link>
       </Button>
     </section>

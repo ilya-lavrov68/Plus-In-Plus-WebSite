@@ -195,13 +195,13 @@ const Contact29 = ({
                       key={option.id}
                       type="button"
                       onClick={() => setSelectedTopic(option.id)}
-                      className={`flex flex-col items-start gap-3 rounded-xl border p-6 text-left transition-colors duration-200 ease-out hover:border-foreground/25 hover:bg-white/[0.05] ${
+                      className={`flex flex-col items-start gap-3 rounded-xl p-6 text-left transition-colors duration-200 ease-out hover:bg-white/[0.05] ${
                         selected
-                          ? "border-primary bg-white/[0.06]"
-                          : "border-border bg-card/60"
+                          ? " bg-secondary"
+                          : " bg-card/60"
                       }`}
                     >
-                      <div className="flex size-10 items-center justify-center rounded-lg border border-border bg-secondary">
+                      <div className="flex size-10 items-center justify-center rounded-lg bg-secondary">
                         <Icon className="size-5 text-foreground" />
                       </div>
                       <div className="text-lg font-semibold text-foreground">
@@ -226,14 +226,14 @@ const Contact29 = ({
                         key={option.id}
                         type="button"
                         onClick={() => setSelectedTopic(option.id)}
-                        className={`flex flex-col items-start gap-2 rounded-xl border p-4 text-left transition-colors duration-200 ease-out hover:border-foreground/25 hover:bg-white/[0.05] ${
+                        className={`flex flex-col items-start gap-2 rounded-xl p-4 text-left transition-colors duration-200 ease-out hover:bg-white/[0.05] ${
                           selected
-                            ? "border-primary bg-white/[0.06]"
-                            : "border-border bg-card/45"
+                            ? " bg-secondary"
+                            : " bg-card/45"
                         }`}
                       >
                         <div className="flex items-center gap-2.5">
-                          <div className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-secondary">
+                          <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-secondary">
                             <Icon className="size-4 text-foreground" />
                           </div>
                           <div className="text-sm leading-snug font-semibold text-foreground">
@@ -290,7 +290,7 @@ const Contact29 = ({
                     {t("projectDescription")}
                   </p>
 
-                  <div className="mt-8 rounded-xl border border-border bg-card p-5">
+                  <div className="mt-8 rounded-xl bg-card p-5">
                     <div className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
                       {t("selectedService")}
                     </div>
@@ -317,7 +317,7 @@ const Contact29 = ({
               <div className="lg:col-span-7">
                 <form
                   onSubmit={handleSubmit}
-                  className="space-y-6 rounded-2xl border border-border bg-card p-6 md:p-10"
+                  className="space-y-6 rounded-2xl bg-card p-6 md:p-10"
                 >
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <div className="space-y-2">
@@ -403,7 +403,7 @@ const Contact29 = ({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="mx-auto max-w-lg rounded-2xl border border-border bg-card p-10 text-center"
+              className="mx-auto max-w-lg rounded-2xl bg-card p-10 text-center"
             >
               <CheckCircle2 className="mx-auto size-12 text-foreground" />
               <h2 className="mt-5 text-3xl font-semibold tracking-tight">

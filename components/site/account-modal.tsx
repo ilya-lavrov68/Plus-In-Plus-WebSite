@@ -51,7 +51,7 @@ function FormError({ message }: { message: string | null }) {
   return message ? (
     <p
       role="alert"
-      className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+      className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
     >
       {message}
     </p>
@@ -131,7 +131,7 @@ function ProfilePanel({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4 rounded-xl border border-border bg-secondary/60 p-4">
+      <div className="flex items-center gap-4 rounded-xl bg-secondary/60 p-4">
         <UserAvatar user={user} />
         <div className="min-w-0">
           <p className="break-words text-lg font-semibold text-foreground">
@@ -534,10 +534,8 @@ export function AccountModal({
                   </div>
                   <div
                     className={cn(
-                      "flex items-center justify-between gap-4 rounded-lg border p-3 transition-colors",
-                      adminMode
-                        ? "border-primary bg-secondary"
-                        : "border-border"
+                      "flex items-center justify-between gap-4 rounded-lg p-3 transition-colors",
+                      adminMode && "bg-secondary"
                     )}
                   >
                     <div>
@@ -587,7 +585,7 @@ export function AccountModal({
                         </p>
                       </div>
                       {mfaChallenge.hasPasskeys ? (
-                        <Button type="button" variant="outline" className="w-full" onClick={handlePasskey}>
+                        <Button type="button"variant="outline" className="w-full" onClick={handlePasskey}>
                           {t("usePasskey")}
                         </Button>
                       ) : null}

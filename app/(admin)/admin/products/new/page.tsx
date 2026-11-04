@@ -44,7 +44,7 @@ export default async function NewProductPage({
       <form action={createProduct} className={adminFieldsetClass}>
         <label className={labelClass}>
           {t.service.title}
-          <input name="name" minLength={2} maxLength={120} required autoFocus className={inputClass} />
+          <input name="name"minLength={2} maxLength={120} required autoFocus className={inputClass} />
         </label>
 
         <div className="grid gap-5 sm:grid-cols-2">
@@ -61,30 +61,30 @@ export default async function NewProductPage({
         <div className="grid gap-5 sm:grid-cols-2">
           <label className={labelClass}>
             {t.product.priceRubles}
-            <input name="price" type="number" min={0} max={10_000_000} step="1" required className={inputClass} />
+            <input name="price" type="number"min={0} max={10_000_000} step="1"required className={inputClass} />
           </label>
           <label className={labelClass}>
             {t.table.stock}
-            <input name="stock" type="number" min={0} max={1_000_000} step="1" defaultValue={0} className={inputClass} />
+            <input name="stock" type="number"min={0} max={1_000_000} step="1"defaultValue={0} className={inputClass} />
           </label>
         </div>
 
         <label className={labelClass}>
           {t.service.shortDesc}
-          <textarea name="description" rows={5} className={`${inputClass} h-auto py-2`} />
+          <textarea name="description"rows={5} className={`${inputClass} h-auto py-2`} />
         </label>
 
         <fieldset className={adminInsetPanelClass}>
           <legend className="text-sm font-medium text-on-surface">{t.image.title}</legend>
           <label className={labelClass}>
             {t.image.upload}
-            <input type="file" name="cover" accept={IMAGE_ACCEPT} className="text-sm text-on-surface-variant file:mr-3 file:rounded-full file:border file:border-outline file:bg-transparent file:px-4 file:py-2 file:text-sm file:font-medium file:text-on-surface hover:file:border-primary" />
+            <input type="file" name="cover"accept={IMAGE_ACCEPT} className="text-sm text-on-surface-variant file:mr-3 file:rounded-full file:bg-transparent file:px-4 file:py-2 file:text-sm file:font-medium file:text-on-surface" />
           </label>
           <p className="text-xs text-on-surface-variant">{t.image.hint}</p>
         </fieldset>
 
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" className="size-4 accent-primary" name="isActive" defaultChecked />
+          <input type="checkbox" className="size-4 accent-primary" name="isActive"defaultChecked />
           {t.product.isActive}
         </label>
 

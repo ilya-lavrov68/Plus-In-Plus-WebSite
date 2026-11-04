@@ -83,8 +83,8 @@ export function ServiceSelector({
                 className={cn(
                   "cursor-pointer p-4 transition-colors duration-200",
                   isSelected
-                    ? "border-primary bg-secondary/60"
-                    : "border-border bg-card/60 hover:border-foreground/25 hover:bg-white/[0.04]"
+                    ? " bg-secondary/60"
+                    : " bg-card/60 hover:bg-white/[0.04]"
                 )}
               >
                 <div className="flex items-start gap-3">

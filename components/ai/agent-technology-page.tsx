@@ -58,7 +58,7 @@ export async function AgentTechnologyPage({ agent }: { agent: AgentKind }) {
         </Link>
         <nav aria-label={t("switcherLabel")} className="ml-auto flex items-center gap-2">
           {(["lumi", "kairo"] as const).map((item) => (
-            <Button key={item} asChild size="sm" variant={agent === item ? "default" : "outline"}>
+            <Button key={item} asChild size="sm"variant={agent === item ? "default" : "outline"}>
               <Link href={`/ai/${item}`} aria-current={agent === item ? "page" : undefined}>
                 {item === "lumi" ? "Lumi Q1" : "Kairo"}
               </Link>
@@ -78,7 +78,7 @@ export async function AgentTechnologyPage({ agent }: { agent: AgentKind }) {
             <p className="mt-7 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
               {content.intro}
             </p>
-            <p className="mt-10 max-w-xl border-t border-border pt-5 text-sm leading-relaxed text-muted-foreground">
+            <p className="mt-10 max-w-xl pt-5 text-sm leading-relaxed text-muted-foreground">
               {content.status}
             </p>
           </div>
@@ -88,7 +88,7 @@ export async function AgentTechnologyPage({ agent }: { agent: AgentKind }) {
               <span>{content.visualCaption}</span>
               <span aria-hidden="true">01 / 06</span>
             </div>
-            <div className="aspect-[36/23] w-full border-y border-border bg-background text-foreground">
+            <div className="aspect-[36/23] w-full bg-background text-foreground">
               <AgentShaderPlayer agent={agent} labels={shaderLabels} />
             </div>
             <figcaption className="sr-only">{content.visualLabel}</figcaption>
@@ -96,7 +96,7 @@ export async function AgentTechnologyPage({ agent }: { agent: AgentKind }) {
         </div>
       </section>
 
-      <section className="border-t border-border section-y-tight" aria-labelledby={`${agent}-benefits`}>
+      <section className="section-y-tight" aria-labelledby={`${agent}-benefits`}>
         <div className="container">
           <div className="max-w-2xl" data-reveal="">
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">02 / {t("advantages")}</p>
@@ -119,7 +119,7 @@ export async function AgentTechnologyPage({ agent }: { agent: AgentKind }) {
       </section>
 
       {content.sections.map((section, index) => (
-        <section id={section.id} key={section.id} className="border-t border-border section-y-tight">
+        <section id={section.id} key={section.id} className="section-y-tight">
           <div className="container grid items-center gap-14 lg:grid-cols-[0.82fr_1.18fr] lg:gap-24 xl:gap-32">
             <div
               data-reveal=""
@@ -152,7 +152,7 @@ export async function AgentTechnologyPage({ agent }: { agent: AgentKind }) {
         </section>
       ))}
 
-      <section className="border-t border-border section-y-tight">
+      <section className="section-y-tight">
         <div className="container grid gap-14 lg:grid-cols-2 lg:gap-24 xl:gap-32">
           <div data-reveal="">
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">06 / {t("boundaries")}</p>
@@ -164,7 +164,7 @@ export async function AgentTechnologyPage({ agent }: { agent: AgentKind }) {
           <div data-reveal="" data-reveal-delay={100}>
             <ul className="space-y-6">
               {content.closingPoints.map((point) => (
-                <li key={point} className="border-t border-border pt-5 text-sm leading-relaxed text-foreground/85 sm:text-base">
+                <li key={point} className="pt-5 text-sm leading-relaxed text-foreground/85 sm:text-base">
                   {point}
                 </li>
               ))}
@@ -177,7 +177,7 @@ export async function AgentTechnologyPage({ agent }: { agent: AgentKind }) {
         </div>
       </section>
 
-      <section className="border-t border-border py-16 md:py-20">
+      <section className="py-16 md:py-20">
         <div className="container">
           <Link href={`/ai/${otherAgent}`} className="group flex items-end justify-between gap-8">
             <div>
@@ -186,7 +186,7 @@ export async function AgentTechnologyPage({ agent }: { agent: AgentKind }) {
             </div>
             <span className="flex items-center gap-4 text-lg font-medium">
               {otherContent.name}
-              <ArrowRight aria-hidden="true" className="size-6 text-muted-foreground transition-[color,transform] group-hover:translate-x-1 group-hover:text-signal" />
+              <ArrowRight aria-hidden="true" className="size-6 text-muted-foreground transition-[color,transform] group-hover:translate-x-1 group-hover:text-foreground" />
             </span>
           </Link>
         </div>

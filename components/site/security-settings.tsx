@@ -99,7 +99,7 @@ export function SecuritySettings({ required, initialTotpEnabled, initialPasskeys
   }
 
   return (
-    <Card className="glass-panel mt-6 border-border bg-background/65">
+    <Card className="glass-panel mt-6 bg-background/65">
       <CardHeader>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <CardTitle>{t("title")}</CardTitle>
@@ -111,7 +111,7 @@ export function SecuritySettings({ required, initialTotpEnabled, initialPasskeys
       </CardHeader>
       <CardContent className="space-y-6">
         {required && !totpEnabled && passkeys.length === 0 ? (
-          <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+          <p role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
             {t("requiredForStaff")}
           </p>
         ) : null}
@@ -181,7 +181,7 @@ export function SecuritySettings({ required, initialTotpEnabled, initialPasskeys
           ) : (
             <div className="space-y-3">
               {setupExpired ? (
-                <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                <p role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
                   {t("setupExpired")}
                 </p>
               ) : null}
@@ -197,7 +197,7 @@ export function SecuritySettings({ required, initialTotpEnabled, initialPasskeys
           )}
         </section>
 
-        <section className="space-y-4 border-t border-border/60 pt-6" aria-labelledby="passkeys-heading">
+        <section className="space-y-4 pt-6" aria-labelledby="passkeys-heading">
           <div>
             <h3 id="passkeys-heading" className="text-sm font-semibold">{t("passkeysTitle")}</h3>
             <p className="mt-1 text-sm text-muted-foreground">{t("passkeysDescription")}</p>
@@ -265,7 +265,7 @@ export function SecuritySettings({ required, initialTotpEnabled, initialPasskeys
           </div>
         </section>
 
-        <section className="space-y-4 border-t border-border/60 pt-6" aria-labelledby="confirmation-heading">
+        <section className="space-y-4 pt-6" aria-labelledby="confirmation-heading">
           <div>
             <h3 id="confirmation-heading" className="text-sm font-semibold">{t("confirmationTitle")}</h3>
             <p className="mt-1 text-sm text-muted-foreground">{t("confirmationDescription")}</p>
@@ -302,11 +302,11 @@ export function SecuritySettings({ required, initialTotpEnabled, initialPasskeys
           </Button>
         </section>
 
-        {error ? <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p> : null}
+        {error ? <p role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p> : null}
         {notice ? <p role="status" className="text-sm text-foreground">{notice}</p> : null}
 
         {backupCodes ? (
-          <section className="space-y-4 rounded-lg border border-border bg-secondary/60 p-4" aria-labelledby="backup-codes-heading">
+          <section className="space-y-4 rounded-lg bg-secondary/60 p-4" aria-labelledby="backup-codes-heading">
             <div>
               <h3 id="backup-codes-heading" className="text-sm font-semibold">{t("backupCodesTitle")}</h3>
               <p className="mt-1 text-sm text-destructive">{t("backupCodesWarning")}</p>

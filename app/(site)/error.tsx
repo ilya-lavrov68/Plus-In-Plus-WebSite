@@ -26,7 +26,7 @@ export default function GlobalError({
       <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground">
         {t("tryAgain")}
       </p>
-      <Button type="button" size="lg" onClick={reset} className="mt-8">
+      <Button type="button"size="lg" onClick={reset} className="mt-8">
         {t("tryAgain")}
       </Button>
     </section>

@@ -97,7 +97,7 @@ export function ContactOrderForm({
 
   return (
     <div className="mx-auto max-w-4xl px-6 section-y">
-      <div className="mb-10 flex flex-col justify-between gap-4 border-b border-border/60 pb-8 sm:flex-row sm:items-end">
+      <div className="mb-10 flex flex-col justify-between gap-4 pb-8 sm:flex-row sm:items-end">
         <div>
           <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
             {t("orderTitle")}
@@ -106,7 +106,7 @@ export function ContactOrderForm({
             {t("orderSubtitle")}
           </p>
         </div>
-        <Button asChild variant="outline" size="sm" className="w-fit shrink-0">
+        <Button asChild variant="outline"size="sm" className="w-fit shrink-0">
           <Link href="/services" className="gap-1.5">
             <Layers aria-hidden="true" className="h-4 w-4" />
             {t("browseCatalog")}
@@ -116,9 +116,9 @@ export function ContactOrderForm({
       </div>
 
       {status === "unauthenticated" ? (
-        <Card className="mb-8 flex flex-wrap items-center justify-between gap-4 border-border bg-secondary/40 p-4 sm:px-6">
+        <Card className="mb-8 flex flex-wrap items-center justify-between gap-4 bg-secondary/40 p-4 sm:px-6">
           <p className="text-sm text-muted-foreground">{t("signInNotice")}</p>
-          <Button asChild variant="secondary" size="sm">
+          <Button asChild variant="secondary"size="sm">
             <Link href="/login" className="gap-2">
               <LogIn aria-hidden="true" className="h-4 w-4" />
               {t("signInButton")}
@@ -155,7 +155,7 @@ export function ContactOrderForm({
           ) : null}
         </div>
 
-        <div className="glass-panel grid gap-6 rounded-2xl border border-border bg-background/65 p-6 sm:p-8">
+        <div className="glass-panel grid gap-6 rounded-2xl bg-background/65 p-6 sm:p-8">
           <div className="space-y-2">
             <Label htmlFor="deadline" className="inline-flex items-center gap-2">
               <Calendar aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
@@ -187,7 +187,7 @@ export function ContactOrderForm({
           </div>
 
           {selectedServices.length > 0 ? (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-secondary/40 px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-secondary/40 px-4 py-3">
               <div>
                 <p className="text-sm font-medium text-foreground">
                   {t("estimatedTotal")}
@@ -205,7 +205,7 @@ export function ContactOrderForm({
           {error ? (
             <p
               role="alert"
-              className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive-text"
+              className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive-text"
             >
               {error}
             </p>

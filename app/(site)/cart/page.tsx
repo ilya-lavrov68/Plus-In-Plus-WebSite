@@ -58,7 +58,7 @@ export default async function CartPage() {
 
       <section
         aria-labelledby="orders-section-title"
-        className="mt-16 border-t border-border pt-12"
+        className="mt-16 pt-12"
       >
         <h2
           id="orders-section-title"

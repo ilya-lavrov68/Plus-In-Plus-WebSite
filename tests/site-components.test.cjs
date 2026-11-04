@@ -1759,10 +1759,19 @@ test("Signup10 centers brand mark and headings, and CandlestickChart uses dark H
     );
   });
 
+  // Композиция login-02: заголовок по центру, знак — в углу колонки формы.
   const heading = authView.root.findByType("h1");
   assert.match(heading.props.className, /\btext-center\b/);
+  const signupSource = fs.readFileSync(
+    path.resolve(__dirname, "../components/blocks/signup10.tsx"),
+    "utf8",
+  );
+  assert.match(signupSource, /flex justify-center md:justify-start/, "знак стоит в углу на десктопе");
+  assert.match(signupSource, /lg:grid-cols-2/, "вход остаётся двухколоночным");
+  assert.match(signupSource, /lumi-poster\.webp/, "обложка — фирменная графика студии");
+  assert.doesNotMatch(signupSource, /\/assets\/shop\//, "стоковые мокапы не возвращаются");
   const logoLink = authView.root.findAllByType("a").find((a) => a.props.href === "/");
-  assert.match(logoLink.props.className, /\bmx-auto\b/);
+  assert.match(logoLink.props.className, /\binline-flex\b/);
   assert.equal(logoLink.findByType("img").props.src, "/assets/logos/lnpip.svg");
 
   const svgTexts = chartView.root.findAllByType("text");
