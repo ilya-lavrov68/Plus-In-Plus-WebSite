@@ -186,7 +186,7 @@ export async function AgentTechnologyPage({ agent }: { agent: AgentKind }) {
             </div>
             <span className="flex items-center gap-4 text-lg font-medium">
               {otherContent.name}
-              <ArrowRight aria-hidden="true" className="size-6 text-muted-foreground transition-[color,transform] group-hover:translate-x-1 group-hover:text-primary" />
+              <ArrowRight aria-hidden="true" className="size-6 text-muted-foreground transition-[color,transform] group-hover:translate-x-1 group-hover:text-signal" />
             </span>
           </Link>
         </div>

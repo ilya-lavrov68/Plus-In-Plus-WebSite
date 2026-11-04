@@ -94,12 +94,12 @@ const Services11Catalog = ({
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/25 transition-opacity duration-200 group-hover:opacity-80" />
 
               <div className="pointer-events-none relative z-20 flex items-start justify-between gap-2">
-                <span className="rounded-md bg-black/55 px-2.5 py-1 text-xs font-medium text-white/85 backdrop-blur-sm">
+                <span className="rounded-md bg-black/55 px-2.5 py-1 text-xs font-medium text-white/85 backdrop-blur-2xl">
                   {service.category === "large"
                     ? largeCategoryLabel
                     : smallCategoryLabel}
                 </span>
-                <span className="flex size-9 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white backdrop-blur-sm transition-colors duration-200 group-hover:border-white/50">
+                <span className="flex size-9 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white backdrop-blur-2xl transition-colors duration-200 group-hover:border-white/50">
                   <ArrowUpRight className="size-4 transition-transform duration-200 ease-out group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </span>
               </div>

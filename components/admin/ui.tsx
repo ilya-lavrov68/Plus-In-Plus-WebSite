@@ -187,12 +187,18 @@ export function AdminChip({
 const adminButtonBase =
   "inline-flex shrink-0 items-center justify-center gap-2 rounded-full text-sm font-medium transition-colors duration-200 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40 aria-disabled:cursor-not-allowed aria-disabled:opacity-40";
 
+/*
+ * Кнопки собраны по одному правилу: спокойная подложка и нейтральный текст,
+ * а при наведении подложка темнеет и текст становится жёлтым. Жёлтый — акцент
+ * текста, не заливка: ни одна кнопка не «горит» в обычном состоянии.
+ */
 const adminButtonVariants = {
-  filled: "bg-primary text-on-primary hover:bg-primary/85",
-  tonal: "bg-secondary-container text-on-secondary-container hover:bg-secondary-container/85",
-  outlined: "border border-outline text-on-surface hover:bg-on-surface/8",
-  text: "text-primary hover:bg-primary/12",
-  danger: "text-error hover:bg-error/12",
+  filled: "bg-on-surface text-surface hover:bg-hover-surface hover:text-signal",
+  tonal: "bg-surface-container-high text-on-surface hover:bg-hover-surface hover:text-signal",
+  outlined:
+    "border border-outline-variant text-on-surface hover:border-outline hover:bg-hover-surface hover:text-signal",
+  text: "text-on-surface-variant hover:bg-hover-surface hover:text-signal",
+  danger: "text-error hover:bg-error/12 hover:text-error",
 } as const;
 
 const adminButtonSizes = {

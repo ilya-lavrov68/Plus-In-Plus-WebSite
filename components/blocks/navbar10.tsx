@@ -55,7 +55,6 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
-  navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -113,6 +112,19 @@ interface MobileNavigationMenuProps {
   menuLabel: string;
   closeLabel: string;
 }
+
+/**
+ * Пункты меню — кнопки, а не текстовые ссылки. В покое у них спокойная
+ * поверхность с рамкой, при наведении (и при раскрытом выпадающем списке)
+ * подложка темнеет до --hover-surface, а текст становится сигнальным жёлтым.
+ * Тот же ритм, что у Button variant="outline", поэтому шапка читается как одна
+ * система, а не как набор разных элементов.
+ */
+const menuButtonClass =
+  "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-border bg-foreground/[0.04] px-3.5 text-sm font-medium text-foreground/80 transition-[background-color,color,border-color] duration-200 ease-out hover:border-foreground/30 hover:bg-hover-surface hover:text-signal focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring data-[state=open]:border-foreground/30 data-[state=open]:bg-hover-surface data-[state=open]:text-signal";
+
+const mobileMenuButtonClass =
+  "flex min-h-12 w-full items-center justify-between gap-2 rounded-xl border border-border bg-foreground/[0.04] px-4 text-base font-normal text-foreground transition-[background-color,border-color,color] duration-200 ease-out hover:border-foreground/30 hover:bg-hover-surface hover:text-signal hover:no-underline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
 type NavLinkProps = {
   link: MenuLink;
@@ -375,7 +387,7 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
             </Link>
 
             <div className="hidden justify-self-center lg:flex">
-              <NavigationMenuList>
+              <NavigationMenuList className="gap-1.5">
                 {navigation.map((item, index) => (
                   <DesktopMenuItem
                     key={`desktop-link-${index}`}
@@ -479,7 +491,7 @@ const DesktopMenuItem = ({ item, index }: DesktopMenuItemProps) => {
   if (item.links || item.featuredLinks || item.groupLinks) {
     return (
       <NavigationMenuItem key={`desktop-menu-item-${index}`} value={`${index}`}>
-        <NavigationMenuTrigger className="h-fit bg-transparent font-normal text-foreground/70 hover:text-foreground">
+        <NavigationMenuTrigger className={menuButtonClass}>
           {item.title}
         </NavigationMenuTrigger>
         <NavigationMenuContent className="hidden !rounded-xl !border-0 !p-0 lg:block">
@@ -509,7 +521,7 @@ const DesktopMenuItem = ({ item, index }: DesktopMenuItemProps) => {
     <NavigationMenuItem key={`desktop-menu-item-${index}`} value={`${index}`}>
       <NavigationMenuLink
         href={item.url}
-        className={`${navigationMenuTriggerStyle()} h-fit bg-transparent font-normal text-foreground/70`}
+        className={menuButtonClass}
       >
         {item.title}
       </NavigationMenuLink>
@@ -791,7 +803,7 @@ const NavLink = forwardRef<HTMLAnchorElement, NavLinkProps>(
           onClick={onClick}
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
-          className="group/navlink flex w-full gap-2 transition-opacity duration-200"
+          className="group/navlink -m-2 flex w-full gap-2 rounded-xl p-2 transition-[background-color,color,opacity] duration-200 hover:bg-hover-surface/70 hover:text-signal focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           {inner}
         </a>
@@ -805,7 +817,7 @@ const NavLink = forwardRef<HTMLAnchorElement, NavLinkProps>(
         onClick={onClick}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
-        className="group/navlink flex w-full gap-2 transition-opacity duration-200"
+        className="group/navlink -m-2 flex w-full gap-2 rounded-xl p-2 transition-[background-color,color,opacity] duration-200 hover:bg-hover-surface/70 hover:text-signal focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         {inner}
       </Link>
@@ -925,7 +937,7 @@ const renderMobileMenuItem = (
         value={`nav-${index}`}
         className="border-b-0"
       >
-        <AccordionTrigger className="min-h-12 items-center text-base font-normal text-foreground hover:no-underline">
+        <AccordionTrigger className={mobileMenuButtonClass}>
           {item.title}
         </AccordionTrigger>
         <AccordionContent className="flex flex-col gap-6 p-2 [&_a]:min-h-12 [&_a]:rounded-xl [&_a]:p-3 [&_a]:transition-colors [&_a]:active:bg-accent">

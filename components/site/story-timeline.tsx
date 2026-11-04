@@ -86,7 +86,7 @@ function StoryMoment({ event, index }: { event: StoryEvent; index: number }) {
       >
         <span
           data-story-dot={index}
-          className="story-timeline-dot size-2.5 rounded-full bg-primary"
+          className="story-timeline-dot size-2.5 rounded-full bg-foreground"
         />
       </span>
     </li>

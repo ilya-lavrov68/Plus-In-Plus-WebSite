@@ -41,7 +41,7 @@ function DirectionCard({
           <span
             className={
               accent
-                ? "rounded-full border border-primary/30 bg-primary/10 px-3 py-1 font-medium text-primary"
+                ? "rounded-full border border-signal/30 bg-signal/10 px-3 py-1 font-medium text-signal"
                 : "rounded-full border border-border px-3 py-1 font-medium text-muted-foreground"
             }
           >
@@ -55,7 +55,7 @@ function DirectionCard({
           {linkLabel}
           <ArrowUpRight
             aria-hidden="true"
-            className="size-4 text-muted-foreground transition-[color,transform] duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary"
+            className="size-4 text-muted-foreground transition-[color,transform] duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-signal"
           />
         </span>
       </div>

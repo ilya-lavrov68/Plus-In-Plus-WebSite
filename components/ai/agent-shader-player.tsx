@@ -395,9 +395,9 @@ export function AgentShaderPlayer({ agent, scene, labels }: AgentShaderPlayerPro
           aria-label={label}
           title={label}
           data-shader-control={resolvedScene}
-          className="absolute right-3 bottom-3 size-8 border-border bg-background/90 text-foreground backdrop-blur-sm hover:bg-card [&_svg]:size-3.5"
+          className="absolute right-3 bottom-3 size-8 border-border bg-background/90 text-foreground backdrop-blur-2xl hover:bg-card [&_svg]:size-3.5"
         >
-          <Icon aria-hidden="true" className="text-primary" />
+          <Icon aria-hidden="true" className="text-signal" />
         </Button>
       ) : null}
     </div>
