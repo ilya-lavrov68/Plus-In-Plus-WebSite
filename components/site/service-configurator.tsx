@@ -137,7 +137,7 @@ export function ServiceConfigurator({
         )}
       >
         <div className="flex items-start gap-3">
-          <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+          <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground text-background">
             <Check aria-hidden="true" className="h-5 w-5" />
           </span>
           <div>
@@ -191,8 +191,8 @@ export function ServiceConfigurator({
                         "cursor-pointer rounded-xl border px-4 py-2.5 text-sm transition-colors",
                         "focus-within:outline-solid focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring",
                         active
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-secondary/40 text-foreground hover:border-foreground/40 hover:bg-secondary"
+                          ? "border-foreground bg-foreground text-background"
+                          : "border-border bg-secondary/40 text-foreground hover:border-foreground/40 hover:bg-hover-surface hover:text-signal"
                       )}
                     >
                       <input

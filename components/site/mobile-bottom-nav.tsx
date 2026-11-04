@@ -180,8 +180,8 @@ export function MobileBottomNav({
                 className={cn(
                   "relative flex size-8 shrink-0 items-center justify-center rounded-xl transition-colors duration-200 ease-out motion-reduce:transition-none",
                   active
-                    ? "bg-primary text-primary-foreground"
-                    : "group-hover:bg-accent group-hover:text-foreground"
+                    ? "text-signal"
+                    : "group-hover:bg-accent group-hover:text-signal"
                 )}
               >
                 <MobileNavIcon name={item.label} active={active} />
@@ -218,8 +218,8 @@ export function MobileBottomNav({
             className={cn(
               "flex size-8 shrink-0 items-center justify-center rounded-xl transition-colors duration-200 ease-out motion-reduce:transition-none",
               menuOpen
-                ? "bg-primary text-primary-foreground"
-                : "group-hover:bg-accent group-hover:text-foreground"
+                ? "text-signal"
+                : "group-hover:bg-accent group-hover:text-signal"
             )}
           >
             <MobileMenuIcon open={menuOpen} />

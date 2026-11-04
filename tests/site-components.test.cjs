@@ -278,7 +278,10 @@ test("Hero138 renders the restored studio statement, its two CTAs and the media 
   assert.ok(links.some((link) => link.href === "/contact" && link.text.includes("Contact us")));
 
   const primary = view.root.findAllByType("a").find((link) => link.props.href === "/services");
-  assert.match(primary.props.className, /bg-primary/);
+  // Главный CTA — белая кнопка, жёлтым становится только текст при наведении.
+  assert.match(primary.props.className, /bg-foreground text-background/);
+  assert.match(primary.props.className, /hover:bg-hover-surface hover:text-signal/);
+  assert.doesNotMatch(primary.props.className, /bg-primary/);
   assert.ok(
     view.root.findAll((node) => node.props?.["data-reveal"] !== undefined).length >= 2,
     "the hero reveals its blocks progressively",
@@ -842,11 +845,16 @@ test("MobileBottomNav renders four touch targets and animates individual SVG ico
 
   const services = links.find((link) => link.props.href === "/services");
   assert.equal(services.props["aria-current"], "page");
-  const activePlaque = services
+  const activeIcon = services
     .findAllByType("span")
-    .find((span) => String(span.props.className).includes("bg-primary"));
-  assert.ok(activePlaque, "The active tab must use the contrasting PIP icon plaque");
-  assert.doesNotMatch(activePlaque.props.className, /animate-mobile-nav-plaque/);
+    .find((span) => String(span.props.className).includes("text-signal"));
+  assert.ok(activeIcon, "The active tab must highlight its icon with the signal accent");
+  assert.doesNotMatch(
+    String(activeIcon.props.className),
+    /bg-primary/,
+    "The active tab must not paint the icon plaque in the brand yellow",
+  );
+  assert.doesNotMatch(String(activeIcon.props.className), /animate-mobile-nav-plaque/);
 
   const serviceIcon = services.findByProps({ "data-icon": "services" });
   assert.match(serviceIcon.props.className, /is-active/);
@@ -1030,7 +1038,9 @@ test("Feature314, Community3, and Cta13 render exact studio advantages, SVG logo
   );
   for (const icon of rotatingPlusIcons) {
     assert.match(icon.props.className, /bg-secondary/);
-    assert.match(icon.props.className, /group-hover:bg-primary/);
+    // Кружок плюса светлеет при наведении, жёлтый остаётся акцентом текста.
+    assert.match(icon.props.className, /group-hover:bg-foreground/);
+    assert.doesNotMatch(icon.props.className, /group-hover:bg-primary/);
     assert.match(icon.props.className, /transition-\[transform,background-color,color\]/);
   }
   const featureSource = fs.readFileSync(

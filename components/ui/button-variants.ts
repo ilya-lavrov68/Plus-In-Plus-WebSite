@@ -5,21 +5,26 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
+        /*
+         * Жёлтая заливка ушла из кнопок: базовая кнопка — белая с тёмным
+         * текстом, при наведении подложка становится тёмно-серой, а текст —
+         * жёлтым. Жёлтый остаётся акцентом текста, а не фоном.
+         */
         default:
-          "bg-primary text-primary-foreground hover:bg-primary/95",
+          "bg-foreground text-background hover:bg-hover-surface hover:text-signal",
         primary:
-          "bg-primary text-primary-foreground hover:bg-primary/95",
+          "bg-foreground text-background hover:bg-hover-surface hover:text-signal",
         cta:
-          "bg-primary text-primary-foreground hover:bg-primary/95",
+          "bg-foreground text-background hover:bg-hover-surface hover:text-signal",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/85",
         outline:
-          "border border-border bg-transparent text-foreground hover:border-foreground/25 hover:bg-white/[0.06] hover:text-foreground",
+          "border border-border bg-transparent text-foreground hover:border-foreground/30 hover:bg-hover-surface hover:text-signal",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-white/[0.14] hover:text-foreground",
+          "bg-secondary text-secondary-foreground hover:bg-hover-surface hover:text-signal",
         ghost:
-          "text-foreground hover:bg-white/[0.07] hover:text-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+          "text-foreground hover:bg-hover-surface hover:text-signal",
+        link: "text-signal underline-offset-4 hover:underline",
       },
       size: {
         default: "h-10 px-5 py-2",
@@ -41,9 +46,9 @@ export const headerButtonVariants = cva(
     variants: {
       variant: {
         outline:
-          "border border-border bg-transparent text-foreground hover:border-foreground/25 hover:bg-white/[0.06] hover:text-foreground",
+          "border border-border bg-transparent text-foreground hover:border-foreground/30 hover:bg-hover-surface hover:text-signal",
         primary:
-          "bg-primary text-primary-foreground hover:bg-primary/95",
+          "bg-foreground text-background hover:bg-hover-surface hover:text-signal",
       },
     },
     defaultVariants: {

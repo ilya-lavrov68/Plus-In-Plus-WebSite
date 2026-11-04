@@ -86,7 +86,7 @@ function AgentSection({
             className="group mt-9 inline-flex items-center gap-3 text-sm font-medium text-foreground/80 transition-colors hover:text-foreground"
           >
             {detailsLink}
-            <ArrowRight aria-hidden="true" className="size-4 text-muted-foreground transition-[color,transform] group-hover:translate-x-1 group-hover:text-primary" />
+            <ArrowRight aria-hidden="true" className="size-4 text-muted-foreground transition-[color,transform] group-hover:translate-x-1 group-hover:text-signal" />
           </Link>
           <p className="mt-9 max-w-xl border-t border-border pt-5 text-sm leading-relaxed text-muted-foreground">
             {note}

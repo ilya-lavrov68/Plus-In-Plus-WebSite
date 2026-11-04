@@ -199,15 +199,15 @@ const Signup10 = ({
                 onClick={() => switchMode("login")}
                 className={`relative rounded-full py-2.5 text-center text-sm font-medium transition-colors duration-200 ${
                   isLogin
-                    ? "text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "text-background"
+                    : "text-muted-foreground hover:text-signal"
                 }`}
               >
                 {isLogin && (
                   <motion.span
                     layoutId="signup10-mode-pill"
                     transition={{ type: "spring", stiffness: 450, damping: 36 }}
-                    className="absolute inset-0 rounded-full bg-primary "
+                    className="absolute inset-0 rounded-full bg-foreground"
                   />
                 )}
                 <span className="relative z-10">{t("login")}</span>
@@ -219,15 +219,15 @@ const Signup10 = ({
                 onClick={() => switchMode("register")}
                 className={`relative rounded-full py-2.5 text-center text-sm font-medium transition-colors duration-200 ${
                   !isLogin
-                    ? "text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "text-background"
+                    : "text-muted-foreground hover:text-signal"
                 }`}
               >
                 {!isLogin && (
                   <motion.span
                     layoutId="signup10-mode-pill"
                     transition={{ type: "spring", stiffness: 450, damping: 36 }}
-                    className="absolute inset-0 rounded-full bg-primary "
+                    className="absolute inset-0 rounded-full bg-foreground"
                   />
                 )}
                 <span className="relative z-10">{t("register")}</span>

@@ -121,7 +121,7 @@ const Feature314 = ({
                     )}
                     <Plus
                       size={20}
-                      className="absolute top-3 right-3 rounded-full bg-secondary p-0.5 transition-[transform,background-color,color] duration-200 ease-out group-hover:rotate-90 group-hover:bg-primary group-hover:text-primary-foreground"
+                      className="absolute top-3 right-3 rounded-full bg-secondary p-0.5 transition-[transform,background-color,color] duration-200 ease-out group-hover:rotate-90 group-hover:bg-foreground group-hover:text-background"
                     />
                   </div>
                   <div className="flex flex-col gap-4 px-1.5 pb-1.5">
@@ -157,7 +157,7 @@ const Feature314 = ({
                     <BrandMark className="h-7" />
                     <Plus
                       size={20}
-                      className="rounded-full bg-secondary p-0.5 transition-[transform,background-color,color] duration-200 ease-out group-hover:rotate-90 group-hover:bg-primary group-hover:text-primary-foreground"
+                      className="rounded-full bg-secondary p-0.5 transition-[transform,background-color,color] duration-200 ease-out group-hover:rotate-90 group-hover:bg-foreground group-hover:text-background"
                     />
                   </div>
                 </div>

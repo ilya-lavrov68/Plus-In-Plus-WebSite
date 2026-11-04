@@ -31,7 +31,7 @@ const Community3 = ({
           <Badge
             variant="secondary"
             data-reveal=""
-            className="rounded-full border-0 bg-white/[0.055] px-3.5 py-1 text-xs backdrop-blur-xl"
+            className="rounded-full border-0 bg-white/[0.055] px-3.5 py-1 text-xs backdrop-blur-2xl"
           >
             {badge}
           </Badge>

@@ -162,7 +162,7 @@ export function CookieBanner() {
                       aria-label={label}
                       onClick={() => togglePreference(key)}
                       className={`h-6 w-11 shrink-0 rounded-full transition-colors duration-200 ${
-                        enabled ? "bg-primary" : "bg-muted-foreground/40"
+                        enabled ? "bg-foreground" : "bg-muted-foreground/40"
                       }`}
                     >
                       <span
