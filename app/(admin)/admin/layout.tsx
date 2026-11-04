@@ -97,13 +97,13 @@ export default async function AdminLayout({ children }: { children: ReactNode })
               {t.shell.skip}
             </a>
             <div className="mx-auto flex min-h-screen w-full max-w-[1680px] flex-col lg:flex-row">
-              <aside className="border-b border-outline-variant/60 bg-surface/60 backdrop-blur-2xl lg:sticky lg:top-0 lg:h-screen lg:w-72 lg:shrink-0 lg:overflow-y-auto lg:border-b-0 lg:border-r lg:py-4">
+              <aside className="bg-surface/85 backdrop-blur-xl lg:sticky lg:top-0 lg:h-screen lg:w-72 lg:shrink-0 lg:overflow-y-auto lg:py-4">
                 <div className="flex items-center justify-between gap-3 px-4 pb-4 pt-5 lg:pt-3">
                   <Link
                     href="/admin"
                     className="flex min-w-0 items-center gap-3 rounded-2xl py-1 pl-1 pr-2 transition-colors duration-200 hover:bg-surface-container-high focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
-                    <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-outline-variant/70 bg-surface-container-high">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-surface-container-high">
                       <img
                         src="/assets/logos/lnpip.svg"
                         alt=""
@@ -127,7 +127,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
                   <span className="truncate font-medium text-on-surface" title={staff.email}>
                     {staff.email}
                   </span>
-                  <span className="rounded-full border border-outline-variant/60 px-2.5 py-1 text-[11px] text-on-surface-variant">
+                  <span className="rounded-full bg-surface-container-high px-2.5 py-1 text-[11px] text-on-surface-variant">
                     {t.shell.role}: {t.roles[staff.role]}
                   </span>
                 </div>

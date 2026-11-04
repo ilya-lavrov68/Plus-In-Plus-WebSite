@@ -89,44 +89,56 @@ test("кнопки админки: спокойная подложка и жёл
   assert.ok(ui.includes("adminButton("), "варианты кнопок собираются одной функцией");
 });
 
-test("меню админки собрано из кнопок, а не из текстовых ссылок", () => {
+test("меню админки собрано из кнопок без декоративных рамок", () => {
   const nav = read("components/admin/admin-nav.tsx");
-  assert.ok(nav.includes("rounded-xl border px-4"), "пункт меню — кнопка с рамкой");
+  assert.ok(nav.includes("rounded-xl px-4"), "пункт меню — кнопка-плашка");
+  assert.equal(/\bborder\b|border-signal|border-outline/.test(nav), false, "у пунктов меню нет обводок");
   assert.ok(nav.includes("hover:bg-hover-surface hover:text-signal"), "ховер пункта меню по общему правилу");
-  assert.ok(nav.includes("border-signal/45"), "активный раздел помечен жёлтой рамкой и текстом");
+  assert.ok(nav.includes("bg-surface-container-high font-medium text-signal"), "активный раздел отмечен подложкой и текстом");
   assert.ok(nav.includes("aria-current"), "состояние дублируется для скринридера");
 });
 
-test("меню шапки собрано из кнопок с общим ховером", () => {
+test("шапка плотная, а её меню — нейтральные поверхности без обводок", () => {
   const navbar = read("components/blocks/navbar10.tsx");
-  assert.ok(navbar.includes("const menuButtonClass ="), "у пунктов меню общий класс-кнопка");
-  assert.ok(navbar.includes("hover:bg-hover-surface hover:text-signal"), "ховер пункта меню по общему правилу");
-  assert.ok(navbar.includes('data-[state=open]:bg-hover-surface'), "раскрытый раздел остаётся подсвеченным");
-  assert.ok(
-    navbar.includes("NavigationMenuTrigger className={menuButtonClass}"),
-    "заголовок выпадающего меню — кнопка",
-  );
-  assert.ok(
-    navbar.includes("className={menuButtonClass}") &&
-      navbar.includes("AccordionTrigger className={mobileMenuButtonClass}"),
-    "плоские ссылки и мобильные разделы используют те же кнопки",
-  );
+  // Шапка не должна «просвечивать»: раньше стояло bg-background/65 без разделителя.
+  assert.ok(navbar.includes("bg-background/85 backdrop-blur-xl"), "фон шапки плотный, стекло сохранено");
   assert.equal(
-    navbar.includes("navigationMenuTriggerStyle"),
+    /fixed top-0 z-50[^"]*border-/.test(navbar),
     false,
-    "текстовый стиль триггера больше не используется",
+    "у шапки нет линии-обводки по нижней кромке",
   );
+
+  assert.ok(navbar.includes("const menuItemClass ="), "у пунктов меню общий класс");
+  assert.ok(navbar.includes("rounded-none px-3 text-sm font-medium text-muted-foreground"), "пункт меню — нейтральная поверхность");
+  assert.ok(navbar.includes("hover:bg-hover-surface hover:text-foreground"), "ховер — подложка и белый текст");
+  assert.ok(navbar.includes("menuItemActiveClass"), "активный раздел отмечен подложкой");
+  assert.ok(navbar.includes('aria-current={isActive ? "page" : undefined}'), "активный раздел доступен скринридеру");
+
+  const menuClasses = navbar.match(/const menuItem(Class|ActiveClass) =[\s\S]*?;/g).join("\n");
+  assert.equal(/\bborder\b|border-/.test(menuClasses), false, "у пунктов меню нет рамок");
+  assert.equal(menuClasses.includes("text-signal"), false, "при наведении пункт меню не перекрашивается в жёлтый");
+  assert.ok(
+    navbar.includes("NavigationMenuTrigger className={menuItemClass}"),
+    "триггер выпадающего раздела оформлен так же, как остальные пункты",
+  );
+  assert.equal(navbar.includes("menuButtonClass"), false, "старые кнопки-чипы с рамкой удалены");
 });
 
-test("плавающие части админки используют сильный blur, как шапка сайта", () => {
+test("плавающие части админки — плотное стекло, как шапка сайта", () => {
   const layout = read("app/(admin)/admin/layout.tsx");
-  assert.ok(layout.includes("backdrop-blur-2xl"), "сайдбар — стеклянная панель");
-  assert.ok(layout.includes("bg-surface/60"), "под стеклом полупрозрачная поверхность");
+  assert.ok(layout.includes("backdrop-blur-xl"), "сайдбар — стеклянная панель");
+  assert.equal(/<aside className="[^"]*\bborder/.test(layout), false, "у сайдбара нет линий-разделителей");
+  assert.ok(layout.includes("bg-surface/85"), "под стеклом плотная поверхность, панель не просвечивает");
   assert.ok(layout.includes("lg:sticky"), "панель не уезжает при прокрутке");
 
   const settings = read("app/(admin)/admin/settings/page.tsx");
-  assert.ok(settings.includes("backdrop-blur-2xl"), "панель сохранения парит над контентом");
+  assert.ok(settings.includes("backdrop-blur-xl"), "панель сохранения парит над контентом");
+  assert.equal(
+    /sticky bottom-4[^"]*\bborder/.test(settings),
+    false,
+    "у плавающей панели нет обводки",
+  );
 
   const header = read("components/blocks/navbar10.tsx");
-  assert.ok(header.includes("backdrop-blur-2xl"), "шапка сайта остаётся эталоном стекла");
+  assert.ok(header.includes("backdrop-blur-xl"), "шапка остаётся стеклянной, но не прозрачной");
 });

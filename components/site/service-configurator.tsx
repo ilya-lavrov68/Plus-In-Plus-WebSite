@@ -188,11 +188,11 @@ export function ServiceConfigurator({
                     <label
                       key={option.id}
                       className={cn(
-                        "cursor-pointer rounded-xl border px-4 py-2.5 text-sm transition-colors",
+                        "cursor-pointer rounded-xl px-4 py-2.5 text-sm transition-colors",
                         "focus-within:outline-solid focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring",
                         active
-                          ? "border-foreground bg-foreground text-background"
-                          : "border-border bg-secondary/40 text-foreground hover:border-foreground/40 hover:bg-hover-surface hover:text-signal"
+                          ? "bg-foreground text-background"
+                          : "bg-secondary/40 text-foreground hover:bg-hover-surface hover:text-signal"
                       )}
                     >
                       <input

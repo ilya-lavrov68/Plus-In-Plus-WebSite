@@ -41,7 +41,7 @@ function DirectionCard({
           <span
             className={
               accent
-                ? "rounded-full border border-signal/30 bg-signal/10 px-3 py-1 font-medium text-signal"
+                ? "rounded-full bg-signal/12 px-3 py-1 font-medium text-signal"
                 : "rounded-full border border-border px-3 py-1 font-medium text-muted-foreground"
             }
           >

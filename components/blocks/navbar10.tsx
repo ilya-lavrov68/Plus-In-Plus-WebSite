@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import {
@@ -58,6 +59,7 @@ import {
 } from "@/components/ui/navigation-menu";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
 
 export interface MenuLink {
   label?: string;
@@ -114,17 +116,15 @@ interface MobileNavigationMenuProps {
 }
 
 /**
- * Пункты меню — кнопки, а не текстовые ссылки. В покое у них спокойная
- * поверхность с рамкой, при наведении (и при раскрытом выпадающем списке)
- * подложка темнеет до --hover-surface, а текст становится сигнальным жёлтым.
- * Тот же ритм, что у Button variant="outline", поэтому шапка читается как одна
- * система, а не как набор разных элементов.
+ * Пункты меню шапки — кликабельные поверхности без рамок: в покое спокойный
+ * серый текст, при наведении и в раскрытом разделе — нейтральная подложка
+ * и белый текст. Активный раздел отмечается той же подложкой, поэтому шапка
+ * остаётся нейтральной и не спорит с контентом страницы.
  */
-const menuButtonClass =
-  "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-border bg-foreground/[0.04] px-3.5 text-sm font-medium text-foreground/80 transition-[background-color,color,border-color] duration-200 ease-out hover:border-foreground/30 hover:bg-hover-surface hover:text-signal focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring data-[state=open]:border-foreground/30 data-[state=open]:bg-hover-surface data-[state=open]:text-signal";
+const menuItemClass =
+  "inline-flex h-9 items-center justify-center gap-1.5 rounded-none px-3 text-sm font-medium text-muted-foreground transition-colors duration-200 ease-out hover:bg-hover-surface hover:text-foreground data-[state=open]:bg-hover-surface data-[state=open]:text-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
-const mobileMenuButtonClass =
-  "flex min-h-12 w-full items-center justify-between gap-2 rounded-xl border border-border bg-foreground/[0.04] px-4 text-base font-normal text-foreground transition-[background-color,border-color,color] duration-200 ease-out hover:border-foreground/30 hover:bg-hover-surface hover:text-signal hover:no-underline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+const menuItemActiveClass = "bg-hover-surface text-foreground";
 
 type NavLinkProps = {
   link: MenuLink;
@@ -375,7 +375,7 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
 
   return (
     <Fragment>
-      <section className="pointer-events-auto fixed top-0 z-50 flex w-full items-center justify-center border-b-0 bg-background/65 backdrop-blur-2xl">
+      <section className="pointer-events-auto fixed top-0 z-50 flex w-full items-center justify-center bg-background/85 backdrop-blur-xl">
         <NavigationMenu className="h-20 max-w-full after:absolute after:inset-0 after:z-40 after:block after:size-full after:bg-transparent after:content-[''] [&>div:last-child>div]:mt-0 [&>div:last-child>div]:rounded-none [&>div:last-child>div]:border-0 [&>div:last-child>div]:border-b-0">
           <div className="container relative z-50 grid w-full grid-cols-2 items-center justify-between gap-4 lg:grid-cols-3 lg:gap-8">
             <Link
@@ -387,7 +387,7 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
             </Link>
 
             <div className="hidden justify-self-center lg:flex">
-              <NavigationMenuList className="gap-1.5">
+              <NavigationMenuList className="gap-1">
                 {navigation.map((item, index) => (
                   <DesktopMenuItem
                     key={`desktop-link-${index}`}
@@ -488,10 +488,22 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
 };
 
 const DesktopMenuItem = ({ item, index }: DesktopMenuItemProps) => {
+  const pathname = usePathname() || "/";
+  // Префикс локали не участвует в сравнении: /ru/ai и /en/ai — один пункт.
+  const normalizedPath =
+    (pathname.replace(/^\/(?:ru|en)(?=\/|$)/, "") || "/").replace(/\/+$/, "") || "/";
+  const isDirectLink = !item.links && !item.featuredLinks && !item.groupLinks;
+  const isActive =
+    isDirectLink &&
+    Boolean(item.url) &&
+    (item.url === "/"
+      ? normalizedPath === "/"
+      : normalizedPath === item.url || normalizedPath.startsWith(`${item.url}/`));
+
   if (item.links || item.featuredLinks || item.groupLinks) {
     return (
       <NavigationMenuItem key={`desktop-menu-item-${index}`} value={`${index}`}>
-        <NavigationMenuTrigger className={menuButtonClass}>
+        <NavigationMenuTrigger className={menuItemClass}>
           {item.title}
         </NavigationMenuTrigger>
         <NavigationMenuContent className="hidden !rounded-xl !border-0 !p-0 lg:block">
@@ -521,7 +533,8 @@ const DesktopMenuItem = ({ item, index }: DesktopMenuItemProps) => {
     <NavigationMenuItem key={`desktop-menu-item-${index}`} value={`${index}`}>
       <NavigationMenuLink
         href={item.url}
-        className={menuButtonClass}
+        aria-current={isActive ? "page" : undefined}
+        className={cn(menuItemClass, isActive && menuItemActiveClass)}
       >
         {item.title}
       </NavigationMenuLink>
@@ -803,7 +816,7 @@ const NavLink = forwardRef<HTMLAnchorElement, NavLinkProps>(
           onClick={onClick}
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
-          className="group/navlink -m-2 flex w-full gap-2 rounded-xl p-2 transition-[background-color,color,opacity] duration-200 hover:bg-hover-surface/70 hover:text-signal focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className="group/navlink flex w-full gap-2 transition-opacity duration-200"
         >
           {inner}
         </a>
@@ -817,7 +830,7 @@ const NavLink = forwardRef<HTMLAnchorElement, NavLinkProps>(
         onClick={onClick}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
-        className="group/navlink -m-2 flex w-full gap-2 rounded-xl p-2 transition-[background-color,color,opacity] duration-200 hover:bg-hover-surface/70 hover:text-signal focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className="group/navlink flex w-full gap-2 transition-opacity duration-200"
       >
         {inner}
       </Link>
@@ -937,7 +950,7 @@ const renderMobileMenuItem = (
         value={`nav-${index}`}
         className="border-b-0"
       >
-        <AccordionTrigger className={mobileMenuButtonClass}>
+        <AccordionTrigger className="min-h-12 items-center text-base font-normal text-foreground hover:no-underline">
           {item.title}
         </AccordionTrigger>
         <AccordionContent className="flex flex-col gap-6 p-2 [&_a]:min-h-12 [&_a]:rounded-xl [&_a]:p-3 [&_a]:transition-colors [&_a]:active:bg-accent">
