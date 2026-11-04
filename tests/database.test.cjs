@@ -83,7 +83,7 @@ test("database resolution prefers Turso and falls back to the local file in deve
 
   const development = resolveDatabaseConfig({ env: {}, rootDir: "/app" });
   assert.deepEqual(development, {
-    url: `file:${path.join("/app", "payload", "pip.db")}`,
+    url: `file:${path.join("/app", "data", "pip.db")}`,
     authToken: undefined,
     remote: false,
   });
@@ -137,7 +137,7 @@ test("a PostgreSQL URL is reported and rejected instead of being silently used",
 test("log output never exposes credentials", () => {
   assert.equal(describeDatabaseUrl("libsql://db-org.turso.io?authToken=super-secret"), "libsql://db-org.turso.io?authToken=***");
   assert.equal(describeDatabaseUrl("https://user:password@sqld.example"), "https://***@sqld.example/");
-  assert.equal(localDatabaseUrl("/app").endsWith("/payload/pip.db"), true);
+  assert.equal(localDatabaseUrl("/app").endsWith("/data/pip.db"), true);
 });
 
 // ---------------------------------------------------------------------------
@@ -235,10 +235,10 @@ test("rate limiting is still in-process, hashed and bounded", () => {
 test("a local file URL gets its directory created before the first connection", () => {
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "pip-db-dir-"));
   try {
-    const nested = path.join(sandbox, "payload", "nested");
+    const nested = path.join(sandbox, "data", "nested");
     assert.equal(fs.existsSync(nested), false);
 
-    // libSQL не создаёт каталоги сам: на свежем клоне папки payload/ нет, и
+    // libSQL не создаёт каталоги сам: на свежем клоне папки data/ нет, и
     // db:migrate падал с SQLITE_CANTOPEN вместо применения схемы.
     ensureLocalDatabaseDirectory(`file:${path.join(nested, "pip.db")}`);
     assert.equal(fs.existsSync(nested), true);
@@ -252,7 +252,7 @@ test("a local file URL gets its directory created before the first connection", 
     }
     assert.deepEqual(
       fs.readdirSync(sandbox).sort(),
-      ["payload", "relative"],
+      ["data", "relative"],
       "no stray directories are created next to the database",
     );
   } finally {

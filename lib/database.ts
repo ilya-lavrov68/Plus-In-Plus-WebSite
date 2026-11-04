@@ -8,7 +8,7 @@ import path from "node:path";
  * Supported URLs (see README → "Database"):
  *   - `libsql://<db>-<org>.turso.io` — Turso Cloud (production; needs TURSO_AUTH_TOKEN)
  *   - `http(s)://…`                  — a self-hosted libSQL/sqld server
- *   - `file:./db/dev.db`         — a local SQLite file, no server needed
+ *   - `file:./data/pip.db`       — a local SQLite file, no server needed
  *   - `:memory:`                     — throwaway database, scripts only
  *
  * DATABASE_URL — каноническая переменная в обоих окружениях: dev и prod ходят
@@ -16,7 +16,7 @@ import path from "node:path";
  * для уже настроенных окружений.
  */
 
-export const LOCAL_DATABASE_FILE = path.join("payload", "pip.db");
+export const LOCAL_DATABASE_FILE = path.join("data", "pip.db");
 
 /** Turso Cloud / self-hosted sqld: reached over the network instead of the filesystem. */
 const REMOTE_PROTOCOL = /^(?:libsql|https?):/i;
@@ -55,7 +55,7 @@ export function isSupportedDatabaseUrl(url: string): boolean {
 }
 
 /**
- * libSQL не создаёт каталог для `file:`-URL. На свежем клоне папки `payload/`
+ * libSQL не создаёт каталог для `file:`-URL. На свежем клоне папки `data/`
  * ещё нет, и первое же подключение падало бы с SQLITE_CANTOPEN — это ломало
  * `npm run db:migrate`, dev-сервер и CI. Создаём каталог заранее.
  */

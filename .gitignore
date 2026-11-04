@@ -29,9 +29,9 @@ yarn-error.log*
 .env
 .env*.local
 
-# отдельная локальная БД Payload (development/CI only)
-/payload/*.db
-/payload/*.db-*
+# локальная SQLite-база (development/CI only)
+/data/*.db
+/data/*.db-*
 
 # vercel
 .vercel

@@ -13,14 +13,16 @@ test("the CMS layer is gone: no config, no local API, no admin UI, no CLI", () =
   assert.equal(exists("scripts/payload-cli.cjs"), false);
   assert.equal(exists("app/(payload)"), false);
   assert.equal(exists("tests/helpers/native-payload-mock.cjs"), false);
-  // В папке `payload/` живут только файлы локальной базы: `pip.db` в разработке,
-  // `ci.db` в CI, плюс служебные `-wal`/`-shm`/`-journal`. Код CMS там появляться
-  // не должен — именно это и проверяем, а не конкретное имя файла.
+  // Каталог локальной базы называется `data/`: в нём живут только файлы SQLite
+  // (`pip.db` в разработке, `ci.db` в CI и служебные `-wal`/`-shm`/`-journal`).
+  // Кода CMS там появляться не должно — это и проверяем, а не имя файла.
   const databaseArtifact = /^(?:[\w.-]+\.db)(?:-(?:wal|shm|journal))?$/;
-  const payloadCode = exists("payload")
-    ? fs.readdirSync(path.join(root, "payload")).filter((entry) => !databaseArtifact.test(entry))
+  const strayFiles = exists("data")
+    ? fs.readdirSync(path.join(root, "data")).filter((entry) => !databaseArtifact.test(entry))
     : [];
-  assert.deepEqual(payloadCode, [], "payload/ keeps database files only");
+  assert.deepEqual(strayFiles, [], "data/ keeps database files only");
+  // Прежнего каталога с именем CMS больше нет.
+  assert.equal(exists("payload"), false, "the legacy payload/ directory must stay gone");
 });
 
 test("no dependency, alias or Next plugin pulls Payload back in", () => {
