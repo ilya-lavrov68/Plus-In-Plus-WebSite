@@ -2,15 +2,21 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { adminLabels } from "@/components/admin/labels";
+import {
+  AdminStatus,
+  adminFilledButtonClass,
+  adminInputClass,
+  adminLabelClass,
+  adminTonalButtonClass,
+} from "@/components/admin/ui";
 import { IMAGE_ACCEPT } from "@/lib/upload-policy";
 import { requireStaff } from "@/lib/admin-session";
 import { getRequestLocale } from "@/lib/request-locale";
 
 import { createPost } from "../actions";
 
-const inputClass =
-  "h-10 w-full border border-border bg-background px-3 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-signal";
-const labelClass = "flex flex-col gap-2 text-sm font-medium";
+const inputClass = adminInputClass;
+const labelClass = adminLabelClass;
 
 export default async function NewPostPage({
   searchParams,
@@ -27,17 +33,15 @@ export default async function NewPostPage({
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <header className="flex flex-col gap-2">
-        <Link href="/admin/posts" className="text-xs text-muted-foreground underline-offset-4 hover:underline">
+        <Link href="/admin/posts" className="text-xs text-on-surface-variant underline-offset-4 hover:underline">
           ← {t.posts.title}
         </Link>
         <h1 className="text-2xl font-semibold sm:text-3xl">{t.post.create}</h1>
-        <p className="text-sm text-muted-foreground">{t.post.hint}</p>
+        <p className="text-sm text-on-surface-variant">{t.post.hint}</p>
       </header>
 
       {error ? (
-        <p role="alert" className="border border-destructive px-4 py-3 text-sm text-destructive">
-          {error}
-        </p>
+        <AdminStatus tone="error">{error}</AdminStatus>
       ) : null}
 
       <form action={createPost} className="flex flex-col gap-5">
@@ -72,13 +76,13 @@ export default async function NewPostPage({
           <input name="sourceUrl" type="url" placeholder="https://" className={inputClass} />
         </label>
 
-        <fieldset className="flex flex-col gap-3 border border-border p-4">
+        <fieldset className="flex flex-col gap-3 border border-outline-variant p-4">
           <legend className="px-2 text-sm font-semibold">{t.image.title}</legend>
           <label className={labelClass}>
             {t.image.upload}
-            <input type="file" name="cover" accept={IMAGE_ACCEPT} className="text-sm file:mr-3 file:border file:border-border file:bg-transparent file:px-3 file:py-1.5 file:text-sm" />
+            <input type="file" name="cover" accept={IMAGE_ACCEPT} className="text-sm text-on-surface-variant file:mr-3 file:rounded-full file:border file:border-outline file:bg-transparent file:px-4 file:py-2 file:text-sm file:font-medium file:text-on-surface hover:file:border-primary" />
           </label>
-          <p className="text-xs text-muted-foreground">{t.image.hint}</p>
+          <p className="text-xs text-on-surface-variant">{t.image.hint}</p>
         </fieldset>
 
         <div className="flex flex-wrap gap-6">
@@ -91,13 +95,13 @@ export default async function NewPostPage({
         <div className="flex gap-3">
           <button
             type="submit"
-            className="h-10 border border-brand-signal bg-brand-signal px-4 text-sm font-medium text-[#12131B] transition-colors hover:bg-brand-signal-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-signal"
+            className={adminFilledButtonClass}
           >
             {t.table.create}
           </button>
           <Link
             href="/admin/posts"
-            className="inline-flex h-10 items-center border border-border px-4 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-signal"
+            className={adminTonalButtonClass}
           >
             {t.service.cancel}
           </Link>

@@ -57,6 +57,8 @@ export type ServerErrorEventName =
   | "admin.user.block_update_failed"
   | "admin.user.password_reset_failed"
   | "admin.settings.update_failed"
+  | "admin.notifications.config_read_failed"
+  | "admin.notifications.telegram_send_failed"
   | "admin.featured_post.update_failed"
   | "admin.upload_album_failed"
   | "cart.checkout_failed"

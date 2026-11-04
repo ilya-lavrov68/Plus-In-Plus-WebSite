@@ -1,8 +1,11 @@
 import type { ReactNode } from "react";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
-/** KPI-карточка: значение, подпись и уточнение. Тени не используются. */
+/**
+ * KPI-карточка в тональности Material 3: tonal-поверхность вместо тени,
+ * подпись — on-surface-variant, значение — on-surface.
+ */
 export function StatCard({
   label,
   value,
@@ -17,20 +20,39 @@ export function StatCard({
   accent?: boolean;
 }) {
   return (
-    <Card className={accent ? "border-brand-signal/60 bg-card" : undefined}>
-      <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
-        <CardDescription className="text-[11px] uppercase tracking-[0.16em]">{label}</CardDescription>
+    <div
+      className={cn(
+        "flex flex-col gap-3 rounded-2xl p-5",
+        accent ? "bg-primary-container text-on-primary-container" : "bg-surface-container text-on-surface",
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <p
+          className={cn(
+            "text-[11px] font-medium tracking-[0.14em] uppercase",
+            accent ? "text-on-primary-container/80" : "text-on-surface-variant",
+          )}
+        >
+          {label}
+        </p>
         {icon ? (
-          <span aria-hidden="true" className="text-muted-foreground">
+          <span aria-hidden="true" className={accent ? "text-on-primary-container" : "text-on-surface-variant"}>
             {icon}
           </span>
         ) : null}
-      </CardHeader>
-      <CardContent className="pb-4">
-        <p className="text-2xl font-semibold tabular-nums leading-none">{value}</p>
-        {hint ? <p className="mt-2 text-xs text-muted-foreground">{hint}</p> : null}
-      </CardContent>
-    </Card>
+      </div>
+      <p className="text-[1.75rem] font-medium leading-none tabular-nums">{value}</p>
+      {hint ? (
+        <p
+          className={cn(
+            "text-xs leading-snug",
+            accent ? "text-on-primary-container/80" : "text-on-surface-variant",
+          )}
+        >
+          {hint}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -48,15 +70,17 @@ export function SectionCard({
   className?: string;
 }) {
   return (
-    <Card className={className}>
-      <CardHeader className="flex flex-row items-start justify-between gap-4 pb-4">
+    <section className={cn("rounded-2xl bg-surface-container p-5 sm:p-6", className)}>
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <CardTitle className="text-base">{title}</CardTitle>
-          {description ? <CardDescription className="mt-1">{description}</CardDescription> : null}
+          <h2 className="text-base font-medium text-on-surface">{title}</h2>
+          {description ? (
+            <p className="mt-1.5 text-sm leading-relaxed text-on-surface-variant">{description}</p>
+          ) : null}
         </div>
         {action}
-      </CardHeader>
-      <CardContent>{children}</CardContent>
-    </Card>
+      </div>
+      {children}
+    </section>
   );
 }

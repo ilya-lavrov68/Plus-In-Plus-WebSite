@@ -60,43 +60,46 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           crossOrigin="anonymous"
         />
       </head>
-      <body className="min-h-screen bg-background text-foreground antialiased">
+      <body className="admin-md min-h-screen bg-surface text-on-surface antialiased">
         <NextIntlClientProvider locale={locale} messages={getClientMessages(locale)}>
           <Providers>
             <a
               href="#admin-main"
-              className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:border focus:border-border focus:bg-card focus:px-3 focus:py-2 focus:text-sm"
+              className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-on-primary"
             >
               {t.shell.skip}
             </a>
-            <div className="mx-auto flex min-h-screen w-full max-w-[1600px] flex-col lg:flex-row">
-              <aside className="border-b border-border lg:w-64 lg:shrink-0 lg:border-b-0 lg:border-r">
-                <div className="flex items-baseline justify-between gap-3 px-5 pb-3 pt-5">
+            <div className="mx-auto flex min-h-screen w-full max-w-[1680px] flex-col lg:flex-row">
+              <aside className="bg-surface-container-low lg:w-72 lg:shrink-0 lg:py-4">
+                <div className="flex items-center justify-between gap-3 px-5 pb-4 pt-5 lg:pt-2">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">{t.brand}</p>
-                    <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+                    <p className="truncate text-sm font-medium text-on-surface">{t.brand}</p>
+                    <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.16em] text-on-surface-variant">
                       {t.shell.title}
                     </p>
                   </div>
                   <Link
                     href="/"
-                    className="whitespace-nowrap text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-signal"
+                    className="whitespace-nowrap rounded-full px-3 py-1.5 text-xs text-on-surface-variant transition-colors duration-200 hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     {t.shell.viewSite}
                   </Link>
                 </div>
                 <AdminNav items={items} label={t.shell.nav} />
-                <div className="hidden px-5 py-5 text-xs text-muted-foreground lg:block">
-                  <p className="truncate" title={staff.email}>
+                <div className="mt-auto hidden gap-1 px-5 pb-2 pt-6 text-xs text-on-surface-variant lg:flex lg:flex-col">
+                  <span className="truncate font-medium text-on-surface" title={staff.email}>
                     {staff.email}
-                  </p>
-                  <p className="mt-1">
+                  </span>
+                  <span className="rounded-full bg-surface-container-high px-2.5 py-1 text-[11px] text-on-surface-variant">
                     {t.shell.role}: {t.roles[staff.role]}
-                  </p>
+                  </span>
                 </div>
               </aside>
-              <main id="admin-main" className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-                {children}
+              <main
+                id="admin-main"
+                className="min-w-0 flex-1 bg-surface px-4 py-6 sm:px-6 lg:px-10 lg:py-8"
+              >
+                <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-6">{children}</div>
               </main>
             </div>
           </Providers>

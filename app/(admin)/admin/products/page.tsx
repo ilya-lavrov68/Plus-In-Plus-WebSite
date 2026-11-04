@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { adminLabels } from "@/components/admin/labels";
+import { AdminPageHeader, adminFilledButtonClass } from "@/components/admin/ui";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getProducts } from "@/lib/admin-queries";
@@ -20,20 +21,17 @@ export default async function AdminProductsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-semibold sm:text-3xl">{t.products.title}</h1>
-          <p className="text-sm text-muted-foreground">{t.products.subtitle}</p>
-        </div>
-        {staff?.isAdmin ? (
-          <Link
-            href="/admin/products/new"
-            className="inline-flex h-10 items-center border border-brand-signal bg-brand-signal px-4 text-sm font-medium text-[#12131B] transition-colors hover:bg-brand-signal-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-signal"
-          >
-            {t.product.create}
-          </Link>
-        ) : null}
-      </header>
+      <AdminPageHeader
+        title={t.products.title}
+        description={t.products.subtitle}
+        actions={
+          staff?.isAdmin ? (
+            <Link href="/admin/products/new" className={adminFilledButtonClass}>
+              {t.product.create}
+            </Link>
+          ) : null
+        }
+      />
       <Table>
         <TableHeader>
           <TableRow>
@@ -48,7 +46,7 @@ export default async function AdminProductsPage() {
         <TableBody>
           {products.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-muted-foreground">
+              <TableCell colSpan={6} className="text-on-surface-variant">
                 {t.table.empty}
               </TableCell>
             </TableRow>
@@ -56,7 +54,7 @@ export default async function AdminProductsPage() {
             products.map((product) => (
               <TableRow key={product.id}>
                 <TableCell className="font-medium">{product.name}</TableCell>
-                <TableCell className="text-muted-foreground">{product.category ?? "—"}</TableCell>
+                <TableCell className="text-on-surface-variant">{product.category ?? "—"}</TableCell>
                 <TableCell className="text-right tabular-nums">{money.format(product.price)}</TableCell>
                 <TableCell className="text-right tabular-nums">{product.stock}</TableCell>
                 <TableCell>
@@ -76,7 +74,7 @@ export default async function AdminProductsPage() {
                     ) : null}
                     <Link
                       href={`/shop/${product.slug}`}
-                      className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+                      className="text-xs text-on-surface-variant underline-offset-4 hover:underline"
                       target="_blank"
                       rel="noreferrer"
                     >

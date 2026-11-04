@@ -101,7 +101,7 @@ test("saveSettings refuses to run without a founder", async () => {
 test("saveSettings logs only key names, never values", async () => {
   await assert.rejects(
     () => saveSettings(form({ studioName: "Plus In Plus", robokassaPassword1: "top-secret" })),
-    /redirect:\/admin\/settings\?saved=1/,
+    /redirect:\/admin\/settings\?saved=2/,
   );
 
   const [log] = await database.rows(`select title, action, actor_id_id from activity_logs`);
@@ -115,4 +115,77 @@ test("saveSettings logs only key names, never values", async () => {
 test("too long values are rejected with a message", async () => {
   await assert.rejects(() => saveSiteSettings({ studioDescription: "x".repeat(2001) }), /Слишком длинное/);
   assert.equal(await value("studioDescription"), undefined);
+});
+
+test("invalid values are rejected before they reach the database", async () => {
+  await assert.rejects(
+    () => saveSiteSettings({ contactEmail: "not-an-email" }),
+    (error) => error.code === "invalidEmail",
+  );
+  await assert.rejects(
+    () => saveSiteSettings({ vkUrl: "vk.com/plusinplus" }),
+    (error) => error.code === "invalidUrl",
+  );
+  await assert.rejects(
+    () => saveSiteSettings({ contactPhone: "позвоните мне" }),
+    (error) => error.code === "invalidPhone",
+  );
+  await assert.rejects(
+    () => saveSiteSettings({ robokassaHashAlgo: "sha1" }),
+    (error) => error.code === "invalidValue",
+  );
+  await assert.rejects(
+    () => saveSiteSettings({ telegramBotToken: "123:short" }),
+    (error) => error.code === "invalidValue",
+  );
+  assert.equal(await value("contactEmail"), undefined);
+});
+
+test("valid values are normalised and stored", async () => {
+  const changed = await saveSiteSettings({
+    contactEmail: "  hello@plusinplus.ru ",
+    vkUrl: "https://vk.com/plusinplus",
+    robokassaHashAlgo: "SHA256",
+    telegramChatId: "-1001234567890",
+  });
+  assert.deepEqual(changed.sort(), ["contactEmail", "robokassaHashAlgo", "telegramChatId", "vkUrl"]);
+  assert.equal(await value("contactEmail"), "hello@plusinplus.ru");
+  assert.equal(await value("robokassaHashAlgo"), "sha256");
+  assert.equal(await value("telegramChatId"), "-1001234567890");
+});
+
+test("unchanged values are reported as unchanged and not rewritten", async () => {
+  await saveSiteSettings({ studioName: "Plus In Plus" });
+  const [before] = await database.rows(`select updated_at from site_settings where "key" = 'studioName'`);
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  const changed = await saveSiteSettings({ studioName: "Plus In Plus" });
+  const [after] = await database.rows(`select updated_at from site_settings where "key" = 'studioName'`);
+  assert.deepEqual(changed, []);
+  assert.equal(after.updated_at, before.updated_at, "the row must stay untouched when nothing changed");
+});
+
+test("a secret can be cleared explicitly", async () => {
+  await saveSiteSettings({ telegramBotToken: "123456789:AAHfakefakefakefakefakefakefakefake" });
+  const changed = await saveSiteSettings({}, { clear: new Set(["telegramBotToken"]) });
+  assert.deepEqual(changed, ["telegramBotToken"]);
+  assert.equal(await value("telegramBotToken"), undefined);
+});
+
+test("saveSettings reports the real number of changed settings", async () => {
+  await assert.rejects(
+    () => saveSettings(form({ studioName: "Plus In Plus", contactEmail: "hi@plusinplus.ru" })),
+    /redirect:\/admin\/settings\?saved=2/,
+  );
+  await assert.rejects(
+    () => saveSettings(form({ studioName: "Plus In Plus", contactEmail: "hi@plusinplus.ru" })),
+    /redirect:\/admin\/settings\?saved=0/,
+    "a second identical submit must say that nothing changed",
+  );
+});
+
+test("saveSettings redirects an invalid field back with its code and key", async () => {
+  await assert.rejects(
+    () => saveSettings(form({ contactEmail: "broken" })),
+    /redirect:\/admin\/settings\?error=invalidEmail&field=contactEmail/,
+  );
 });

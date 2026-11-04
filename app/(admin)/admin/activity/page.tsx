@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { adminLabels } from "@/components/admin/labels";
+import { AdminPageHeader } from "@/components/admin/ui";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getActivity } from "@/lib/admin-queries";
@@ -22,10 +23,7 @@ export default async function AdminActivityPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold sm:text-3xl">{t.activity.title}</h1>
-        <p className="text-sm text-muted-foreground">{t.activity.subtitle}</p>
-      </header>
+      <AdminPageHeader title={t.activity.title} description={t.activity.subtitle} />
       <Table>
         <TableHeader>
           <TableRow>
@@ -38,20 +36,20 @@ export default async function AdminActivityPage() {
         <TableBody>
           {entries.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={4} className="text-muted-foreground">
+              <TableCell colSpan={4} className="text-on-surface-variant">
                 {t.table.empty}
               </TableCell>
             </TableRow>
           ) : (
             entries.map((entry) => (
               <TableRow key={entry.id}>
-                <TableCell className="whitespace-nowrap text-muted-foreground">
+                <TableCell className="whitespace-nowrap text-on-surface-variant">
                   {entry.createdAt ? dateTime.format(new Date(entry.createdAt)) : "—"}
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline">{entry.action}</Badge>
                 </TableCell>
-                <TableCell className="text-muted-foreground">{entry.entityType}</TableCell>
+                <TableCell className="text-on-surface-variant">{entry.entityType}</TableCell>
                 <TableCell className="max-w-[420px] truncate">{entry.title}</TableCell>
               </TableRow>
             ))

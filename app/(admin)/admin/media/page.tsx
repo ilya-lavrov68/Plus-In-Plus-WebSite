@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { adminLabels } from "@/components/admin/labels";
+import { AdminPageHeader, AdminStatus } from "@/components/admin/ui";
 import { requireStaff } from "@/lib/admin-session";
 import { listMedia } from "@/lib/media-library";
 import { getRequestLocale } from "@/lib/request-locale";
@@ -28,54 +29,47 @@ export default async function AdminMediaPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold sm:text-3xl">{t.media.title}</h1>
-        <p className="text-sm text-muted-foreground">{t.media.subtitle}</p>
-      </header>
+      <AdminPageHeader title={t.media.title} description={t.media.subtitle} />
 
       {error ? (
-        <p role="alert" className="border border-destructive px-4 py-3 text-sm text-destructive">
-          {error}
-        </p>
+        <AdminStatus tone="error">{error}</AdminStatus>
       ) : null}
       {deleted ? (
-        <p role="status" className="border border-brand-signal px-4 py-3 text-sm">
-          {t.media.deleted}
-        </p>
+        <AdminStatus tone="success">{t.media.deleted}</AdminStatus>
       ) : null}
 
       {items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t.media.empty}</p>
+        <p className="text-sm text-on-surface-variant">{t.media.empty}</p>
       ) : (
         <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {items.map((item) => (
-            <li key={item.id} className="flex flex-col gap-3 border border-border p-4">
+            <li key={item.id} className="flex flex-col gap-3 border border-outline-variant p-4">
               { }
-              <img src={item.url} alt={item.alt} className="h-40 w-full border border-border object-cover" />
+              <img src={item.url} alt={item.alt} className="h-40 w-full border border-outline-variant object-cover" />
 
-              <dl className="flex flex-col gap-1 text-xs text-muted-foreground">
+              <dl className="flex flex-col gap-1 text-xs text-on-surface-variant">
                 <div className="flex justify-between gap-3">
                   <dt>{t.media.kind}</dt>
-                  <dd className="text-foreground">{item.kind}</dd>
+                  <dd className="text-on-surface">{item.kind}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt>{t.media.size}</dt>
-                  <dd className="tabular-nums text-foreground">{Math.max(1, Math.round(item.filesize / 1024))} KB</dd>
+                  <dd className="tabular-nums text-on-surface">{Math.max(1, Math.round(item.filesize / 1024))} KB</dd>
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt>{t.media.dimensions}</dt>
-                  <dd className="tabular-nums text-foreground">
+                  <dd className="tabular-nums text-on-surface">
                     {item.width && item.height ? `${item.width} × ${item.height}` : "—"}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt>{t.media.created}</dt>
-                  <dd className="text-foreground">{item.createdAt ? dateFormat.format(new Date(item.createdAt)) : "—"}</dd>
+                  <dd className="text-on-surface">{item.createdAt ? dateFormat.format(new Date(item.createdAt)) : "—"}</dd>
                 </div>
               </dl>
 
               {item.usageCount > 0 ? (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-on-surface-variant">
                   {t.media.inUse.replace("{count}", String(item.usageCount))}
                 </p>
               ) : (
@@ -83,7 +77,7 @@ export default async function AdminMediaPage({
                   <input type="hidden" name="id" value={item.id} />
                   <button
                     type="submit"
-                    className="h-9 w-full border border-border px-3 text-xs text-muted-foreground transition-colors hover:border-destructive hover:text-destructive focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-signal"
+                    className="h-9 w-full rounded-full border border-outline-variant px-3 text-xs text-on-surface-variant transition-colors hover:border-error hover:text-error focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     {t.media.remove}
                   </button>
