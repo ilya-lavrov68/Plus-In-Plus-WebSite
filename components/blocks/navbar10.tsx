@@ -371,7 +371,7 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
         */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-background/65 backdrop-blur-2xl"
+          className="site-header-glass pointer-events-none absolute inset-0"
         />
         <NavigationMenu className="h-20 max-w-full after:absolute after:inset-0 after:z-40 after:block after:size-full after:bg-transparent after:content-[''] [&>div:last-child>div]:mt-0 [&>div:last-child>div]:rounded-none [&>div:last-child>div]:border-0 [&>div:last-child>div]:border-b-0">
           <div className="container relative z-50 grid w-full grid-cols-2 items-center justify-between gap-4 lg:grid-cols-3 lg:gap-8">

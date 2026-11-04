@@ -104,8 +104,8 @@ test("состояние читается подложкой, а не рамко
 test("меню шапки — нейтральный текст без чипов и рамок", () => {
   const navbar = read("components/blocks/navbar10.tsx");
   assert.ok(
-    navbar.includes("bg-background/65 backdrop-blur-2xl"),
-    "шапка остаётся полупрозрачной, как в эталонном макете",
+    navbar.includes("site-header-glass"),
+    "шапка остаётся полупрозрачным стеклом с заметным блюром",
   );
   assert.ok(navbar.includes("text-foreground/70 hover:text-foreground"), "пункты меню — спокойный текст");
   assert.equal(navbar.includes("menuItemClass"), false, "кнопок-чипов в шапке нет");
@@ -114,15 +114,21 @@ test("меню шапки — нейтральный текст без чипо�
 });
 
 test("плавающие панели остаются стеклянными", () => {
+  const globals = read("styles/globals.css");
   const settings = read("app/(admin)/admin/settings/page.tsx");
   assert.ok(settings.includes("backdrop-blur"), "панель сохранения парит над контентом");
 
   const layout = read("app/(admin)/admin/layout.tsx");
-  assert.ok(layout.includes("backdrop-blur"), "сайдбар — стеклянная панель");
-  assert.ok(layout.includes("lg:sticky"), "панель не уезжает при прокрутке");
+  assert.ok(layout.includes("SidebarProvider"), "раскладка админки собрана на сайдбаре");
+
+  const header = read("components/admin/admin-header.tsx");
+  assert.ok(header.includes("backdrop-blur"), "шапка админки — стеклянная панель");
+  assert.ok(header.includes("sticky"), "панель не уезжает при прокрутке");
 
   const navbar = read("components/blocks/navbar10.tsx");
-  assert.ok(navbar.includes("backdrop-blur-2xl"), "шапка — эталон стекла");
+  assert.ok(navbar.includes("site-header-glass"), "шапка сайта держит стекло на отдельном слое");
+  assert.match(globals, /site-header-glass/, "стекло шапки объявлено в теме");
+  assert.match(globals, /backdrop-filter: blur\(24px\) saturate\(140%\)/, "блюр шапки заметен");
 });
 
 test("жёлтый текст проходит контраст на своих поверхностях", () => {

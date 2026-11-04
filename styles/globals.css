@@ -693,6 +693,24 @@
     backdrop-filter: blur(24px);
   }
 
+  /*
+   * Стекло шапки сайта. Тонировка держится на 72%: текст читается на любом
+   * фоне, а блюр с лёгкой насыщенностью остаётся заметным при прокрутке.
+   * Если браузер не умеет backdrop-filter (или он выключен в системе),
+   * панель становится почти непрозрачной — читаемость важнее эффекта.
+   */
+  .site-header-glass {
+    background-color: hsl(var(--background) / 0.72);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+    backdrop-filter: blur(24px) saturate(140%);
+  }
+
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .site-header-glass {
+      background-color: hsl(var(--background) / 0.96);
+    }
+  }
+
   /* Полупрозрачный оттенок без декоративной тени. */
   .glass-surface {
     border: 0;
