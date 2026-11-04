@@ -233,7 +233,7 @@ export default async function AdminOverviewPage() {
             ) : (
               <ul className="flex flex-col gap-3">
                 {activity.map((entry) => (
-                  <li key={entry.id} className="border-b border-outline-variant pb-3 last:border-0 last:pb-0">
+                  <li key={entry.id} className="pb-3 last:border-0 last:pb-0">
                     <p className="text-sm">{entry.title}</p>
                     <p className="mt-1 text-xs text-on-surface-variant">
                       {entry.action} · {entry.entityType} · {entry.createdAt.slice(0, 10)}

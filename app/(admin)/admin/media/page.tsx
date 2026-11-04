@@ -43,9 +43,9 @@ export default async function AdminMediaPage({
       ) : (
         <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {items.map((item) => (
-            <li key={item.id} className="flex flex-col gap-3 border border-outline-variant p-4">
+            <li key={item.id} className="flex flex-col gap-3 p-4">
               { }
-              <img src={item.url} alt={item.alt} className="h-40 w-full border border-outline-variant object-cover" />
+              <img src={item.url} alt={item.alt} className="h-40 w-full object-cover" />
 
               <dl className="flex flex-col gap-1 text-xs text-on-surface-variant">
                 <div className="flex justify-between gap-3">

@@ -76,17 +76,17 @@ export default async function AdminProductPage({
 
           <label className={labelClass}>
             {t.service.title}
-            <input name="name" defaultValue={product.name} maxLength={120} required className={inputClass} />
+            <input name="name"defaultValue={product.name} maxLength={120} required className={inputClass} />
           </label>
 
           <div className="grid gap-5 sm:grid-cols-2">
             <label className={labelClass}>
               {t.post.slug}
-              <input name="slug" defaultValue={product.slug} className={inputClass} />
+              <input name="slug"defaultValue={product.slug} className={inputClass} />
             </label>
             <label className={labelClass}>
               {t.table.category}
-              <input name="category" defaultValue={product.category ?? ""} className={inputClass} />
+              <input name="category"defaultValue={product.category ?? ""} className={inputClass} />
             </label>
           </div>
 
@@ -132,7 +132,7 @@ export default async function AdminProductPage({
           <input type="hidden" name="currentCover" value={product.cover_image ?? ""} />
           {product.cover_image ? (
             <div className="flex flex-col gap-2">
-              <img src={product.cover_image} alt="" className="h-32 w-auto border border-outline-variant object-cover" />
+              <img src={product.cover_image} alt="" className="h-32 w-auto object-cover" />
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" className="size-4 accent-primary" name="removeCover" />
                 {t.image.remove}
@@ -141,13 +141,13 @@ export default async function AdminProductPage({
           ) : null}
           <label className={labelClass}>
             {t.image.upload}
-            <input type="file" name="cover" accept={IMAGE_ACCEPT} className="text-sm text-on-surface-variant file:mr-3 file:rounded-full file:border file:border-outline file:bg-transparent file:px-4 file:py-2 file:text-sm file:font-medium file:text-on-surface hover:file:border-primary" />
+            <input type="file" name="cover"accept={IMAGE_ACCEPT} className="text-sm text-on-surface-variant file:mr-3 file:rounded-full file:bg-transparent file:px-4 file:py-2 file:text-sm file:font-medium file:text-on-surface" />
           </label>
           <p className="text-xs text-on-surface-variant">{t.image.hint}</p>
         </fieldset>
 
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" className="size-4 accent-primary" name="isActive" defaultChecked={Boolean(product.is_active)} />
+            <input type="checkbox" className="size-4 accent-primary" name="isActive"defaultChecked={Boolean(product.is_active)} />
             {t.product.isActive}
           </label>
 

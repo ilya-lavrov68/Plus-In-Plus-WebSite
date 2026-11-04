@@ -16,7 +16,7 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
 }
 
 function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
-  return <thead className={cn("[&_tr]:border-b [&_tr]:border-outline-variant", className)} {...props} />;
+  return <thead className={cn("", className)} {...props} />;
 }
 
 function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
@@ -24,13 +24,13 @@ function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
 }
 
 function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
-  return <tfoot className={cn("border-t border-outline-variant font-medium", className)} {...props} />;
+  return <tfoot className={cn("font-medium", className)} {...props} />;
 }
 
 function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
   return (
     <tr
-      className={cn("border-b border-outline-variant transition-colors last:border-b-0 hover:bg-surface-container-high data-[state=selected]:bg-surface-container-highest", className)}
+      className={cn("transition-colors last:border-b-0 hover:bg-surface-container-high data-[state=selected]:bg-surface-container-highest", className)}
       {...props}
     />
   );

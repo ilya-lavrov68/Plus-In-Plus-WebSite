@@ -46,24 +46,24 @@ function AgentSection({
   reverse = false,
 }: AgentSectionProps) {
   return (
-    <section id={id} className="border-t border-border py-24 md:py-36">
+    <section id={id} className="py-24 md:py-36">
       <div className="container grid gap-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-24 xl:gap-32">
         <figure
           data-reveal=""
           className={cn("min-w-0", reverse && "lg:order-2")}
         >
-          <div className="flex items-center justify-between gap-4 border-t border-border pt-5 text-xs">
+          <div className="flex items-center justify-between gap-4 pt-5 text-xs">
             <span className="font-mono text-muted-foreground">{index}</span>
             <span className="font-medium text-muted-foreground">{status}</span>
           </div>
-          <div className="mt-6 aspect-[36/23] w-full border-y border-border bg-background text-foreground">
+          <div className="mt-6 aspect-[36/23] w-full bg-background text-foreground">
             <AgentShaderPlayer agent={agent} labels={shaderLabels} />
           </div>
           <figcaption className="sr-only">{visualLabel}</figcaption>
         </figure>
 
         <div data-reveal="" data-reveal-delay={100} className="min-w-0">
-          <Icon aria-hidden="true" className="size-7 text-foreground/70" strokeWidth={1.5} />
+          <Icon aria-hidden="true" className="size-7 text-foreground/70"strokeWidth={1.5} />
           <p className="mt-8 text-sm font-medium text-foreground/80">{role}</p>
           <h2 className="mt-3 text-4xl font-medium tracking-tight sm:text-5xl">{name}</h2>
           <p className="mt-7 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
@@ -73,7 +73,7 @@ function AgentSection({
           <h3 className="mt-12 text-sm font-semibold text-foreground">{benefitsTitle}</h3>
           <ol className="mt-6 space-y-6">
             {benefits.map((benefit, benefitIndex) => (
-              <li key={benefit} className="flex items-start gap-5 border-t border-border pt-5">
+              <li key={benefit} className="flex items-start gap-5 pt-5">
                 <span aria-hidden="true" className="mt-1 shrink-0 font-mono text-xs text-muted-foreground">
                   {String(benefitIndex + 1).padStart(2, "0")}
                 </span>
@@ -86,9 +86,9 @@ function AgentSection({
             className="group mt-9 inline-flex items-center gap-3 text-sm font-medium text-foreground/80 transition-colors hover:text-foreground"
           >
             {detailsLink}
-            <ArrowRight aria-hidden="true" className="size-4 text-muted-foreground transition-[color,transform] group-hover:translate-x-1 group-hover:text-signal" />
+            <ArrowRight aria-hidden="true" className="size-4 text-muted-foreground transition-[color,transform] group-hover:translate-x-1 group-hover:text-foreground" />
           </Link>
-          <p className="mt-9 max-w-xl border-t border-border pt-5 text-sm leading-relaxed text-muted-foreground">
+          <p className="mt-9 max-w-xl pt-5 text-sm leading-relaxed text-muted-foreground">
             {note}
           </p>
         </div>
@@ -130,17 +130,17 @@ export async function AiPageView() {
             <Button asChild>
               <Link href="/ai/lumi">Lumi Q1</Link>
             </Button>
-            <Button variant="outline" asChild>
+            <Button variant="outline"asChild>
               <Link href="/ai/kairo">Kairo</Link>
             </Button>
           </div>
 
           <aside
             data-reveal=""
-            className="mt-16 flex max-w-4xl items-start gap-5 border-t border-border pt-7"
+            className="mt-16 flex max-w-4xl items-start gap-5 pt-7"
             aria-label={t("integrationNoticeTitle")}
           >
-            <CircuitBoard aria-hidden="true" className="mt-0.5 size-6 shrink-0 text-muted-foreground" strokeWidth={1.5} />
+            <CircuitBoard aria-hidden="true" className="mt-0.5 size-6 shrink-0 text-muted-foreground"strokeWidth={1.5} />
             <div>
               <h2 className="text-sm font-semibold text-foreground">{t("integrationNoticeTitle")}</h2>
               <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">{t("integrationNotice")}</p>
@@ -184,18 +184,18 @@ export async function AiPageView() {
         reverse
       />
 
-      <section className="border-t border-border section-y-tight">
+      <section className="section-y-tight">
         <div className="container">
           <div
             data-reveal=""
             className="flex flex-col justify-between gap-12 lg:flex-row lg:items-end lg:gap-20"
           >
             <div className="max-w-2xl">
-              <PenTool aria-hidden="true" className="size-7 text-foreground/70" strokeWidth={1.5} />
+              <PenTool aria-hidden="true" className="size-7 text-foreground/70"strokeWidth={1.5} />
               <h2 className="mt-8 text-3xl font-medium tracking-tight sm:text-4xl">{t("designBridge.title")}</h2>
               <p className="mt-6 text-base leading-relaxed text-muted-foreground sm:text-lg">{t("designBridge.description")}</p>
             </div>
-            <Button size="lg" asChild className="w-fit shrink-0">
+            <Button size="lg"asChild className="w-fit shrink-0">
               <Link href="/services" className="group">
                 {t("designBridge.cta")}
                 <ArrowRight

@@ -97,7 +97,7 @@ export function Logo({ variant = "header", className }: LogoProps) {
   if (variant === "partners") {
     return (
       <div className={cn("inline-flex flex-wrap items-center gap-6", className)}>
-        <BrandMark className="h-9" label="Plus In Plus" />
+        <BrandMark className="h-9"label="Plus In Plus" />
         <TsConnectLogo className="h-8" />
       </div>
     );

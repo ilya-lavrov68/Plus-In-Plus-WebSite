@@ -117,7 +117,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
                   </Link>
                   <Link
                     href="/"
-                    className="whitespace-nowrap rounded-xl px-3 py-1.5 text-xs text-on-surface-variant transition-colors duration-200 hover:bg-hover-surface hover:text-signal focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    className="whitespace-nowrap rounded-xl px-3 py-1.5 text-xs text-on-surface-variant transition-colors duration-200 hover:bg-hover-surface hover:text-on-surface focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     {t.shell.viewSite}
                   </Link>

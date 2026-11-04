@@ -66,7 +66,7 @@ export function AdminNav({ groups, label }: { groups: AdminNavGroup[]; label: st
                           "focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
                           active
                             ? "bg-surface-container-high font-medium text-signal"
-                            : "text-on-surface-variant hover:bg-hover-surface hover:text-signal",
+                            : "text-on-surface-variant hover:bg-hover-surface hover:text-on-surface",
                         )}
                       >
                         {item.label}

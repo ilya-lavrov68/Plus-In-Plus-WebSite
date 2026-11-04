@@ -28,7 +28,7 @@ export function AgentDiagram({ agent, scene, enhanced = false, className }: Agen
     >
       {!enhanced ? (
         <g data-static-field={resolvedScene}>
-          <path d={GRID_PATH} fill="none" stroke="currentColor" strokeWidth="1" className="text-foreground/[0.06]" />
+          <path d={GRID_PATH} fill="none"stroke="currentColor"strokeWidth="1" className="text-foreground/[0.06]" />
           {AGENT_STATIC_FRAMES[resolvedScene].map(([x, y, width, fill, spark]) => (
             <g key={`${x}:${y}`}>
               <rect

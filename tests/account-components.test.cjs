@@ -345,7 +345,8 @@ test("AccountModal Admin mode defaults off, highlights with semantic tokens, and
   assert.ok(
     view.root
       .findAllByType("div")
-      .some((n) => n.props.className?.includes("border-primary"))
+      .some((n) => n.props.className?.includes("bg-secondary")),
+    "включённый режим админа подсвечивается подложкой, а не обводкой",
   );
   act(() => button(view, "Register").props.onClick());
   assert.equal(view.root.findAllByProps({ role: "switch" }).length, 0);

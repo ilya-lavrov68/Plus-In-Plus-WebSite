@@ -89,7 +89,7 @@ const Hero138 = ({
                 </Button>
               )}
               {secondaryCta && (
-                <Button variant="ghost" size="lg" asChild>
+                <Button variant="ghost"size="lg"asChild>
                   <Link href={secondaryCta.href} className="group">
                     {secondaryCta.label}
                     <ArrowRight className="ml-1 size-4 transition-transform duration-200 ease-out group-hover:translate-x-1" />

@@ -56,8 +56,8 @@ export function ServiceCard({
   return (
     <Card
       className={cn(
-        "flex h-full flex-col justify-between overflow-hidden transition-colors duration-200 hover:border-foreground/30",
-        selected ? "border-primary bg-secondary/50" : "border-border bg-card"
+        "flex h-full flex-col justify-between overflow-hidden transition-colors duration-200",
+        selected ? " bg-secondary/50" : " bg-card"
       )}
     >
       <div>
@@ -65,7 +65,7 @@ export function ServiceCard({
           <Link
             href={`/shop/${encodeURIComponent(service.slug)}`}
             aria-label={service.name}
-            className="block aspect-[4/3] w-full overflow-hidden border-b border-border bg-muted/50"
+            className="block aspect-[4/3] w-full overflow-hidden bg-muted/50"
           >
             <img
               src={service.coverImage}
@@ -104,7 +104,7 @@ export function ServiceCard({
           <div className="mb-5" />
         )}
 
-        <div className="space-y-3.5 border-t border-border/60 pt-5">
+        <div className="space-y-3.5 pt-5">
           <div className="flex items-center justify-between gap-3">
             <div className="text-lg font-bold tabular-nums">{priceLabel}</div>
             <Button

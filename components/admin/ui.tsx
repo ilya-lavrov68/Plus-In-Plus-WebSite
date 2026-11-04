@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 
 /** Классы полей ввода: outlined text field MD3. */
 export const adminInputClass =
-  "h-11 w-full rounded-lg border border-outline bg-surface-container-lowest px-3.5 text-sm text-on-surface outline-none transition-[border-color,outline-color] duration-200 placeholder:text-on-surface-variant/70 hover:border-outline focus-visible:border-primary focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50";
+  "h-11 w-full rounded-lg bg-surface-container-lowest px-3.5 text-sm text-on-surface outline-none transition-[border-color,outline-color] duration-200 placeholder:text-on-surface-variant/70 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50";
 
 export const adminSelectClass = `${adminInputClass} appearance-none pr-9`;
 
@@ -194,10 +194,10 @@ const adminButtonBase =
  */
 const adminButtonVariants = {
   filled: "bg-on-surface text-surface hover:bg-hover-surface hover:text-signal",
-  tonal: "bg-surface-container-high text-on-surface hover:bg-hover-surface hover:text-signal",
+  tonal: "bg-surface-container-high text-on-surface hover:bg-surface-container-highest",
   outlined:
-    "border border-outline-variant text-on-surface hover:border-outline hover:bg-hover-surface hover:text-signal",
-  text: "text-on-surface-variant hover:bg-hover-surface hover:text-signal",
+    "text-on-surface hover:bg-on-surface/8",
+  text: "text-on-surface-variant hover:bg-on-surface/8",
   danger: "text-error hover:bg-error/12 hover:text-error",
 } as const;
 

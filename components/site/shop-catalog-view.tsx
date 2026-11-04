@@ -53,7 +53,7 @@ export function ShopCatalogView({
 
   return (
     <div className="container section-y">
-      <div className="border-b border-border/60 pb-10">
+      <div className="pb-10">
         <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
           {tShop("pageTitle")}
         </h1>
@@ -63,11 +63,11 @@ export function ShopCatalogView({
         {products.map((product) => (
           <Card
             key={product.id}
-            className="flex h-full flex-col justify-between overflow-hidden border-border bg-card"
+            className="flex h-full flex-col justify-between overflow-hidden bg-card"
           >
             <div>
               {product.coverImage ? (
-                <div className="aspect-[4/3] w-full overflow-hidden border-b border-border bg-muted/50">
+                <div className="aspect-[4/3] w-full overflow-hidden bg-muted/50">
                   <img
                     src={product.coverImage}
                     alt={product.name}
@@ -99,7 +99,7 @@ export function ShopCatalogView({
                 <div className="mb-5" />
               )}
 
-              <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-4">
+              <div className="flex items-center justify-between gap-3 pt-4">
                 <div className="text-lg font-bold tabular-nums">
                   {product.price.toLocaleString(numberLocale)} ₽
                 </div>

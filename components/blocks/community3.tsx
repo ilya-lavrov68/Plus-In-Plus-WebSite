@@ -57,7 +57,7 @@ const Community3 = ({
                 className="flex h-full flex-col items-center justify-center gap-4 text-center"
               >
                 <div className="flex h-16 items-center justify-center transition-opacity duration-200 ease-out group-hover:opacity-80">
-                  <BrandMark className="h-10" label="Plus In Plus" />
+                  <BrandMark className="h-10"label="Plus In Plus" />
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {studioDescription}

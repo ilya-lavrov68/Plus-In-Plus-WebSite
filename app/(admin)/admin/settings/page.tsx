@@ -146,7 +146,7 @@ export default async function AdminSettingsPage({
                   type="checkbox"
                   name={`clear:${key}`}
                   value="1"
-                  className="size-4 rounded border-outline bg-transparent accent-[var(--md-primary)]"
+                  className="size-4 rounded bg-transparent accent-[var(--md-primary)]"
                 />
                 {settingsLabels.clearSecret}
               </label>
@@ -213,7 +213,7 @@ export default async function AdminSettingsPage({
           title={settingsLabels.groups.notification.title}
           description={settingsLabels.groups.notification.hint}
           actions={
-            <button type="submit" formAction={testNotifications} formNoValidate className={adminTonalButtonClass}>
+            <button type="submit"formAction={testNotifications} formNoValidate className={adminTonalButtonClass}>
               {settingsLabels.test.button}
             </button>
           }

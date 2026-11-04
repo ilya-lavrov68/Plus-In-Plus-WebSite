@@ -145,8 +145,8 @@ export function ProfileForm({ initialUser, sessionRole, security }: ProfileFormP
         <p className="mt-2 text-muted-foreground">{t("subtitle")}</p>
       </div>
 
-      <Card className="glass-panel border-border bg-background/65">
-        <CardHeader className="border-b border-border/60 pb-6">
+      <Card className="glass-panel bg-background/65">
+        <CardHeader className="pb-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <UserAvatar
@@ -178,7 +178,7 @@ export function ProfileForm({ initialUser, sessionRole, security }: ProfileFormP
 
         <CardContent className="pt-6">
           {staffAccount && !staffSession ? (
-            <div className="mb-6 rounded-lg border border-border bg-secondary/50 p-4">
+            <div className="mb-6 rounded-lg bg-secondary/50 p-4">
               <h2 className="text-sm font-semibold">{t("staffReauthTitle")}</h2>
               <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
                 {t("staffReauthBody")}
@@ -234,7 +234,7 @@ export function ProfileForm({ initialUser, sessionRole, security }: ProfileFormP
               <div className="flex flex-wrap items-center gap-3">
                 <Label
                   htmlFor="avatar-upload"
-                  className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-border bg-secondary/50 px-3.5 py-2 text-xs font-medium text-foreground transition-colors hover:bg-secondary"
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-secondary/50 px-3.5 py-2 text-xs font-medium text-foreground transition-colors hover:bg-secondary"
                 >
                   <Upload aria-hidden="true" className="h-3.5 w-3.5" />
                   {avatarFile ? avatarFile.name : t("avatarLabel")}
@@ -259,8 +259,8 @@ export function ProfileForm({ initialUser, sessionRole, security }: ProfileFormP
                 role={feedback.kind === "error" ? "alert" : "status"}
                 className={
                   feedback.kind === "error"
-                    ? "rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm text-destructive"
-                    : "rounded-md border border-emerald-500/40 bg-emerald-500/10 px-4 py-2.5 text-sm text-emerald-200"
+                    ? "rounded-md bg-destructive/10 px-4 py-2.5 text-sm text-destructive"
+                    : "rounded-md bg-emerald-500/10 px-4 py-2.5 text-sm text-emerald-200"
                 }
               >
                 {feedback.text}
@@ -274,7 +274,7 @@ export function ProfileForm({ initialUser, sessionRole, security }: ProfileFormP
         </CardContent>
       </Card>
 
-      <Card className="glass-panel mt-6 border-border bg-background/65">
+      <Card className="glass-panel mt-6 bg-background/65">
         <CardHeader>
           <CardTitle>{t("passwordTitle")}</CardTitle>
           <p className="text-sm leading-relaxed text-muted-foreground">
@@ -324,12 +324,12 @@ export function ProfileForm({ initialUser, sessionRole, security }: ProfileFormP
             {passwordError ? (
               <p
                 role="alert"
-                className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm text-destructive"
+                className="rounded-md bg-destructive/10 px-4 py-2.5 text-sm text-destructive"
               >
                 {passwordError}
               </p>
             ) : null}
-            <Button type="submit" variant="outline" disabled={isChangingPassword}>
+            <Button type="submit"variant="outline" disabled={isChangingPassword}>
               {isChangingPassword ? t("changingPassword") : t("changePassword")}
             </Button>
           </form>

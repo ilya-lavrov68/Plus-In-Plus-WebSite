@@ -76,7 +76,7 @@ export default async function AdminServicePage({
         <AdminStatus tone="success">{t.service.saved}</AdminStatus>
       ) : null}
       {activeOrders > 0 ? (
-        <p className="border border-outline-variant px-4 py-3 text-sm text-on-surface-variant">
+        <p className="px-4 py-3 text-sm text-on-surface-variant">
           {t.service.activeOrders.replace("{count}", String(activeOrders))}
         </p>
       ) : null}
@@ -87,20 +87,20 @@ export default async function AdminServicePage({
 
           <label className={labelClass}>
             {t.service.title}
-            <input name="title" defaultValue={service.title} maxLength={120} required className={inputClass} />
+            <input name="title"defaultValue={service.title} maxLength={120} required className={inputClass} />
           </label>
 
           <div className="grid gap-5 sm:grid-cols-2">
             <label className={labelClass}>
               {t.table.category}
-              <select name="category" defaultValue={service.category === "large" ? "large" : "small"} className={inputClass}>
+              <select name="category"defaultValue={service.category === "large" ? "large" : "small"} className={inputClass}>
                 <option value="small">{t.service.categorySmall}</option>
                 <option value="large">{t.service.categoryLarge}</option>
               </select>
             </label>
             <label className={labelClass}>
               {t.service.priceType}
-              <select name="priceType" defaultValue={service.price_type === "quote" ? "quote" : "from"} className={inputClass}>
+              <select name="priceType"defaultValue={service.price_type === "quote" ? "quote" : "from"} className={inputClass}>
                 <option value="from">{t.service.priceFrom}</option>
                 <option value="quote">{t.table.quote}</option>
               </select>
@@ -135,20 +135,20 @@ export default async function AdminServicePage({
 
           <label className={labelClass}>
             {t.service.shortDesc}
-            <textarea name="shortDesc" defaultValue={service.short_desc} rows={3} className={`${inputClass} h-auto py-2`} />
+            <textarea name="shortDesc"defaultValue={service.short_desc} rows={3} className={`${inputClass} h-auto py-2`} />
           </label>
 
           <label className={labelClass}>
             {t.service.fullDesc}
-            <textarea name="fullDesc" defaultValue={service.full_desc} rows={8} className={`${inputClass} h-auto py-2`} />
+            <textarea name="fullDesc"defaultValue={service.full_desc} rows={8} className={`${inputClass} h-auto py-2`} />
           </label>
 
-        <fieldset className="flex flex-col gap-3 border border-outline-variant p-4">
+        <fieldset className="flex flex-col gap-3 p-4">
           <legend className="px-2 text-sm font-semibold">{t.image.title}</legend>
           <input type="hidden" name="currentCover" value={service.cover_image ?? ""} />
           {service.cover_image ? (
             <div className="flex flex-col gap-2">
-              <img src={service.cover_image} alt="" className="h-32 w-auto border border-outline-variant object-cover" />
+              <img src={service.cover_image} alt="" className="h-32 w-auto object-cover" />
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" className="size-4 accent-primary" name="removeCover" />
                 {t.image.remove}
@@ -157,18 +157,18 @@ export default async function AdminServicePage({
           ) : null}
           <label className={labelClass}>
             {t.image.upload}
-            <input type="file" name="cover" accept={IMAGE_ACCEPT} className="text-sm text-on-surface-variant file:mr-3 file:rounded-full file:border file:border-outline file:bg-transparent file:px-4 file:py-2 file:text-sm file:font-medium file:text-on-surface hover:file:border-primary" />
+            <input type="file" name="cover"accept={IMAGE_ACCEPT} className="text-sm text-on-surface-variant file:mr-3 file:rounded-full file:bg-transparent file:px-4 file:py-2 file:text-sm file:font-medium file:text-on-surface" />
           </label>
           <p className="text-xs text-on-surface-variant">{t.image.hint}</p>
         </fieldset>
 
           <div className="flex flex-wrap gap-6">
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" className="size-4 accent-primary" name="isPublished" defaultChecked={Boolean(service.is_published)} />
+              <input type="checkbox" className="size-4 accent-primary" name="isPublished"defaultChecked={Boolean(service.is_published)} />
               {t.service.isPublished}
             </label>
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" className="size-4 accent-primary" name="isActive" defaultChecked={Boolean(service.is_active)} />
+              <input type="checkbox" className="size-4 accent-primary" name="isActive"defaultChecked={Boolean(service.is_active)} />
               {t.service.isActive}
             </label>
           </div>

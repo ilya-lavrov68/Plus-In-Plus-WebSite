@@ -84,13 +84,13 @@ export default async function AdminPostPage({
 
           <label className={labelClass}>
             {t.post.title}
-            <input name="title" defaultValue={post.title} maxLength={160} required className={inputClass} />
+            <input name="title"defaultValue={post.title} maxLength={160} required className={inputClass} />
           </label>
 
           <div className="grid gap-5 sm:grid-cols-2">
             <label className={labelClass}>
               {t.post.slug}
-              <input name="slug" defaultValue={post.slug} className={inputClass} />
+              <input name="slug"defaultValue={post.slug} className={inputClass} />
             </label>
             <label className={labelClass}>
               {t.post.readTime}
@@ -107,7 +107,7 @@ export default async function AdminPostPage({
 
           <label className={labelClass}>
             {t.post.excerpt}
-            <textarea name="excerpt" defaultValue={post.excerpt} rows={3} className={`${inputClass} h-auto py-2`} />
+            <textarea name="excerpt"defaultValue={post.excerpt} rows={3} className={`${inputClass} h-auto py-2`} />
           </label>
 
           <label className={labelClass}>
@@ -123,15 +123,15 @@ export default async function AdminPostPage({
 
           <label className={labelClass}>
             {t.post.sourceUrl}
-            <input name="sourceUrl" defaultValue={post.source_url ?? ""} className={inputClass} />
+            <input name="sourceUrl"defaultValue={post.source_url ?? ""} className={inputClass} />
           </label>
 
-          <fieldset className="flex flex-col gap-3 border border-outline-variant p-4">
+          <fieldset className="flex flex-col gap-3 p-4">
             <legend className="px-2 text-sm font-semibold">{t.image.title}</legend>
             <input type="hidden" name="currentCover" value={post.cover_image ?? ""} />
             {post.cover_image ? (
               <div className="flex flex-col gap-2">
-                <img src={post.cover_image} alt="" className="h-32 w-auto border border-outline-variant object-cover" />
+                <img src={post.cover_image} alt="" className="h-32 w-auto object-cover" />
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" className="size-4 accent-primary" name="removeCover" />
                   {t.image.remove}
@@ -140,18 +140,18 @@ export default async function AdminPostPage({
             ) : null}
             <label className={labelClass}>
               {t.image.upload}
-              <input type="file" name="cover" accept={IMAGE_ACCEPT} className="text-sm text-on-surface-variant file:mr-3 file:rounded-full file:border file:border-outline file:bg-transparent file:px-4 file:py-2 file:text-sm file:font-medium file:text-on-surface hover:file:border-primary" />
+              <input type="file" name="cover"accept={IMAGE_ACCEPT} className="text-sm text-on-surface-variant file:mr-3 file:rounded-full file:bg-transparent file:px-4 file:py-2 file:text-sm file:font-medium file:text-on-surface" />
             </label>
             <p className="text-xs text-on-surface-variant">{t.image.hint}</p>
           </fieldset>
 
           <div className="flex flex-wrap gap-6">
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" className="size-4 accent-primary" name="isPublished" defaultChecked={Boolean(post.is_published)} />
+              <input type="checkbox" className="size-4 accent-primary" name="isPublished"defaultChecked={Boolean(post.is_published)} />
               {t.post.isPublished}
             </label>
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" className="size-4 accent-primary" name="isFeatured" defaultChecked={Boolean(post.is_featured)} />
+              <input type="checkbox" className="size-4 accent-primary" name="isFeatured"defaultChecked={Boolean(post.is_featured)} />
               {t.post.isFeatured}
             </label>
           </div>
@@ -203,7 +203,7 @@ export default async function AdminPostPage({
 
           <label className={labelClass}>
             {t.gallery.add}
-            <input type="file" name="gallery" multiple accept={IMAGE_ACCEPT} className="text-sm text-on-surface-variant file:mr-3 file:rounded-full file:border file:border-outline file:bg-transparent file:px-4 file:py-2 file:text-sm file:font-medium file:text-on-surface hover:file:border-primary" />
+            <input type="file" name="gallery"multiple accept={IMAGE_ACCEPT} className="text-sm text-on-surface-variant file:mr-3 file:rounded-full file:bg-transparent file:px-4 file:py-2 file:text-sm file:font-medium file:text-on-surface" />
           </label>
 
           <button

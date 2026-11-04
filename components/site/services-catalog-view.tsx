@@ -56,7 +56,7 @@ export function ServicesCatalogView({
 
   return (
     <div className="container section-y">
-      <div className="flex flex-col justify-between gap-6 border-b border-border/60 pb-10 md:flex-row md:items-end">
+      <div className="flex flex-col justify-between gap-6 pb-10 md:flex-row md:items-end">
         <div>
           <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
             {t("title")}
@@ -95,7 +95,7 @@ export function ServicesCatalogView({
             ))}
           </div>
         ) : (
-          <p className="rounded-xl border border-border bg-card/50 p-6 text-sm text-muted-foreground">
+          <p className="rounded-xl bg-card/50 p-6 text-sm text-muted-foreground">
             {t("emptyCategory")}
           </p>
         )}
@@ -123,14 +123,14 @@ export function ServicesCatalogView({
             ))}
           </div>
         ) : (
-          <p className="rounded-xl border border-border bg-card/50 p-6 text-sm text-muted-foreground">
+          <p className="rounded-xl bg-card/50 p-6 text-sm text-muted-foreground">
             {t("emptyCategory")}
           </p>
         )}
       </section>
 
       {selectedIds.length > 0 ? (
-        <div className="glass-panel sticky bottom-[var(--mobile-bottom-nav-clearance)] z-30 mt-12 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-background/65 p-4 sm:px-6 lg:bottom-6">
+        <div className="glass-panel sticky bottom-[var(--mobile-bottom-nav-clearance)] z-30 mt-12 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-background/65 p-4 sm:px-6 lg:bottom-6">
           <div className="flex flex-wrap items-center gap-4">
             <span className="text-sm font-semibold text-foreground">
               {t("selectedSummary", { count: selectedIds.length })}

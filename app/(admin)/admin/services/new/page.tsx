@@ -44,20 +44,20 @@ export default async function NewServicePage({
       <form action={createService} className={adminFieldsetClass}>
         <label className={labelClass}>
           {t.service.title}
-          <input name="title" maxLength={120} minLength={2} required autoFocus className={inputClass} />
+          <input name="title"maxLength={120} minLength={2} required autoFocus className={inputClass} />
         </label>
 
         <div className="grid gap-5 sm:grid-cols-2">
           <label className={labelClass}>
             {t.table.category}
-            <select name="category" defaultValue="small" className={inputClass}>
+            <select name="category"defaultValue="small" className={inputClass}>
               <option value="small">{t.service.categorySmall}</option>
               <option value="large">{t.service.categoryLarge}</option>
             </select>
           </label>
           <label className={labelClass}>
             {t.service.priceType}
-            <select name="priceType" defaultValue="from" className={inputClass}>
+            <select name="priceType"defaultValue="from" className={inputClass}>
               <option value="from">{t.service.priceFrom}</option>
               <option value="quote">{t.table.quote}</option>
             </select>
@@ -67,36 +67,36 @@ export default async function NewServicePage({
         <div className="grid gap-5 sm:grid-cols-2">
           <label className={labelClass}>
             {t.service.priceRubles}
-            <input name="basePrice" type="number" min={0} max={100_000_000} step="1" defaultValue={0} className={inputClass} />
+            <input name="basePrice" type="number"min={0} max={100_000_000} step="1"defaultValue={0} className={inputClass} />
           </label>
           <label className={labelClass}>
             {t.service.sortOrder}
-            <input name="sortOrder" type="number" step="1" defaultValue={0} className={inputClass} />
+            <input name="sortOrder" type="number"step="1"defaultValue={0} className={inputClass} />
           </label>
         </div>
 
         <label className={labelClass}>
           {t.service.shortDesc}
-          <textarea name="shortDesc" rows={3} className={`${inputClass} h-auto py-2`} />
+          <textarea name="shortDesc"rows={3} className={`${inputClass} h-auto py-2`} />
         </label>
 
         <label className={labelClass}>
           {t.service.fullDesc}
-          <textarea name="fullDesc" rows={8} className={`${inputClass} h-auto py-2`} />
+          <textarea name="fullDesc"rows={8} className={`${inputClass} h-auto py-2`} />
         </label>
 
         <fieldset className={adminInsetPanelClass}>
           <legend className="text-sm font-medium text-on-surface">{t.image.title}</legend>
           <label className={labelClass}>
             {t.image.upload}
-            <input type="file" name="cover" accept={IMAGE_ACCEPT} className="text-sm text-on-surface-variant file:mr-3 file:rounded-full file:border file:border-outline file:bg-transparent file:px-4 file:py-2 file:text-sm file:font-medium file:text-on-surface hover:file:border-primary" />
+            <input type="file" name="cover"accept={IMAGE_ACCEPT} className="text-sm text-on-surface-variant file:mr-3 file:rounded-full file:bg-transparent file:px-4 file:py-2 file:text-sm file:font-medium file:text-on-surface" />
           </label>
           <p className="text-xs text-on-surface-variant">{t.image.hint}</p>
         </fieldset>
 
         <div className="flex flex-wrap gap-6">
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" className="size-4 accent-primary" name="isActive" defaultChecked />
+            <input type="checkbox" className="size-4 accent-primary" name="isActive"defaultChecked />
             {t.service.isActive}
           </label>
           <label className="flex items-center gap-2 text-sm">

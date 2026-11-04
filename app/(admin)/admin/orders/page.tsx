@@ -99,7 +99,7 @@ export default async function AdminOrdersPage({
                   {canEdit ? (
                     <form action={updateOrderStatus} className="flex items-center gap-2">
                       <input type="hidden" name="orderId" value={order.id} />
-                      <label className="sr-only" htmlFor={`status-${order.id}`}>
+                      <label className="sr-only"htmlFor={`status-${order.id}`}>
                         {t.orders.statusOf}
                       </label>
                       <select

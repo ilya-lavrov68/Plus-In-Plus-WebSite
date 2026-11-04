@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import {
@@ -56,10 +55,10 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import { cn } from "@/lib/utils";
 
 export interface MenuLink {
   label?: string;
@@ -114,17 +113,6 @@ interface MobileNavigationMenuProps {
   menuLabel: string;
   closeLabel: string;
 }
-
-/**
- * Пункты меню шапки — кликабельные поверхности без рамок: в покое спокойный
- * серый текст, при наведении и в раскрытом разделе — нейтральная подложка
- * и белый текст. Активный раздел отмечается той же подложкой, поэтому шапка
- * остаётся нейтральной и не спорит с контентом страницы.
- */
-const menuItemClass =
-  "inline-flex h-9 items-center justify-center gap-1.5 rounded-none px-3 text-sm font-medium text-muted-foreground transition-colors duration-200 ease-out hover:bg-hover-surface hover:text-foreground data-[state=open]:bg-hover-surface data-[state=open]:text-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
-
-const menuItemActiveClass = "bg-hover-surface text-foreground";
 
 type NavLinkProps = {
   link: MenuLink;
@@ -375,7 +363,7 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
 
   return (
     <Fragment>
-      <section className="pointer-events-auto fixed top-0 z-50 flex w-full items-center justify-center bg-background/85 backdrop-blur-xl">
+      <section className="pointer-events-auto fixed top-0 z-50 flex w-full items-center justify-center border-b-0 bg-background/65 backdrop-blur-2xl">
         <NavigationMenu className="h-20 max-w-full after:absolute after:inset-0 after:z-40 after:block after:size-full after:bg-transparent after:content-[''] [&>div:last-child>div]:mt-0 [&>div:last-child>div]:rounded-none [&>div:last-child>div]:border-0 [&>div:last-child>div]:border-b-0">
           <div className="container relative z-50 grid w-full grid-cols-2 items-center justify-between gap-4 lg:grid-cols-3 lg:gap-8">
             <Link
@@ -387,7 +375,7 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
             </Link>
 
             <div className="hidden justify-self-center lg:flex">
-              <NavigationMenuList className="gap-1">
+              <NavigationMenuList>
                 {navigation.map((item, index) => (
                   <DesktopMenuItem
                     key={`desktop-link-${index}`}
@@ -402,13 +390,13 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
               <div className="hidden items-center gap-2.5 lg:flex">
                 <LanguageSwitcher />
                 {session?.user ? <CartIcon count={cartCount} /> : null}
-                <Button variant="outline" size="sm" asChild>
+                <Button variant="outline"size="sm"asChild>
                   <Link href="/contact">{t("contact")}</Link>
                 </Button>
                 {session?.user ? (
                   <div className="flex items-center gap-2">
                     {dashboardHref && (
-                      <Button variant="secondary" size="sm" asChild>
+                      <Button variant="secondary"size="sm"asChild>
                         <Link href={dashboardHref}>
                           <LayoutDashboard className="size-3.5" />
                           {t("admin")}
@@ -427,7 +415,7 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
                         setAccountReturnFocusId("account-trigger");
                         setAccountOpen(true);
                       }}
-                      className="inline-flex items-center gap-2 rounded-full border border-border p-0.5 pr-3 text-xs font-medium text-foreground transition-colors duration-200 ease-out hover:border-foreground/25 hover:bg-white/[0.06] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                      className="inline-flex items-center gap-2 rounded-full p-0.5 pr-3 text-xs font-medium text-foreground transition-colors duration-200 ease-out hover:bg-white/[0.06] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     >
                       <UserAvatar user={session.user} size={36} />
                       <span className="max-w-24 truncate">
@@ -488,22 +476,10 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
 };
 
 const DesktopMenuItem = ({ item, index }: DesktopMenuItemProps) => {
-  const pathname = usePathname() || "/";
-  // Префикс локали не участвует в сравнении: /ru/ai и /en/ai — один пункт.
-  const normalizedPath =
-    (pathname.replace(/^\/(?:ru|en)(?=\/|$)/, "") || "/").replace(/\/+$/, "") || "/";
-  const isDirectLink = !item.links && !item.featuredLinks && !item.groupLinks;
-  const isActive =
-    isDirectLink &&
-    Boolean(item.url) &&
-    (item.url === "/"
-      ? normalizedPath === "/"
-      : normalizedPath === item.url || normalizedPath.startsWith(`${item.url}/`));
-
   if (item.links || item.featuredLinks || item.groupLinks) {
     return (
       <NavigationMenuItem key={`desktop-menu-item-${index}`} value={`${index}`}>
-        <NavigationMenuTrigger className={menuItemClass}>
+        <NavigationMenuTrigger className="h-fit bg-transparent font-normal text-foreground/70 hover:text-foreground">
           {item.title}
         </NavigationMenuTrigger>
         <NavigationMenuContent className="hidden !rounded-xl !border-0 !p-0 lg:block">
@@ -533,8 +509,7 @@ const DesktopMenuItem = ({ item, index }: DesktopMenuItemProps) => {
     <NavigationMenuItem key={`desktop-menu-item-${index}`} value={`${index}`}>
       <NavigationMenuLink
         href={item.url}
-        aria-current={isActive ? "page" : undefined}
-        className={cn(menuItemClass, isActive && menuItemActiveClass)}
+        className={`${navigationMenuTriggerStyle()} h-fit bg-transparent font-normal text-foreground/70`}
       >
         {item.title}
       </NavigationMenuLink>
@@ -891,7 +866,7 @@ const MobileNavigationMenu = ({
             </Accordion>
 
             <div className="flex flex-col gap-3 [&_a]:min-h-12 [&_button]:min-h-12">
-              <Button variant="outline" asChild>
+              <Button variant="outline"asChild>
                 <Link href="/contact" onClick={onClose}>
                   {contactLabel}
                 </Link>
@@ -905,18 +880,18 @@ const MobileNavigationMenu = ({
                   >
                     {accountLabel}
                   </Button>
-                  <Button variant="outline" asChild>
+                  <Button variant="outline"asChild>
                     <Link href="/profile" onClick={onClose}>
                       {profileLabel}
                     </Link>
                   </Button>
-                  <Button variant="outline" asChild>
+                  <Button variant="outline"asChild>
                     <Link href="/cart" onClick={onClose}>
                       {cartLabel}
                     </Link>
                   </Button>
                   {dashboardHref ? (
-                    <Button variant="secondary" asChild>
+                    <Button variant="secondary"asChild>
                       <Link href={dashboardHref} onClick={onClose}>
                         {adminLabel}
                       </Link>

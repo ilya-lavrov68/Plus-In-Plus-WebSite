@@ -33,7 +33,7 @@ export function AgentMechanism({ kind, description, labels }: AgentMechanismProp
   const { agent, scene } = MECHANISM_SCENES[kind];
   return (
     <figure data-agent-mechanism={kind} data-motion="shader" className="min-w-0 text-foreground">
-      <div className="aspect-[36/23] w-full border-y border-border bg-background">
+      <div className="aspect-[36/23] w-full bg-background">
         <AgentShaderPlayer agent={agent} scene={scene} labels={labels} />
       </div>
       <figcaption className="sr-only">{description}</figcaption>

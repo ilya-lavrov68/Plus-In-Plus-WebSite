@@ -52,7 +52,7 @@ export default async function AdminStoryPage({
       <form action={saveStoryAction} className={adminFieldsetClass}>
         <label className={labelClass}>
           {t.story.heading}
-          <input name="heading" defaultValue={content.heading} maxLength={STORY_CONTENT_LIMITS.heading} className={inputClass} />
+          <input name="heading"defaultValue={content.heading} maxLength={STORY_CONTENT_LIMITS.heading} className={inputClass} />
         </label>
 
         <label className={labelClass}>
@@ -75,7 +75,7 @@ export default async function AdminStoryPage({
           </div>
 
           {rows.map((event, index) => (
-            <fieldset key={`${event.id || "new"}-${index}`} className="flex flex-col gap-3 border border-outline-variant p-4">
+            <fieldset key={`${event.id || "new"}-${index}`} className="flex flex-col gap-3 p-4">
               <legend className="px-2 text-xs text-on-surface-variant">
                 {t.story.event} {index + 1}
               </legend>

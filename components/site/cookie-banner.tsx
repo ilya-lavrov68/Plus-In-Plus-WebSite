@@ -79,7 +79,7 @@ export function CookieBanner() {
       aria-label={t("title")}
       className="fixed inset-x-0 bottom-[var(--mobile-bottom-nav-clearance)] z-50 p-4 animate-in fade-in slide-in-from-bottom-6 duration-300 lg:bottom-0"
     >
-      <div className="glass-panel mx-auto max-w-4xl overflow-hidden rounded-xl border border-border bg-background/80 ">
+      <div className="glass-panel mx-auto max-w-4xl overflow-hidden rounded-xl bg-background/80 ">
         {/* Основная часть */}
         <div className="p-6">
           <div className="flex items-start justify-between gap-4">
@@ -131,7 +131,7 @@ export function CookieBanner() {
 
         {/* Детальные настройки (раскрываются по «Настроить») */}
         {showDetails ? (
-          <div className="border-t border-border bg-muted/40 p-6">
+          <div className="bg-muted/40 p-6">
             <h4 className="font-semibold">{t("preferencesTitle")}</h4>
 
             <div className="mt-4 space-y-4">

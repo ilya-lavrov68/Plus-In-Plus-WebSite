@@ -77,10 +77,10 @@ function MobileNavIcon({
     ),
     services: (
       <>
-        <rect className="mobile-nav-animate-bottom" x="3" y="3" width="7" height="7" rx="1" />
-        <rect className="mobile-nav-animate-bottom mobile-nav-delay-1" x="14" y="3" width="7" height="7" rx="1" />
-        <rect className="mobile-nav-animate-bottom mobile-nav-delay-2" x="14" y="14" width="7" height="7" rx="1" />
-        <rect className="mobile-nav-animate-bottom mobile-nav-delay-3" x="3" y="14" width="7" height="7" rx="1" />
+        <rect className="mobile-nav-animate-bottom"x="3"y="3"width="7"height="7"rx="1" />
+        <rect className="mobile-nav-animate-bottom mobile-nav-delay-1"x="14"y="3"width="7"height="7"rx="1" />
+        <rect className="mobile-nav-animate-bottom mobile-nav-delay-2"x="14"y="14"width="7"height="7"rx="1" />
+        <rect className="mobile-nav-animate-bottom mobile-nav-delay-3"x="3"y="14"width="7"height="7"rx="1" />
       </>
     ),
     cart: (
@@ -90,8 +90,8 @@ function MobileNavIcon({
           className="mobile-nav-animate-stroke"
           d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57L21 7H5.12"
         />
-        <circle className="mobile-nav-animate-bottom mobile-nav-delay-2" cx="8" cy="21" r="1" />
-        <circle className="mobile-nav-animate-bottom mobile-nav-delay-3" cx="19" cy="21" r="1" />
+        <circle className="mobile-nav-animate-bottom mobile-nav-delay-2"cx="8"cy="21"r="1" />
+        <circle className="mobile-nav-animate-bottom mobile-nav-delay-3"cx="19"cy="21"r="1" />
       </>
     ),
   }[name];
@@ -130,9 +130,9 @@ function MobileMenuIcon({ open }: { open: boolean }) {
         open && "is-open"
       )}
     >
-      <path className="mobile-nav-menu-line mobile-nav-menu-top" d="M4 6h16" />
-      <path className="mobile-nav-menu-line mobile-nav-menu-middle" d="M4 12h16" />
-      <path className="mobile-nav-menu-line mobile-nav-menu-bottom" d="M4 18h16" />
+      <path className="mobile-nav-menu-line mobile-nav-menu-top"d="M4 6h16" />
+      <path className="mobile-nav-menu-line mobile-nav-menu-middle"d="M4 12h16" />
+      <path className="mobile-nav-menu-line mobile-nav-menu-bottom"d="M4 18h16" />
     </svg>
   );
 }
@@ -181,7 +181,7 @@ export function MobileBottomNav({
                   "relative flex size-8 shrink-0 items-center justify-center rounded-xl transition-colors duration-200 ease-out motion-reduce:transition-none",
                   active
                     ? "text-signal"
-                    : "group-hover:bg-accent group-hover:text-signal"
+                    : "group-hover:bg-accent group-hover:text-foreground"
                 )}
               >
                 <MobileNavIcon name={item.label} active={active} />
@@ -219,7 +219,7 @@ export function MobileBottomNav({
               "flex size-8 shrink-0 items-center justify-center rounded-xl transition-colors duration-200 ease-out motion-reduce:transition-none",
               menuOpen
                 ? "text-signal"
-                : "group-hover:bg-accent group-hover:text-signal"
+                : "group-hover:bg-accent group-hover:text-foreground"
             )}
           >
             <MobileMenuIcon open={menuOpen} />

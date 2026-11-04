@@ -210,7 +210,7 @@ export function CartPanel() {
 
   if (items.length === 0) {
     return (
-      <Card className="glass-panel border-border bg-background/65 px-6 py-10 text-center">
+      <Card className="glass-panel bg-background/65 px-6 py-10 text-center">
         <ShoppingCart
           aria-hidden="true"
           className="mx-auto mb-4 h-10 w-10 text-muted-foreground"
@@ -240,12 +240,12 @@ export function CartPanel() {
 
   return (
     <div className="space-y-6">
-      <Card className="glass-panel border-border bg-background/65 p-6">
+      <Card className="glass-panel bg-background/65 p-6">
         <div className="space-y-4">
           {items.map((item) => (
             <div
               key={item.id}
-              className="flex flex-wrap items-center justify-between gap-4 border-b border-border py-3 last:border-0"
+              className="flex flex-wrap items-center justify-between gap-4 py-3 last:border-0"
             >
               <div className="min-w-0 flex-1">
                 <div className="font-medium text-foreground">{item.name}</div>
@@ -265,7 +265,7 @@ export function CartPanel() {
               </div>
 
               <div className="flex items-center gap-4">
-                <div className="inline-flex items-center rounded-lg border border-border">
+                <div className="inline-flex items-center rounded-lg">
                   <Button
                     type="button"
                     variant="ghost"
@@ -314,7 +314,7 @@ export function CartPanel() {
           ))}
         </div>
 
-        <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
+        <div className="mt-6 flex items-center justify-between pt-4">
           <div className="text-lg font-semibold">{t("estimatedTotal")}:</div>
           <div className="text-2xl font-bold tabular-nums">
             {total.toLocaleString(numberLocale)} ₽
@@ -323,7 +323,7 @@ export function CartPanel() {
         <p className="mt-3 text-sm text-muted-foreground">{t("managerNote")}</p>
       </Card>
 
-      <Card className="glass-panel border-border bg-background/65 p-6">
+      <Card className="glass-panel bg-background/65 p-6">
         <h3 className="mb-4 text-xl font-semibold">{t("orderDetails")}</h3>
         <div className="space-y-4">
           <div>
@@ -363,7 +363,7 @@ export function CartPanel() {
       {errorMessage ? (
         <p
           role="alert"
-          className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+          className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive"
         >
           {errorMessage}
         </p>

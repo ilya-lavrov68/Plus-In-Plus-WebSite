@@ -274,7 +274,7 @@
   .dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
-    --card: 0 0% 7.5%;
+    --card: 0 0% 9%;
     --card-foreground: 0 0% 98%;
     --popover: 0 0% 7.5%;
     --popover-foreground: 0 0% 98%;
@@ -700,10 +700,10 @@
     backdrop-filter: blur(24px) saturate(135%);
   }
 
-  /* Тонкая нейтральная граница сохраняет силуэт hero без тени и без
-   * full-width backdrop blur на каждом scroll-кадре. */
+  /* Кадр hero держится фоном: обводок в системе нет. */
   .hero-media-frame {
-    border: 1px solid hsl(var(--border));
+    border: 0;
+    background-color: hsl(var(--card));
   }
 
   /* Timeline cards сохраняют glass без дополнительных теней и без
@@ -817,11 +817,11 @@
   }
 
   .article-content blockquote {
-    @apply mt-6 border-l-2 border-primary pl-6 italic text-foreground;
+    @apply mt-6 rounded-r-xl bg-muted/50 py-3 pl-6 italic text-foreground;
   }
 
   .article-content img {
-    @apply mt-6 h-auto max-w-full rounded-xl border border-border;
+    @apply mt-6 h-auto max-w-full rounded-xl;
   }
 
   .article-content pre {
@@ -846,11 +846,16 @@
 
   .article-content th,
   .article-content td {
-    @apply border-b border-border px-3 py-2 align-top;
+    @apply px-3 py-2 align-top;
   }
 
   .article-content th {
-    @apply font-semibold text-foreground;
+    @apply bg-muted/40 font-semibold text-foreground;
+  }
+
+  /* Строки таблицы разделяются фоном, а не линиями. */
+  .article-content tbody tr:nth-child(even) {
+    @apply bg-muted/20;
   }
 
   .article-canva {

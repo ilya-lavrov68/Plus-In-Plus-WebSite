@@ -174,7 +174,7 @@ const Signup10 = ({
                 href="/"
                 className="mx-auto inline-flex items-center justify-center rounded-xl p-1.5 transition-opacity duration-200 hover:opacity-80 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
-                <BrandMark className="h-9" label="Plus In Plus" />
+                <BrandMark className="h-9"label="Plus In Plus" />
               </Link>
 
               <h1 className="mt-6 text-center text-3xl font-semibold tracking-tight md:text-4xl">
@@ -190,7 +190,7 @@ const Signup10 = ({
             <div
               role="tablist"
               aria-label={t("authenticationMode")}
-              className="mt-8 grid grid-cols-2 rounded-full border border-border bg-muted p-1"
+              className="mt-8 grid grid-cols-2 rounded-full bg-muted p-1"
             >
               <button
                 type="button"
@@ -200,7 +200,7 @@ const Signup10 = ({
                 className={`relative rounded-full py-2.5 text-center text-sm font-medium transition-colors duration-200 ${
                   isLogin
                     ? "text-background"
-                    : "text-muted-foreground hover:text-signal"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {isLogin && (
@@ -220,7 +220,7 @@ const Signup10 = ({
                 className={`relative rounded-full py-2.5 text-center text-sm font-medium transition-colors duration-200 ${
                   !isLogin
                     ? "text-background"
-                    : "text-muted-foreground hover:text-signal"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {!isLogin && (
@@ -320,11 +320,7 @@ const Signup10 = ({
               )}
 
               {isLogin && (
-                <div
-                  className={`flex items-center justify-between rounded-full border bg-card px-5 py-3 transition-colors duration-200 ${
-                    adminMode ? "border-primary" : "border-border"
-                  }`}
-                >
+                <div className="flex items-center justify-between rounded-full bg-card px-5 py-3 transition-colors duration-200">
                   <Label
                     htmlFor="auth-admin-mode"
                     className="cursor-pointer text-sm font-medium text-foreground"
@@ -361,7 +357,7 @@ const Signup10 = ({
                     </p>
                   </div>
                   {mfaChallenge.hasPasskeys ? (
-                    <Button type="button" variant="outline" className="w-full" onClick={handlePasskey}>
+                    <Button type="button"variant="outline" className="w-full" onClick={handlePasskey}>
                       {t("usePasskey")}
                     </Button>
                   ) : null}
@@ -383,7 +379,7 @@ const Signup10 = ({
               {error && (
                 <p
                   role="alert"
-                  className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-center text-sm text-red-300"
+                  className="rounded-xl bg-destructive/10 px-4 py-2.5 text-center text-sm text-red-300"
                 >
                   {error}
                 </p>

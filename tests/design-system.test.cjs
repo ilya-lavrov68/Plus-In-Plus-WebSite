@@ -20,39 +20,112 @@ function filesUnder(dir) {
     );
 }
 
-const publicSources = [...filesUnder("components/site"), ...filesUnder("components/blocks")];
+const publicSources = [...filesUnder("components/site"), ...filesUnder("components/blocks"),
+  ...filesUnder("components/ui"), ...filesUnder("app/(site)")];
 
 /**
- * Правило палитры: жёлтый — акцент текста, а не заливка.
- * Раньше основная кнопка была жёлтой плашкой с тёмным текстом; теперь кнопка
- * белая, а жёлтым становится сам текст при наведении на тёмно-серой подложке.
+ * Обводка не является декором. Единственные исключения — нулевые и невидимые
+ * служебные значения (`border-0`, `border-transparent`), разделители на
+ * `bg-border` и focus-обводка для клавиатуры.
  */
-test("кнопки не заливаются фирменным жёлтым", () => {
-  const variants = read("components/ui/button-variants.ts");
-  for (const variant of ['default:\n          "bg-foreground text-background', 'primary:\n          "bg-foreground text-background', 'cta:\n          "bg-foreground text-background']) {
-    assert.ok(variants.includes(variant), `вариант кнопки должен быть белым: ${variant.slice(0, 12)}`);
-  }
-  assert.equal(variants.includes("bg-primary"), false, "кнопки больше не красятся в жёлтый");
-  assert.ok(variants.includes("hover:bg-hover-surface hover:text-signal"), "ховер — тёмная подложка + жёлтый текст");
+const BORDER_TOKEN = /(?<![\w-])(?:[\w[\]&="'-]*:)*border(?:-[a-z0-9-]+)*(?:\/[\d.]+)?(?![\w-])/g;
+const ALLOWED_BORDER = /(?:^|:)border(?:-0|-transparent|-collapse|-none|-color|-width|-style)$/;
 
-  const headerVariants = variants.slice(variants.indexOf("headerButtonVariants"));
-  assert.equal(headerVariants.includes("bg-primary"), false, "кнопки в шапке следуют тому же правилу");
-});
+function borderOffenders(source) {
+  return (source.match(BORDER_TOKEN) || []).filter((token) => {
+    const core = token.slice(token.lastIndexOf(":") + 1);
+    if (ALLOWED_BORDER.test(core)) return false;
+    if (core.startsWith("border-") && core.endsWith("-0")) return false;
+    return true;
+  });
+}
 
-test("в публичных компонентах нет жёлтых заливок, только текстовый акцент", () => {
+test("жёлтым не заливают кнопки, переключатели и анимации", () => {
   const offenders = [];
   for (const file of publicSources) {
-    const source = read(file);
-    for (const match of source.matchAll(/(?<![\w-])bg-primary(?![\w-])(\/[a-z0-9]+)?/g)) {
-      // Полупрозрачная подложка под жёлтым текстом — это акцент, а не заливка.
-      if (match[1] && Number(match[1].slice(1)) <= 20) continue;
+    for (const match of read(file).matchAll(/(?<![\w-])bg-primary(?:\/[\w.]+)?/g)) {
       offenders.push(`${file}: ${match[0]}`);
     }
   }
-  assert.deepEqual(offenders, [], "жёлтый фон остался у кнопок, переключателей или анимаций");
+  assert.deepEqual(offenders, [], "жёлтый фон остался у кнопок или индикаторов");
 });
 
-test("акцентный жёлтый объявлен отдельным токеном и имеет контраст с фоном", () => {
+test("белая кнопка темнеет и желтеет при наведении", () => {
+  const variants = read("components/ui/button-variants.ts");
+  for (const variant of ["default", "primary", "cta"]) {
+    const match = variants.match(new RegExp(`\\b${variant}:\\s*"([^"]*)"`));
+    assert.ok(match, `не найден вариант ${variant}`);
+    assert.match(match[1], /bg-foreground text-background/, `${variant}: в покое кнопка светлая`);
+    assert.match(match[1], /hover:bg-hover-surface hover:text-signal/, `${variant}: ховер — тёмная подложка + жёлтый текст`);
+  }
+});
+
+test("прозрачные и тёмные кнопки не перекрашиваются в жёлтый", () => {
+  const variants = read("components/ui/button-variants.ts");
+  for (const variant of ["outline", "secondary", "ghost"]) {
+    const match = variants.match(new RegExp(`\\b${variant}:\\s*"([^"]*)"`));
+    assert.ok(match, `не найден вариант ${variant}`);
+    assert.equal(match[1].includes("text-signal"), false, `${variant}: жёлтый предназначен белым кнопкам`);
+    assert.match(match[1], /hover:bg-white\//, `${variant}: ховер остаётся нейтральным`);
+  }
+
+  const headerVariants = variants.slice(variants.indexOf("headerButtonVariants"));
+  const outline = headerVariants.match(/outline:\s*"([^"]*)"/);
+  assert.equal(outline[1].includes("text-signal"), false, "в шапке жёлтеет только светлая кнопка");
+});
+
+test("у интерфейса нет декоративных обводок", () => {
+  const offenders = [];
+  for (const file of publicSources) {
+    for (const token of borderOffenders(read(file))) offenders.push(`${file}: ${token}`);
+  }
+  for (const file of [...filesUnder("components/admin"), ...filesUnder("components/orders"),
+    ...filesUnder("app/(admin)"), ...filesUnder("components/ai")]) {
+    for (const token of borderOffenders(read(file))) offenders.push(`${file}: ${token}`);
+  }
+  assert.deepEqual([...new Set(offenders)], [], "рамки вернулись в интерфейс");
+});
+
+test("состояние читается подложкой, а не рамкой", () => {
+  const input = read("components/ui/input.tsx");
+  assert.match(input, /bg-secondary\/60/, "поле ввода отделяется подложкой");
+  assert.equal(borderOffenders(input).length, 0, "у поля ввода нет рамки");
+
+  const badge = read("components/ui/badge.tsx");
+  assert.match(badge, /bg-secondary\/70 text-foreground/, "вариант outline стал тихой подложкой");
+
+  const accountModal = read("components/site/account-modal.tsx");
+  assert.match(accountModal, /adminMode && "bg-secondary"/, "включённый режим админа подсвечен фоном");
+
+  const serviceCard = read("components/site/service-card.tsx");
+  assert.match(serviceCard, /selected \? "\s*bg-secondary/, "выбранная карточка отличается подложкой");
+});
+
+test("меню шапки — нейтральный текст без чипов и рамок", () => {
+  const navbar = read("components/blocks/navbar10.tsx");
+  assert.ok(
+    navbar.includes("bg-background/65 backdrop-blur-2xl"),
+    "шапка остаётся полупрозрачной, как в эталонном макете",
+  );
+  assert.ok(navbar.includes("text-foreground/70 hover:text-foreground"), "пункты меню — спокойный текст");
+  assert.equal(navbar.includes("menuItemClass"), false, "кнопок-чипов в шапке нет");
+  assert.equal(navbar.includes("text-signal"), false, "триггер меню не перекрашивается в жёлтый");
+  assert.equal(borderOffenders(navbar).length, 0, "у шапки и её элементов нет обводок");
+});
+
+test("плавающие панели остаются стеклянными", () => {
+  const settings = read("app/(admin)/admin/settings/page.tsx");
+  assert.ok(settings.includes("backdrop-blur"), "панель сохранения парит над контентом");
+
+  const layout = read("app/(admin)/admin/layout.tsx");
+  assert.ok(layout.includes("backdrop-blur"), "сайдбар — стеклянная панель");
+  assert.ok(layout.includes("lg:sticky"), "панель не уезжает при прокрутке");
+
+  const navbar = read("components/blocks/navbar10.tsx");
+  assert.ok(navbar.includes("backdrop-blur-2xl"), "шапка — эталон стекла");
+});
+
+test("жёлтый текст проходит контраст на своих поверхностях", () => {
   const globals = read("styles/globals.css");
   assert.ok(globals.includes("--color-signal: var(--md-signal)"), "утилиты text-signal должны существовать");
   assert.ok(globals.includes("--hover-surface: #242424"), "публичная подложка ховера");
@@ -73,72 +146,6 @@ test("акцентный жёлтый объявлен отдельным ток
   };
 
   assert.ok(ratio("#FFFF01", "#0a0a0a") >= 4.5, "публичный жёлтый текст читается на тёмном фоне");
-  assert.ok(ratio("#ece38a", "#2e2e35") >= 4.5, "жёлтый текст админки читается на подложке ховера");
+  assert.ok(ratio("#FFFF01", "#242424") >= 4.5, "жёлтый текст читается на подложке белой кнопки");
   assert.ok(ratio("#ece38a", "#151517") >= 4.5, "жёлтый текст админки читается на фоне панели");
-});
-
-test("кнопки админки: спокойная подложка и жёлтый текст при наведении", () => {
-  const ui = read("components/admin/ui.tsx");
-  const variantsBlock = ui.slice(ui.indexOf("const adminButtonVariants"), ui.indexOf("const adminButtonSizes"));
-  assert.equal(variantsBlock.includes("bg-primary"), false, "заливных жёлтых кнопок в панели нет");
-  for (const variant of ["filled", "tonal", "outlined", "text"]) {
-    const match = variantsBlock.match(new RegExp(`\\b${variant}:\\s*"([^"]*)"`));
-    assert.ok(match, `не найден вариант ${variant}`);
-    assert.ok(match[1].includes("hover:text-signal"), `${variant}: при наведении текст должен желтеть`);
-  }
-  assert.ok(ui.includes("adminButton("), "варианты кнопок собираются одной функцией");
-});
-
-test("меню админки собрано из кнопок без декоративных рамок", () => {
-  const nav = read("components/admin/admin-nav.tsx");
-  assert.ok(nav.includes("rounded-xl px-4"), "пункт меню — кнопка-плашка");
-  assert.equal(/\bborder\b|border-signal|border-outline/.test(nav), false, "у пунктов меню нет обводок");
-  assert.ok(nav.includes("hover:bg-hover-surface hover:text-signal"), "ховер пункта меню по общему правилу");
-  assert.ok(nav.includes("bg-surface-container-high font-medium text-signal"), "активный раздел отмечен подложкой и текстом");
-  assert.ok(nav.includes("aria-current"), "состояние дублируется для скринридера");
-});
-
-test("шапка плотная, а её меню — нейтральные поверхности без обводок", () => {
-  const navbar = read("components/blocks/navbar10.tsx");
-  // Шапка не должна «просвечивать»: раньше стояло bg-background/65 без разделителя.
-  assert.ok(navbar.includes("bg-background/85 backdrop-blur-xl"), "фон шапки плотный, стекло сохранено");
-  assert.equal(
-    /fixed top-0 z-50[^"]*border-/.test(navbar),
-    false,
-    "у шапки нет линии-обводки по нижней кромке",
-  );
-
-  assert.ok(navbar.includes("const menuItemClass ="), "у пунктов меню общий класс");
-  assert.ok(navbar.includes("rounded-none px-3 text-sm font-medium text-muted-foreground"), "пункт меню — нейтральная поверхность");
-  assert.ok(navbar.includes("hover:bg-hover-surface hover:text-foreground"), "ховер — подложка и белый текст");
-  assert.ok(navbar.includes("menuItemActiveClass"), "активный раздел отмечен подложкой");
-  assert.ok(navbar.includes('aria-current={isActive ? "page" : undefined}'), "активный раздел доступен скринридеру");
-
-  const menuClasses = navbar.match(/const menuItem(Class|ActiveClass) =[\s\S]*?;/g).join("\n");
-  assert.equal(/\bborder\b|border-/.test(menuClasses), false, "у пунктов меню нет рамок");
-  assert.equal(menuClasses.includes("text-signal"), false, "при наведении пункт меню не перекрашивается в жёлтый");
-  assert.ok(
-    navbar.includes("NavigationMenuTrigger className={menuItemClass}"),
-    "триггер выпадающего раздела оформлен так же, как остальные пункты",
-  );
-  assert.equal(navbar.includes("menuButtonClass"), false, "старые кнопки-чипы с рамкой удалены");
-});
-
-test("плавающие части админки — плотное стекло, как шапка сайта", () => {
-  const layout = read("app/(admin)/admin/layout.tsx");
-  assert.ok(layout.includes("backdrop-blur-xl"), "сайдбар — стеклянная панель");
-  assert.equal(/<aside className="[^"]*\bborder/.test(layout), false, "у сайдбара нет линий-разделителей");
-  assert.ok(layout.includes("bg-surface/85"), "под стеклом плотная поверхность, панель не просвечивает");
-  assert.ok(layout.includes("lg:sticky"), "панель не уезжает при прокрутке");
-
-  const settings = read("app/(admin)/admin/settings/page.tsx");
-  assert.ok(settings.includes("backdrop-blur-xl"), "панель сохранения парит над контентом");
-  assert.equal(
-    /sticky bottom-4[^"]*\bborder/.test(settings),
-    false,
-    "у плавающей панели нет обводки",
-  );
-
-  const header = read("components/blocks/navbar10.tsx");
-  assert.ok(header.includes("backdrop-blur-xl"), "шапка остаётся стеклянной, но не прозрачной");
 });

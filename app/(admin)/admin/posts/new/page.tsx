@@ -48,7 +48,7 @@ export default async function NewPostPage({
       <form action={createPost} className={adminFieldsetClass}>
         <label className={labelClass}>
           {t.post.title}
-          <input name="title" minLength={2} maxLength={160} required autoFocus className={inputClass} />
+          <input name="title"minLength={2} maxLength={160} required autoFocus className={inputClass} />
         </label>
 
         <div className="grid gap-5 sm:grid-cols-2">
@@ -58,30 +58,30 @@ export default async function NewPostPage({
           </label>
           <label className={labelClass}>
             {t.post.readTime}
-            <input name="readTime" type="number" min={1} max={60} step="1" defaultValue={5} className={inputClass} />
+            <input name="readTime" type="number"min={1} max={60} step="1"defaultValue={5} className={inputClass} />
           </label>
         </div>
 
         <label className={labelClass}>
           {t.post.excerpt}
-          <textarea name="excerpt" rows={3} className={`${inputClass} h-auto py-2`} />
+          <textarea name="excerpt"rows={3} className={`${inputClass} h-auto py-2`} />
         </label>
 
         <label className={labelClass}>
           {t.post.content}
-          <textarea name="content" rows={16} required className={`${inputClass} h-auto py-2 font-mono`} />
+          <textarea name="content"rows={16} required className={`${inputClass} h-auto py-2 font-mono`} />
         </label>
 
         <label className={labelClass}>
           {t.post.sourceUrl}
-          <input name="sourceUrl" type="url" placeholder="https://" className={inputClass} />
+          <input name="sourceUrl" type="url"placeholder="https://" className={inputClass} />
         </label>
 
         <fieldset className={adminInsetPanelClass}>
           <legend className="text-sm font-medium text-on-surface">{t.image.title}</legend>
           <label className={labelClass}>
             {t.image.upload}
-            <input type="file" name="cover" accept={IMAGE_ACCEPT} className="text-sm text-on-surface-variant file:mr-3 file:rounded-full file:border file:border-outline file:bg-transparent file:px-4 file:py-2 file:text-sm file:font-medium file:text-on-surface hover:file:border-primary" />
+            <input type="file" name="cover"accept={IMAGE_ACCEPT} className="text-sm text-on-surface-variant file:mr-3 file:rounded-full file:bg-transparent file:px-4 file:py-2 file:text-sm file:font-medium file:text-on-surface" />
           </label>
           <p className="text-xs text-on-surface-variant">{t.image.hint}</p>
         </fieldset>

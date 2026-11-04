@@ -159,7 +159,7 @@ export function OrderCard({ order }: OrderCardProps) {
   const clientDescription = order.description || order.customerNote;
 
   return (
-    <Card className="glass-panel border-border bg-background/65">
+    <Card className="glass-panel bg-background/65">
       <CardHeader className="flex-row flex-wrap items-center justify-between gap-3 space-y-0">
         <div className="flex flex-wrap items-center gap-2.5">
           <CardTitle className="text-lg">{displayOrderNumber}</CardTitle>
@@ -171,7 +171,7 @@ export function OrderCard({ order }: OrderCardProps) {
         </div>
         <div className="flex items-center gap-2">
           <OrderStatusBadge status={order.status} />
-          <Button asChild variant="outline" size="sm">
+          <Button asChild variant="outline"size="sm">
             <Link href="/services" className="gap-1.5">
               <Plus aria-hidden="true" className="size-3.5" />
               {t("createOrder")}
@@ -215,7 +215,7 @@ export function OrderCard({ order }: OrderCardProps) {
         </dl>
 
         {displayLines.length > 0 ? (
-          <div className="border-t border-border pt-3">
+          <div className="pt-3">
             <div className="mb-2 text-xs font-medium tracking-wider text-muted-foreground uppercase">
               {t("selectedItems")}
             </div>
@@ -252,7 +252,7 @@ export function OrderCard({ order }: OrderCardProps) {
         ) : null}
 
         {clientDescription ? (
-          <div className="rounded-lg border border-border bg-secondary/40 px-3.5 py-2.5 text-sm">
+          <div className="rounded-lg bg-secondary/40 px-3.5 py-2.5 text-sm">
             <span className="font-medium text-foreground">
               {t("description")}:{" "}
             </span>
@@ -263,7 +263,7 @@ export function OrderCard({ order }: OrderCardProps) {
         ) : null}
 
         {order.managerNote ? (
-          <p className="rounded-lg border border-border bg-muted/60 px-3.5 py-2.5 text-sm">
+          <p className="rounded-lg bg-muted/60 px-3.5 py-2.5 text-sm">
             <span className="font-medium text-foreground">
               {t("managerComment")}:{" "}
             </span>
@@ -272,7 +272,7 @@ export function OrderCard({ order }: OrderCardProps) {
         ) : null}
 
         {unpriced && !closed ? (
-          <div className="flex items-start gap-3 rounded-lg border border-amber-500/35 bg-amber-500/15 px-4 py-3">
+          <div className="flex items-start gap-3 rounded-lg bg-amber-500/15 px-4 py-3">
             <Clock
               aria-hidden="true"
               className="mt-0.5 size-5 shrink-0 text-amber-200"
@@ -286,7 +286,7 @@ export function OrderCard({ order }: OrderCardProps) {
             {payable && paymentHref ? (
               <Button
                 asChild
-                className="w-fit border border-primary-foreground/20 bg-white px-4 py-2 text-primary-foreground hover:bg-white/90 hover:text-primary-foreground"
+                className="w-fit bg-white px-4 py-2 text-primary-foreground hover:bg-white/90 hover:text-primary-foreground"
               >
                 <a href={paymentHref}>
                   {t("pay")} {formatKopecks(payable.amount, currency, locale)}
@@ -297,7 +297,7 @@ export function OrderCard({ order }: OrderCardProps) {
                 <input type="hidden" name="orderId" value={order.id} />
                 <Button
                   type="submit"
-                  className="w-fit border border-primary-foreground/20 bg-white px-4 py-2 text-primary-foreground hover:bg-white/90 hover:text-primary-foreground"
+                  className="w-fit bg-white px-4 py-2 text-primary-foreground hover:bg-white/90 hover:text-primary-foreground"
                 >
                   {t("pay")} {formatKopecks(payable.amount, currency, locale)}
                 </Button>
@@ -312,7 +312,7 @@ export function OrderCard({ order }: OrderCardProps) {
         ) : null}
 
         {paid ? (
-          <div className="flex items-start gap-3 rounded-lg border border-emerald-500/35 bg-emerald-500/15 px-4 py-3">
+          <div className="flex items-start gap-3 rounded-lg bg-emerald-500/15 px-4 py-3">
             <CheckCircle2
               aria-hidden="true"
               className="mt-0.5 size-5 shrink-0 text-emerald-200"
@@ -322,7 +322,7 @@ export function OrderCard({ order }: OrderCardProps) {
         ) : null}
 
         {closed ? (
-          <div className="flex items-start gap-3 rounded-lg border border-red-500/35 bg-red-500/15 px-4 py-3">
+          <div className="flex items-start gap-3 rounded-lg bg-red-500/15 px-4 py-3">
             <XCircle
               aria-hidden="true"
               className="mt-0.5 size-5 shrink-0 text-red-200"
@@ -332,7 +332,7 @@ export function OrderCard({ order }: OrderCardProps) {
         ) : null}
 
         {cancellable ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-3">
             {confirmingCancel ? (
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-sm font-medium text-foreground">
@@ -385,7 +385,7 @@ export function OrderCard({ order }: OrderCardProps) {
         ) : null}
 
         {cancelBlocked ? (
-          <p className="border-t border-border pt-3 text-xs text-muted-foreground">
+          <p className="pt-3 text-xs text-muted-foreground">
             {t("cancelUnavailable")}
           </p>
         ) : null}
