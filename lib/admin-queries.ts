@@ -1,3 +1,4 @@
+import { toRubles } from "@/lib/admin-money";
 import { rows as queryPayloadRows } from "@/lib/db";
 
 /**
@@ -121,7 +122,8 @@ export async function getOrders(options: { limit?: number; status?: string } = {
     id: text(row.id),
     orderNumber: text(row.order_number),
     status: text(row.status),
-    total: num(row.total),
+    // В базе сумма в копейках; админка показывает рубли.
+    total: toRubles(num(row.total)),
     currency: text(row.currency) || "RUB",
     createdAt: isoDate(row.created_at),
     customer: text(row.customer),
@@ -149,7 +151,7 @@ export async function getRevenueSeries(days = 30): Promise<AdminRevenuePoint[]> 
      order by date asc`,
     [new Date(Date.now() - span * 24 * 60 * 60 * 1000).toISOString()],
   );
-  return rows.map((row) => ({ date: text(row.date), revenue: num(row.revenue), orders: num(row.orders) }));
+  return rows.map((row) => ({ date: text(row.date), revenue: toRubles(num(row.revenue)), orders: num(row.orders) }));
 }
 
 export async function getServices(): Promise<AdminServiceRow[]> {

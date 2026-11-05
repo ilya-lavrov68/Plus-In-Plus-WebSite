@@ -1,9 +1,18 @@
 import Link from "next/link";
+import { Suspense } from "react";
 
-import { BarList, ColumnChart } from "@/components/admin/charts";
+import { BarList } from "@/components/admin/charts";
 import { ChartAreaInteractive } from "@/components/admin/dashboard/chart-area-interactive";
 import { DataTable, type DataTableRow } from "@/components/admin/dashboard/data-table";
 import { SectionCards, type SectionCardMetric } from "@/components/admin/dashboard/section-cards";
+import { ChartSkeleton } from "@/components/admin/finance/chart-frame";
+import {
+  CandlesSection,
+  CategoriesSection,
+  ChecksSection,
+  FinanceSummaryStrip,
+  PortfolioSection,
+} from "@/components/admin/finance/sections";
 import { adminLabels } from "@/components/admin/labels";
 import { AdminPageHeader } from "@/components/admin/ui";
 import { SectionCard } from "@/components/admin/stat-card";
@@ -106,6 +115,7 @@ export default async function AdminOverviewPage() {
       ...trend(revenueWeek, revenuePrevWeek),
       hint: trendHint,
       footer: `${t.dashboard.trend.period} · ${t.overview.revenueHint}`,
+      spark: revenue.map((point) => point.revenue),
     },
     {
       label: t.overview.paidOrders,
@@ -113,6 +123,7 @@ export default async function AdminOverviewPage() {
       ...trend(ordersWeek, ordersPrevWeek),
       hint: trendHint,
       footer: `${t.dashboard.trend.period} · ${t.overview.queueHint}`,
+      spark: revenue.map((point) => point.orders),
     },
     {
       label: t.overview.average,
@@ -188,6 +199,29 @@ export default async function AdminOverviewPage() {
 
       <SectionCards cards={cards} />
 
+      <Suspense
+        fallback={<ChartSkeleton title={t.finance.summaryTitle} hint={t.finance.loading} className="min-h-[220px]" />}
+      >
+        <FinanceSummaryStrip labels={t.finance} locale={locale} />
+      </Suspense>
+
+      <Suspense fallback={<ChartSkeleton title={t.finance.candles.title} hint={t.finance.loading} />}>
+        <CandlesSection labels={t.finance} locale={locale} />
+      </Suspense>
+
+      <div className="grid gap-4 xl:grid-cols-3">
+        <Suspense
+          fallback={
+            <ChartSkeleton title={t.finance.portfolio.title} hint={t.finance.loading} className="xl:col-span-2" />
+          }
+        >
+          <PortfolioSection labels={t.finance} locale={locale} className="xl:col-span-2" />
+        </Suspense>
+        <Suspense fallback={<ChartSkeleton title={t.finance.checks.title} hint={t.finance.loading} />}>
+          <ChecksSection labels={t.finance} locale={locale} />
+        </Suspense>
+      </div>
+
       {isAdmin && daily ? (
         <ChartAreaInteractive
           data={daily.map((point) => ({
@@ -242,22 +276,11 @@ export default async function AdminOverviewPage() {
       />
 
       <div className="grid gap-4 xl:grid-cols-3">
-        <SectionCard className="xl:col-span-2" title={t.overview.revenueTitle} description={t.overview.trafficHint}>
-          {revenue.some((point) => point.revenue > 0) ? (
-            <>
-              <ColumnChart
-                data={revenue.map((point) => ({ label: dayLabel(point.date), value: point.revenue }))}
-                ariaLabel={t.overview.revenueTitle}
-                formatValue={(value) => money.format(value)}
-              />
-              <p className="mt-3 text-xs text-on-surface-variant">
-                {money.format(revenue.reduce((sum, point) => sum + point.revenue, 0))} · {t.dashboard.trend.period}
-              </p>
-            </>
-          ) : (
-            <p className="text-sm text-on-surface-variant">{t.overview.revenueEmpty}</p>
-          )}
-        </SectionCard>
+        <Suspense
+          fallback={<ChartSkeleton title={t.finance.categories.title} hint={t.finance.loading} className="xl:col-span-2" />}
+        >
+          <CategoriesSection labels={t.finance} locale={locale} className="xl:col-span-2" />
+        </Suspense>
 
         <div className="flex flex-col gap-4">
           <SectionCard title={t.overview.statusTitle} description={t.overview.statusHint}>

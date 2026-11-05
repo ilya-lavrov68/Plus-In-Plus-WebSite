@@ -1,4 +1,5 @@
 import { rows as queryPayloadRows } from "@/lib/db";
+import { toRubles } from "@/lib/admin-money";
 
 export interface TrafficSummary {
   views: number;
@@ -102,7 +103,8 @@ export async function getOrderStats(): Promise<OrderStats> {
   `);
   const row = result[0];
   if (!row) return EMPTY_ORDER_STATS;
-  const revenue = num(row.revenue);
+  // payments.amount в копейках — админка считает в рублях.
+  const revenue = toRubles(num(row.revenue));
   const paidCount = num(row.paidCount);
   return {
     queue: num(row.queue),
