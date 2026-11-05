@@ -29,9 +29,17 @@ yarn-error.log*
 .env
 .env*.local
 
-# локальная SQLite-база (development/CI only)
+# локальная SQLite-база (development/CI only): файл, WAL и shared-memory рядом
 /data/*.db
 /data/*.db-*
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+
+# legacy-каталог Payload: у части разработчиков там осталась рабочая база из
+# прошлой версии проекта. Tailwind и Turbopack не должны её сканировать.
+/payload/
 
 # vercel
 .vercel

@@ -199,6 +199,7 @@ npm run deploy:verify -- https://your-domain.example
 | Node `24.14.1` или другая старая версия | Установите Node `24.22.1+` и проверьте `node -v` в новом окне терминала. |
 | `AUTH_SECRET must be configured...` | Проверьте, что существует `.env` и `AUTH_SECRET` заполнен строкой длиной не менее 32 символов. |
 | `Missing tables` | Выполните `npm run db:migrate`, затем `npm run db:check`. |
+| `An unexpected Turbopack error occurred`, в логе `os error 33` и `pip.db-shm` | База лежит внутри проекта (например, старый путь `payload/pip.db`) и залочена работающим сервером — на Windows сборщик не может её прочитать. Перенесите базу в `data/`: `npm run db:relocate`, затем в `.env` укажите `DATABASE_URL="file:./data/pip.db"` и перезапустите `npm run dev`. |
 | Порт `3000` уже занят | Запустите dev-сервер на другом порту: `npm run dev -- -p 3001`. |
 | Нужна общая диагностика | Выполните `npm run doctor`: команда проверит Node, пакеты, `db/schema.sql`, админ-панель, базу и наличие секретов, не печатая их значения. |
 
