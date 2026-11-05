@@ -107,10 +107,33 @@ test("меню шапки — нейтральный текст без чипо�
     navbar.includes("site-header-glass"),
     "шапка остаётся полупрозрачным стеклом с заметным блюром",
   );
-  assert.ok(navbar.includes("text-foreground/70 hover:text-foreground"), "пункты меню — спокойный текст");
+  assert.ok(navbar.includes("text-foreground/75 hover:text-foreground"), "пункты меню — спокойный текст");
+  assert.ok(navbar.includes("onPointerEnter"), "подменю открывается при наведении, а не только по клику");
   assert.equal(navbar.includes("menuItemClass"), false, "кнопок-чипов в шапке нет");
   assert.equal(navbar.includes("text-signal"), false, "триггер меню не перекрашивается в жёлтый");
   assert.equal(borderOffenders(navbar).length, 0, "у шапки и её элементов нет обводок");
+});
+
+test("интерактивные элементы показывают, что они интерактивны", () => {
+  const globals = read("styles/globals.css");
+  assert.match(globals, /button:not\(:disabled\)[^{]*\{[^}]*cursor: pointer/, "кнопки показывают курсор-руку");
+  assert.match(globals, /cursor: not-allowed/, "недоступное действие показывает запрет");
+
+  const sidebar = read("components/ui/sidebar.tsx");
+  assert.ok(sidebar.includes("hover:bg-surface-container-high"), "пункт панели подсвечивается при наведении");
+  assert.ok(sidebar.includes("data-[active=true]:bg-surface-container-highest"), "активный пункт отличается подложкой");
+  assert.ok(sidebar.includes("before:bg-on-surface"), "активный пункт помечен полосой слева");
+  assert.ok(sidebar.includes("cursor-pointer"), "пункт панели выглядит кликабельным");
+
+  const hoverMenu = read("components/ui/use-hover-menu.ts");
+  assert.ok(hoverMenu.includes("onPointerEnter"), "меню открывается наведением");
+  assert.ok(hoverMenu.includes("onPointerLeave"), "меню закрывается с задержкой после ухода указателя");
+
+  const adminSidebar = read("components/admin/admin-sidebar.tsx");
+  assert.ok(adminSidebar.includes("useHoverMenu"), "меню админки использует общее поведение наведения");
+
+  const serviceCard = read("components/site/service-card.tsx");
+  assert.ok(serviceCard.includes("hover:bg-white/[0.04]"), "карточка услуги реагирует на наведение целиком");
 });
 
 test("плавающие панели остаются стеклянными", () => {

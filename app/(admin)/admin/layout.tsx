@@ -124,12 +124,13 @@ export default async function AdminLayout({ children }: { children: ReactNode })
                   account: t.shell.account,
                   viewSite: t.shell.viewSite,
                   settings: t.nav.settings,
+                  toggle: t.shell.toggle,
                 }}
                 user={{ email: staff.email, roleLabel: t.roles[staff.role] ?? staff.role }}
                 settingsHref={staff.isFounder ? "/admin/settings" : undefined}
               />
               <SidebarInset id="admin-main">
-                <AdminHeader sections={sections} viewSite={t.shell.viewSite} />
+                <AdminHeader sections={sections} viewSite={t.shell.viewSite} toggleLabel={t.shell.toggle} />
                 <div className="@container/main flex flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
                   {children}
                 </div>

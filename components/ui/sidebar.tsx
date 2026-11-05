@@ -140,6 +140,8 @@ export function Sidebar({
   side = "left",
   variant = "sidebar",
   collapsible = "offcanvas",
+  mobileTitle = "Разделы",
+  mobileDescription,
   className,
   children,
   ...props
@@ -147,6 +149,9 @@ export function Sidebar({
   side?: "left" | "right";
   variant?: "sidebar" | "floating" | "inset";
   collapsible?: "offcanvas" | "icon" | "none";
+  /** Подписи мобильной панели приходят из словаря страницы. */
+  mobileTitle?: string;
+  mobileDescription?: string;
 }) {
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
 
@@ -174,8 +179,8 @@ export function Sidebar({
           side={side}
         >
           <SheetHeader className="sr-only">
-            <SheetTitle>Панель разделов</SheetTitle>
-            <SheetDescription>Навигация по разделам админ-панели.</SheetDescription>
+            <SheetTitle>{mobileTitle}</SheetTitle>
+            <SheetDescription>{mobileDescription ?? mobileTitle}</SheetDescription>
           </SheetHeader>
           <div className="flex h-full w-full flex-col">{children}</div>
         </SheetContent>
@@ -232,7 +237,13 @@ export function Sidebar({
   );
 }
 
-export function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<"button">) {
+export function SidebarTrigger({
+  className,
+  onClick,
+  label = "Свернуть или раскрыть панель",
+  shortcut = "⌘/Ctrl+B",
+  ...props
+}: React.ComponentProps<"button"> & { label?: string; shortcut?: string }) {
   const { toggleSidebar } = useSidebar();
 
   return (
@@ -240,8 +251,9 @@ export function SidebarTrigger({ className, onClick, ...props }: React.Component
       type="button"
       data-sidebar="trigger"
       data-slot="sidebar-trigger"
+      title={`${label} (${shortcut})`}
       className={cn(
-        "inline-flex size-8 items-center justify-center rounded-lg text-on-surface-variant transition-colors duration-200 hover:bg-on-surface/8 hover:text-on-surface focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+        "inline-flex size-8 cursor-pointer items-center justify-center rounded-lg text-on-surface-variant transition-colors duration-200 hover:bg-on-surface/10 hover:text-on-surface focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
         className,
       )}
       onClick={(event) => {
@@ -251,22 +263,22 @@ export function SidebarTrigger({ className, onClick, ...props }: React.Component
       {...props}
     >
       <PanelLeft className="size-4" aria-hidden="true" />
-      <span className="sr-only">Свернуть или раскрыть панель</span>
+      <span className="sr-only">{label}</span>
     </button>
   );
 }
 
-export function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
+export function SidebarRail({ className, label = "Свернуть или раскрыть панель", ...props }: React.ComponentProps<"button"> & { label?: string }) {
   const { toggleSidebar } = useSidebar();
 
   return (
     <button
       data-sidebar="rail"
       data-slot="sidebar-rail"
-      aria-label="Свернуть или раскрыть панель"
+      aria-label={label}
       tabIndex={-1}
       onClick={toggleSidebar}
-      title="Свернуть или раскрыть панель"
+      title={label}
       type="button"
       className={cn(
         "absolute inset-y-0 z-20 hidden w-2 cursor-ew-resize transition-colors duration-200 group-data-[side=left]:-right-1 group-data-[side=right]:-left-1 hover:bg-surface-container-high sm:block",
@@ -326,7 +338,10 @@ export function SidebarGroup({ className, ...props }: React.ComponentProps<"div"
     <div
       data-slot="sidebar-group"
       data-sidebar="group"
-      className={cn("relative flex w-full min-w-0 flex-col p-2", className)}
+      className={cn(
+        "relative flex w-full min-w-0 flex-col gap-1 rounded-xl bg-surface-container/60 p-1.5 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0",
+        className,
+      )}
       {...props}
     />
   );
@@ -344,7 +359,7 @@ export function SidebarGroupLabel({
       data-slot="sidebar-group-label"
       data-sidebar="group-label"
       className={cn(
-        "flex h-8 shrink-0 items-center rounded-md px-2 text-[11px] font-medium tracking-[0.14em] text-on-surface-variant/80 uppercase transition-[margin,opacity] duration-200 ease-linear group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0",
+        "flex h-7 shrink-0 items-center rounded-md px-2 pb-1 text-[11px] font-medium tracking-[0.14em] text-on-surface-variant/80 uppercase transition-[margin,opacity] duration-200 ease-linear group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0",
         className,
       )}
       {...props}
@@ -379,11 +394,25 @@ export function SidebarMenuItem({ className, ...props }: React.ComponentProps<"l
 }
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-2.5 overflow-hidden rounded-lg p-2 text-left text-sm text-on-surface-variant transition-colors duration-200 outline-hidden hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary data-[active=true]:bg-surface-container-highest data-[active=true]:font-medium data-[active=true]:text-on-surface disabled:pointer-events-none disabled:opacity-50 group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate",
+  [
+    // Аффорданс пункта: это строка-кнопка, а не текст в списке. Курсор, фоновая
+    // подложка при наведении, жирнее текст и метка слева у активного пункта —
+    // четыре независимых знака, поэтому состояние читается и без цвета.
+    "peer/menu-button group/menu-button relative flex w-full cursor-pointer items-center gap-2.5 overflow-hidden rounded-lg px-2.5 text-left text-sm text-on-surface-variant",
+    "transition-[background-color,color] duration-200 outline-hidden",
+    "hover:bg-surface-container-high hover:text-on-surface",
+    "focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+    "data-[active=true]:bg-surface-container-highest data-[active=true]:font-medium data-[active=true]:text-on-surface",
+    "before:absolute before:left-0 before:top-1/2 before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-r-full before:bg-on-surface before:opacity-0 before:transition-opacity before:duration-200",
+    "data-[active=true]:before:opacity-100",
+    "disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50",
+    "group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0",
+    "[&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate",
+  ].join(" "),
   {
     variants: {
       variant: {
-        default: "hover:bg-surface-container-high",
+        default: "",
         outline: "bg-surface-container hover:bg-surface-container-high",
       },
       size: {

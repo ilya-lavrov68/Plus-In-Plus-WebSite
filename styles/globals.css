@@ -940,3 +940,33 @@
     margin-right: 0 !important;
   }
 }
+
+/*
+ * Аффорданс интерактивных элементов.
+ *
+ * Браузер по умолчанию оставляет у <button> курсор-стрелку, и кнопка визуально
+ * не отличается от обычной подписи — это классический «кризис аффорданса».
+ * Здесь один раз задано поведение для всего интерфейса (сайт и админка):
+ * кликабельное показывает «руку», недоступное — «запрещено». Сами hover-стили
+ * остаются у компонентов: подложка при наведении — знак, курсор — подсказка.
+ */
+@layer base {
+  button:not(:disabled):not([aria-disabled="true"]),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="menuitem"]:not([aria-disabled="true"]),
+  [role="menuitemradio"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]),
+  [role="option"]:not([aria-disabled="true"]),
+  [role="switch"]:not([aria-disabled="true"]),
+  summary,
+  label[for],
+  select:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled="true"],
+  select:disabled {
+    cursor: not-allowed;
+  }
+}

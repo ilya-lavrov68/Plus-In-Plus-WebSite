@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowDown, ArrowUp, ChevronsUpDown, Columns3, GripVertical, RotateCcw, Search } from "lucide-react";
 
 import { adminInputClass } from "@/components/admin/ui";
+import { useHoverMenu } from "@/components/ui/use-hover-menu";
 import { cn } from "@/lib/utils";
 
 export interface DataTableRow {
@@ -62,16 +63,21 @@ export function DataTable({ rows, labels, moneyColumnHint }: { rows: DataTableRo
   const [order, setOrder] = React.useState<string[] | null>(null);
   const [page, setPage] = React.useState(0);
   const [draggingId, setDraggingId] = React.useState<string | null>(null);
-  const [columnsOpen, setColumnsOpen] = React.useState(false);
+  const {
+    open: columnsOpen,
+    setOpen: setColumnsOpen,
+    closeNow: closeColumns,
+    hoverProps: columnsHoverProps,
+  } = useHoverMenu({ openDelay: 60 });
   const columnsRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     if (!columnsOpen) return;
     const onPointerDown = (event: PointerEvent) => {
-      if (!columnsRef.current?.contains(event.target as Node)) setColumnsOpen(false);
+      if (!columnsRef.current?.contains(event.target as Node)) closeColumns();
     };
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setColumnsOpen(false);
+      if (event.key === "Escape") closeColumns();
     };
     document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
@@ -79,7 +85,7 @@ export function DataTable({ rows, labels, moneyColumnHint }: { rows: DataTableRo
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [columnsOpen]);
+  }, [closeColumns, columnsOpen]);
 
   const filtered = React.useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -200,13 +206,13 @@ export function DataTable({ rows, labels, moneyColumnHint }: { rows: DataTableRo
               {labels.reset}
             </button>
           ) : null}
-          <div ref={columnsRef} className="relative">
+          <div ref={columnsRef} className="relative" {...columnsHoverProps}>
             <button
               type="button"
               aria-expanded={columnsOpen}
               aria-haspopup="menu"
               onClick={() => setColumnsOpen((value) => !value)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-surface-container-high px-3 text-xs text-on-surface transition-colors duration-200 hover:bg-surface-container-highest focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-surface-container-high px-3 text-xs text-on-surface transition-colors duration-200 hover:bg-surface-container-highest focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <Columns3 className="size-3.5" aria-hidden="true" />
               {labels.columns}
@@ -395,7 +401,7 @@ export function DataTable({ rows, labels, moneyColumnHint }: { rows: DataTableRo
                   <td className="py-2.5 text-right">
                     <Link
                       href={`/admin/orders?order=${encodeURIComponent(row.id)}`}
-                      className="rounded-md px-1.5 py-1 text-xs text-on-surface-variant transition-colors duration-200 hover:bg-on-surface/8 hover:text-on-surface focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      className="rounded-md px-1.5 py-1 text-xs text-on-surface-variant transition-colors duration-200 hover:bg-on-surface/10 hover:text-on-surface focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
                       {labels.open}
                     </Link>
@@ -416,7 +422,7 @@ export function DataTable({ rows, labels, moneyColumnHint }: { rows: DataTableRo
             type="button"
             onClick={() => setPage((value) => Math.max(0, value - 1))}
             disabled={safePage === 0}
-            className="inline-flex h-8 items-center rounded-lg px-2.5 transition-colors duration-200 hover:bg-on-surface/8 hover:text-on-surface focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:pointer-events-none disabled:opacity-40"
+            className="inline-flex h-8 cursor-pointer items-center rounded-lg px-2.5 transition-colors duration-200 hover:bg-on-surface/10 hover:text-on-surface focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:pointer-events-none disabled:opacity-40"
           >
             {labels.prev}
           </button>
@@ -424,7 +430,7 @@ export function DataTable({ rows, labels, moneyColumnHint }: { rows: DataTableRo
             type="button"
             onClick={() => setPage((value) => Math.min(pageCount - 1, value + 1))}
             disabled={safePage >= pageCount - 1}
-            className="inline-flex h-8 items-center rounded-lg px-2.5 transition-colors duration-200 hover:bg-on-surface/8 hover:text-on-surface focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:pointer-events-none disabled:opacity-40"
+            className="inline-flex h-8 cursor-pointer items-center rounded-lg px-2.5 transition-colors duration-200 hover:bg-on-surface/10 hover:text-on-surface focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:pointer-events-none disabled:opacity-40"
           >
             {labels.next}
           </button>
@@ -451,7 +457,7 @@ function SortButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-1 rounded-md px-1 py-1 tracking-[0.12em] uppercase transition-colors duration-200 hover:text-on-surface focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+        "inline-flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-1 tracking-[0.12em] uppercase transition-colors duration-200 hover:bg-on-surface/10 hover:text-on-surface focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
         active ? "text-on-surface" : "text-on-surface-variant",
       )}
     >
