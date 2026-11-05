@@ -275,9 +275,10 @@ test("Hero138 renders the restored studio statement, its two CTAs and the media 
   assert.ok(links.some((link) => link.href === "/contact" && link.text.includes("Contact us")));
 
   const primary = view.root.findAllByType("a").find((link) => link.props.href === "/services");
-  // Главный CTA — белая кнопка, жёлтым становится только текст при наведении.
+  // Главный CTA — белая кнопка, при наведении она лишь немного темнеет.
   assert.match(primary.props.className, /bg-foreground text-background/);
-  assert.match(primary.props.className, /hover:bg-hover-surface hover:text-signal/);
+  assert.match(primary.props.className, /hover:bg-foreground\/9\d/);
+  assert.equal(primary.props.className.includes("text-signal"), false);
   assert.doesNotMatch(primary.props.className, /bg-primary/);
   assert.ok(
     view.root.findAll((node) => node.props?.["data-reveal"] !== undefined).length >= 2,
@@ -2039,4 +2040,31 @@ test("reduced motion resolves decrypt text and bypasses Lenis without hiding con
     decryptView.unmount();
     scrollView.unmount();
   });
+});
+
+test("меню шапки не закрывается при выходе курсора с триггера", () => {
+  const navbar = fs.readFileSync(
+    path.resolve(__dirname, "../components/blocks/navbar10.tsx"),
+    "utf8",
+  );
+
+  // Панель живёт в Viewport, вне пункта меню: если закрывать по pointerleave
+  // пункта, меню захлопывается по пути к содержимому.
+  const item = navbar.slice(
+    navbar.indexOf("<NavigationMenuItem\n        key={`desktop-menu-item-${index}`}"),
+  );
+  const itemTag = item.slice(0, item.indexOf(">"));
+  assert.equal(
+    /onPointerLeave/.test(itemTag),
+    false,
+    "выход из триггера не должен закрывать меню",
+  );
+
+  assert.match(navbar, /onPointerEnter=\{\(\) => onOpen\?\.\(value\)\}/, "наведение открывает раздел");
+  assert.match(
+    navbar,
+    /onPointerEnter=\{\(\) => onPanelEnter\?\.\(value\)\}/,
+    "вход в панель отменяет отложенное закрытие",
+  );
+  assert.match(navbar, /}, 260\);/, "закрытие откладывается на 260 мс");
 });

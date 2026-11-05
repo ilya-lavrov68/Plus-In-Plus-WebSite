@@ -12,13 +12,30 @@ import { cn } from "@/lib/utils";
  * от того, какую поверхность выбрал конкретный экран.
  */
 
-/** Классы полей ввода: outlined text field MD3. */
-export const adminInputClass =
-  "h-11 w-full rounded-lg bg-surface-container-lowest px-3.5 text-sm text-on-surface outline-none transition-[border-color,outline-color] duration-200 placeholder:text-on-surface-variant/70 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50";
+/**
+ * Поле ввода — тёмный «колодец» на светлой панели.
+ *
+ * Границу поля задаёт поверхность: подложка на два шага темнее панели плюс
+ * хайрлайн `outline-variant/45` — тонкая линия внутри поля, без внешней рамки.
+ * Фокус добавляет контур и подсветку подложки.
+ */
+const adminFieldSurface =
+  "w-full rounded-lg bg-surface-container-lowest px-3.5 text-sm text-on-surface caret-primary ring-1 ring-inset ring-outline-variant/45 outline-none transition-[background-color,outline-color] duration-200 placeholder:text-on-surface-variant/70 hover:bg-surface-container-low focus-visible:bg-surface-container focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50";
+
+export const adminInputClass = `h-11 ${adminFieldSurface}`;
 
 export const adminSelectClass = `${adminInputClass} appearance-none pr-9`;
 
-export const adminLabelClass = "flex flex-col gap-1.5 text-sm font-medium text-on-surface";
+/**
+ * Многострочное поле собирается из той же поверхности без фиксированной
+ * высоты: `h-auto` поверх `h-11` зависел бы от порядка классов в CSS.
+ */
+export const adminTextareaClass = `min-h-24 resize-y py-2.5 leading-relaxed ${adminFieldSurface}`;
+
+export const adminLabelClass = "flex flex-col gap-2 text-sm font-medium text-on-surface";
+
+/** Подпись под полем: что произойдёт и какие ограничения у значения. */
+export const adminLabelHintClass = "text-xs font-normal leading-relaxed text-on-surface-variant";
 
 export const adminHintClass = "text-xs leading-relaxed text-on-surface-variant";
 
@@ -28,6 +45,40 @@ export const adminFieldsetClass =
 /** Вложенный блок внутри формы: группа полей на чуть более тёмной подложке. */
 export const adminInsetPanelClass =
   "flex flex-col gap-4 rounded-xl bg-surface-container p-4 sm:p-5";
+
+/**
+ * Группа полей: подпись-«чип» и подложка на шаг светлее панели.
+ *
+ * Нужна там, где на одном экране несколько независимых наборов (например,
+ * каждая веха истории). Без неё поля разных наборов сливаются в один список и
+ * непонятно, что к чему относится.
+ */
+export function AdminFieldGroup({
+  legend,
+  hint,
+  children,
+  className,
+}: {
+  legend: string;
+  hint?: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <fieldset
+      className={cn(
+        "flex min-w-0 flex-col gap-4 rounded-xl bg-surface-container p-4 sm:p-5",
+        className,
+      )}
+    >
+      <legend className="rounded-full bg-surface-container-highest px-3 py-1 text-xs font-medium text-on-surface">
+        {legend}
+      </legend>
+      {hint ? <p className="text-xs leading-relaxed text-on-surface-variant">{hint}</p> : null}
+      {children}
+    </fieldset>
+  );
+}
 
 export function AdminPageHeader({
   eyebrow,
@@ -188,12 +239,13 @@ const adminButtonBase =
   "inline-flex shrink-0 items-center justify-center gap-2 rounded-full text-sm font-medium transition-colors duration-200 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40 aria-disabled:cursor-not-allowed aria-disabled:opacity-40";
 
 /*
- * Кнопки собраны по одному правилу: спокойная подложка и нейтральный текст,
- * а при наведении подложка темнеет и текст становится жёлтым. Жёлтый — акцент
- * текста, не заливка: ни одна кнопка не «горит» в обычном состоянии.
+ * Кнопки собраны по одному правилу: спокойная подложка и нейтральный текст.
+ * Светлая (filled) кнопка при наведении просто темнеет на один шаг — цвет
+ * текста и оттенок не меняются, поэтому нажатие читается как «нажали», а не
+ * как «переключили режим». Жёлтого в панели нет вовсе.
  */
 const adminButtonVariants = {
-  filled: "bg-on-surface text-surface hover:bg-hover-surface hover:text-signal",
+  filled: "bg-on-surface text-surface hover:bg-on-surface/88",
   tonal: "bg-surface-container-high text-on-surface hover:bg-surface-container-highest",
   outlined:
     "text-on-surface hover:bg-on-surface/8",

@@ -8,6 +8,7 @@ import {
   adminFieldsetClass,
   adminFilledButtonClass,
   adminInputClass,
+  adminTextareaClass,
   adminInsetPanelClass,
   adminLabelClass,
   adminTonalButtonClass,
@@ -19,6 +20,7 @@ import { getRequestLocale } from "@/lib/request-locale";
 import { createPost } from "../actions";
 
 const inputClass = adminInputClass;
+const textareaClass = adminTextareaClass;
 const labelClass = adminLabelClass;
 
 export default async function NewPostPage({
@@ -64,12 +66,12 @@ export default async function NewPostPage({
 
         <label className={labelClass}>
           {t.post.excerpt}
-          <textarea name="excerpt"rows={3} className={`${inputClass} h-auto py-2`} />
+          <textarea name="excerpt"rows={3} className={textareaClass} />
         </label>
 
         <label className={labelClass}>
           {t.post.content}
-          <textarea name="content"rows={16} required className={`${inputClass} h-auto py-2 font-mono`} />
+          <textarea name="content"rows={16} required className={`${textareaClass} font-mono`} />
         </label>
 
         <label className={labelClass}>

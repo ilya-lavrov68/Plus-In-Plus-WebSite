@@ -50,13 +50,22 @@ test("жёлтым не заливают кнопки, переключател�
   assert.deepEqual(offenders, [], "жёлтый фон остался у кнопок или индикаторов");
 });
 
-test("белая кнопка темнеет и желтеет при наведении", () => {
+test("белая кнопка при наведении просто немного темнеет", () => {
   const variants = read("components/ui/button-variants.ts");
   for (const variant of ["default", "primary", "cta"]) {
     const match = variants.match(new RegExp(`\\b${variant}:\\s*"([^"]*)"`));
     assert.ok(match, `не найден вариант ${variant}`);
     assert.match(match[1], /bg-foreground text-background/, `${variant}: в покое кнопка светлая`);
-    assert.match(match[1], /hover:bg-hover-surface hover:text-signal/, `${variant}: ховер — тёмная подложка + жёлтый текст`);
+    assert.match(
+      match[1],
+      /hover:bg-foreground\/9\d/,
+      `${variant}: ховер — та же светлая подложка, но чуть темнее`,
+    );
+    assert.equal(
+      match[1].includes("hover:text-signal"),
+      false,
+      `${variant}: текст при наведении не меняет цвет`,
+    );
   }
 });
 
@@ -71,7 +80,14 @@ test("прозрачные и тёмные кнопки не перекраши�
 
   const headerVariants = variants.slice(variants.indexOf("headerButtonVariants"));
   const outline = headerVariants.match(/outline:\s*"([^"]*)"/);
-  assert.equal(outline[1].includes("text-signal"), false, "в шапке жёлтеет только светлая кнопка");
+  assert.equal(outline[1].includes("text-signal"), false, "прозрачная кнопка шапки остаётся нейтральной");
+  const headerPrimary = headerVariants.match(/primary:\s*"([^"]*)"/);
+  assert.match(headerPrimary[1], /hover:bg-foreground\/9\d/, "светлая кнопка шапки темнеет");
+  assert.equal(
+    headerPrimary[1].includes("text-signal"),
+    false,
+    "жёлтый текст в шапке не появляется",
+  );
 });
 
 test("у интерфейса нет декоративных обводок", () => {
@@ -177,4 +193,63 @@ test("жёлтый текст проходит контраст на своих 
   assert.ok(ratio("#FFFF01", "#0a0a0a") >= 4.5, "публичный жёлтый текст читается на тёмном фоне");
   assert.ok(ratio("#FFFF01", "#242424") >= 4.5, "жёлтый текст читается на подложке белой кнопки");
   assert.ok(ratio("#ece38a", "#151517") >= 4.5, "жёлтый текст админки читается на фоне панели");
+});
+
+test("тема админки доходит до элементов: цветовые роли объявлены inline", () => {
+  const globals = read("styles/globals.css");
+
+  // Обычный @theme фиксирует var(--md-*) на :root, где палитры .admin-md ещё нет:
+  // в панели управления все поверхности и поля становились прозрачными.
+  const inlineStart = globals.indexOf("@theme inline {");
+  assert.ok(inlineStart > 0, "цветовые роли должны жить в @theme inline");
+  const inlineBlock = globals.slice(inlineStart, globals.indexOf("\n}\n", inlineStart));
+
+  for (const token of [
+    "--color-surface: var(--md-surface);",
+    "--color-surface-container-low: var(--md-surface-container-low);",
+    "--color-surface-container-lowest: var(--md-surface-container-lowest);",
+    "--color-surface-container-high: var(--md-surface-container-high);",
+    "--color-on-surface: var(--md-on-surface);",
+    "--color-on-surface-variant: var(--md-on-surface-variant);",
+    "--color-outline-variant: var(--md-outline-variant);",
+    "--color-background: hsl(var(--background));",
+  ]) {
+    assert.ok(inlineBlock.includes(token), `в inline-блоке нет ${token}`);
+  }
+
+  const plainTheme = globals.slice(globals.indexOf("@theme {"), inlineStart);
+  assert.equal(
+    /--color-[\w-]+:/.test(plainTheme),
+    false,
+    "цветовые токены не должны оставаться в обычном @theme",
+  );
+
+  const admin = globals.slice(globals.indexOf(".admin-md {"));
+  for (const token of ["--md-surface:", "--md-surface-container-lowest:", "--md-on-surface:"]) {
+    assert.ok(admin.includes(token), `.admin-md задаёт ${token}`);
+  }
+});
+
+test("поле ввода читается: тёмная поверхность, хайрлайн и многострочный вариант", () => {
+  const ui = read("components/admin/ui.tsx");
+  const input = ui.match(/export const adminInputClass = `([^`]*)`/);
+  assert.ok(input, "adminInputClass объявлен");
+  assert.equal(input[1].includes("h-11"), true, "однострочное поле высотой h-11");
+  // Поверхность поля общая для input и textarea — проверяем её объявление.
+  const surface = ui.match(/const adminFieldSurface =\s*\n?\s*"([^"]*)"/);
+  assert.ok(surface, "adminFieldSurface объявлен");
+  assert.match(surface[1], /bg-surface-container-lowest/, "поле темнее панели");
+  assert.match(surface[1], /ring-inset ring-outline-variant/, "край поля виден без внешней рамки");
+  assert.match(surface[1], /focus-visible:outline-2/, "фокус показывается контуром");
+  const textarea = ui.match(/export const adminTextareaClass = `([^`]*)`/);
+  assert.ok(textarea, "есть класс textarea");
+  assert.match(textarea[1], /min-h-24/, "многострочное поле выше однострочного");
+  assert.equal(textarea[1].includes("h-11"), false, "высота не конфликтует с h-11");
+  assert.match(ui, /export function AdminFieldGroup\(/, "есть группа полей с подписью");
+  assert.match(ui, /hover:bg-on-surface\/8\d/, "светлая кнопка панели темнеет, а не перекрашивается");
+  assert.equal(
+    /filled: "[^"]*text-signal/.test(ui),
+    false,
+    "жёлтого текста на кнопках панели нет",
+  );
 });

@@ -8,6 +8,7 @@ import {
   adminFieldsetClass,
   adminFilledButtonClass,
   adminInputClass,
+  adminTextareaClass,
   adminInsetPanelClass,
   adminLabelClass,
   adminTonalButtonClass,
@@ -32,6 +33,7 @@ interface ProductRow {
 }
 
 const inputClass = adminInputClass;
+const textareaClass = adminTextareaClass;
 const labelClass = adminLabelClass;
 
 export default async function AdminProductPage({
@@ -123,7 +125,7 @@ export default async function AdminProductPage({
               name="description"
               defaultValue={product.description ?? ""}
               rows={5}
-              className={`${inputClass} h-auto py-2`}
+              className={textareaClass}
             />
           </label>
 
