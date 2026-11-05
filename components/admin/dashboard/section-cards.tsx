@@ -1,5 +1,6 @@
 import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react";
 
+import { Sparkline } from "@/components/admin/charts";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +15,8 @@ export interface SectionCardMetric {
   hint: string;
   /** Нижняя строка карточки. */
   footer: string;
+  /** Ряд для спарклайна: последние значения метрики. */
+  spark?: number[];
 }
 
 const TREND_ICONS = {
@@ -50,9 +53,12 @@ export function SectionCards({ cards }: { cards: SectionCardMetric[] }) {
                 {card.delta}
               </span>
             </div>
-            <CardTitle className="truncate text-2xl leading-none font-medium tabular-nums text-on-surface">
-              {card.value}
-            </CardTitle>
+            <div className="flex items-end justify-between gap-3">
+              <CardTitle className="truncate text-2xl leading-none font-medium tabular-nums text-on-surface">
+                {card.value}
+              </CardTitle>
+              {card.spark ? <Sparkline values={card.spark} /> : null}
+            </div>
             <div className="flex flex-col gap-1 text-xs leading-snug">
               <p className="text-on-surface-variant">{card.hint}</p>
               <p className="text-on-surface-variant/80">{card.footer}</p>

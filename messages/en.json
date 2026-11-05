@@ -1133,7 +1133,9 @@
     "serverError": "Server error",
     "tryAgain": "Please try again later",
     "notFoundDescription": "The page you are looking for has been moved or never existed.",
-    "backHome": "Back to the home page"
+    "backHome": "Back to the home page",
+    "retryButton": "Try again",
+    "errorCode": "Error code"
   },
   "metadata": {
     "home": "Plus In Plus — AI and design",

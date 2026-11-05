@@ -674,8 +674,9 @@ describe("статистика заказов: деньги по успешны�
 
     const stats = await getOrderStats();
     assert.equal(stats.queue, 1, "в очереди только реально ждущие заказы");
-    assert.equal(stats.revenue, 30000, "выручка считается по платежам, а не по статусу");
+    // Платежи в базе в копейках (20000 + 10000), админка показывает рубли.
+    assert.equal(stats.revenue, 300, "выручка считается по платежам, а не по статусу");
     assert.equal(stats.paidCount, 2);
-    assert.equal(stats.averageOrder, 15000);
+    assert.equal(stats.averageOrder, 150);
   });
 });

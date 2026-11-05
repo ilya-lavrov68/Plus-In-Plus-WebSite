@@ -94,7 +94,7 @@ beforeEach(async () => {
   }
   await database.exec(
     `insert into payments (id, order_id_id, provider, external_id, provider_key, status, amount, currency, created_at, updated_at)
-     values ('pay-1', 'ord-2', 'robokassa', 'inv-1', 'key-1', 'succeeded', 200, 'RUB', ?, ?)`,
+     values ('pay-1', 'ord-2', 'robokassa', 'inv-1', 'key-1', 'succeeded', 20000, 'RUB', ?, ?)`,
     [now, now],
   );
 });
@@ -115,6 +115,7 @@ test("customer orders use a bounded number of reads that does not grow with orde
 
 test("order revenue and queue metrics come from one aggregate query", async () => {
   const stats = await getOrderStats();
+  // payments.amount хранится в копейках, админка считает в рублях: 20000 → 200 ₽.
   assert.deepEqual(stats, { queue: 1, revenue: 200, paidCount: 1, averageOrder: 200 });
 
   const aggregates = statements.filter((sql) => /coalesce\(sum\(amount\), 0\)/i.test(sql));

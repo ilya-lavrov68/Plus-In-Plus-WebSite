@@ -146,37 +146,41 @@ export function BarList({
   );
 }
 
-export function ColumnChart({
-  data,
-  height = 160,
-  ariaLabel,
-  formatValue = (value) => String(value),
+/**
+ * Спарклайн для KPI-карточки: короткая линия без осей.
+ *
+ * Это не отдельный график, а «искра» рядом с числом — показывает форму тренда.
+ * Значение дублируется текстом в карточке, поэтому картинка помечена как
+ * декоративная: screen reader не читает лишний ряд чисел.
+ */
+export function Sparkline({
+  values,
+  width = 116,
+  height = 34,
+  tone = "primary",
 }: {
-  data: { label: string; value: number }[];
+  values: number[];
+  width?: number;
   height?: number;
-  ariaLabel: string;
-  formatValue?: (value: number) => string;
+  tone?: "primary" | "tertiary";
 }) {
-  const max = Math.max(1, ...data.map((point) => point.value));
-  const total = data.reduce((sum, point) => sum + point.value, 0);
-  if (data.length === 0) {
-    return <p className="text-sm text-on-surface-variant">{ariaLabel}: 0</p>;
-  }
+  const points = values.slice(-24);
+  if (points.length < 2) return null;
+
+  const max = Math.max(...points);
+  const min = Math.min(...points);
+  const span = max - min || 1;
+  const step = width / (points.length - 1);
+  const x = (index: number) => index * step;
+  const y = (value: number) => height - 2 - ((value - min) / span) * (height - 4);
+  const line = points.map((value, index) => `${index === 0 ? "M" : "L"}${x(index).toFixed(1)},${y(value).toFixed(1)}`).join(" ");
+  const area = `${line} L${width},${height} L0,${height} Z`;
+  const stroke = tone === "tertiary" ? "var(--md-tertiary)" : "var(--md-primary)";
+
   return (
-    <div
-      className="flex items-end gap-1"
-      style={{ height }}
-      role="img"
-      aria-label={`${ariaLabel}: ${formatValue(total)}`}
-    >
-      {data.map((point) => (
-        <span
-          key={point.label}
-          title={`${point.label}: ${formatValue(point.value)}`}
-          className="flex-1 bg-primary/70 transition-colors hover:bg-primary"
-          style={{ height: `${Math.max(2, Math.round((point.value / max) * 100))}%` }}
-        />
-      ))}
-    </div>
+    <svg aria-hidden="true" focusable="false" viewBox={`0 0 ${width} ${height}`} className="h-8 w-24 shrink-0" preserveAspectRatio="none">
+      <path d={area} fill={stroke} fillOpacity="0.12" stroke="none" />
+      <path d={line} fill="none" stroke={stroke} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
   );
 }

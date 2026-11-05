@@ -90,6 +90,105 @@ export function adminLabels(locale: RequestLocale) {
         week: ru ? "7 дней" : "7 days",
       },
     },
+    finance: {
+      range: ru ? "Диапазон" : "Range",
+      ranges: [
+        { value: "1m", label: ru ? "1 мес" : "1M" },
+        { value: "3m", label: ru ? "3 мес" : "3M" },
+        { value: "6m", label: ru ? "6 мес" : "6M" },
+        { value: "1y", label: ru ? "1 год" : "1Y" },
+      ],
+      loading: ru ? "Загружаем данные за период…" : "Loading period data…",
+      error: ru ? "Не удалось загрузить период. Попробуйте ещё раз." : "The period could not be loaded. Try again.",
+      summaryTitle: ru ? "Финансовая сводка" : "Finance summary",
+      summaryHint: ru
+        ? "Портфель в работе, выручка и средний чек — по данным заказов, без ручных правок."
+        : "Work in progress, revenue and average order value — straight from the orders table.",
+      summary: {
+        backlog: ru ? "Портфель в работе" : "Work in progress",
+        backlogHint: ru ? "Заказы, которые ещё не закрыты" : "Orders that are not closed yet",
+        revenue: ru ? "Выручка за 30 дней" : "Revenue, 30 days",
+        revenueHint: ru ? "Оплаченные и завершённые заказы" : "Paid and completed orders",
+        average: ru ? "Средний чек" : "Average order",
+        averageHint: ru ? "Выручка, делённая на заказы" : "Revenue divided by orders",
+        today: ru ? "Сегодня" : "Today",
+        todayHint: ru ? "Выручка за текущий день" : "Revenue for the current day",
+        paidShare: ru ? "Доля оплаченных" : "Paid share",
+      },
+      candles: {
+        title: ru ? "Свечи: суммы заказов" : "Candles: order values",
+        description: ru
+          ? "Свеча — отрезок периода: открытие и закрытие по дневной выручке, тени — минимум и максимум дня, объём внизу — выручка отрезка. Длина отрезка растёт вместе с диапазоном."
+          : "Each candle is a slice of the period: open and close follow daily revenue, wicks mark the day low and high, the volume pane is the slice total. Slices widen with the range.",
+        empty: ru
+          ? "За период нет оплаченных заказов — свечи появятся вместе с первой продажей."
+          : "No paid orders in this period yet — candles appear with the first sale.",
+        open: ru ? "Открытие" : "Open",
+        high: ru ? "Максимум" : "High",
+        low: ru ? "Минимум" : "Low",
+        close: ru ? "Закрытие" : "Close",
+        volume: ru ? "Выручка дня" : "Day revenue",
+        activeDays: ru ? "Дней с выручкой" : "Days with revenue",
+        up: ru ? "Рост — полая свеча" : "Up — hollow candle",
+        down: ru ? "Падение — залитая" : "Down — filled candle",
+        table: ru ? "Таблица значений" : "Values table",
+        date: ru ? "Дата" : "Date",
+        keyboard: ru
+          ? "Наведите курсор на свечу или выделите график и двигайтесь стрелками ← →."
+          : "Hover a candle, or focus the chart and move with ← →.",
+      },
+      portfolio: {
+        title: ru ? "Портфель: стоимость против базы" : "Portfolio: value vs basis",
+        description: ru
+          ? "Стоимость — выручка за скользящую неделю, база — средний темп с начала периода. Штриховка под линией — просадка от лучшей точки."
+          : "Value is revenue over a rolling week, basis is the average pace since the period start. Hatching under the line is drawdown from the peak.",
+        empty: ru ? "Пока нет выручки за выбранный период." : "No revenue for the selected period yet.",
+        value: ru ? "Стоимость" : "Value",
+        basis: ru ? "База" : "Basis",
+        drawdown: ru ? "Просадка" : "Drawdown",
+        maxDrawdown: ru ? "Макс. просадка" : "Max drawdown",
+        delta: ru ? "К базе" : "Vs basis",
+        total: ru ? "Выручка периода" : "Period revenue",
+        table: ru ? "Таблица значений" : "Values table",
+        date: ru ? "Дата" : "Date",
+        valueColumn: ru ? "Стоимость" : "Value",
+        basisColumn: ru ? "База" : "Basis",
+        drawdownColumn: ru ? "Просадка" : "Drawdown",
+        windowHint: ru
+          ? "Окно 7 дней: одиночный день без продаж не выглядит обвалом на 100%."
+          : "7-day window: a single quiet day does not look like a 100% crash.",
+      },
+      checks: {
+        title: ru ? "Распределение чеков" : "Order value distribution",
+        description: ru
+          ? "Суммы оплаченных заказов по корзинам: видно, где основная масса и насколько тяжёлый хвост крупных сделок."
+          : "Paid order totals binned: see where the bulk sits and how heavy the large-deal tail is.",
+        empty: ru ? "Нет заказов для распределения." : "No orders to distribute.",
+        samples: ru ? "Заказов" : "Orders",
+        mean: ru ? "Средний" : "Mean",
+        p50: ru ? "Медиана" : "Median",
+        p95: ru ? "95-й процентиль" : "95th percentile",
+        max: ru ? "Максимум" : "Max",
+        share: ru ? "Доля" : "Share",
+        range: ru ? "Диапазон" : "Range",
+        count: ru ? "Количество" : "Count",
+        table: ru ? "Таблица корзин" : "Bins table",
+      },
+      categories: {
+        title: ru ? "Структура выручки" : "Revenue structure",
+        description: ru
+          ? "Категории услуг и товаров по дням: топ-4 по сумме, остальное — в «Другое»."
+          : "Service and product categories by day: top 4 by total, the rest folded into Other.",
+        empty: ru ? "В позициях заказов пока нет данных." : "Order items have no data yet.",
+        other: ru ? "Другое" : "Other",
+        total: ru ? "Итого" : "Total",
+        share: ru ? "доля" : "share",
+        table: ru ? "Таблица категорий" : "Categories table",
+        date: ru ? "Дата" : "Date",
+        category: ru ? "Категория" : "Category",
+        amount: ru ? "Сумма" : "Amount",
+      },
+    },
     nav: {
       overview: ru ? "Обзор" : "Overview",
       orders: ru ? "Заказы" : "Orders",

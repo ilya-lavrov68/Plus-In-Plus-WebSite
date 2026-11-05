@@ -5,7 +5,15 @@ import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 
-export default function GlobalError({
+/**
+ * Экран ошибки для всех страниц сайта.
+ *
+ * Ловит сбои дочерних сегментов, поэтому шапка, подвал и провайдеры остаются на
+ * месте: посетитель видит объяснение и кнопку повтора вместо белого экрана.
+ * Код ошибки (digest) показываем только когда Next его прислал — по нему
+ * серверный инцидент находится в логах.
+ */
+export default function SiteError({
   error,
   reset,
 }: {
@@ -26,8 +34,13 @@ export default function GlobalError({
       <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground">
         {t("tryAgain")}
       </p>
-      <Button type="button"size="lg" onClick={reset} className="mt-8">
-        {t("tryAgain")}
+      {error.digest ? (
+        <p className="mt-3 font-mono text-xs text-muted-foreground/80">
+          {t("errorCode")}: {error.digest}
+        </p>
+      ) : null}
+      <Button type="button" size="lg" onClick={reset} className="mt-8">
+        {t("retryButton")}
       </Button>
     </section>
   );
