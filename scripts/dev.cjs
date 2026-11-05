@@ -19,6 +19,23 @@ function runNpmInstall() {
   return install.status === 0;
 }
 
+/**
+ * `next build` и `next dev` делят каталог `.next`. Если dev стартует поверх
+ * прод-артефактов (`.next/BUILD_ID`), Turbopack падает с «An unexpected
+ * Turbopack error occurred», а браузер получает битые чанки. Поэтому перед
+ * запуском dev прод-кэш удаляется — dev собирает собственный.
+ */
+function resetProductionBuildCache() {
+  const nextDir = path.join(rootDir, ".next");
+  if (!fs.existsSync(path.join(nextDir, "BUILD_ID"))) return;
+  if (process.env.PIP_KEEP_BUILD_CACHE === "1") {
+    console.warn("[dev] .next holds a production build; Turbopack may fail. Delete .next or unset PIP_KEEP_BUILD_CACHE.");
+    return;
+  }
+  console.log("[dev] Production build found in .next — removing it before dev starts.");
+  fs.rmSync(nextDir, { recursive: true, force: true });
+}
+
 function ensureInstall() {
   const autoInstall = process.env.PIP_NO_AUTO_INSTALL !== "1";
   let result = checkDependencies();
@@ -41,6 +58,7 @@ function ensureInstall() {
 
 async function main() {
   ensureInstall();
+  resetProductionBuildCache();
   const env = { ...process.env };
   try {
     const { resolveDatabaseConfig, describeDatabaseUrl, unsupportedDatabaseUrlMessage } = loadDatabaseModule();
