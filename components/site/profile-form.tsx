@@ -329,7 +329,7 @@ export function ProfileForm({ initialUser, sessionRole, security }: ProfileFormP
                 {passwordError}
               </p>
             ) : null}
-            <Button type="submit"variant="outline" disabled={isChangingPassword}>
+            <Button type="submit" variant="outline" disabled={isChangingPassword}>
               {isChangingPassword ? t("changingPassword") : t("changePassword")}
             </Button>
           </form>
