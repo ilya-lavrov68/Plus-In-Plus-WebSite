@@ -138,7 +138,9 @@ npm run build
 
 Команды запускаются последовательно там, где они используют общие generated artifacts. В частности, не запускать параллельно `tsc` и `next build`, потому что `.next/types` может создать race.
 
-Turbopack-кэш живёт в `.next/dev`. Если dev-процесс завершили жёстко (SIGKILL, перезапуск контейнера), кэш и `lock`-файл остаются, и следующий запуск отдаёт на отдельных страницах «An unexpected Turbopack error occurred». `scripts/dev.cjs` распознаёт устаревший lock (pid из файла уже не жив) и очищает `.next/dev` перед стартом; `PIP_FRESH_DEV_CACHE=1` чистит принудительно. Запасной вариант запуска — `npm run dev:webpack`.
+Turbopack-кэш живёт в `.next/dev`. Если dev-процесс завершили жёстко (SIGKILL, перезапуск контейнера), кэш и `lock`-файл остаются, и следующий запуск отдаёт на отдельных страницах «An unexpected Turbopack error occurred». `scripts/dev.cjs` распознаёт устаревший lock (pid из файла уже не жив либо принадлежит не `next dev`) и очищает `.next/dev` перед стартом; `PIP_FRESH_DEV_CACHE=1` чистит принудительно. Запасной вариант запуска — `npm run dev:webpack`.
+
+Если Turbopack всё-таки упал во время работы, `scripts/dev.cjs` выступает супервизором: видит `TurbopackInternalError` / «An unexpected Turbopack error occurred» в выводе дочернего процесса, гасит его (SIGTERM, затем SIGKILL), чистит `.next/dev` и `.next/cache`, поднимает dev заново — до двух раз. Открытая вкладка после такого перезапуска восстанавливается сама: `ChunkRecovery` ловит `ChunkLoadError`/неудавшийся dynamic import и один раз перезагружает документ (не чаще раза в 30 секунд). Выключить автоперезапуск — `PIP_NO_DEV_SUPERVISOR=1`, подменить бинарь Next для диагностики — `PIP_NEXT_BIN=/path/to/script`.
 
 То же касается `.next`: `next dev` и `next build` делят один каталог. Прод-сборка поверх работающего dev-сервера ломает Turbopack-кэш — в браузере это выглядит как «An unexpected Turbopack error occurred». Перед проверкой production-сборки dev-сервер останавливается; `scripts/dev.cjs` при старте сам удаляет `.next` с артефактами сборки (`PIP_KEEP_BUILD_CACHE=1` отключает автоочистку).
 

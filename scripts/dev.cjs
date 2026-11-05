@@ -7,7 +7,8 @@ const { checkSchema } = require("./lib/schema-check.cjs");
 const { checkDependencies, formatReport, needsInstall, npmCommand } = require("./lib/dependency-check.cjs");
 
 const rootDir = path.join(__dirname, "..");
-const nextBin = path.join(rootDir, "node_modules", "next", "dist", "bin", "next");
+const nextBin =
+  process.env.PIP_NEXT_BIN ?? path.join(rootDir, "node_modules", "next", "dist", "bin", "next");
 
 function runNpmInstall() {
   console.log("[dev] Running npm install to repair the install…");
@@ -63,13 +64,48 @@ function resetStaleDevCache() {
     pid = null;
   }
 
-  const alive = typeof pid === "number" && pid > 0 ? isProcessAlive(pid) : false;
+  const alive =
+    typeof pid === "number" && pid > 0 ? isProcessAlive(pid) && isDevServerProcess(pid) : false;
   if (alive) {
     console.warn("[dev] Another dev server looks alive (lock pid " + pid + "); keeping .next/dev.");
     return;
   }
   console.log("[dev] Stale dev cache found — clearing .next/dev before start.");
   fs.rmSync(devDir, { recursive: true, force: true });
+}
+
+/**
+ * Строки, которыми Turbopack сообщает о внутренней ошибке. Такое сообщение
+ * видит пользователь как «An unexpected Turbopack error occurred»; причиной
+ * обычно оказывается кэш, оставшийся от убитого процесса, или прод-сборка,
+ * попавшая в `.next` во время работы dev-сервера.
+ */
+const TURBOPACK_FAILURE =
+  /TurbopackInternalError|An unexpected Turbopack error occurred|Next\.js package not found/i;
+
+const MAX_RESTARTS = 2;
+
+/**
+ * pid из lock-файла мог достаться другому процессу (перезапуск контейнера
+ * переиспользует номера). Сверяем командную строку: кэш принадлежит живому
+ * dev-серверу только тогда, когда это действительно `next dev`.
+ */
+function isDevServerProcess(pid) {
+  try {
+    const command = fs.readFileSync(`/proc/${pid}/cmdline`, "utf8");
+    return /next/.test(command) && /dev/.test(command);
+  } catch {
+    // Не Linux или нет доступа: считаем, что сервер жив, и кэш не трогаем.
+    return true;
+  }
+}
+
+function clearDevCache() {
+  const nextDir = path.join(rootDir, ".next");
+  for (const relative of ["dev", "cache"]) {
+    const target = path.join(nextDir, relative);
+    if (fs.existsSync(target)) fs.rmSync(target, { recursive: true, force: true });
+  }
 }
 
 function isProcessAlive(pid) {
@@ -126,13 +162,66 @@ async function main() {
     console.warn(`[dev] ${error.message}`);
   }
 
-  const child = spawn(process.execPath, [nextBin, "dev", ...process.argv.slice(2)], {
-    cwd: rootDir,
-    stdio: "inherit",
-    env,
-  });
-  for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => child.kill(signal));
-  child.on("exit", (code, signal) => process.exit(signal ? 0 : code ?? 0));
+  const args = process.argv.slice(2);
+  let restarts = 0;
+  let recovering = false;
+  let child = null;
+
+  /**
+   * Dev-сервер, упавший с внутренней ошибкой Turbopack, поднимается заново с
+   * чистым кэшем: файлы страниц при этом не меняются, поэтому пользователь
+   * вместо экрана ошибки получает рабочий сайт после одного автоперезапуска.
+   */
+  // Вывод дочернего процесса идёт через pipe (нужен для супервизора), поэтому
+  // цветной вывод Next включаем явно — иначе логи станут блёклыми.
+  if (process.stdout.isTTY && !process.env.FORCE_COLOR) env.FORCE_COLOR = "1";
+
+  const startServer = () => {
+    child = spawn(process.execPath, [nextBin, "dev", ...args], {
+      cwd: rootDir,
+      stdio: ["inherit", "pipe", "pipe"],
+      env,
+    });
+
+    const inspect = (stream, target) => {
+      stream.on("data", (chunk) => {
+        target.write(chunk);
+        if (recovering || !TURBOPACK_FAILURE.test(chunk.toString())) return;
+        if (process.env.PIP_NO_DEV_SUPERVISOR === "1") return;
+        if (restarts >= MAX_RESTARTS) {
+          console.error(
+            "[dev] Turbopack повторил внутреннюю ошибку — автоперезапуск остановлен. " +
+              "Удалите .next (rm -rf .next) или запустите npm run dev:webpack.",
+          );
+          return;
+        }
+        restarts += 1;
+        recovering = true;
+        console.warn(
+          `[dev] Turbopack сообщил о внутренней ошибке — перезапускаю dev с чистым кэшем (${restarts}/${MAX_RESTARTS}).`,
+        );
+        child.kill("SIGTERM");
+        const force = setTimeout(() => child?.kill("SIGKILL"), 4000);
+        force.unref?.();
+      });
+    };
+    inspect(child.stdout, process.stdout);
+    inspect(child.stderr, process.stderr);
+
+    child.on("exit", (code, signal) => {
+      if (recovering) {
+        recovering = false;
+        clearDevCache();
+        startServer();
+        return;
+      }
+      process.exit(signal ? 0 : code ?? 0);
+    });
+  };
+
+  const stop = (signal) => child?.kill(signal);
+  for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => stop(signal));
+  startServer();
 }
 
 main().catch((error) => {
