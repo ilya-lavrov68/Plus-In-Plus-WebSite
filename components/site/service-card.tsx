@@ -56,7 +56,10 @@ export function ServiceCard({
   return (
     <Card
       className={cn(
-        "flex h-full flex-col justify-between overflow-hidden transition-colors duration-200",
+        "group flex h-full flex-col justify-between overflow-hidden transition-colors duration-200",
+        // Наведение подсвечивает всю карточку: видно, что это один кликабельный блок,
+        // а не набор отдельных подписей внутри.
+        "hover:bg-white/[0.04]",
         selected ? " bg-secondary/50" : " bg-card"
       )}
     >

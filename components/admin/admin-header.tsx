@@ -15,7 +15,15 @@ export interface AdminHeaderSection {
  * сайт. Фон — плотное стекло: контент под шапкой не должен «просвечивать» до
  * нечитаемости, но блюр остаётся заметным.
  */
-export function AdminHeader({ sections, viewSite }: { sections: AdminHeaderSection[]; viewSite: string }) {
+export function AdminHeader({
+  sections,
+  viewSite,
+  toggleLabel,
+}: {
+  sections: AdminHeaderSection[];
+  viewSite: string;
+  toggleLabel: string;
+}) {
   const pathname = usePathname();
   const current =
     sections
@@ -24,7 +32,7 @@ export function AdminHeader({ sections, viewSite }: { sections: AdminHeaderSecti
 
   return (
     <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 bg-surface/85 px-4 backdrop-blur-2xl sm:px-6">
-      <SidebarTrigger className="-ml-1" />
+      <SidebarTrigger className="-ml-1" label={toggleLabel} />
       <span className="h-4 w-px shrink-0 bg-outline-variant/70" aria-hidden="true" />
       <span className="min-w-0 truncate text-sm font-medium text-on-surface" aria-current="page">
         {current?.label}

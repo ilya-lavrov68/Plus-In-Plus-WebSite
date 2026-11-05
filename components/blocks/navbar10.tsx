@@ -93,6 +93,8 @@ export interface Navbar10Props {
 }
 
 type DesktopMenuItemProps = {
+  onOpen?: (value: string) => void;
+  onCloseDeferred?: () => void;
   item: MenuItem;
   index: number;
 };
@@ -278,6 +280,10 @@ const MOBILE_BREAKPOINT = 1024;
 
 const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
   const [open, setOpen] = useState<boolean>(false);
+  // Открытый раздел шапки: наведение мыши и клик ведут к одному состоянию,
+  // поэтому подменю появляется сразу при наведении, а не только по нажатию.
+  const [openSection, setOpenSection] = useState<string>("");
+  const closeSectionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [accountOpen, setAccountOpen] = useState<boolean>(false);
   const [accountReturnFocusId, setAccountReturnFocusId] = useState("account-trigger");
   const { data: session } = useSession();
@@ -354,6 +360,30 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
     setOpen((prev) => !prev);
   };
 
+  /** Наведение открывает раздел; повторное наведение отменяет отложенное закрытие. */
+  const openSectionOnHover = (value: string) => {
+    if (closeSectionTimer.current) {
+      clearTimeout(closeSectionTimer.current);
+      closeSectionTimer.current = null;
+    }
+    setOpenSection(value);
+  };
+
+  /** Небольшая задержка, чтобы меню не захлопывалось по пути к его содержимому. */
+  const closeSectionDeferred = () => {
+    if (closeSectionTimer.current) clearTimeout(closeSectionTimer.current);
+    closeSectionTimer.current = setTimeout(() => {
+      setOpenSection("");
+      closeSectionTimer.current = null;
+    }, 160);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (closeSectionTimer.current) clearTimeout(closeSectionTimer.current);
+    };
+  }, []);
+
   const dashboardHref =
     session?.user?.role === "FOUNDER" || session?.user?.role === "ADMIN"
       ? "/admin/dashboard"
@@ -373,7 +403,12 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
           aria-hidden="true"
           className="site-header-glass pointer-events-none absolute inset-0"
         />
-        <NavigationMenu className="h-20 max-w-full after:absolute after:inset-0 after:z-40 after:block after:size-full after:bg-transparent after:content-[''] [&>div:last-child>div]:mt-0 [&>div:last-child>div]:rounded-none [&>div:last-child>div]:border-0 [&>div:last-child>div]:border-b-0">
+        <NavigationMenu
+          value={openSection}
+          onValueChange={setOpenSection}
+          onPointerLeave={closeSectionDeferred}
+          className="h-20 max-w-full after:absolute after:inset-0 after:z-40 after:block after:size-full after:bg-transparent after:content-[''] [&>div:last-child>div]:mt-0 [&>div:last-child>div]:rounded-none [&>div:last-child>div]:border-0 [&>div:last-child>div]:border-b-0"
+        >
           <div className="container relative z-50 grid w-full grid-cols-2 items-center justify-between gap-4 lg:grid-cols-3 lg:gap-8">
             <Link
               href="/"
@@ -390,6 +425,8 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
                     key={`desktop-link-${index}`}
                     item={item}
                     index={index}
+                    onOpen={openSectionOnHover}
+                    onCloseDeferred={closeSectionDeferred}
                   />
                 ))}
               </NavigationMenuList>
@@ -484,11 +521,17 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
   );
 };
 
-const DesktopMenuItem = ({ item, index }: DesktopMenuItemProps) => {
+const DesktopMenuItem = ({ item, index, onOpen, onCloseDeferred }: DesktopMenuItemProps) => {
   if (item.links || item.featuredLinks || item.groupLinks) {
+    const value = `${index}`;
     return (
-      <NavigationMenuItem key={`desktop-menu-item-${index}`} value={`${index}`}>
-        <NavigationMenuTrigger className="h-fit bg-transparent font-normal text-foreground/70 hover:text-foreground">
+      <NavigationMenuItem
+        key={`desktop-menu-item-${index}`}
+        value={value}
+        onPointerEnter={() => onOpen?.(value)}
+        onPointerLeave={onCloseDeferred}
+      >
+        <NavigationMenuTrigger className="h-fit cursor-pointer bg-transparent font-normal text-foreground/75 hover:text-foreground data-[state=open]:bg-white/[0.08] data-[state=open]:text-foreground">
           {item.title}
         </NavigationMenuTrigger>
         <NavigationMenuContent className="hidden !rounded-xl !border-0 !p-0 lg:block">
@@ -518,7 +561,8 @@ const DesktopMenuItem = ({ item, index }: DesktopMenuItemProps) => {
     <NavigationMenuItem key={`desktop-menu-item-${index}`} value={`${index}`}>
       <NavigationMenuLink
         href={item.url}
-        className={`${navigationMenuTriggerStyle()} h-fit bg-transparent font-normal text-foreground/70`}
+        onPointerEnter={() => onOpen?.("")}
+        className={`${navigationMenuTriggerStyle()} h-fit cursor-pointer bg-transparent font-normal text-foreground/75 hover:text-foreground`}
       >
         {item.title}
       </NavigationMenuLink>

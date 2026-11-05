@@ -9,6 +9,7 @@ import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import type { AdminNavGroup } from "@/components/admin/admin-nav";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { adminLabels } from "@/components/admin/labels";
+import { ChunkRecovery } from "@/components/site/chunk-recovery";
 import { Providers } from "@/app/providers";
 import { requireStaff } from "@/lib/admin-session";
 import { getClientMessages } from "@/i18n-catalog";
@@ -100,6 +101,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       <body className="admin-md min-h-screen bg-surface text-on-surface antialiased">
         <NextIntlClientProvider locale={locale} messages={getClientMessages(locale)}>
           <Providers>
+            <ChunkRecovery />
             <a
               href="#admin-main"
               className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-on-surface focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-surface"
@@ -122,12 +124,13 @@ export default async function AdminLayout({ children }: { children: ReactNode })
                   account: t.shell.account,
                   viewSite: t.shell.viewSite,
                   settings: t.nav.settings,
+                  toggle: t.shell.toggle,
                 }}
                 user={{ email: staff.email, roleLabel: t.roles[staff.role] ?? staff.role }}
                 settingsHref={staff.isFounder ? "/admin/settings" : undefined}
               />
               <SidebarInset id="admin-main">
-                <AdminHeader sections={sections} viewSite={t.shell.viewSite} />
+                <AdminHeader sections={sections} viewSite={t.shell.viewSite} toggleLabel={t.shell.toggle} />
                 <div className="@container/main flex flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
                   {children}
                 </div>

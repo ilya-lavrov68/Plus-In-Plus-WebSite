@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useTransition } from "react";
 import { Check, Languages } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -10,6 +10,7 @@ import {
   LOCALE_COOKIE,
   type Locale,
 } from "@/i18n";
+import { useHoverMenu } from "@/components/ui/use-hover-menu";
 import { isUnprefixedProtectedPath, localizedPath } from "@/i18n/routing";
 
 const labels: Record<Locale, string> = { en: "English", ru: "Русский" };
@@ -22,7 +23,9 @@ export function LanguageSwitcher() {
   const activeLocale = useLocale() as Locale;
   const router = useRouter();
   const pathname = usePathname() || "/";
-  const [open, setOpen] = useState(false);
+  // Меню открывается наведением и по клику: пункт выглядит как выпадающий,
+  // значит и ведёт себя так же, как меню в шапке.
+  const { open, setOpen, closeNow, hoverProps } = useHoverMenu({ openDelay: 60 });
   const [pending, startTransition] = useTransition();
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -33,10 +36,10 @@ export function LanguageSwitcher() {
 
   useEffect(() => {
     const close = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+      if (!rootRef.current?.contains(event.target as Node)) closeNow();
     };
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") closeNow();
     };
     document.addEventListener("mousedown", close);
     document.addEventListener("keydown", onKey);
@@ -44,10 +47,10 @@ export function LanguageSwitcher() {
       document.removeEventListener("mousedown", close);
       document.removeEventListener("keydown", onKey);
     };
-  }, []);
+  }, [closeNow]);
 
   const changeLocale = (nextLocale: Locale) => {
-    setOpen(false);
+    closeNow();
     if (nextLocale === locale) return;
 
     try {
@@ -81,7 +84,7 @@ export function LanguageSwitcher() {
   };
 
   return (
-    <div ref={rootRef} className="relative block">
+    <div ref={rootRef} className="relative block" {...hoverProps}>
       <button
         type="button"
         aria-label={`${labels[locale]} — ${t("language")}`}

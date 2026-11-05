@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from "next-intl";
 
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
+import { ChunkRecovery } from "@/components/site/chunk-recovery";
 import { CookieBanner } from "@/components/site/cookie-banner";
 import { Providers } from "@/app/providers";
 import { SITE_NAME, SITE_URL, absoluteUrl } from "@/lib/seo";
@@ -87,6 +88,7 @@ export default async function RootLayout({
       <body className="flex min-h-screen flex-col bg-background pb-[var(--mobile-bottom-nav-clearance)] text-foreground antialiased lg:pb-0">
         <NextIntlClientProvider locale={locale} messages={getClientMessages(locale)}>
           <Providers>
+            <ChunkRecovery />
             <Navbar />
             <main className="flex-1 pt-20">{children}</main>
             <Footer />
