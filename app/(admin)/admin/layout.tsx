@@ -9,6 +9,7 @@ import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import type { AdminNavGroup } from "@/components/admin/admin-nav";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { adminLabels } from "@/components/admin/labels";
+import { ChunkRecovery } from "@/components/site/chunk-recovery";
 import { Providers } from "@/app/providers";
 import { requireStaff } from "@/lib/admin-session";
 import { getClientMessages } from "@/i18n-catalog";
@@ -100,6 +101,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       <body className="admin-md min-h-screen bg-surface text-on-surface antialiased">
         <NextIntlClientProvider locale={locale} messages={getClientMessages(locale)}>
           <Providers>
+            <ChunkRecovery />
             <a
               href="#admin-main"
               className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-on-surface focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-surface"

@@ -138,6 +138,8 @@ npm run build
 
 Команды запускаются последовательно там, где они используют общие generated artifacts. В частности, не запускать параллельно `tsc` и `next build`, потому что `.next/types` может создать race.
 
+Turbopack-кэш живёт в `.next/dev`. Если dev-процесс завершили жёстко (SIGKILL, перезапуск контейнера), кэш и `lock`-файл остаются, и следующий запуск отдаёт на отдельных страницах «An unexpected Turbopack error occurred». `scripts/dev.cjs` распознаёт устаревший lock (pid из файла уже не жив) и очищает `.next/dev` перед стартом; `PIP_FRESH_DEV_CACHE=1` чистит принудительно. Запасной вариант запуска — `npm run dev:webpack`.
+
 То же касается `.next`: `next dev` и `next build` делят один каталог. Прод-сборка поверх работающего dev-сервера ломает Turbopack-кэш — в браузере это выглядит как «An unexpected Turbopack error occurred». Перед проверкой production-сборки dev-сервер останавливается; `scripts/dev.cjs` при старте сам удаляет `.next` с артефактами сборки (`PIP_KEEP_BUILD_CACHE=1` отключает автоочистку).
 
 ### Шаг 8. Синхронизировать документацию и отчёт
