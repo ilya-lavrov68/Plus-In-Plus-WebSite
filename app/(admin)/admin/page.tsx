@@ -43,7 +43,9 @@ export default async function AdminOverviewPage() {
       isAdmin ? getTopPages(30, 6) : null,
       isAdmin ? getTrafficSources(30) : null,
       isAdmin ? getDeviceSplit(30) : null,
-      getOrders({ limit: 200 }),
+      // Дашборд показывает свежую выручку/заказы: 25 строк достаточно, а
+      // 200 строк раздували RSC-ответ и HTML страницы обзора.
+      getOrders({ limit: 25 }),
       isAdmin ? getContentCounts() : null,
       getRevenueSeries(30),
       isAdmin ? getActivity(6) : null,

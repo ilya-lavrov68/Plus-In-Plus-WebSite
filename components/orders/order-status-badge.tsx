@@ -30,10 +30,10 @@ export interface OrderStatusBadgeProps {
 }
 
 export function OrderStatusBadge({ status, className }: OrderStatusBadgeProps) {
-  const t = useTranslations("admin");
+  const t = useTranslations("orders");
   let label: string;
   try {
-    label = t(`status_${status}`);
+    label = t(`status.${status}`);
   } catch {
     label = status;
   }

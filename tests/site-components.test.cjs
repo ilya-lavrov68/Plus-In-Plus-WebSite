@@ -55,11 +55,8 @@ const tag =
   ({ children, ...props }) =>
     React.createElement(name, props, children);
 
-const animatedIcons = require("./helpers/animated-icons-stub.cjs").createAnimatedIconsStub();
-
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "lucide-animated") return animatedIcons;
   if (name === "lenis") return { __esModule: true, default: LenisStub };
   if (name === "next-intl") return require("./next-intl-stub.cjs");
   if (name === "next-intl/server") return require("./next-intl-stub.cjs");
@@ -1940,6 +1937,9 @@ test("ScrollExperience smooths desktop anchors and reveals below-fold content", 
     addEventListener() {},
     removeEventListener() {},
   });
+  const windowListeners = new Map();
+  global.window.addEventListener = (type, listener) => windowListeners.set(type, listener);
+  global.window.removeEventListener = (type) => windowListeners.delete(type);
   global.document = {
     body: {},
     querySelectorAll: (selector) => (selector === "[data-reveal]" ? [belowFold] : []),
@@ -1965,7 +1965,14 @@ test("ScrollExperience smooths desktop anchors and reveals below-fold content", 
   let view;
   await act(async () => {
     view = create(React.createElement(ScrollExperience));
-    // Lenis is an optional, lazily loaded enhancement.
+    await new Promise((resolve) => setImmediate(resolve));
+  });
+
+  // Lenis is an optional, lazily loaded enhancement: до первого жеста колесом
+  // чанк не скачивается, поэтому активируем его явно.
+  assert.equal(lenisInstances.length, 0);
+  await act(async () => {
+    windowListeners.get("wheel")();
     await new Promise((resolve) => setImmediate(resolve));
   });
 
