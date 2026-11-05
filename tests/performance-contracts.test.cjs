@@ -157,16 +157,26 @@ test("full locale catalogs are separated from browser-safe locale helpers", () =
 
 test("client messages omit server actions and legacy staff bundles are gone", () => {
   for (const locale of ["en", "ru"]) {
-    const client = getClientMessages(locale);
-    assert.equal(Object.hasOwn(client, "actions"), false);
+    const site = getClientMessages(locale);
+    assert.equal(Object.hasOwn(site, "actions"), false);
     assert.equal(typeof messages[locale].actions.validation, "object");
-    assert.equal(client.common, messages[locale].common);
+    assert.equal(site.common, messages[locale].common);
+    // Публичные страницы не получают строки панели управления.
+    assert.equal(Object.hasOwn(site, "admin"), false);
+
+    const admin = getClientMessages(locale, "admin");
+    assert.equal(Object.hasOwn(admin, "actions"), false);
+    assert.equal(admin.admin, messages[locale].admin);
     for (const key of ["genericError", "updateServiceFailed", "invalidAmount"]) {
-      assert.equal(client.admin[key], messages[locale].actions[key]);
+      assert.equal(admin.admin[key], messages[locale].actions[key]);
     }
   }
 
   assert.match(source("app/(site)/layout.tsx"), /messages=\{getClientMessages\(locale\)\}/);
+  assert.match(
+    source("app/(admin)/admin/layout.tsx"),
+    /messages=\{getClientMessages\(locale, "admin"\)\}/,
+  );
   for (const file of [
     "components/admin/inline-price-editor.tsx",
     "components/admin/inline-price-type.tsx",

@@ -60,11 +60,8 @@ const tag =
   ({ children, ...props }) =>
     React.createElement(name, props, children);
 
-const animatedIcons = require("./helpers/animated-icons-stub.cjs").createAnimatedIconsStub();
-
 const originalLoad = Module._load;
 Module._load = function (name, parent, isMain) {
-  if (name === "lucide-animated") return animatedIcons;
   if (name === "next-intl") return require("./next-intl-stub.cjs");
   if (name === "next-intl/server") return require("./next-intl-stub.cjs");
   if (name === "next/link") return tag("a");
@@ -322,8 +319,11 @@ test("Signup10 applies the same 12-character password policy as the server", asy
 
 test("Staff sign-in can be preselected without changing the two-mode login flow", async () => {
   const page = await LoginPage({ searchParams: Promise.resolve({ mode: "admin" }) });
-  assert.equal(page.props.defaultAdminMode, true);
-  assert.equal(page.props.defaultMode, "login");
+  // Страница обёрнута в MotionPreference (локальная политика анимаций).
+  const signup = page.props.children;
+  assert.equal(signup.type, Signup10);
+  assert.equal(signup.props.defaultAdminMode, true);
+  assert.equal(signup.props.defaultMode, "login");
 
   const view = mount(page);
   assert.equal(view.root.findByProps({ role: "switch" }).props["aria-checked"], true);

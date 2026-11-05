@@ -53,7 +53,8 @@
     "changingLanguage": "Смена языка…",
     "loadingPage": "Загрузка страницы",
     "loadingContent": "Загрузка содержимого",
-    "partnersLogoAlt": "Plus In Plus и TS Connect"
+    "partnersLogoAlt": "Plus In Plus и TS Connect",
+    "new": "Новый"
   },
   "mobileNav": {
     "label": "Мобильная навигация",
@@ -1036,14 +1037,6 @@
     "ordersQueue": "Ждут решения",
     "ordersRevenue": "Выручка",
     "ordersAverage": "Средний чек",
-    "status_quote_requested": "Новая заявка",
-    "status_negotiating": "Согласование",
-    "status_awaiting_payment": "Счёт выставлен",
-    "status_paid": "Оплачен",
-    "status_in_progress": "В работе",
-    "status_completed": "Завершён",
-    "status_cancelled": "Отменён",
-    "status_refunded": "Возврат",
     "orderDetails": "Детали заявки",
     "customerWishes": "Пожелания клиента",
     "managerComment": "Комментарий менеджера",
@@ -1124,8 +1117,6 @@
     "agreeLockAndIssue": "Зафиксировать цену, заблокировать и выставить счёт",
     "unlockOrder": "Снять блокировку",
     "payNow": "Оплатить",
-    "status_pending": "Ожидает",
-    "status_priced": "Оценён",
     "deadline": "Желаемый дедлайн",
     "noDeadline": "Не указан",
     "priceLockedByOrder": "Заблокирована (в активном заказе)",
@@ -1347,7 +1338,19 @@
     "cancelHint": "Отменить можно, пока заказ не оплачен и работа не началась.",
     "cancelledNotice": "Заказ {number} отменён",
     "cancelFailed": "Не удалось отменить заказ. Попробуйте ещё раз.",
-    "cancelUnavailable": "Этот заказ больше нельзя отменить онлайн — свяжитесь с нами."
+    "cancelUnavailable": "Этот заказ больше нельзя отменить онлайн — свяжитесь с нами.",
+    "status": {
+      "quote_requested": "Новая заявка",
+      "negotiating": "Согласование",
+      "awaiting_payment": "Счёт выставлен",
+      "paid": "Оплачен",
+      "in_progress": "В работе",
+      "completed": "Завершён",
+      "cancelled": "Отменён",
+      "refunded": "Возврат",
+      "pending": "Ожидает",
+      "priced": "Оценён"
+    }
   },
   "cart": {
     "title": "Корзина и заказы",

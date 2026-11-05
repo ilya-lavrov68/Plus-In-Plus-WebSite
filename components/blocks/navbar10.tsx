@@ -746,7 +746,7 @@ const GroupLinks = ({ groupLinks }: { groupLinks?: MenuGroup[] }) => {
 };
 
 const FeaturedImageLink = ({ link }: { link?: MenuLink }) => {
-  const tAdmin = useTranslations("admin");
+  const tCommon = useTranslations("common");
   if (!link) return null;
 
   return (
@@ -757,7 +757,7 @@ const FeaturedImageLink = ({ link }: { link?: MenuLink }) => {
           className="glass-surface overflow-hidden rounded-2xl bg-white/[0.05]"
         >
           <div className="size-full">
-            <Badge className="absolute top-2 left-2">{tAdmin("new")}</Badge>
+            <Badge className="absolute top-2 left-2">{tCommon("new")}</Badge>
             <div className="flex w-full flex-col items-center justify-center gap-6 pt-8">
               <div className="text-2xl font-semibold">{link.label}</div>
               <div className="w-[80%]">

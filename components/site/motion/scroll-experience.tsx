@@ -1,6 +1,5 @@
 "use client";
 
-import Lenis from "lenis";
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useState } from "react";
 
@@ -52,25 +51,58 @@ export function ScrollExperience() {
       return;
     }
 
-    const lenis = new Lenis({
-      autoRaf: true,
-      autoToggle: true,
-      anchors: true,
-      smoothWheel: true,
-      syncTouch: false,
-      stopInertiaOnNavigate: true,
-      duration: 1.05,
-      wheelMultiplier: 0.9,
-      easing: (time) => Math.min(1, 1.001 - Math.pow(2, -10 * time)),
-      prevent: (node) =>
-        Boolean(
-          node.closest(
-            '[data-lenis-prevent], [role="dialog"], [data-radix-popper-content-wrapper]',
-          ),
-        ),
-    });
+    let cancelled = false;
+    let instance: { destroy: () => void } | null = null;
 
-    return () => lenis.destroy();
+    // Колесо мыши — единственный повод подключать библиотеку: до первого
+    // действия пользователя (или до 2.5 с простоя) страница прокручивается
+    // нативно, а чанк lenis не скачивается вовсе.
+    const activate = async () => {
+      if (cancelled || instance) return;
+      const { default: Lenis } = await import("lenis");
+      if (cancelled) return;
+      instance = new Lenis({
+        autoRaf: true,
+        autoToggle: true,
+        anchors: true,
+        smoothWheel: true,
+        syncTouch: false,
+        stopInertiaOnNavigate: true,
+        duration: 1.05,
+        wheelMultiplier: 0.9,
+        easing: (time) => Math.min(1, 1.001 - Math.pow(2, -10 * time)),
+        prevent: (node) =>
+          Boolean(
+            node.closest(
+              '[data-lenis-prevent], [role="dialog"], [data-radix-popper-content-wrapper]',
+            ),
+          ),
+      });
+    };
+
+    const events: (keyof WindowEventMap)[] = ["wheel", "keydown", "touchstart"];
+    const onIntent = () => {
+      void activate();
+      detach();
+    };
+    const detach = () => {
+      window.clearTimeout(idle);
+      for (const event of events) window.removeEventListener(event, onIntent);
+    };
+
+    for (const event of events) {
+      window.addEventListener(event, onIntent, { passive: true, once: true });
+    }
+    const idle = window.setTimeout(() => {
+      void activate();
+      detach();
+    }, 2500);
+
+    return () => {
+      cancelled = true;
+      detach();
+      instance?.destroy();
+    };
   }, [reducedMotion]);
 
   useIsomorphicLayoutEffect(() => {

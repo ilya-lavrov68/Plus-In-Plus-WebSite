@@ -99,7 +99,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         />
       </head>
       <body className="admin-md min-h-screen bg-surface text-on-surface antialiased">
-        <NextIntlClientProvider locale={locale} messages={getClientMessages(locale)}>
+        <NextIntlClientProvider locale={locale} messages={getClientMessages(locale, "admin")}>
           <Providers>
             <ChunkRecovery />
             <a

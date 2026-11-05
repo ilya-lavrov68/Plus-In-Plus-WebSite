@@ -418,6 +418,7 @@ const Signup10 = ({
           <Image
             src="/assets/agents/lumi-poster.webp"
             alt=""
+            aria-hidden="true"
             fill
             preload
             sizes="(min-width: 1024px) 50vw, 100vw"

@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { motion } from "motion/react";
 import { Newspaper } from "lucide-react";
 
 import { EmptyState } from "@/components/site/empty-state";
@@ -33,7 +32,6 @@ const Blog11 = ({
   emptyTitle = "The blog is empty",
   emptyDescription = "Our first article is coming soon.",
 }: Blog11Props) => {
-  const layoutScope = id || heading.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
   const categories = useMemo(() => {
     const unique = Array.from(new Set(posts.map((post) => post.category)));
@@ -90,17 +88,15 @@ const Blog11 = ({
                       {category === "All"
                         ? allCategoryLabel
                         : categoryLabels[category as BlogCardData["category"]] ?? category}
-                      {isActive && (
-                        <motion.span
-                          layoutId={`blog11-category-${layoutScope}`}
-                          transition={{
-                            type: "spring",
-                            stiffness: 480,
-                            damping: 38,
-                          }}
-                          className="absolute inset-x-0 bottom-0 h-px bg-foreground"
-                        />
-                      )}
+                      {/* Подчёркивание активной категории — CSS-переход вместо
+                          layout-анимации motion: та тянула ~130 КБ JS на каждую
+                          страницу с блогом ради одной линии. */}
+                      <span
+                        aria-hidden="true"
+                        className={`pointer-events-none absolute inset-x-0 bottom-0 h-px bg-foreground transition-opacity duration-200 ease-out ${
+                          isActive ? "opacity-100" : "opacity-0"
+                        }`}
+                      />
                     </button>
                   );
                 })}

@@ -53,7 +53,8 @@
     "changingLanguage": "Changing language…",
     "loadingPage": "Loading page",
     "loadingContent": "Loading content",
-    "partnersLogoAlt": "Plus In Plus and TS Connect"
+    "partnersLogoAlt": "Plus In Plus and TS Connect",
+    "new": "New"
   },
   "mobileNav": {
     "label": "Mobile navigation",
@@ -1036,14 +1037,6 @@
     "ordersQueue": "Awaiting a decision",
     "ordersRevenue": "Revenue",
     "ordersAverage": "Average order",
-    "status_quote_requested": "New request",
-    "status_negotiating": "Negotiating",
-    "status_awaiting_payment": "Invoice sent",
-    "status_paid": "Paid",
-    "status_in_progress": "In progress",
-    "status_completed": "Completed",
-    "status_cancelled": "Cancelled",
-    "status_refunded": "Refunded",
     "orderDetails": "Request details",
     "customerWishes": "Customer wishes",
     "managerComment": "Manager comment",
@@ -1124,8 +1117,6 @@
     "agreeLockAndIssue": "Fix price, lock and issue invoice",
     "unlockOrder": "Remove lock",
     "payNow": "Pay now",
-    "status_pending": "Pending",
-    "status_priced": "Priced",
     "deadline": "Desired deadline",
     "noDeadline": "Not specified",
     "priceLockedByOrder": "Locked (in active order)",
@@ -1347,7 +1338,19 @@
     "cancelHint": "You can cancel while the order is unpaid and work has not started.",
     "cancelledNotice": "Order {number} is cancelled",
     "cancelFailed": "Could not cancel the order. Please try again.",
-    "cancelUnavailable": "This order can no longer be cancelled online — please contact us."
+    "cancelUnavailable": "This order can no longer be cancelled online — please contact us.",
+    "status": {
+      "quote_requested": "New request",
+      "negotiating": "Negotiating",
+      "awaiting_payment": "Invoice sent",
+      "paid": "Paid",
+      "in_progress": "In progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "refunded": "Refunded",
+      "pending": "Pending",
+      "priced": "Priced"
+    }
   },
   "cart": {
     "title": "Cart and orders",

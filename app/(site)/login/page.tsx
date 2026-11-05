@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { Signup10 } from "@/components/blocks/signup10";
+import { MotionPreference } from "@/components/site/motion/motion-preference";
 import { createPageMetadata } from "@/lib/seo";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getRequestTranslations } from "@/lib/server-i18n";
@@ -29,5 +30,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const callbackUrl = rawCallback?.startsWith("/") && !rawCallback.startsWith("//") && !rawCallback.includes("\\")
     ? rawCallback
     : undefined;
-  return <Signup10 defaultMode="login" defaultAdminMode={mode === "admin"} callbackUrl={callbackUrl} />;
+  return (
+    <MotionPreference>
+      <Signup10 defaultMode="login" defaultAdminMode={mode === "admin"} callbackUrl={callbackUrl} />
+    </MotionPreference>
+  );
 }

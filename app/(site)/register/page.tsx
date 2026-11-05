@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { Signup10 } from "@/components/blocks/signup10";
+import { MotionPreference } from "@/components/site/motion/motion-preference";
 import { createPageMetadata } from "@/lib/seo";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getRequestTranslations } from "@/lib/server-i18n";
@@ -19,5 +20,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function RegisterPage() {
-  return <Signup10 defaultMode="register" />;
+  return (
+    <MotionPreference>
+      <Signup10 defaultMode="register" />
+    </MotionPreference>
+  );
 }
