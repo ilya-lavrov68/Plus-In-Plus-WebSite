@@ -274,6 +274,12 @@ export function adminLabels(locale: RequestLocale) {
       period: ru ? "Период" : "Period",
       eventTitle: ru ? "Название" : "Title",
       eventDescription: ru ? "Описание" : "Description",
+      newEventHint: ru
+        ? "Новая веха: заполните поля — пустая веха не сохраняется."
+        : "New milestone: fill the fields — an empty one is not saved.",
+      saveHint: ru
+        ? "Изменения появятся на главной странице сразу после сохранения."
+        : "Changes appear on the home page as soon as you save.",
       saved: ru ? "История сохранена." : "Story saved.",
     },
     settings: {

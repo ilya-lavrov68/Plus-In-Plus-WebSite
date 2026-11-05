@@ -2,12 +2,14 @@ import { redirect } from "next/navigation";
 
 import { adminLabels } from "@/components/admin/labels";
 import {
+  AdminFieldGroup,
   AdminPageHeader,
   AdminStatus,
   adminFieldsetClass,
   adminFilledButtonClass,
   adminInputClass,
   adminLabelClass,
+  adminTextareaClass,
 } from "@/components/admin/ui";
 import { requireStaff } from "@/lib/admin-session";
 import { getRequestLocale } from "@/lib/request-locale";
@@ -18,6 +20,7 @@ import { saveStoryAction } from "./actions";
 
 const inputClass = adminInputClass;
 const labelClass = adminLabelClass;
+const textareaClass = adminTextareaClass;
 
 export default async function AdminStoryPage({
   searchParams,
@@ -62,7 +65,7 @@ export default async function AdminStoryPage({
             defaultValue={content.description}
             rows={4}
             maxLength={STORY_CONTENT_LIMITS.description}
-            className={`${inputClass} h-auto py-2`}
+            className={textareaClass}
           />
         </label>
 
@@ -75,10 +78,11 @@ export default async function AdminStoryPage({
           </div>
 
           {rows.map((event, index) => (
-            <fieldset key={`${event.id || "new"}-${index}`} className="flex flex-col gap-3 p-4">
-              <legend className="px-2 text-xs text-on-surface-variant">
-                {t.story.event} {index + 1}
-              </legend>
+            <AdminFieldGroup
+              key={`${event.id || "new"}-${index}`}
+              legend={`${t.story.event} ${index + 1}`}
+              hint={event.id ? undefined : t.story.newEventHint}
+            >
               {event.id ? <input type="hidden" name={`event-${index}-id`} value={event.id} /> : null}
 
               <div className="grid gap-3 sm:grid-cols-[minmax(0,140px)_minmax(0,1fr)]">
@@ -109,19 +113,19 @@ export default async function AdminStoryPage({
                   defaultValue={event.description}
                   rows={2}
                   maxLength={STORY_CONTENT_LIMITS.eventDescription}
-                  className={`${inputClass} h-auto py-2`}
+                  className={textareaClass}
                 />
               </label>
-            </fieldset>
+            </AdminFieldGroup>
           ))}
         </section>
 
-        <button
-          type="submit"
-          className={adminFilledButtonClass}
-        >
-          {t.table.save}
-        </button>
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+          <p className="text-xs leading-relaxed text-on-surface-variant">{t.story.saveHint}</p>
+          <button type="submit" className={adminFilledButtonClass}>
+            {t.table.save}
+          </button>
+        </div>
       </form>
     </div>
   );

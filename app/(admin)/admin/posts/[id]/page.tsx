@@ -8,6 +8,7 @@ import {
   adminFieldsetClass,
   adminFilledButtonClass,
   adminInputClass,
+  adminTextareaClass,
   adminInsetPanelClass,
   adminLabelClass,
   adminTonalButtonClass,
@@ -36,6 +37,7 @@ interface PostRow {
 }
 
 const inputClass = adminInputClass;
+const textareaClass = adminTextareaClass;
 const labelClass = adminLabelClass;
 
 export default async function AdminPostPage({
@@ -107,7 +109,7 @@ export default async function AdminPostPage({
 
           <label className={labelClass}>
             {t.post.excerpt}
-            <textarea name="excerpt"defaultValue={post.excerpt} rows={3} className={`${inputClass} h-auto py-2`} />
+            <textarea name="excerpt"defaultValue={post.excerpt} rows={3} className={textareaClass} />
           </label>
 
           <label className={labelClass}>
@@ -117,7 +119,7 @@ export default async function AdminPostPage({
               defaultValue={post.content}
               rows={18}
               spellCheck={false}
-              className={`${inputClass} h-auto py-2 font-mono text-xs`}
+              className={`${textareaClass} font-mono`}
             />
           </label>
 
@@ -126,7 +128,7 @@ export default async function AdminPostPage({
             <input name="sourceUrl"defaultValue={post.source_url ?? ""} className={inputClass} />
           </label>
 
-          <fieldset className="flex flex-col gap-3 p-4">
+          <fieldset className={adminInsetPanelClass}>
             <legend className="px-2 text-sm font-semibold">{t.image.title}</legend>
             <input type="hidden" name="currentCover" value={post.cover_image ?? ""} />
             {post.cover_image ? (

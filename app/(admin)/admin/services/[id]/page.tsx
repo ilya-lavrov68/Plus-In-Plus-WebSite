@@ -8,6 +8,8 @@ import {
   adminFieldsetClass,
   adminFilledButtonClass,
   adminInputClass,
+  adminInsetPanelClass,
+  adminTextareaClass,
   adminLabelClass,
   adminTonalButtonClass,
 } from "@/components/admin/ui";
@@ -35,6 +37,7 @@ interface ServiceRow {
 }
 
 const inputClass = adminInputClass;
+const textareaClass = adminTextareaClass;
 const labelClass = adminLabelClass;
 
 export default async function AdminServicePage({
@@ -135,15 +138,15 @@ export default async function AdminServicePage({
 
           <label className={labelClass}>
             {t.service.shortDesc}
-            <textarea name="shortDesc"defaultValue={service.short_desc} rows={3} className={`${inputClass} h-auto py-2`} />
+            <textarea name="shortDesc"defaultValue={service.short_desc} rows={3} className={textareaClass} />
           </label>
 
           <label className={labelClass}>
             {t.service.fullDesc}
-            <textarea name="fullDesc"defaultValue={service.full_desc} rows={8} className={`${inputClass} h-auto py-2`} />
+            <textarea name="fullDesc"defaultValue={service.full_desc} rows={8} className={textareaClass} />
           </label>
 
-        <fieldset className="flex flex-col gap-3 p-4">
+        <fieldset className={adminInsetPanelClass}>
           <legend className="px-2 text-sm font-semibold">{t.image.title}</legend>
           <input type="hidden" name="currentCover" value={service.cover_image ?? ""} />
           {service.cover_image ? (

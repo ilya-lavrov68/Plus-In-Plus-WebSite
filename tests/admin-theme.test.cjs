@@ -99,7 +99,7 @@ test("каждый цветовой класс админки есть в тем
     ),
   );
   const notAColor = new Set(
-    "xs sm base lg xl 2xl 3xl 4xl 5xl 6xl left right center justify start end top bottom middle wrap nowrap balance pretty clip ellipsis none auto inverse hidden solid dashed dotted double offset-2 b color".split(
+    "xs sm base lg xl 2xl 3xl 4xl 5xl 6xl left right center justify start end top bottom middle wrap nowrap balance pretty clip ellipsis none auto inverse hidden inset solid dashed dotted double offset-2 b color".split(
       " ",
     ),
   );

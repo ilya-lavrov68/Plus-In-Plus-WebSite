@@ -6,16 +6,17 @@ export const buttonVariants = cva(
     variants: {
       variant: {
         /*
-         * Жёлтая заливка ушла из кнопок: базовая кнопка — белая с тёмным
-         * текстом, при наведении подложка становится тёмно-серой, а текст —
-         * жёлтым. Жёлтый остаётся акцентом текста, а не фоном.
+         * Базовая кнопка — белая с тёмным текстом. При наведении она просто
+         * немного темнеет: ни подложка, ни текст не меняют оттенок, поэтому
+         * нажатие читается как реакция на курсор, а не как переключение
+         * режима. Жёлтого в кнопках нет.
          */
         default:
-          "bg-foreground text-background hover:bg-hover-surface hover:text-signal",
+          "bg-foreground text-background hover:bg-foreground/90",
         primary:
-          "bg-foreground text-background hover:bg-hover-surface hover:text-signal",
+          "bg-foreground text-background hover:bg-foreground/90",
         cta:
-          "bg-foreground text-background hover:bg-hover-surface hover:text-signal",
+          "bg-foreground text-background hover:bg-foreground/90",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/85",
         outline:
@@ -48,7 +49,7 @@ export const headerButtonVariants = cva(
         outline:
           "bg-transparent text-foreground hover:bg-white/[0.08] hover:text-foreground",
         primary:
-          "bg-foreground text-background hover:bg-hover-surface hover:text-signal",
+          "bg-foreground text-background hover:bg-foreground/90",
       },
     },
     defaultVariants: {

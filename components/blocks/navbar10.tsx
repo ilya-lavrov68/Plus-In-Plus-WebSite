@@ -94,6 +94,7 @@ export interface Navbar10Props {
 
 type DesktopMenuItemProps = {
   onOpen?: (value: string) => void;
+  onPanelEnter?: (value: string) => void;
   onCloseDeferred?: () => void;
   item: MenuItem;
   index: number;
@@ -369,13 +370,28 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
     setOpenSection(value);
   };
 
-  /** Небольшая задержка, чтобы меню не захлопывалось по пути к его содержимому. */
+  /**
+   * Закрытие с запасом по времени.
+   *
+   * Пока курсор едет от пункта к панели, он неизбежно выходит за пределы
+   * триггера. Пауза 260 мс даёт дойти до содержимого, а вход в панель
+   * (`onPanelEnter`) отменяет закрытие полностью.
+   */
   const closeSectionDeferred = () => {
     if (closeSectionTimer.current) clearTimeout(closeSectionTimer.current);
     closeSectionTimer.current = setTimeout(() => {
       setOpenSection("");
       closeSectionTimer.current = null;
-    }, 160);
+    }, 260);
+  };
+
+  /** Курсор внутри выпадающей панели — раздел остаётся открытым. */
+  const keepSectionOpen = (value: string) => {
+    if (closeSectionTimer.current) {
+      clearTimeout(closeSectionTimer.current);
+      closeSectionTimer.current = null;
+    }
+    setOpenSection(value);
   };
 
   useEffect(() => {
@@ -426,6 +442,7 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
                     item={item}
                     index={index}
                     onOpen={openSectionOnHover}
+                    onPanelEnter={keepSectionOpen}
                     onCloseDeferred={closeSectionDeferred}
                   />
                 ))}
@@ -521,7 +538,13 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
   );
 };
 
-const DesktopMenuItem = ({ item, index, onOpen, onCloseDeferred }: DesktopMenuItemProps) => {
+const DesktopMenuItem = ({
+  item,
+  index,
+  onOpen,
+  onPanelEnter,
+  onCloseDeferred,
+}: DesktopMenuItemProps) => {
   if (item.links || item.featuredLinks || item.groupLinks) {
     const value = `${index}`;
     return (
@@ -529,13 +552,16 @@ const DesktopMenuItem = ({ item, index, onOpen, onCloseDeferred }: DesktopMenuIt
         key={`desktop-menu-item-${index}`}
         value={value}
         onPointerEnter={() => onOpen?.(value)}
-        onPointerLeave={onCloseDeferred}
       >
         <NavigationMenuTrigger className="h-fit cursor-pointer bg-transparent font-normal text-foreground/75 hover:text-foreground data-[state=open]:bg-white/[0.08] data-[state=open]:text-foreground">
           {item.title}
         </NavigationMenuTrigger>
         <NavigationMenuContent className="hidden !rounded-xl !border-0 !p-0 lg:block">
-          <div className="w-dvw animate-[fade-in-slide-down_0.24s_cubic-bezier(0.22,1,0.36,1)_forwards] px-8 pt-6 pb-12">
+          <div
+            onPointerEnter={() => onPanelEnter?.(value)}
+            onPointerLeave={onCloseDeferred}
+            className="w-dvw animate-[fade-in-slide-down_0.24s_cubic-bezier(0.22,1,0.36,1)_forwards] px-8 pt-6 pb-12"
+          >
             <div className="container">
               {item.id === 1 && <DropdownMenu1 links={item.links} />}
               {item.id === 2 && (

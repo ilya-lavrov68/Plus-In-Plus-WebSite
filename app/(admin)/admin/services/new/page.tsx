@@ -8,6 +8,7 @@ import {
   adminFieldsetClass,
   adminFilledButtonClass,
   adminInputClass,
+  adminTextareaClass,
   adminInsetPanelClass,
   adminLabelClass,
   adminTonalButtonClass,
@@ -19,6 +20,7 @@ import { getRequestLocale } from "@/lib/request-locale";
 import { createService } from "../actions";
 
 const inputClass = adminInputClass;
+const textareaClass = adminTextareaClass;
 const labelClass = adminLabelClass;
 
 export default async function NewServicePage({
@@ -77,12 +79,12 @@ export default async function NewServicePage({
 
         <label className={labelClass}>
           {t.service.shortDesc}
-          <textarea name="shortDesc"rows={3} className={`${inputClass} h-auto py-2`} />
+          <textarea name="shortDesc"rows={3} className={textareaClass} />
         </label>
 
         <label className={labelClass}>
           {t.service.fullDesc}
-          <textarea name="fullDesc"rows={8} className={`${inputClass} h-auto py-2`} />
+          <textarea name="fullDesc"rows={8} className={textareaClass} />
         </label>
 
         <fieldset className={adminInsetPanelClass}>

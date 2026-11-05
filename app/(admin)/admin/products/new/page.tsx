@@ -8,6 +8,7 @@ import {
   adminFieldsetClass,
   adminFilledButtonClass,
   adminInputClass,
+  adminTextareaClass,
   adminInsetPanelClass,
   adminLabelClass,
   adminTonalButtonClass,
@@ -19,6 +20,7 @@ import { getRequestLocale } from "@/lib/request-locale";
 import { createProduct } from "../actions";
 
 const inputClass = adminInputClass;
+const textareaClass = adminTextareaClass;
 const labelClass = adminLabelClass;
 
 export default async function NewProductPage({
@@ -71,7 +73,7 @@ export default async function NewProductPage({
 
         <label className={labelClass}>
           {t.service.shortDesc}
-          <textarea name="description"rows={5} className={`${inputClass} h-auto py-2`} />
+          <textarea name="description"rows={5} className={textareaClass} />
         </label>
 
         <fieldset className={adminInsetPanelClass}>

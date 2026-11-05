@@ -36,6 +36,26 @@ test("dev-сервер не стартует на кэше завершённо�
   assert.match(dev, /BUILD_ID/, "прод-сборка распознаётся по BUILD_ID");
 });
 
+test("упавший Turbopack перезапускается с чистым кэшем", () => {
+  const dev = read("scripts/dev.cjs");
+  assert.match(
+    dev,
+    /An unexpected Turbopack error occurred/,
+    "супервизор распознаёт сообщение об ошибке Turbopack",
+  );
+  assert.match(dev, /TurbopackInternalError/, "ловится и внутреннее имя ошибки");
+  assert.match(dev, /MAX_RESTARTS/, "число попыток ограничено");
+  assert.match(dev, /clearDevCache/, "перед перезапуском кэш чистится");
+  assert.match(dev, /SIGKILL/, "зависший dev-процесс добивается");
+  assert.match(dev, /PIP_NO_DEV_SUPERVISOR/, "есть выключатель автоперезапуска");
+  assert.match(dev, /dev:webpack/, "сообщение подсказывает запасной запуск");
+  assert.match(
+    dev,
+    /isDevServerProcess/,
+    "pid из lock-файла сверяется с командной строкой процесса",
+  );
+});
+
 test("пакет содержит запасной запуск без Turbopack", () => {
   const pkg = JSON.parse(read("package.json"));
   assert.equal(pkg.scripts.dev, "node scripts/dev.cjs");
