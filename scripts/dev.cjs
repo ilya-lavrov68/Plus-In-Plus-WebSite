@@ -137,6 +137,36 @@ function withLargerHeap(nodeOptions = "") {
   return `${options} --max-old-space-size=${HEAP_LIMIT_MB}`.trim();
 }
 
+/**
+ * Локальная база внутри проекта — источник паники Turbopack на Windows.
+ *
+ * SQLite держит `*.db-shm` и `*.db-wal` открытыми и залоченными, пока сервер
+ * работает. Сборщик CSS обходит каталог проекта, пытается прочитать такой файл
+ * и получает `os error 33` («файл занят другим процессом»); Turbopack на этом
+ * падает с «An unexpected Turbopack error occurred». Базу держим в `data/`,
+ * куда не смотрит ни один сборщик, — но предупредим, если она оказалась в
+ * проекте (типичный случай — legacy-путь `payload/pip.db` из старой версии).
+ */
+function databaseFileInProject(url) {
+  if (!url || !url.startsWith("file:")) return null;
+
+  // Конфиг отдаёт не только `file:./data/x.db`, но и абсолютный `file:///…`,
+  // поэтому путь сначала приводим к абсолютному, а потом проверяем вложение.
+  let raw = url.slice("file:".length).replace(/^\/\//, "/");
+  try {
+    raw = decodeURIComponent(raw);
+  } catch {
+    // Некодируемая строка: работаем с исходным значением.
+  }
+  if (/^\/[a-zA-Z]:[\\/]/.test(raw)) raw = raw.slice(1); // Windows: /D:/path
+  const absolute = path.resolve(raw);
+
+  const projectDir = path.resolve(rootDir) + path.sep;
+  if (!absolute.startsWith(projectDir)) return null;
+  if (absolute.startsWith(path.join(path.resolve(rootDir), "data") + path.sep)) return null;
+  return { absolute, url };
+}
+
 function isProcessAlive(pid) {
   try {
     process.kill(pid, 0);
@@ -179,6 +209,17 @@ async function main() {
     if (config) {
       env.DATABASE_URL = config.url;
       console.log(`[dev] Database: ${describeDatabaseUrl(config.url)} (${config.remote ? "remote libSQL" : "local file"})`);
+      if (!config.remote) {
+        const inProject = databaseFileInProject(config.url);
+        if (inProject) {
+          console.warn(
+            `[dev] База лежит внутри проекта: ${inProject.absolute}\n` +
+              "[dev] Пока сервер работает, рядом с ней есть залоченные файлы *.db-shm и *.db-wal.\n" +
+              "[dev] Сборщик стилей читает такие файлы и на Windows падает с «An unexpected Turbopack error occurred» (os error 33).\n" +
+              '[dev] Перенесите базу в data/ и укажите в .env: DATABASE_URL="file:./data/pip.db" (см. .env.example).',
+          );
+        }
+      }
       try {
         const status = await checkSchema(config);
         if (status.ok) console.log("[dev] Schema is up to date.");
@@ -352,7 +393,12 @@ async function main() {
   startServer();
 }
 
-main().catch((error) => {
-  console.error(`[dev] ${error.message}`);
-  process.exit(1);
-});
+// Запуск только при прямом вызове: так помощники можно проверять тестами.
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(`[dev] ${error.message}`);
+    process.exit(1);
+  });
+} else {
+  module.exports = { databaseFileInProject, withLargerHeap };
+}

@@ -59,7 +59,7 @@ export default async function RootLayout({
   const locale = await getRequestLocale();
 
   return (
-    <html lang={locale} data-locale={locale} className="dark">
+    <html lang={locale} data-locale={locale} className="dark" data-scroll-behavior="smooth">
       <head>
         <link
           rel="preload"

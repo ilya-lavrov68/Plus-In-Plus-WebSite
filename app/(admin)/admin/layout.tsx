@@ -87,7 +87,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const sections: AdminHeaderSection[] = groups.flatMap((group) => group.items);
 
   return (
-    <html lang={locale} data-locale={locale} className="dark">
+    <html lang={locale} data-locale={locale} className="dark" data-scroll-behavior="smooth">
       <head>
         <link rel="preload" href="/assets/fonts/geist-variable.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <link
