@@ -56,6 +56,40 @@ test("упавший Turbopack перезапускается с чистым к
   );
 });
 
+test("упавший dev-сервер поднимается сам, а порт не остаётся занятым", () => {
+  const dev = read("scripts/dev.cjs");
+
+  // Раньше выход дочернего процесса просто завершал супервизор — со стороны это
+  // выглядело как «сайт выключился».
+  assert.match(dev, /dev-сервер завершился/, "сообщение о падении dev-сервера");
+  assert.match(dev, /MAX_CRASH_RESTARTS/, "число автоподъёмов ограничено");
+  assert.match(dev, /поднимаю заново/, "супервизор перезапускает сервер");
+  assert.match(dev, /STABLE_RUN_MS/, "после стабильной работы счётчик сбрасывается");
+  assert.match(dev, /restartTimer/, "таймер перезапуска сохраняется и отменяется");
+  assert.doesNotMatch(
+    dev,
+    /restartTimer[\s\S]{0,120}unref/,
+    "таймер перезапуска не должен быть unref: иначе Node выйдет раньше старта",
+  );
+
+  // HTTP-процесс `next dev` переживает родителя и держит порт — отсюда EADDRINUSE.
+  assert.match(dev, /detached: process\.platform !== "win32"/, "dev-процесс стартует в своей группе");
+  assert.match(dev, /process\.kill\(-child\.pid/, "завершается вся группа процессов");
+  assert.match(dev, /killChild\("SIGKILL"\)/, "остатки группы добиваются перед перезапуском");
+
+  // Ctrl+C — намеренная остановка, а не падение.
+  assert.match(dev, /stopping = true/, "остановка пользователем помечается");
+});
+
+test("падение по нехватке памяти лечится увеличением кучи", () => {
+  const dev = read("scripts/dev.cjs");
+  assert.match(dev, /heap out of memory/i, "распознаётся сообщение OOM");
+  assert.match(dev, /Reached heap limit/, "распознаётся лимит кучи V8");
+  assert.match(dev, /withLargerHeap/, "лимит кучи поднимается");
+  assert.match(dev, /--max-old-space-size/, "используется флаг Node");
+  assert.match(dev, /HEAP_LIMIT_MB/, "размер лимита задан константой");
+});
+
 test("пакет содержит запасной запуск без Turbopack", () => {
   const pkg = JSON.parse(read("package.json"));
   assert.equal(pkg.scripts.dev, "node scripts/dev.cjs");

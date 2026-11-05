@@ -83,7 +83,22 @@ function resetStaleDevCache() {
 const TURBOPACK_FAILURE =
   /TurbopackInternalError|An unexpected Turbopack error occurred|Next\.js package not found/i;
 
+/**
+ * Нехватка памяти — вторая причина, по которой dev-сервер завершается сам:
+ * Turbopack собирает страницы в том же процессе, и на тяжёлых маршрутах
+ * (`/profile`, `/services`, админка) Node упирается в лимит кучи и печатает
+ * «JavaScript heap out of memory»/«Reached heap limit».
+ */
+const OUT_OF_MEMORY =
+  /heap out of memory|Reached heap limit|Allocation failed|FATAL ERROR: \w+ Allocation failed/i;
+
 const MAX_RESTARTS = 2;
+/** Падения самого dev-сервера: поднимаем чаще, чем внутренние ошибки Turbopack. */
+const MAX_CRASH_RESTARTS = 3;
+/** Сколько памяти просить у Node после падения по OOM. */
+const HEAP_LIMIT_MB = 4096;
+/** После стольких миллисекунд работы счётчик падений обнуляется. */
+const STABLE_RUN_MS = 60_000;
 
 /**
  * pid из lock-файла мог достаться другому процессу (перезапуск контейнера
@@ -106,6 +121,20 @@ function clearDevCache() {
     const target = path.join(nextDir, relative);
     if (fs.existsSync(target)) fs.rmSync(target, { recursive: true, force: true });
   }
+}
+
+/**
+ * Поднимает лимит кучи в NODE_OPTIONS, не затирая остальные флаги. Уже заданный
+ * больший лимит остаётся как есть: чужой выбор памяти не перебиваем.
+ */
+function withLargerHeap(nodeOptions = "") {
+  const options = nodeOptions.trim();
+  const match = options.match(/--max-old-space-size=(\d+)/);
+  if (match) {
+    if (Number(match[1]) >= HEAP_LIMIT_MB) return options;
+    return options.replace(/--max-old-space-size=\d+/, `--max-old-space-size=${HEAP_LIMIT_MB}`);
+  }
+  return `${options} --max-old-space-size=${HEAP_LIMIT_MB}`.trim();
 }
 
 function isProcessAlive(pid) {
@@ -164,8 +193,16 @@ async function main() {
 
   const args = process.argv.slice(2);
   let restarts = 0;
+  let crashes = 0;
   let recovering = false;
+  /** Пользователь сам остановил dev (Ctrl+C) — перезапускать нечего. */
+  let stopping = false;
+  let outOfMemory = false;
   let child = null;
+  /** Момент старта текущего dev-процесса: долгая работа сбрасывает счётчик падений. */
+  let startedAt = 0;
+  /** Таймер отложенного перезапуска — держит процесс живым до старта. */
+  let restartTimer = null;
 
   /**
    * Dev-сервер, упавший с внутренней ошибкой Turbopack, поднимается заново с
@@ -177,16 +214,23 @@ async function main() {
   if (process.stdout.isTTY && !process.env.FORCE_COLOR) env.FORCE_COLOR = "1";
 
   const startServer = () => {
+    startedAt = Date.now();
     child = spawn(process.execPath, [nextBin, "dev", ...args], {
       cwd: rootDir,
       stdio: ["inherit", "pipe", "pipe"],
       env,
+      // Своя группа процессов: `next dev` поднимает HTTP-сервер отдельным
+      // процессом, и без группы он переживает падение родителя. Именно так
+      // порт 3000 остаётся занятым, а следующий запуск падает с EADDRINUSE.
+      detached: process.platform !== "win32",
     });
 
     const inspect = (stream, target) => {
       stream.on("data", (chunk) => {
+        const text = chunk.toString();
         target.write(chunk);
-        if (recovering || !TURBOPACK_FAILURE.test(chunk.toString())) return;
+        if (OUT_OF_MEMORY.test(text)) outOfMemory = true;
+        if (recovering || !TURBOPACK_FAILURE.test(text)) return;
         if (process.env.PIP_NO_DEV_SUPERVISOR === "1") return;
         if (restarts >= MAX_RESTARTS) {
           console.error(
@@ -200,8 +244,8 @@ async function main() {
         console.warn(
           `[dev] Turbopack сообщил о внутренней ошибке — перезапускаю dev с чистым кэшем (${restarts}/${MAX_RESTARTS}).`,
         );
-        child.kill("SIGTERM");
-        const force = setTimeout(() => child?.kill("SIGKILL"), 4000);
+        killChild("SIGTERM");
+        const force = setTimeout(() => killChild("SIGKILL"), 4000);
         force.unref?.();
       });
     };
@@ -209,17 +253,101 @@ async function main() {
     inspect(child.stderr, process.stderr);
 
     child.on("exit", (code, signal) => {
+      // Остановка по нашей команде: сначала шаг восстановления, затем выход.
       if (recovering) {
         recovering = false;
         clearDevCache();
         startServer();
         return;
       }
-      process.exit(signal ? 0 : code ?? 0);
+      if (stopping) {
+        process.exit(0);
+        return;
+      }
+
+      // Стабильная работа дольше минуты — серия падений закончилась.
+      if (startedAt > 0 && Date.now() - startedAt > STABLE_RUN_MS) crashes = 0;
+
+      // Код 0 после падения тоже считается падением: Next перезапускает себя
+      // сам и выходит, если ему не понравилось состояние каталога `.next`.
+      const crashed = signal !== null || (code !== null && code !== 0) || crashes > 0;
+      if (!crashed) {
+        process.exit(code ?? 0);
+        return;
+      }
+
+      const reason = signal ?? `код ${code}`;
+      if (process.env.PIP_NO_DEV_SUPERVISOR === "1") {
+        console.error(`[dev] dev-сервер завершился (${reason}); автоперезапуск выключен (PIP_NO_DEV_SUPERVISOR=1).`);
+        process.exit(code ?? 1);
+      }
+      if (crashes >= MAX_CRASH_RESTARTS) {
+        console.error(
+          `[dev] dev-сервер упал ${crashes} раз подряд (последний — ${reason}) — автоперезапуск остановлен. ` +
+            "Проверьте причину выше: чаще всего это нехватка памяти (NODE_OPTIONS=--max-old-space-size=4096) " +
+            "или занятый порт; запасной запуск — npm run dev:webpack.",
+        );
+        process.exit(code ?? 1);
+      }
+
+      crashes += 1;
+      const pause = 1000 * crashes;
+      if (outOfMemory) {
+        env.NODE_OPTIONS = withLargerHeap(env.NODE_OPTIONS);
+        console.warn(
+          `[dev] Похоже, dev-серверу не хватило памяти. Поднимаю заново с NODE_OPTIONS="${env.NODE_OPTIONS}" ` +
+            `(${crashes}/${MAX_CRASH_RESTARTS}).`,
+        );
+      } else {
+        console.warn(
+          `[dev] dev-сервер завершился (${reason}) — поднимаю заново через ${pause / 1000} с ` +
+            `(${crashes}/${MAX_CRASH_RESTARTS}).`,
+        );
+      }
+      outOfMemory = false;
+      // HTTP-процесс `next dev` умеет пережить своего родителя и продолжает
+      // держать порт — тогда перезапуск падает с EADDRINUSE. Добиваем остатки
+      // группы перед новым стартом.
+      killChild("SIGKILL");
+      // Кэш здесь не чистим: Turbopack считает удаление `.next/dev` на старте
+      // повреждением и перезапускается сам. Внутренние ошибки Turbopack
+      // по-прежнему лечатся чистым кэшем — это отдельная ветка выше.
+      // Без unref: таймер должен удерживать event loop, иначе Node завершится
+      // раньше перезапуска и «автоподъём» не случится.
+      restartTimer = setTimeout(() => {
+        restartTimer = null;
+        startServer();
+      }, pause);
     });
   };
 
-  const stop = (signal) => child?.kill(signal);
+  /**
+   * Завершает dev-сервер вместе с его HTTP-процессом. На POSIX бьём по группе
+   * (`-pid`), иначе потомки остаются жить и держат порт.
+   */
+  const killChild = (signal) => {
+    if (!child?.pid) return;
+    try {
+      if (process.platform === "win32") child.kill(signal);
+      else process.kill(-child.pid, signal);
+    } catch {
+      // Группы уже нет — пробуем хотя бы сам процесс.
+      try {
+        child.kill(signal);
+      } catch {
+        // Процесс уже завершился: это нормальный исход остановки.
+      }
+    }
+  };
+
+  const stop = (signal) => {
+    stopping = true;
+    if (restartTimer) {
+      clearTimeout(restartTimer);
+      restartTimer = null;
+    }
+    killChild(signal);
+  };
   for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => stop(signal));
   startServer();
 }
