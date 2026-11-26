@@ -1,0 +1,54 @@
+/* Plus In Plus website core palette — owner-approved foundation.
+ * Component blocks may vary their treatment, but must map to a shared token
+ * system. Keep primitive colors here; define semantic and component tokens in
+ * the target site's existing design-token layer.
+ */
+:root {
+  /* Immutable core values supplied by the brand owner. */
+  --pip-accent-neutral: #eeeeee;
+  --pip-accent-signal: #ff5f01;
+  --pip-text-on-light: #0e1015;
+  --pip-text-on-color: #0e1015;
+  --pip-text-on-dark: #eeeeee;
+  --pip-surface-dark: #110f10;
+  --pip-surface-gray: #2b292a;
+
+  /* Semantic aliases: components should use these instead of raw core values. */
+  --pip-color-action: var(--pip-accent-signal);
+  --pip-color-highlight: var(--pip-accent-neutral);
+  --pip-ink-light: var(--pip-text-on-light);
+  --pip-ink-color: var(--pip-text-on-color);
+  --pip-ink-dark: var(--pip-text-on-dark);
+  --pip-focus-ring: var(--pip-accent-signal);
+
+  /* Starter borders derived from the core; adjust centrally if the design needs
+   * another weight/opacity while keeping the same color relationships. */
+  --pip-border-dark: rgb(238 238 238 / 18%);
+  --pip-border-light: rgb(14 16 21 / 18%);
+}
+
+/* Reference surface mapping. Adapt names to the target project's conventions. */
+[data-pip-surface="dark"] {
+  color: var(--pip-text-on-dark);
+  background: var(--pip-surface-dark);
+}
+
+[data-pip-surface="gray"] {
+  color: var(--pip-text-on-dark);
+  background: var(--pip-surface-gray);
+}
+
+[data-pip-surface="light"] {
+  color: var(--pip-text-on-light);
+  background: var(--pip-accent-neutral);
+}
+
+[data-pip-surface="orange"] {
+  color: var(--pip-text-on-color);
+  background: var(--pip-accent-signal);
+}
+
+:focus-visible {
+  outline: 2px solid var(--pip-focus-ring);
+  outline-offset: 3px;
+}
