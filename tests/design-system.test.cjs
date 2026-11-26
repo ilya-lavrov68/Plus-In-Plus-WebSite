@@ -40,54 +40,91 @@ function borderOffenders(source) {
   });
 }
 
-test("жёлтым не заливают кнопки, переключатели и анимации", () => {
+test("акцентная заливка живёт у действий, а не в секциях", () => {
+  // Оранжевый #FF5F01 — цвет действия (решение владельца). В секциях сайта он
+  // не заливает блоки: иначе страница превращается в оранжевые поля и
+  // иерархия пропадает. Заливка допустима только у кнопок и бейджей.
+  const sections = [
+    ...filesUnder("components/site"),
+    ...filesUnder("components/blocks"),
+    ...filesUnder("app/(site)"),
+  ];
   const offenders = [];
-  for (const file of publicSources) {
-    for (const match of read(file).matchAll(/(?<![\w-])bg-primary(?:\/[\w.]+)?/g)) {
+  for (const file of sections) {
+    for (const match of read(file).matchAll(/(?<![\w-])bg-primary(?![\w-])/g)) {
       offenders.push(`${file}: ${match[0]}`);
     }
   }
-  assert.deepEqual(offenders, [], "жёлтый фон остался у кнопок или индикаторов");
+  assert.deepEqual(offenders, [], "акцентная заливка вернулась в секции сайта");
+
+  const variants = read("components/ui/button-variants.ts");
+  assert.match(
+    variants,
+    /default:\s*"bg-primary text-primary-foreground/,
+    "заливка акцентом закреплена за действием",
+  );
 });
 
-test("белая кнопка при наведении просто немного темнеет", () => {
+test("главное действие — оранжевая кнопка с тёмным текстом", () => {
+  // Контраст пары #0E1015 на #FF5F01 — 6.24:1: текст читается и на заливке,
+  // и на ховере #E65400. Оттенок при наведении не меняется, только темнеет.
   const variants = read("components/ui/button-variants.ts");
   for (const variant of ["default", "primary", "cta"]) {
     const match = variants.match(new RegExp(`\\b${variant}:\\s*"([^"]*)"`));
     assert.ok(match, `не найден вариант ${variant}`);
-    assert.match(match[1], /bg-foreground text-background/, `${variant}: в покое кнопка светлая`);
+    assert.match(match[1], /bg-primary text-primary-foreground/, `${variant}: заливка акцентом и тёмный текст`);
     assert.match(
       match[1],
-      /hover:bg-foreground\/9\d/,
-      `${variant}: ховер — та же светлая подложка, но чуть темнее`,
+      /hover:bg-brand-signal-strong/,
+      `${variant}: ховер — тот же оттенок, но темнее`,
     );
     assert.equal(
-      match[1].includes("hover:text-signal"),
+      match[1].includes("text-signal"),
       false,
-      `${variant}: текст при наведении не меняет цвет`,
+      `${variant}: текст действия не перекрашивается в акцент`,
     );
   }
+
+  const globals = read("styles/globals.css");
+  assert.match(globals, /--primary: var\(--pip-action\)/, "primary читает semantic-роль действия");
+  assert.match(globals, /--primary-foreground: var\(--pip-action-ink\)/, "текст действия — из палитры");
 });
 
-test("прозрачные и тёмные кнопки не перекрашиваются в жёлтый", () => {
+test("вторичные кнопки остаются нейтральными", () => {
   const variants = read("components/ui/button-variants.ts");
   for (const variant of ["outline", "secondary", "ghost"]) {
     const match = variants.match(new RegExp(`\\b${variant}:\\s*"([^"]*)"`));
     assert.ok(match, `не найден вариант ${variant}`);
-    assert.equal(match[1].includes("text-signal"), false, `${variant}: жёлтый предназначен белым кнопкам`);
+    assert.equal(match[1].includes("bg-primary"), false, `${variant}: акцентная заливка только у действия`);
     assert.match(match[1], /hover:bg-white\//, `${variant}: ховер остаётся нейтральным`);
   }
 
   const headerVariants = variants.slice(variants.indexOf("headerButtonVariants"));
   const outline = headerVariants.match(/outline:\s*"([^"]*)"/);
-  assert.equal(outline[1].includes("text-signal"), false, "прозрачная кнопка шапки остаётся нейтральной");
+  assert.equal(outline[1].includes("bg-primary"), false, "прозрачная кнопка шапки остаётся нейтральной");
   const headerPrimary = headerVariants.match(/primary:\s*"([^"]*)"/);
-  assert.match(headerPrimary[1], /hover:bg-foreground\/9\d/, "светлая кнопка шапки темнеет");
-  assert.equal(
-    headerPrimary[1].includes("text-signal"),
-    false,
-    "жёлтый текст в шапке не появляется",
+  assert.match(headerPrimary[1], /bg-primary text-primary-foreground/, "главная кнопка шапки — действие");
+});
+
+test("вторичное действие — светлая плашка #EEEEEE с тёмным текстом", () => {
+  const variants = read("components/ui/button-variants.ts");
+  const neutral = variants.match(/\bneutral:\s*"([^"]*)"/);
+  assert.ok(neutral, "не найден вариант neutral для вторичного действия");
+  assert.match(neutral[1], /bg-\[var\(--pip-accent-neutral\)\]/, "заливка — нейтральный #EEEEEE");
+  assert.match(neutral[1], /text-\[var\(--pip-ink-light\)\]/, "текст на светлом — тёмный #0E1015");
+  assert.match(
+    neutral[1],
+    /hover:bg-\[var\(--pip-accent-neutral-strong\)\]/,
+    "ховер только темнит светлую плашку",
   );
+  assert.equal(neutral[1].includes("bg-primary"), false, "акцентная заливка остаётся у главного действия");
+
+  const hero = read("components/blocks/hero138.tsx");
+  assert.match(hero, /variant="neutral"/, "вторичный CTA героя — светлая плашка");
+
+  const globals = read("styles/globals.css");
+  assert.match(globals, /--pip-accent-neutral: #eeeeee/, "примитив светлой поверхности");
+  assert.match(globals, /--pip-accent-neutral-strong: #e2e2e2/, "затемнение светлой поверхности");
 });
 
 test("у интерфейса нет декоративных обводок", () => {
@@ -170,12 +207,14 @@ test("плавающие панели остаются стеклянными", 
   assert.match(globals, /backdrop-filter: blur\(24px\) saturate\(140%\)/, "блюр шапки заметен");
 });
 
-test("жёлтый текст проходит контраст на своих поверхностях", () => {
+test("палитра проходит контраст на всех парах текст/поверхность", () => {
   const globals = read("styles/globals.css");
-  assert.ok(globals.includes("--color-signal: var(--md-signal)"), "утилиты text-signal должны существовать");
-  assert.ok(globals.includes("--hover-surface: #242424"), "публичная подложка ховера");
-  assert.ok(globals.includes("--md-signal: #FFFF01"), "публичный сигнальный жёлтый");
-  assert.ok(globals.includes("--md-signal: #ece38a"), "в админке жёлтый мягче");
+
+  const primitive = (name) => {
+    const match = globals.match(new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6})`));
+    assert.ok(match, `не найден примитив --${name}`);
+    return match[1];
+  };
 
   const luminance = (hex) => {
     const [r, g, b] = hex
@@ -190,9 +229,59 @@ test("жёлтый текст проходит контраст на своих 
     return (light + 0.05) / (dark + 0.05);
   };
 
-  assert.ok(ratio("#FFFF01", "#0a0a0a") >= 4.5, "публичный жёлтый текст читается на тёмном фоне");
-  assert.ok(ratio("#FFFF01", "#242424") >= 4.5, "жёлтый текст читается на подложке белой кнопки");
-  assert.ok(ratio("#ece38a", "#151517") >= 4.5, "жёлтый текст админки читается на фоне панели");
+  const pairs = [
+    ["pip-ink-dark", "pip-surface-dark", "текст на базовой тёмной поверхности"],
+    ["pip-ink-dark", "pip-surface-gray", "текст на приподнятой поверхности"],
+    ["pip-ink-light", "pip-accent-signal", "текст на оранжевом действии"],
+    ["pip-ink-light", "pip-accent-neutral", "текст на светлом акценте"],
+  ];
+  for (const [foreground, background, label] of pairs) {
+    const value = ratio(primitive(foreground), primitive(background));
+    assert.ok(value >= 4.5, `${label}: контраст ${value.toFixed(2)}:1 ниже AA`);
+  }
+
+  // Роли приложения читают палитру, а не собственные hex-значения.
+  assert.match(globals, /--primary: var\(--pip-action\)/, "primary — из semantic-роли");
+  assert.match(globals, /--brand-signal: var\(--pip-accent-signal\)/, "brand-signal — из палитры");
+  assert.match(globals, /--ring: 22 99% 50%/, "focus-обводка — фирменный оранжевый");
+  // Админка остаётся нейтральной: в ней акцента бренда нет.
+  assert.doesNotMatch(globals, /--md-signal: #ece38a/, "жёлтый акцент админки убран");
+});
+
+test("радиусы заданы иерархией, а вложенный угол считается по формуле", () => {
+  const globals = read("styles/globals.css");
+
+  // Шкала: строго возрастает и покрывает все ступени, которыми пользуется UI.
+  const scale = ["xs", "sm", "md", "lg", "xl", "2xl", "3xl"].map((step) => {
+    const match = globals.match(new RegExp(`--radius-${step}:\\s*(\\d+)px;`));
+    assert.ok(match, `ступень --radius-${step} должна быть в px`);
+    return Number(match[1]);
+  });
+  for (let i = 1; i < scale.length; i += 1) {
+    assert.ok(scale[i] > scale[i - 1], "каждая следующая ступень больше предыдущей");
+  }
+  assert.ok(scale.at(-1) >= 28, "крупные полотна получают свой радиус");
+
+  // Вложенный угол: внутренний = внешний − отступ, с нижним клампом.
+  assert.match(globals, /@utility nested-radius\s*{/, "утилита вложенного угла объявлена");
+  assert.match(globals, /--pip-radius-outer/, "внешний радиус читается из переменной");
+  assert.match(globals, /--pip-nest-gap/, "отступ до края читается из переменной");
+  assert.match(
+    globals,
+    /calc\(\s*var\(--pip-radius-outer[\s\S]*?-\s*var\(--pip-nest-gap/,
+    "формула вычитает отступ из внешнего радиуса",
+  );
+  assert.match(globals, /max\(\s*var\(--radius-xs\)/, "угол не становится острее базовой метки");
+
+  // Произвольные радиусы в разметке запрещены: только ступени шкалы.
+  const offenders = [];
+  for (const file of [...filesUnder("components"), ...filesUnder("app")]) {
+    if (file.endsWith(".css")) continue;
+    for (const match of read(file).matchAll(/rounded-\[[^\]]+\]/g)) {
+      offenders.push(`${file}: ${match[0]}`);
+    }
+  }
+  assert.deepEqual(offenders, [], "радиус вернулся произвольным значением");
 });
 
 test("тема админки доходит до элементов: цветовые роли объявлены inline", () => {
@@ -251,5 +340,60 @@ test("поле ввода читается: тёмная поверхность,
     /filled: "[^"]*text-signal/.test(ui),
     false,
     "жёлтого текста на кнопках панели нет",
+  );
+});
+
+test("графический язык студии один: Hazeglow в стилях ascii и dither", () => {
+  const field = read("components/site/hazeglow-field.tsx");
+  for (const variant of ["hero", "design", "product"]) {
+    assert.match(field, new RegExp(`\\b${variant}: \\{`), `в CONFIGS нет варианта ${variant}`);
+  }
+
+  const effects = [...field.matchAll(/effect:\s*"([\w-]+)"/g)].map((match) => match[1]);
+  assert.ok(effects.length >= 3, "у каждого варианта объявлен эффект");
+  assert.deepEqual(
+    [...new Set(effects)].sort(),
+    ["ascii", "dither"],
+    "ведущий эффект — только ascii и dither: glass/blob и прочие как ведущие не используются",
+  );
+
+  // Пиксельные спрайты сняты с сайта целиком: компонент, генератор, ассеты и кадровая анимация.
+  for (const retired of [
+    "components/site/pixel-direction-sprite.tsx",
+    "scripts/generate-direction-sprites.cjs",
+    "tests/direction-sprites.test.cjs",
+    "public/assets/pixels",
+  ]) {
+    assert.equal(fs.existsSync(path.join(root, retired)), false, `${retired} не должен возвращаться`);
+  }
+  const globals = read("styles/globals.css");
+  assert.doesNotMatch(globals, /pixel-direction|pixel-sprite/, "CSS пиксельных спрайтов удалён");
+  assert.equal(
+    JSON.parse(read("package.json")).scripts["sprites:directions"],
+    undefined,
+    "скрипт генерации спрайтов удалён",
+  );
+
+  // Направления студии показываются тем же полем, а не собственными картинками.
+  const directions = read("components/site/brand-directions.tsx");
+  assert.match(directions, /HazeglowField/, "карточки направлений используют Hazeglow");
+  assert.doesNotMatch(directions, /Pixel|sprite/i, "пиксельных спрайтов в направлениях нет");
+});
+
+test("обложки-заглушки нарисованы в растровом стиле, а не пиксельными спрайтами", () => {
+  for (const file of ["public/assets/placeholders/service-cover.svg", "public/assets/placeholders/post-cover.svg"]) {
+    const source = read(file);
+    assert.match(source, /pattern/, `${file}: растровая сетка точек`);
+    assert.match(source, /radialGradient/, `${file}: мягкая световая масса`);
+    assert.equal(
+      source.includes('width="5.99992"'),
+      false,
+      `${file}: блоки пиксельного спрайта сняты`,
+    );
+  }
+  assert.equal(
+    fs.existsSync(path.join(root, "public/assets/shop")),
+    false,
+    "ретайджед-стоковые мокапы удалены из public",
   );
 });

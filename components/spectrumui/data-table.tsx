@@ -636,7 +636,7 @@ function SelectBox({
       <span
         aria-hidden="true"
         className={cn(
-          'relative grid size-[18px] place-items-center overflow-hidden rounded-[5px] border',
+          'relative grid size-[18px] place-items-center overflow-hidden rounded-xs border',
           'transition-[border-color] duration-150 ease-out',
           filled
             ? "border-primary"
@@ -645,7 +645,7 @@ function SelectBox({
         )}
       >
         <motion.span
-          className="absolute inset-[1px] rounded-[4px] bg-primary"
+          className="absolute inset-[1px] rounded-xs bg-primary"
           initial={false}
           animate={{ opacity: filled ? 1 : 0 }}
           transition={instant ? INSTANT : SPRING_SNAPPY}
@@ -1517,7 +1517,7 @@ export function DataTable<T>({
                       {renderDetail && <td className="w-10" />}
                       {selectable && (
                         <td className={cn('w-12 pe-0', scale.pad, scale.cell)}>
-                          <span className="ms-[7px] block size-[18px] rounded-[5px] bg-neutral-100 dark:bg-neutral-900" />
+                          <span className="ms-[7px] block size-[18px] rounded-xs bg-neutral-100 dark:bg-neutral-900" />
                         </td>
                       )}
                       {columns.map((column, columnIndex) => (

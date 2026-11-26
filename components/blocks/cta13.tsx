@@ -33,7 +33,7 @@ const Cta13 = ({
       <div className="container">
         <div
           data-reveal=""
-          className="glass-surface rounded-[1.75rem] border-0 bg-white/[0.055] p-8 sm:p-12 md:p-16 lg:p-20"
+          className="glass-surface rounded-2xl border-0 bg-white/[0.055] p-8 sm:p-12 md:p-16 lg:p-20"
         >
           <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-center">
             <div className="max-w-2xl">
@@ -49,7 +49,7 @@ const Cta13 = ({
                 <Link href={primaryButton.url}>{primaryButton.text}</Link>
               </Button>
               {secondaryButton && (
-                <Button size="lg"variant="secondary"asChild>
+                <Button size="lg"variant="neutral"asChild>
                   <Link href={secondaryButton.url}>{secondaryButton.text}</Link>
                 </Button>
               )}

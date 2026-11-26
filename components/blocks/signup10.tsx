@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -413,18 +412,11 @@ const Signup10 = ({
           </div>
         </div>
 
-        {/* Обложка: плакат Lumi Q1 — фирменная графика, а не стоковая фотография. */}
-        <div className="relative hidden overflow-hidden bg-muted lg:block">
-          <Image
-            src="/assets/agents/lumi-poster.webp"
-            alt=""
-            aria-hidden="true"
-            fill
-            preload
-            sizes="(min-width: 1024px) 50vw, 100vw"
-            className="object-cover"
-          />
-          <div aria-hidden="true" className="absolute inset-0 bg-background/20" />
+        {/* Обложка: спокойное фирменное поле вместо прежнего постера агентов. */}
+        <div aria-hidden="true" className="relative hidden overflow-hidden bg-card lg:flex lg:items-end lg:p-12">
+          <p className="text-xs font-medium tracking-[0.22em] text-muted-foreground uppercase">
+            Plus In Plus · Design Studio
+          </p>
         </div>
       </div>
     </section>

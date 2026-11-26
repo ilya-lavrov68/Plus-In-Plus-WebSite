@@ -32,7 +32,6 @@ export const CLIENT_MESSAGE_NAMESPACES = [
   "profile",
   "security",
   "services",
-  "shop",
 ] as const;
 
 /**

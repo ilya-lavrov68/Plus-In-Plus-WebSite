@@ -54,6 +54,10 @@ export default async function BlogPostContent({ slug }: { slug: string }) {
           Studio: tBlog("categoryStudio"),
           Outdoor: tBlog("categoryOutdoor"),
         }}
+        compact
+        featuredLabel={tBlog("featured")}
+        readTimeTemplate={String(tBlog.raw("readTime"))}
+        readLabel={tBlog("read")}
       />
     </>
   );

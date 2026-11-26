@@ -81,7 +81,7 @@ const Services11Catalog = ({
               className="group relative flex aspect-[3/4] flex-col justify-between overflow-hidden rounded-xl bg-card p-6 transition-colors duration-200 ease-out"
             >
               <Link
-                href={`/shop/${service.slug}`}
+                href={`/services/${service.slug}`}
                 aria-label={service.title}
                 className="absolute inset-0 z-10"
               />
@@ -114,7 +114,7 @@ const Services11Catalog = ({
                   className="pointer-events-auto"
                   asChild
                 >
-                  <Link href={`/shop/${service.slug}`}>{moreLabel}</Link>
+                  <Link href={`/services/${service.slug}`}>{moreLabel}</Link>
                 </Button>
               </div>
             </div>

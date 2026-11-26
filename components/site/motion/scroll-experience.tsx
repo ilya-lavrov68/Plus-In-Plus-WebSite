@@ -149,6 +149,33 @@ export function ScrollExperience() {
       }
     };
 
+    /*
+     * Страховка от «пропущенных» блоков: при резком колесе, Page Down или
+     * переходе по якорю IntersectionObserver может не успеть отметить элемент,
+     * который уже проехал мимо вьюпорта, — и карточка осталась бы с opacity 0.
+     * Поэтому на скролле добиваем всё, что уже вошло в кадр.
+     */
+    let frame = 0;
+    const catchUp = () => {
+      frame = 0;
+      if (typeof window === "undefined") return;
+      const viewport = window.innerHeight;
+      document
+        .querySelectorAll<HTMLElement>('[data-reveal="pending"]')
+        .forEach((element) => {
+          if (element.getBoundingClientRect().top < viewport) {
+            element.dataset.reveal = "visible";
+            observer.unobserve(element);
+          }
+        });
+    };
+    const scheduleCatchUp = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(catchUp);
+    };
+    window.addEventListener("scroll", scheduleCatchUp, { passive: true });
+    window.addEventListener("resize", scheduleCatchUp);
+
     const scan = (root: ParentNode = document) => {
       if (root instanceof HTMLElement && root.hasAttribute("data-reveal")) {
         register(root);
@@ -171,6 +198,9 @@ export function ScrollExperience() {
     mutations?.observe(document.body, { childList: true, subtree: true });
 
     return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", scheduleCatchUp);
+      window.removeEventListener("resize", scheduleCatchUp);
       observer.disconnect();
       mutations?.disconnect();
     };

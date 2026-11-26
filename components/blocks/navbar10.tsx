@@ -125,18 +125,17 @@ type NavLinkProps = {
 };
 
 export function buildNavigation(featuredPost?: Navbar10Props["featuredPost"]): MenuItem[] {
-  // Раздел SHOP временно скрыт из навигации до появления мерча. Прямые ссылки
-  // на страницы услуг (/shop/[slug]) продолжают работать — заявки создаются
-  // через них, а /shop показывает заглушку «Shop is coming soon».
+  // Магазин мерча удалён: публичного каталога товаров больше нет. Страницы
+  // услуг живут на /services/[slug], а старые адреса /shop/… отдают 308 туда же.
   const featuredPostUrl = featuredPost?.slug
     ? `/blog/${encodeURIComponent(featuredPost.slug)}`
     : "/blog";
 
   return [
     {
-      title: "AI",
+      title: "LINE LAUNCHER",
       id: 4,
-      url: "/ai",
+      url: "/line-launcher",
     },
     {
       title: "FOR PLAY",
@@ -322,7 +321,7 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
     });
     return buildNavigation(featuredPost).map((item) => ({
       ...item,
-      title: item.id === 4 ? tn("ai") : item.id === 1 ? t("forPlay") : item.id === 3 ? t("about") : t("socnet"),
+      title: item.id === 4 ? tn("lineLauncher") : item.id === 1 ? t("forPlay") : item.id === 3 ? t("about") : t("socnet"),
       links: item.links?.map(localizeLink),
       featuredLinks: item.featuredLinks?.map(localizeLink),
       imageLink: item.imageLink ? localizeLink(item.imageLink) : undefined,
@@ -657,7 +656,7 @@ const DropdownMenu1 = ({ links }: { links?: MenuLink[] }) => {
             ref={(el) => {
               if (el) imageRefs.current[index] = el;
             }}
-            className={`absolute top-12 left-12 aspect-video w-[40rem] overflow-hidden rounded-[1.25rem] transition-[transform,opacity] duration-300 ease-out will-change-[transform,opacity] ${
+            className={`absolute top-12 left-12 aspect-video w-[40rem] overflow-hidden rounded-xl transition-[transform,opacity] duration-300 ease-out will-change-[transform,opacity] ${
               index === 0
                 ? "z-10 translate-y-0 opacity-100"
                 : "pointer-events-none z-0 translate-y-12 opacity-0"

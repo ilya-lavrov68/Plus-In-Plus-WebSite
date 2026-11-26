@@ -135,10 +135,11 @@ Module._load = function (name, parent, isMain) {
       },
     };
   }
-  if (name === "@/components/ai/agent-shader-player") {
+  if (name === "hazeglow") {
+    // Пакет поставляется только как ESM, а тестовый harness грузит CJS.
     return {
-      AgentShaderPlayer: ({ agent, scene }) =>
-        React.createElement("div", { "data-agent-shader": scene ?? agent }),
+      Hazeglow: (props) =>
+        React.createElement("div", { "data-hazeglow-field": "stub", ...props }),
     };
   }
   if (name === "@/components/site/lazy-account-modal") {
@@ -211,19 +212,7 @@ const { toBlogCardData } = require("../lib/blog-card.ts");
 const { COVER_IMAGE_GUIDES } = require("../lib/upload-policy.ts");
 const { DecryptText } = require("../components/site/motion/decrypt-text.tsx");
 const { ScrollExperience } = require("../components/site/motion/scroll-experience.tsx");
-const { AiPageView } = require("../components/ai/ai-page-view.tsx");
-const { AgentTechnologyPage } = require("../components/ai/agent-technology-page.tsx");
-const { AgentDiagram } = require("../components/ai/agent-diagram.tsx");
 const { BrandDirections } = require("../components/site/brand-directions.tsx");
-const {
-  AGENT_BARS_FRAGMENT_SHADER,
-  AGENT_FIELD_FRAGMENT_SHADERS,
-  AGENT_SHADER_CELLS,
-  AGENT_SHADER_COLS,
-  AGENT_SHADER_CYCLE_SECONDS,
-  AGENT_SHADER_DURATION_MS,
-  AGENT_SHADER_SCENE_NAMES,
-} = require("../lib/agent-shaders.ts");
 
 beforeEach(() => {
   sessionStatus = "unauthenticated";
@@ -275,206 +264,15 @@ test("Hero138 renders the restored studio statement, its two CTAs and the media 
   assert.ok(links.some((link) => link.href === "/contact" && link.text.includes("Contact us")));
 
   const primary = view.root.findAllByType("a").find((link) => link.props.href === "/services");
-  // Главный CTA — белая кнопка, при наведении она лишь немного темнеет.
-  assert.match(primary.props.className, /bg-foreground text-background/);
-  assert.match(primary.props.className, /hover:bg-foreground\/9\d/);
+  // Главный CTA — оранжевая кнопка с тёмным текстом, при наведении она темнеет.
+  assert.match(primary.props.className, /bg-primary text-primary-foreground/);
+  assert.match(primary.props.className, /hover:bg-brand-signal-strong/);
   assert.equal(primary.props.className.includes("text-signal"), false);
-  assert.doesNotMatch(primary.props.className, /bg-primary/);
   assert.ok(
     view.root.findAll((node) => node.props?.["data-reveal"] !== undefined).length >= 2,
     "the hero reveals its blocks progressively",
   );
   act(() => view.unmount());
-});
-
-test("Home directions and AI page present two announced agents without a fabricated integration", async () => {
-  const directionsElement = await BrandDirections();
-  const aiElement = await AiPageView();
-  let directionsView;
-  let aiView;
-  act(() => {
-    directionsView = create(directionsElement);
-    aiView = create(aiElement);
-  });
-  const directionLinks = directionsView.root.findAllByType("a").map((link) => link.props.href);
-  assert.deepEqual(directionLinks.sort(), ["/ai", "/services"]);
-  const directionText = textOf(directionsView.root);
-  assert.match(directionText, /AI technology and design/);
-  assert.match(directionText, /Announcement · soon/);
-  assert.match(directionText, /Available now/);
-  const directionSprites = directionsView.root.findAll(
-    (node) => Boolean(node.props?.["data-pixel-sprite"]),
-  );
-  assert.deepEqual(
-    directionSprites.map((sprite) => sprite.props["data-pixel-sprite"]),
-    ["ai", "design"],
-  );
-  for (const sprite of directionSprites) {
-    assert.equal(sprite.props["data-frame-count"], "24");
-    assert.equal(sprite.props["data-active"], "false");
-    assert.equal(sprite.props["aria-hidden"], "true");
-  }
-
-  const aiText = textOf(aiView.root);
-  assert.match(aiText, /Lumi Q1/);
-  assert.match(aiText, /Kairo/);
-  assert.match(aiText, /The working integration is being prepared/);
-  assert.match(aiText, /not a lawyer/);
-  assert.match(aiText, /Russian law/);
-  assert.equal(aiView.root.findAllByType("input").length, 0);
-  assert.equal(aiView.root.findAllByType("textarea").length, 0);
-  const aiLinks = aiView.root.findAllByType("a").map((link) => link.props.href);
-  assert.ok(aiLinks.includes("/ai/lumi"));
-  assert.ok(aiLinks.includes("/ai/kairo"));
-  assert.ok(!aiLinks.includes("#lumi-q1"));
-  assert.ok(!aiLinks.includes("#kairo"));
-  const shaderSlots = aiView.root
-    .findAll((node) => Boolean(node.props?.["data-agent-shader"]))
-    .map((node) => node.props["data-agent-shader"])
-    .sort();
-  assert.deepEqual(shaderSlots, ["kairo", "lumi"]);
-  act(() => {
-    directionsView.unmount();
-    aiView.unmount();
-  });
-});
-
-test("Dedicated agent pages use four distinct Illos shader processes per agent", async () => {
-  const expectedMechanisms = {
-    lumi: ["permissions", "sandbox", "runtime"],
-    kairo: ["graph", "verification", "brief"],
-  };
-  const expectedShaders = {
-    lumi: ["lumi", "lumi-permissions", "lumi-sandbox", "lumi-runtime"],
-    kairo: ["kairo", "kairo-graph", "kairo-verification", "kairo-brief"],
-  };
-
-  for (const agent of ["lumi", "kairo"]) {
-    const element = await AgentTechnologyPage({ agent });
-    let view;
-    act(() => {
-      view = create(element);
-    });
-    const text = textOf(view.root);
-    const links = view.root.findAllByType("a").map((link) => link.props.href);
-    const mechanisms = view.root
-      .findAll((node) => Boolean(node.props?.["data-agent-mechanism"]))
-      .map((node) => node.props["data-agent-mechanism"]);
-    const shaders = view.root
-      .findAll((node) => Boolean(node.props?.["data-agent-shader"]))
-      .map((node) => node.props["data-agent-shader"]);
-
-    assert.ok(links.includes("/ai"));
-    assert.ok(links.includes(`/ai/${agent === "lumi" ? "kairo" : "lumi"}`));
-    assert.deepEqual(mechanisms, expectedMechanisms[agent]);
-    assert.deepEqual(shaders, expectedShaders[agent]);
-    assert.equal(view.root.findAllByType("input").length, 0);
-    assert.equal(view.root.findAllByType("textarea").length, 0);
-    assert.equal(view.root.findAll((node) => node.props?.["data-motion"] === "shader").length, 3);
-    assert.match(text, /working integration with this website is being prepared/);
-    assert.match(text, agent === "lumi" ? /Qwen2\.5-Coder 7B/ : /LangGraph/);
-    assert.match(text, agent === "lumi" ? /repository copy/ : /not a lawyer/);
-    act(() => view.unmount());
-  }
-
-  const mechanism = fs.readFileSync(path.resolve(__dirname, "../components/ai/agent-mechanism.tsx"), "utf8");
-  const sitemap = fs.readFileSync(path.resolve(__dirname, "../app/(site)/sitemap.ts"), "utf8");
-  assert.match(mechanism, /AgentShaderPlayer/);
-  assert.match(mechanism, /MECHANISM_SCENES/);
-  assert.doesNotMatch(mechanism, /PermissionsScene|SandboxScene|agent-motion|setInterval/);
-  assert.ok(sitemap.includes('absoluteUrl("/ai/lumi")'));
-  assert.ok(sitemap.includes('absoluteUrl("/ai/kairo")'));
-});
-
-test("Brand accent and shader implementation keep the approved visual and motion contract", () => {
-  const globals = fs.readFileSync(path.resolve(__dirname, "../styles/globals.css"), "utf8");
-  const tailwind = fs.readFileSync(path.resolve(__dirname, "../tailwind.config.ts"), "utf8");
-  const player = fs.readFileSync(
-    path.resolve(__dirname, "../components/ai/agent-shader-player.tsx"),
-    "utf8"
-  );
-  const diagram = fs.readFileSync(
-    path.resolve(__dirname, "../components/ai/agent-diagram.tsx"),
-    "utf8"
-  );
-  assert.match(globals, /--primary:\s*#FFFF01;/);
-  assert.match(globals, /--radius-lg:/);
-  assert.doesNotMatch(globals, /text-shadow/);
-  assert.match(tailwind, /DEFAULT:\s*"var\(--primary\)"/);
-  assert.equal(AGENT_SHADER_CYCLE_SECONDS, 4.5);
-  assert.equal(AGENT_SHADER_DURATION_MS, 4500);
-  assert.equal(AGENT_SHADER_COLS, 103);
-  assert.equal(AGENT_SHADER_CELLS, 49);
-  assert.notEqual(AGENT_FIELD_FRAGMENT_SHADERS.lumi, AGENT_FIELD_FRAGMENT_SHADERS.kairo);
-  for (const field of Object.values(AGENT_FIELD_FRAGMENT_SHADERS)) {
-    assert.match(field, /uniform float uT;/);
-    assert.match(field, /float field\(vec2 p, float t\)/);
-    assert.doesNotMatch(field, /STREAMING_TOKENS_FIELD/);
-  }
-  assert.match(AGENT_FIELD_FRAGMENT_SHADERS.lumi, /vec2\(282\.0, 229\.100\)/);
-  assert.match(AGENT_FIELD_FRAGMENT_SHADERS.lumi, /float work1 = sm\(2\.080, 2\.130, t\)/);
-  assert.match(AGENT_FIELD_FRAGMENT_SHADERS.kairo, /float page\(vec2 p, vec2 c, float s, float lit, float hot, float ph\)/);
-  assert.match(AGENT_FIELD_FRAGMENT_SHADERS.kairo, /vec2\(556\.0, 177\.0\)/);
-  assert.match(AGENT_FIELD_FRAGMENT_SHADERS.kairo, /t - 3\.150/);
-  assert.equal(Object.keys(AGENT_FIELD_FRAGMENT_SHADERS).length, 8);
-  for (const scene of Object.keys(AGENT_FIELD_FRAGMENT_SHADERS)) {
-    for (const extension of ["webm", "mp4"]) {
-      const asset = path.resolve(__dirname, `../public/assets/agents/${scene}.${extension}`);
-      assert.ok(fs.statSync(asset).size > 10_000, `${scene}.${extension} must contain the pre-rendered shader loop`);
-    }
-  }
-  assert.match(AGENT_FIELD_FRAGMENT_SHADERS["lumi-permissions"], /taskCard\(p/);
-  assert.match(AGENT_FIELD_FRAGMENT_SHADERS["lumi-permissions"], /float approval =/);
-  assert.match(AGENT_FIELD_FRAGMENT_SHADERS["lumi-sandbox"], /copyCenter/);
-  assert.match(AGENT_FIELD_FRAGMENT_SHADERS["lumi-sandbox"], /published/);
-  assert.match(AGENT_FIELD_FRAGMENT_SHADERS["lumi-runtime"], /localWork/);
-  assert.match(AGENT_FIELD_FRAGMENT_SHADERS["lumi-runtime"], /vpsWork/);
-  assert.match(AGENT_FIELD_FRAGMENT_SHADERS["lumi-runtime"], /cloudWork/);
-  assert.match(AGENT_FIELD_FRAGMENT_SHADERS["kairo-graph"], /research/);
-  assert.match(AGENT_FIELD_FRAGMENT_SHADERS["kairo-graph"], /calculate/);
-  assert.match(AGENT_FIELD_FRAGMENT_SHADERS["kairo-verification"], /check0/);
-  assert.match(AGENT_FIELD_FRAGMENT_SHADERS["kairo-verification"], /check1/);
-  assert.match(AGENT_FIELD_FRAGMENT_SHADERS["kairo-verification"], /check2/);
-  assert.match(AGENT_FIELD_FRAGMENT_SHADERS["kairo-brief"], /3\.20, t, 0\.82/);
-  for (const scene of Object.keys(AGENT_FIELD_FRAGMENT_SHADERS).filter((name) => name.includes("-"))) {
-    assert.match(AGENT_FIELD_FRAGMENT_SHADERS[scene], /float page\(vec2 p/);
-    assert.match(AGENT_FIELD_FRAGMENT_SHADERS[scene], /float travel\(vec2 p/);
-  }
-  assert.match(AGENT_BARS_FRAGMENT_SHADER, /uniform sampler2D uField;/);
-  assert.match(AGENT_BARS_FRAGMENT_SHADER, /w = 3\.6/);
-  assert.match(AGENT_BARS_FRAGMENT_SHADER, /mod\(px\.y, 9\.4\)/);
-  assert.match(diagram, /data-static-field=\{resolvedScene\}/);
-  assert.equal(AGENT_SHADER_SCENE_NAMES.lumi, "tool-calls");
-  assert.equal(AGENT_SHADER_SCENE_NAMES.kairo, "rag-answer");
-  assert.doesNotMatch(diagram, />MODEL<\/text>|>RESPONSE<\/text>|streamingField/);
-  assert.match(player, /useRef<HTMLCanvasElement>/);
-  assert.match(player, /prefers-reduced-motion: reduce/);
-  assert.match(player, /size="icon"/);
-  assert.match(player, /aria-label=\{label\}/);
-  assert.match(player, /controllerRef\.current = \{ play, pause \}/);
-  assert.doesNotMatch(player, /"complete"|RotateCcw|restart|play\(true\)/);
-  assert.match(player, /IntersectionObserver/);
-  assert.match(player, /getContext\("webgl"/);
-  assert.match(player, /requestAnimationFrame/);
-  assert.match(player, /document\.hidden/, "the field pauses while the tab is hidden");
-  assert.doesNotMatch(player, /setInterval|<video/);
-
-  for (const locale of ["ru", "en"]) {
-    const catalog = require(`../messages/${locale}.json`);
-    assert.equal(catalog.ai.lumi.benefits.length, 3);
-    assert.equal(catalog.ai.kairo.benefits.length, 3);
-    for (const agent of ["lumi", "kairo"]) {
-      assert.equal(catalog.agentPages[agent].benefits.length, 4);
-      assert.equal(catalog.agentPages[agent].sections.length, 3);
-      for (const section of catalog.agentPages[agent].sections) {
-        assert.equal(section.points.length, 3);
-        assert.ok(section.visualLabel.length > 60);
-      }
-    }
-    assert.ok(catalog.directions.ai.status.length > 0);
-    assert.ok(catalog.ai.kairo.note.length > 80);
-    assert.equal(catalog.ai.animation.replay, undefined);
-  }
 });
 
 test("Interface depth uses borders and outlines, never shadows or focus rings", () => {
@@ -506,45 +304,20 @@ test("Interface depth uses borders and outlines, never shadows or focus rings", 
   }
 });
 
-test("every agent shader fallback renders its own deterministic field", () => {
-  const scenes = Object.keys(AGENT_FIELD_FRAGMENT_SHADERS);
-  const views = {};
-  let enhancedView;
+test("BrandDirections presents the design practice and the Line Launcher product", async () => {
+  const element = await BrandDirections();
+  let view;
   act(() => {
-    for (const scene of scenes) {
-      views[scene] = create(React.createElement(AgentDiagram, {
-        agent: scene.startsWith("kairo") ? "kairo" : "lumi",
-        scene,
-      }));
-    }
-    enhancedView = create(React.createElement(AgentDiagram, { agent: "lumi", enhanced: true }));
+    view = create(element);
   });
+  const links = view.root.findAllByType("a").map((link) => link.props.href).sort();
+  assert.deepEqual(links, ["/line-launcher", "/services"], "две карточки: услуги и продукт");
 
-  const fields = new Set();
-  for (const [scene, view] of Object.entries(views)) {
-    const field = view.root.findAll((node) => node.props?.["data-static-field"] === scene);
-    assert.equal(field.length, 1, `${scene} renders its own static field`);
-    assert.equal(view.root.findAllByType("svg").length, 1, "the fallback is vector, not a bitmap");
-    assert.equal(view.root.findAllByType("img").length, 0);
-    // Геометрия кадра отличает сцены друг от друга.
-    const geometry = view.root
-      .findAll((node) => typeof node.props?.d === "string" || typeof node.props?.x === "number")
-      .map((node) => `${node.props.d ?? ""}${node.props.x ?? ""}:${node.props.y ?? ""}:${node.props.width ?? ""}`)
-      .join("|");
-    assert.ok(geometry.length > 0, `${scene} renders bars`);
-    fields.add(geometry);
-  }
-  assert.equal(fields.size, scenes.length, "each scene keeps a distinct final frame");
-  assert.equal(
-    enhancedView.root.findAll((node) => node.props?.["data-static-field"] !== undefined).length,
-    0,
-    "the enhanced view hands the field to the shader",
-  );
-
-  act(() => {
-    Object.values(views).forEach((view) => view.unmount());
-    enhancedView.unmount();
-  });
+  const text = textOf(view.root);
+  assert.match(text, /Line Launcher/);
+  assert.match(text, /0\.15\.4/, "статус продукта берётся из репозитория");
+  assert.doesNotMatch(text, /ИИ|\bAI\b/, "закрытое направление ИИ не возвращается");
+  act(() => view.unmount());
 });
 
 test("Navbar10 and Footer7 render all required navigation items and footer columns", () => {
@@ -581,8 +354,8 @@ test("Navbar10 and Footer7 render all required navigation items and footer colum
   const navigationWithoutPosts = buildNavigation();
   assert.deepEqual(
     navigationWithoutPosts.find((item) => item.id === 4),
-    { title: "AI", id: 4, url: "/ai" },
-    "AI must be a direct desktop and mobile navigation item"
+    { title: "LINE LAUNCHER", id: 4, url: "/line-launcher" },
+    "Line Launcher is a direct desktop and mobile navigation item"
   );
   const aboutWithoutPosts = navigationWithoutPosts.find((item) => item.id === 3);
   assert.equal(aboutWithoutPosts?.imageLink?.url, "/blog");
@@ -633,8 +406,10 @@ test("Navbar10 and Footer7 render all required navigation items and footer colum
 
   const termsLink = footerView.root.findAllByType("a").find((link) => textOf(link) === "Terms of use");
   assert.equal(termsLink?.props.href, "/terms");
-  const aiLink = footerView.root.findAllByType("a").find((link) => link.props.href === "/ai");
-  assert.ok(aiLink, "Footer must link to the AI direction");
+  const productLink = footerView.root
+    .findAllByType("a")
+    .find((link) => link.props.href === "/line-launcher");
+  assert.ok(productLink, "Footer must link to the Line Launcher product page");
   const studioNewsLinks = footerView.root.findAllByType("a").filter((link) => textOf(link) === "Studio news");
   assert.ok(studioNewsLinks.some((link) => link.props.href === "/blog"));
   assert.ok(studioNewsLinks.every((link) => link.props.href !== "/blog/we-re-up-and-running"));
@@ -775,8 +550,8 @@ test("mobile bottom navigation resolves localized and nested active routes", () 
     ["/ru", "/", true],
     ["/ru/services", "/services", true],
     ["/en/services/sign-design", "/services", true],
-    ["/shop/sign-design", "/services", true],
-    ["/ru/shop/sign-design", "/services", true],
+    ["/services/sign-design", "/services", true],
+    ["/ru/services/sign-design", "/services", true],
     ["/ru/cart", "/cart", true],
     ["/cart/checkout", "/cart", true],
     ["/blog", "/services", false],
@@ -793,7 +568,7 @@ test("mobile bottom navigation resolves localized and nested active routes", () 
 });
 
 test("MobileBottomNav renders four touch targets and animates individual SVG icon parts", () => {
-  currentPathname = "/ru/shop/sign-design";
+  currentPathname = "/ru/services/sign-design";
   let menuToggles = 0;
   let navigations = 0;
   let view;
@@ -830,11 +605,11 @@ test("MobileBottomNav renders four touch targets and animates individual SVG ico
     assert.match(link.props.className, /min-h-14/);
     assert.match(link.props.className, /focus-visible:outline-2/);
   }
-  for (const label of ["Home", "Services", "Cart", "Menu"]) {
+  for (const label of ["Home", "Services", "Request", "Menu"]) {
     assert.ok(textOf(nav).includes(label), "Missing mobile tab: " + label);
   }
   // Заказы объединены с корзиной: отдельной вкладки «Orders» больше нет.
-  assert.ok(!textOf(nav).includes("Orders"), "Orders tab must be merged into Cart");
+  assert.ok(!textOf(nav).includes("Orders"), "Orders tab must be merged into Request");
 
   const home = links.find((link) => link.props.href === "/");
   const homeIcon = home.findByProps({ "data-icon": "home" });
@@ -873,14 +648,15 @@ test("MobileBottomNav renders four touch targets and animates individual SVG ico
     .find((span) => String(span.props.className).includes("bg-destructive"));
   assert.ok(badge, "The cart badge must be rendered");
   assert.doesNotMatch(badge.props.className, /animate-mobile-nav-badge/);
-  assert.equal(cart.props["aria-label"], "Open the cart — 104 items");
-  const cartIcon = cart.findByProps({ "data-icon": "cart" });
-  assert.equal(cartIcon.findAllByType("circle").length, 2);
+  assert.equal(cart.props["aria-label"], "Open the request — 104 items");
+  // Заявка — документ, а не корзина: у иконки нет кружков-колёсиков.
+  const requestIcon = cart.findByProps({ "data-icon": "request" });
+  assert.equal(requestIcon.findAllByType("circle").length, 0);
   assert.ok(
-    cartIcon
+    requestIcon
       .findAllByType("path")
       .some((path) => path.props.pathLength === 1 && String(path.props.className).includes("mobile-nav-animate-stroke")),
-    "The cart contour must support stroke drawing",
+    "The request contour must support stroke drawing",
   );
 
   const menu = view.root.findByProps({ id: "mobile-menu-trigger" });
@@ -981,12 +757,12 @@ test("Navbar10 shares one cart request between desktop and mobile navigation", a
 
   assert.equal(cartRequests, 1);
   const desktopCart = view.root.findByProps({ "data-testid": "cart-icon" });
-  assert.equal(desktopCart.props["aria-label"], "Open the cart — 7 items");
+  assert.equal(desktopCart.props["aria-label"], "Open the request — 7 items");
   const mobileNav = view.root.findByProps({ "data-testid": "mobile-bottom-nav" });
   const mobileCart = mobileNav
     .findAllByType("a")
     .find((link) => link.props.href === "/cart");
-  assert.equal(mobileCart.props["aria-label"], "Open the cart — 7 items");
+  assert.equal(mobileCart.props["aria-label"], "Open the request — 7 items");
 
   act(() => view.unmount());
 });
@@ -1188,7 +964,14 @@ test("Blog11 and Blogpost11 render We're Up and Running with all 4 verbatim sect
   assert.equal(COVER_IMAGE_GUIDES.blog.recommended, "1,600 × 1,200 px");
   assert.equal(COVER_IMAGE_GUIDES.services.aspectRatio, "4:3");
   assert.equal(COVER_IMAGE_GUIDES.services.recommended, "1,600 × 1,200 px");
-  assert.ok(listView.root.findAllByType("img").every((image) => /object-contain/.test(image.props.className)));
+  assert.ok(
+    listView.root.findAllByType("img").every((image) => /object-cover/.test(image.props.className)),
+    "обложки кадрируются по 4:3, а не вписываются с полями",
+  );
+  assert.ok(
+    listView.root.findAllByProps({ className: "relative aspect-[4/3] overflow-hidden bg-muted" }).length > 0,
+    "контейнер обложки держит соотношение 4:3",
+  );
   assert.ok(postView.root.findAllByType("img").every((image) => /object-contain/.test(image.props.className)));
   const postText = textOf(postView.root);
   for (const snippet of [
@@ -1358,9 +1141,9 @@ test("the merged /cart page shows the cart and the submitted orders together", a
   });
 
   const text = textOf(view.root);
-  assert.match(text, /Cart and orders/, "the page owns both flows");
-  assert.match(text, /Shopping Cart/, "the cart section is rendered");
-  assert.match(text, /Your Cart is Empty/, "an empty cart no longer hides the orders");
+  assert.match(text, /Request and orders/, "the page owns both flows");
+  assert.match(text, /RequestYour request is empty/, "the request section is rendered");
+  assert.match(text, /Your request is empty/, "an empty request no longer hides the orders");
   assert.match(text, /My orders/, "the orders section is rendered");
   assert.match(text, /ПИП-000007/, "the submitted order is listed under the cart");
   assert.ok(buttonByText(view.root, "Cancel order"), "the order can be cancelled in place");
@@ -1766,7 +1549,11 @@ test("Signup10 centers brand mark and headings, and CandlestickChart uses dark H
   );
   assert.match(signupSource, /flex justify-center md:justify-start/, "знак стоит в углу на десктопе");
   assert.match(signupSource, /lg:grid-cols-2/, "вход остаётся двухколоночным");
-  assert.match(signupSource, /lumi-poster\.webp/, "обложка — фирменная графика студии");
+  assert.doesNotMatch(
+    signupSource,
+    /assets\/agents|lumi-poster/,
+    "постер закрытого ИИ-направления не возвращается на вход",
+  );
   assert.doesNotMatch(signupSource, /\/assets\/shop\//, "стоковые мокапы не возвращаются");
   const logoLink = authView.root.findAllByType("a").find((a) => a.props.href === "/");
   assert.match(logoLink.props.className, /\binline-flex\b/);

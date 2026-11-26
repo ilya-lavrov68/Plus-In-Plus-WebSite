@@ -27,7 +27,7 @@ function StoryMoment({ event, index }: { event: StoryEvent; index: number }) {
         data-reveal-delay={Math.min(index, 5) * 60}
         aria-labelledby={`story-event-${event.id}`}
         className={cn(
-          "story-card col-start-1 row-start-1 rounded-[1.5rem] bg-white/[0.045] p-6 sm:p-7",
+          "story-card col-start-1 row-start-1 rounded-xl bg-white/[0.045] p-6 sm:p-7",
           isLeft ? "md:col-start-1" : "md:col-start-2",
         )}
       >
@@ -131,7 +131,7 @@ export function StoryTimeline({ heading, description, events, labels }: StoryTim
           {events.length === 0 ? (
             <div
               data-reveal=""
-              className="glass-surface mt-14 flex max-w-3xl flex-col items-start gap-5 rounded-[1.5rem] bg-white/[0.04] p-7 sm:flex-row sm:items-center md:mt-20 md:p-8"
+              className="glass-surface mt-14 flex max-w-3xl flex-col items-start gap-5 rounded-xl bg-white/[0.04] p-7 sm:flex-row sm:items-center md:mt-20 md:p-8"
             >
               <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-secondary text-muted-foreground">
                 <History aria-hidden="true" className="size-5" />

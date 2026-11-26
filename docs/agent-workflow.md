@@ -86,7 +86,7 @@
 До изменения:
 
 - повторить дефект через реальный пользовательский путь;
-- для UI сделать browser screenshot и измерить геометрию на затронутых widths;
+- для UI сделать browser screenshot и измерить геометрию на затронутых widths; кадры снимает `npm run screenshots` (см. [`browser-screenshots.md`](browser-screenshots.md)), а не ручной скриншот «на глаз»;
 - для API/server action зафиксировать method, route, безопасное тело, status и sanitized response;
 - для БД проверить фактический query/transaction path, не выдумывать production execution plan;
 - для производительности записать commit, production/dev режим, cold/warm, viewport, сеть, БД/регион и повторяемые метрики;

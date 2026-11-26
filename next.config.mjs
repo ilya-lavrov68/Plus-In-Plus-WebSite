@@ -10,7 +10,33 @@ const securityHeaders = [
 
 const nextConfig = {
   poweredByHeader: false,
-  allowedDevOrigins: ["*.e2b.app"],
+  /**
+   * Dev-ресурсы (HMR и клиентский рантайм) Next отдаёт только «своим» origin.
+   * Превью в песочнице приходит на *.e2b.app, а локальные проверки и скрипт
+   * скриншотов — на 127.0.0.1/localhost. Без них браузер получает HTML без
+   * гидрации: страница выглядит статичной, сцены и меню не работают.
+   */
+  allowedDevOrigins: ["*.e2b.app", "127.0.0.1", "localhost"],
+  /**
+   * Направление ИИ закрыто окончательно. Его страницы не должны отдавать 404
+   * из поиска: единственный подходящий адрес для старого входящего трафика —
+   * каталог дизайн-услуг. Префикс локали сохраняется, чтобы RU-ссылки не
+   * перебрасывали человека в англоязычную версию.
+   */
+  async redirects() {
+    return [
+      // Магазин мерча закрыт: каталог товаров удалён, а страницы услуг
+      // переехали на /services/[slug]. Старый адрес ведёт к тому же каталогу.
+      { source: "/shop", destination: "/services", permanent: true },
+      { source: "/shop/:path*", destination: "/services/:path*", permanent: true },
+      { source: "/ru/shop", destination: "/ru/services", permanent: true },
+      { source: "/ru/shop/:path*", destination: "/ru/services/:path*", permanent: true },
+      { source: "/ai", destination: "/services", permanent: true },
+      { source: "/ai/:path*", destination: "/services", permanent: true },
+      { source: "/ru/ai", destination: "/ru/services", permanent: true },
+      { source: "/ru/ai/:path*", destination: "/ru/services", permanent: true },
+    ];
+  },
   async headers() {
     const headers = [...securityHeaders];
     const publicUrl = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "";

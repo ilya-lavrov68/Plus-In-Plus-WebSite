@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useCallback, useEffect, useState } from "react";
-import { ShoppingCart } from "lucide-react";
+import { FileText } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
@@ -86,7 +86,7 @@ export function CartIcon({
         className
       )}
     >
-      <ShoppingCart aria-hidden="true" className="h-5 w-5" />
+      <FileText aria-hidden="true" className="h-5 w-5" />
       {count > 0 ? (
         <span
           aria-hidden="true"

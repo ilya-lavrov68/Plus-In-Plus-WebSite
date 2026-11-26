@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { ArrowRight } from "lucide-react";
 
 import { MediaPlaceholder } from "@/components/site/media-placeholder";
@@ -25,6 +26,8 @@ export interface Hero138Props {
     alt: string;
   };
   showMediaStage?: boolean;
+  /** Авторская сцена вместо изображения: рисуется, пока `image` не передан. */
+  stageMedia?: ReactNode;
   className?: string;
 }
 
@@ -44,6 +47,7 @@ const Hero138 = ({
   footnote = "Plus In Plus Design Studio",
   image,
   showMediaStage = true,
+  stageMedia,
   className,
 }: Hero138Props) => {
   return (
@@ -89,7 +93,7 @@ const Hero138 = ({
                 </Button>
               )}
               {secondaryCta && (
-                <Button variant="ghost"size="lg"asChild>
+                <Button variant="neutral" size="lg" asChild>
                   <Link href={secondaryCta.href} className="group">
                     {secondaryCta.label}
                     <ArrowRight className="ml-1 size-4 transition-transform duration-200 ease-out group-hover:translate-x-1" />
@@ -119,39 +123,21 @@ const Hero138 = ({
 
       {showMediaStage && (
         <div data-reveal="" data-reveal-delay={180} className="relative mt-16 md:mt-28">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -top-12 right-0 left-0 mx-auto grid h-80 max-w-6xl grid-cols-4 gap-8 px-8 opacity-25 blur-3xl"
-          >
-            <div
-              className="h-full rounded-full"
-              style={{ backgroundColor: "hsl(var(--hero-pillar-1))" }}
-            />
-            <div
-              className="h-full rounded-full"
-              style={{ backgroundColor: "hsl(var(--hero-pillar-2))" }}
-            />
-            <div
-              className="h-full rounded-full"
-              style={{ backgroundColor: "hsl(var(--hero-pillar-3))" }}
-            />
-            <div
-              className="h-full rounded-full"
-              style={{ backgroundColor: "hsl(var(--hero-pillar-4))" }}
-            />
-          </div>
-
           <div className="container relative z-10">
-            <div className="hero-media-frame relative overflow-hidden rounded-[1.75rem] bg-white/[0.055] p-1.5 sm:p-2.5">
+            <div className="hero-media-frame relative overflow-hidden rounded-2xl bg-white/[0.055] p-1.5 [--pip-nest-gap:6px] [--pip-radius-outer:var(--radius-2xl)] sm:p-2.5 sm:[--pip-nest-gap:10px]">
               {image?.src ? (
                 <img
                   src={image.src}
                   alt={image.alt}
-                  className="aspect-[16/9] w-full rounded-[1.35rem] object-cover object-center"
+                  className="nested-radius aspect-[16/9] w-full object-cover object-center"
                 />
+              ) : stageMedia ? (
+                <div className="nested-radius aspect-[16/9] overflow-hidden">
+                  {stageMedia}
+                </div>
               ) : (
                 <MediaPlaceholder
-                  className="aspect-[16/9] rounded-[1.35rem]"
+                  className="nested-radius aspect-[16/9]"
                   markClassName="h-16 sm:h-20"
                 />
               )}

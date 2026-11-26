@@ -1,14 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1200" fill="none">
-  <rect width="1600" height="1200" fill="#131216"/>
-  <g opacity="0.35" transform="translate(638 474) scale(6)">
-    <rect x="12.0039" y="12" width="5.99992" height="5.99992" fill="#D8EFFD"/>
-    <rect x="24" y="12" width="5.99992" height="5.99992" fill="#D8EFFD"/>
-    <rect x="36" y="12" width="5.99992" height="17.9997" fill="#E7DCCA"/>
-    <rect x="36" y="29" width="6" height="13" fill="#E7DCCA"/>
-    <rect x="41" y="30" width="6" height="13" transform="rotate(-90 41 30)" fill="#E7DCCA"/>
-    <rect x="24" y="30" width="6" height="13" transform="rotate(-90 24 30)" fill="#E7DCCA"/>
-    <rect y="12" width="5.99992" height="5.99992" fill="#D8EFFD"/>
-    <rect x="12.0039" width="5.99992" height="5.99992" fill="#D8EFFD"/>
-    <rect x="12.0039" y="23.9995" width="5.99992" height="5.99992" fill="#D8EFFD"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1200" fill="none" role="img" aria-label="Plus In Plus">
+  <defs>
+    <radialGradient id="mass" cx="0.72" cy="0.46" r="0.75">
+      <stop offset="0" stop-color="#6b6364" stop-opacity="0.85" />
+      <stop offset="0.42" stop-color="#4a4546" stop-opacity="0.55" />
+      <stop offset="0.78" stop-color="#242122" stop-opacity="0.25" />
+      <stop offset="1" stop-color="#110f10" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="warm" cx="0.78" cy="0.72" r="0.45">
+      <stop offset="0" stop-color="#ff5f01" stop-opacity="0.3" />
+      <stop offset="1" stop-color="#ff5f01" stop-opacity="0" />
+    </radialGradient>
+    <pattern id="dither" width="6" height="6" patternUnits="userSpaceOnUse">
+      <path d="M3 1.1a1.9 1.9 0 1 1 0 3.8a1.9 1.9 0 1 1 0-3.8Z" fill="#eeeeee" fill-opacity="0.2" />
+    </pattern>
+  </defs>
+  <rect width="1600" height="1200" fill="#110f10" />
+  <rect width="1600" height="1200" fill="url(#mass)" />
+  <rect width="1600" height="1200" fill="url(#warm)" />
+  <rect width="1600" height="1200" fill="url(#dither)" />
+  <g fill="#eeeeee" fill-opacity="0.26">
+    <rect x="754" y="480" width="92" height="240" rx="10" />
+    <rect x="680" y="554" width="240" height="92" rx="10" />
   </g>
 </svg>

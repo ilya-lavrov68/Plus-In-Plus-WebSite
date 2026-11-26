@@ -302,7 +302,7 @@ test("saveService writes the service, logs the action and revalidates the site",
   assert.equal(log.action, "service.updated");
   assert.equal(log.actor_id_id, "usr-admin");
 
-  for (const url of ["/admin/services", "/services", "/shop", "/"]) {
+  for (const url of ["/admin/services", "/services", "/"]) {
     assert.ok(invalidated.includes(url), `${url} must be revalidated`);
   }
 });

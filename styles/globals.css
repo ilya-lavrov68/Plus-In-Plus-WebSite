@@ -149,15 +149,6 @@
   }
 }
 
-@keyframes pixel-direction-frames {
-  from {
-    background-position: 0 0;
-  }
-  to {
-    background-position: -1920px 0;
-  }
-}
-
 @theme {
   --font-sans: "Google Sans Flex", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-sans-flex: "Google Sans Flex", "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -170,10 +161,19 @@
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
 
-  /* Форма и ритм: цвета живут отдельным inline-блоком ниже. */
-  --radius-lg: 0.625rem;
-  --radius-md: 0.5rem;
-  --radius-sm: 0.375rem;
+  /*
+   * Форма и ритм. Радиусы заданы шкалой по иерархии, а не произвольными
+   * значениями: чем крупнее поверхность, тем больше радиус. Соседние ступени
+   * отличаются на 8px, поэтому вложенный блок всегда можно посчитать как
+   * «внешний радиус минус отступ» (см. утилиту `nested-radius` ниже).
+   */
+  --radius-xs: 4px;   /* метки, чипы, мелкие детали */
+  --radius-sm: 8px;   /* поля ввода, компактные контролы */
+  --radius-md: 12px;  /* кнопки, небольшие панели */
+  --radius-lg: 16px;  /* карточки, внутренние блоки */
+  --radius-xl: 20px;  /* крупные панели, поповеры */
+  --radius-2xl: 28px; /* секции и медиа-рамки */
+  --radius-3xl: 36px; /* крупные полотна первого экрана */
 
   --duration-200: 200ms;
   --duration-250: 250ms;
@@ -284,63 +284,139 @@
   padding-block: clamp(3.5rem, 2.5rem + 4vw, 6rem);
 }
 
+/*
+ * Растровая фактура нейтральных медиа-слотов. Тот же язык, что у Hazeglow в
+ * стиле dither: сетка точек поверх мягкой световой массы. Сделано на CSS, а не
+ * на WebGL, чтобы не плодить десятки GL-контекстов на длинных страницах.
+ */
+@utility dither-field {
+  background-color: var(--pip-surface-dark, #110f10);
+  background-image:
+    radial-gradient(
+      120% 90% at 72% 52%,
+      rgba(107, 99, 100, 0.55) 0%,
+      rgba(74, 69, 70, 0.28) 38%,
+      rgba(17, 15, 16, 0) 72%
+    ),
+    radial-gradient(circle, rgba(238, 238, 238, 0.18) 0.9px, transparent 1.05px);
+  background-size: 100% 100%, 6px 6px;
+}
+
 /* Комфортная длина строки для длинных текстов: ~70 символов. */
 @utility measure {
   max-width: 68ch;
 }
 
+/*
+ * Вложенный угол. Внутренний радиус не назначается на глаз: он равен внешнему
+ * радиусу минус отступ от края родителя, иначе углы «расходятся» и блок
+ * выглядит неаккуратно. Родитель объявляет два значения, ребёнок их наследует:
+ *
+ *   <div class="rounded-2xl p-2 [--pip-radius-outer:var(--radius-2xl)] [--pip-nest-gap:0.5rem]">
+ *     <img class="nested-radius" … />
+ *   </div>
+ *
+ * Формула клампится снизу ступенью `--radius-xs`: при большом отступе угол не
+ * становится отрицательным или острее базовой метки.
+ */
+@utility nested-radius {
+  border-radius: max(
+    var(--radius-xs),
+    calc(var(--pip-radius-outer, var(--radius-xl)) - var(--pip-nest-gap, 0px))
+  );
+}
+
+/*
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Палитра Plus In Plus: три уровня токенов.
+ *
+ * Уровень 1 — primitives: утверждённые владельцем значения бренда. Компоненты
+ * их не читают напрямую и hex-значений не знают; менять эти строки можно только
+ * по прямому решению владельца.
+ *
+ * Уровень 2 — semantic: роли поверхностей, текста и действия. Все пары
+ * «текст/поверхность» проверены на контраст WCAG AA и закреплены тестом
+ * `tests/design-system.test.cjs`.
+ *
+ * Уровень 3 — component: роли приложения ниже в `:root, .dark` (background,
+ * card, primary, ring, brand-signal) переопределяются из semantic-слоя.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+:root {
+  /* Примитивы: не переопределяются темами, кроме прямого решения владельца. */
+  --pip-accent-neutral: #eeeeee;
+  --pip-accent-neutral-strong: #e2e2e2;
+  --pip-accent-signal: #ff5f01;
+  --pip-accent-signal-strong: #e65400;
+  --pip-ink-light: #0e1015;
+  --pip-ink-dark: #eeeeee;
+  --pip-surface-dark: #110f10;
+  --pip-surface-gray: #2b292a;
+}
+
+:root {
+  /* Семантика поверхностей и текста. */
+  --pip-surface: var(--pip-surface-dark);
+  --pip-surface-raised: var(--pip-surface-gray);
+  --pip-ink: var(--pip-ink-dark);
+  --pip-ink-muted: rgb(238 238 238 / 64%);
+  /* Действие: оранжевая заливка всегда с тёмным текстом. */
+  --pip-action: var(--pip-accent-signal);
+  --pip-action-ink: var(--pip-ink-light);
+  --pip-action-hover: var(--pip-accent-signal-strong);
+  --pip-focus: var(--pip-accent-signal);
+  /* Линии и служебные разделители: производные от текста, не отдельный цвет. */
+  --pip-line: rgb(238 238 238 / 18%);
+  --pip-line-strong: rgb(238 238 238 / 32%);
+}
+
 @layer base {
   :root,
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 7.5%;
-    --popover-foreground: 0 0% 98%;
+    --background: 330 6.3% 6.3%;
+    --foreground: 0 0% 93.3%;
+    --card: 330 2.4% 16.5%;
+    --card-foreground: 0 0% 93.3%;
+    --popover: 330 5% 9%;
+    --popover-foreground: 0 0% 93.3%;
     /* Фирменный акцент Plus In Plus: точный #FFFF01. Уходит в текст и иконки:
      * заливок и анимаций этим цветом больше нет. */
-    --primary: #FFFF01;
-    --primary-foreground: #0a0a0a;
+    --primary: var(--pip-action);
+    --primary-foreground: var(--pip-action-ink);
     /* Подложка кнопки при наведении: тёмно-серый, поверх него — жёлтый текст. */
-    --hover-surface: #242424;
-    --md-signal: #FFFF01;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 11.5%;
+    --hover-surface: #333031;
+    --md-signal: var(--pip-action);
+    --secondary: 330 2.5% 14%;
+    --secondary-foreground: 0 0% 93.3%;
+    --muted: 330 4% 11%;
     --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 330 2.5% 14%;
+    --accent-foreground: 0 0% 93.3%;
     --destructive: 0 62.8% 50.6%;
     --destructive-foreground: 0 0% 98%;
     --destructive-text: 0 85% 68%;
     --border: 0 0% 15.5%;
     --input: 0 0% 15.5%;
-    --ring: 60 100% 50%;
-    --radius: 0.625rem;
+    --ring: 22 99% 50%;
+    --radius: 12px;
 
     --mobile-bottom-nav-height: 4.5rem;
     --mobile-bottom-nav-clearance: 0px;
 
-    --brand-signal: #ffff01;
-    --brand-signal-strong: #e6e601;
-    --brand-signal-ink: #12131b;
+    --brand-signal: var(--pip-accent-signal);
+    --brand-signal-strong: var(--pip-accent-signal-strong);
+    --brand-signal-ink: var(--pip-ink-light);
     /* Цвета графиков: сигнальный жёлтый и вторичный periwinkle. */
-    --pip-signal: #ffff01;
+    --pip-signal: var(--pip-accent-signal);
     --pip-violet: #8f9cfc;
 
-    --hero-pillar-1: 60 100% 50%;
-    --hero-pillar-2: 0 0% 32%;
-    --hero-pillar-3: 0 0% 62%;
-    --hero-pillar-4: 0 0% 22%;
-
-    --spectrum-primary: #FFFF01;
-    --spectrum-primary-hover: #E6E601;
+    --spectrum-primary: var(--pip-accent-signal);
+    --spectrum-primary-hover: var(--pip-accent-signal-strong);
     --spectrum-secondary: #262626;
     --spectrum-secondary-hover: #383838;
     --spectrum-accent: #1d1d1d;
-    --spectrum-background: #0a0a0a;
-    --spectrum-text: #fafafa;
+    --spectrum-background: var(--pip-surface-dark);
+    --spectrum-text: var(--pip-ink-dark);
     --spectrum-muted: #a3a3a3;
     --spectrum-destructive: #ce3434;
     --spectrum-border: #262626;
@@ -407,7 +483,7 @@
     --md-inverse-on-surface: #2b2b30;
 
     /* Единственный жёлтый в панели — текстовый акцент при наведении. */
-    --md-signal: #ece38a;
+    --md-signal: #c9ccd4;
     --hover-surface: #2e2e35;
 
     /* Ряды данных: спокойный светлый тон и приглушённый синий. */
@@ -561,56 +637,6 @@
 }
 
 @layer components {
-  /* Два смысловых pixel-sprite: сетка фона неподвижна, кадры меняются через
-   * steps, а финальный кадр остаётся доступен без JS и при reduced motion. */
-  .pixel-direction-sprite {
-    --pixel-sprite-scale: 4;
-    display: grid;
-    place-items: center;
-    overflow: hidden;
-    background-color: hsl(var(--background));
-    background-image:
-      linear-gradient(hsl(var(--foreground) / 0.035) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(var(--foreground) / 0.035) 1px, transparent 1px);
-    background-size: 32px 32px;
-  }
-
-  .pixel-direction-sprite__sheet {
-    width: 80px;
-    height: 40px;
-    flex: none;
-    transform: scale(var(--pixel-sprite-scale));
-    image-rendering: pixelated;
-    background-repeat: no-repeat;
-    background-size: 1920px 40px;
-    background-position: -1840px 0;
-  }
-
-  .pixel-direction-sprite--ai .pixel-direction-sprite__sheet {
-    background-image: url("/assets/pixels/direction-ai.png");
-  }
-
-  .pixel-direction-sprite--design .pixel-direction-sprite__sheet {
-    background-image: url("/assets/pixels/direction-design.png");
-  }
-
-  .pixel-direction-sprite[data-active="true"] .pixel-direction-sprite__sheet {
-    animation: pixel-direction-frames 2.4s steps(24, end) infinite;
-  }
-
-  @media (width < 381px) {
-    .pixel-direction-sprite {
-      --pixel-sprite-scale: 3;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .pixel-direction-sprite__sheet {
-      animation: none !important;
-      background-position: -1840px 0;
-    }
-  }
-
   /* Clip only decorative motion overflow, never the reading layout. Excluding
    * these subtrees from scroll anchoring also prevents one-shot transforms and
    * hover polish from becoming the browser's next anchor target. */

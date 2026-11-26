@@ -60,8 +60,8 @@ export default async function TermsPage() {
             </h2>
             <p>
               {isRu
-                ? "Отправка корзины или формы является заявкой на обсуждение проекта, а не автоматическим акцептом или оплатой. Предварительный расчёт на сайте не является окончательной офертой. Состав работ, сроки и цену подтверждает менеджер или основатель после согласования деталей; условия оплаты фиксируются отдельно в счёте или договорённости с клиентом."
-                : "Submitting a cart or form is a request to discuss a project, not an automatic acceptance or payment. Website estimates are not final offers. A manager or founder confirms the scope, timing, and price after discussing the details; payment terms are confirmed separately in an invoice or agreement with the client."}
+                ? "Отправка заявки или формы является обращением на обсуждение проекта, а не автоматическим акцептом или оплатой. Предварительный расчёт на сайте не является окончательной офертой. Состав работ, сроки и цену подтверждает менеджер или основатель после согласования деталей; условия оплаты фиксируются отдельно в счёте или договорённости с клиентом."
+                : "Submitting a request or form is an enquiry about a project, not an automatic acceptance or payment. Website estimates are not final offers. A manager or founder confirms the scope, timing, and price after discussing the details; payment terms are confirmed separately in an invoice or agreement with the client."}
             </p>
           </section>
 

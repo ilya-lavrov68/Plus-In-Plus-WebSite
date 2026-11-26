@@ -55,7 +55,7 @@ const Footer7 = ({
   const serviceLinks = [
     ...services.slice(0, 4).map((service) => ({
       name: serviceNames[service.slug] ?? service.title,
-      href: `/shop/${service.slug}`,
+      href: `/services/${service.slug}`,
     })),
     { name: t("largeDesigns"), href: "/services" },
   ];
@@ -83,7 +83,7 @@ const Footer7 = ({
     {
       title: t("resources"),
       links: [
-        { name: t("ai"), href: "/ai" },
+        { name: t("product"), href: "/line-launcher" },
         { name: t("aboutLinks.blog"), href: "/blog" },
         { name: t("aboutLinks.studioNews"), href: "/blog" },
         { name: t("companyLinks.account"), href: "/login" },

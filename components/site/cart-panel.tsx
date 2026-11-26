@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
+import { FileText, Minus, Plus, Trash2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
 import { notifyCartUpdated } from "@/components/site/cart-icon";
@@ -211,7 +211,7 @@ export function CartPanel() {
   if (items.length === 0) {
     return (
       <Card className="glass-panel bg-background/65 px-6 py-10 text-center">
-        <ShoppingCart
+        <FileText
           aria-hidden="true"
           className="mx-auto mb-4 h-10 w-10 text-muted-foreground"
         />
@@ -230,7 +230,7 @@ export function CartPanel() {
           <Button onClick={() => router.push("/services")}>
             {t("browseServices")}
           </Button>
-          <Button variant="outline" onClick={() => router.push("/shop")}>
+          <Button variant="outline" onClick={() => router.push("/services")}>
             {t("browseShop")}
           </Button>
         </div>

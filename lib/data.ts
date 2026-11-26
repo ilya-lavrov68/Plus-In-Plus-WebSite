@@ -450,7 +450,7 @@ export async function getPublishedService(slugOrId: string): Promise<ServiceView
 }
 
 export function serviceHref(service: Pick<ServiceView, "id" | "slug">): string {
-  return `/shop/${encodeURIComponent(service.slug || service.id)}`;
+  return `/services/${encodeURIComponent(service.slug || service.id)}`;
 }
 
 export interface ServiceOptionView { id: string; label: string; priceDelta: number; priceFactor: number; isDefault: boolean; sortOrder: number }

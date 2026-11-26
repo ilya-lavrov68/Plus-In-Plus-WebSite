@@ -6,23 +6,30 @@ export const buttonVariants = cva(
     variants: {
       variant: {
         /*
-         * Базовая кнопка — белая с тёмным текстом. При наведении она просто
-         * немного темнеет: ни подложка, ни текст не меняют оттенок, поэтому
-         * нажатие читается как реакция на курсор, а не как переключение
-         * режима. Жёлтого в кнопках нет.
+         * Главное действие — оранжевая заливка с тёмным текстом (решение
+         * владельца: CTA #FF5F01, текст #0E1015, контраст 6.24:1). При
+         * наведении заливка темнеет до #E65400 — оттенок не меняется, поэтому
+         * реакция читается как отклик на курсор, а не как смена режима.
          */
         default:
-          "bg-foreground text-background hover:bg-foreground/90",
+          "bg-primary text-primary-foreground hover:bg-brand-signal-strong",
         primary:
-          "bg-foreground text-background hover:bg-foreground/90",
+          "bg-primary text-primary-foreground hover:bg-brand-signal-strong",
         cta:
-          "bg-foreground text-background hover:bg-foreground/90",
+          "bg-primary text-primary-foreground hover:bg-brand-signal-strong",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/85",
         outline:
           "bg-transparent text-foreground hover:bg-white/[0.08] hover:text-foreground",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-white/[0.14] hover:text-foreground",
+        /*
+         * Вторичное действие — светлая плашка #EEEEEE с тёмным текстом
+         * (решение владельца). Наведение только темнит поверхность: оттенок и
+         * роль кнопки не меняются.
+         */
+        neutral:
+          "bg-[var(--pip-accent-neutral)] text-[var(--pip-ink-light)] hover:bg-[var(--pip-accent-neutral-strong)]",
         ghost:
           "text-foreground hover:bg-white/[0.07] hover:text-foreground",
         link: "text-signal underline-offset-4 hover:underline",
@@ -49,7 +56,7 @@ export const headerButtonVariants = cva(
         outline:
           "bg-transparent text-foreground hover:bg-white/[0.08] hover:text-foreground",
         primary:
-          "bg-foreground text-background hover:bg-foreground/90",
+          "bg-primary text-primary-foreground hover:bg-brand-signal-strong",
       },
     },
     defaultVariants: {

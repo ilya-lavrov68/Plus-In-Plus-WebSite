@@ -60,8 +60,8 @@
     "label": "Mobile navigation",
     "home": "Home",
     "services": "Services",
-    "cart": "Cart",
-    "menu": "Menu"
+    "menu": "Menu",
+    "request": "Request"
   },
   "cookies": {
     "title": "We use cookies",
@@ -91,7 +91,7 @@
     "login": "Log in",
     "logout": "Log out",
     "profile": "Profile",
-    "cart": "Cart",
+    "cart": "Request",
     "account": "Account",
     "admin": "Admin Panel",
     "yourAccount": "Your account",
@@ -109,11 +109,11 @@
     "dismiss": "Dismiss announcement"
   },
   "hero": {
-    "title": "AI and design for the next generation",
+    "title": "Plus In Plus design studio",
     "order": "Order",
     "contactUs": "Contact us",
     "orderDesign": "Order a design",
-    "exploreAi": "AI agents"
+    "exploreProduct": "Line Launcher"
   },
   "categories": {
     "title": "Order a design you won't regret",
@@ -135,13 +135,13 @@
     },
     "individual": {
       "title": "Individual selection",
-      "description": "We take an individualized approach with each person"
+      "description": "Every project starts with your situation, not a template"
     },
     "support": {
       "title": "Digital support",
       "description": "We are here when a design needs refinement or a digital workflow needs a clear explanation"
     },
-    "heading": "Pixels, code, and human meaning.",
+    "heading": "Form, code and human meaning.",
     "button": "Contact us"
   },
   "story": {
@@ -187,76 +187,6 @@
     "defaultPostExcerpt": "A closer look at the ideas, process, and people behind the work.",
     "description": "Updates from our design studio, product ecosystems, and client projects."
   },
-  "shop": {
-    "comingSoonTitle": "Shop is coming soon",
-    "comingSoonBody": "We're working on our merchandise. Stay tuned!",
-    "comingSoonBack": "Back to home",
-    "catalogTitle": "Shop — Plus In Plus",
-    "catalogDescription": "Merchandise and products from Plus In Plus studio.",
-    "pageTitle": "SHOP",
-    "title": "Our Services",
-    "smallDesigns": "Small designs",
-    "largeDesigns": "Large designs",
-    "largeDesignsSubtitle": "Above It All. Rough Roads, Louder Message.",
-    "more": "More",
-    "back": "Back",
-    "backToShop": "Back to shop",
-    "order": "Order",
-    "ourServiceIncludes": "Our service includes:",
-    "anyShapeAnyIdea": "Any shape, any idea",
-    "theResult": "The result:",
-    "galleryLabel": "Service gallery",
-    "exampleAlt": "{title} example {index}",
-    "noSmallDesigns": {
-      "title": "No small designs yet",
-      "description": "New small designs will appear here soon."
-    },
-    "noLargeDesigns": {
-      "title": "No large designs yet",
-      "description": "New large designs will appear here soon."
-    },
-    "moreDetails": "{title} — more details",
-    "signDesignCopy": {
-      "introduction": "A sign is the face of your business. It shapes the first impression, grabs the attention of passersby, and sets the tone for your entire brand. We create more than just an image; we build an effective navigation and advertising tool that works for you 24/7.",
-      "includes": [
-        "Location analysis: We consider the building’s architecture, lighting, and surroundings to ensure the sign blends harmoniously with the environment while still standing out.",
-        "Readability and contrast: We select fonts and colors to ensure your company name is instantly legible—both day and night.",
-        "Technical expertise: We prepare a layout that accounts for production requirements (materials, lighting, mounting) so the design can be executed without compromising quality.",
-        "Visualization (3D mockup): Before production begins, you will see exactly how the sign will look on your building’s facade."
-      ],
-      "shapesIntroduction": "We aren't limited to standard rectangular light boxes. A sign's shape is part of its character. Depending on your brand's needs, we can design:",
-      "shapes": [
-        "Classic light boxes (rectangular or square).",
-        "Custom-shaped signs (following a logo outline or object silhouette).",
-        "Dimensional letters (with halo, face, or combined lighting).",
-        "Projecting signs (double-sided, mounted perpendicular to the wall).",
-        "Neon installations and interior signage.",
-        "Non-standard geometric shapes (circles, arches, polygons)."
-      ],
-      "result": "A production-ready layout and realistic visualization to help you secure approval from your landlord or local authorities."
-    },
-    "configurator": {
-      "title": "Configure your order",
-      "subtitle": "Choose the options — we will calculate the price and confirm it with you.",
-      "estimated": "Estimated price",
-      "from": "from",
-      "requestQuote": "Request a quote",
-      "signInToOrder": "Sign in to request a quote",
-      "selectAllRequired": "Select all required options",
-      "optional": "optional",
-      "priceOnRequest": "Price on request",
-      "notOrderable": "This service is not available for online ordering yet.",
-      "breakdownTitle": "How the price is built",
-      "base": "Base price",
-      "managerNote": "The final price is confirmed by a manager after discussing the details.",
-      "submitted": "Request {number} is accepted.",
-      "signInHint": "Sign in using the menu in the site header.",
-      "addToCart": "Add to cart",
-      "addedToCart": "Added",
-      "viewCart": "Open the cart",
-      "addToCartFailed": "Could not add to the cart. Please try again."
-    }
-  },
   "blog": {
     "pageTitle": "BLOG",
     "title": "Blog",
@@ -269,13 +199,14 @@
     "openOriginalPost": "Open original post",
     "empty": {
       "title": "The blog is empty",
-      "description": "Our first article is coming soon."
+      "description": "Our first article is coming soon.",
+      "eyebrow": "Coming soon"
     },
     "preparing": {
       "title": "This article is being prepared",
       "description": "Please check back soon for the full article."
     },
-    "readTime": "{count}-minute read",
+    "readTime": "{count} min read",
     "sampleArticle": {
       "title": "We're Up and Running",
       "lead": "We’ve long wanted to bring together in one place everything that Plus In Plus has become: our approach, our services, and the projects through which we put ideas to the test. Now our new website is live—and it’s more than just an updated showcase. It’s a clearer story of how we help products become cohesive and ready for growth.",
@@ -319,7 +250,15 @@
     "otherNewsDescription": "Explore more articles and stories from the Plus In Plus team.",
     "articleNavigation": "Article navigation",
     "listDescription": "Updates from our design studio, product ecosystems, and client projects.",
-    "otherNews": "Other News"
+    "otherNews": "Other News",
+    "eyebrow": "Studio journal",
+    "featured": "Featured story",
+    "read": "Read",
+    "cta": {
+      "title": "Have a project?",
+      "description": "Tell us about it — we will suggest where to start and what to do first.",
+      "action": "Discuss a project"
+    }
   },
   "gallery": {
     "title": "Gallery",
@@ -446,8 +385,8 @@
     "news": "Plus In Plus news",
     "insights": "Design insights",
     "largeDesigns": "Large designs",
-    "description": "Plus In Plus combines AI technology and design: specialised agents, visual systems, mockups, signage, and outdoor media.",
-    "ai": "AI"
+    "description": "Plus In Plus is a design studio: identity, websites, signage and outdoor media. We also develop our own product, Line Launcher.",
+    "product": "Line Launcher"
   },
   "auth": {
     "login": "Log in",
@@ -1138,30 +1077,26 @@
     "errorCode": "Error code"
   },
   "metadata": {
-    "home": "Plus In Plus — AI and design",
-    "homeDescription": "Plus In Plus combines brand design with specialised AI agents: visual systems, code, and clear digital workflows.",
+    "home": "Plus In Plus — design studio",
+    "homeDescription": "Identity, digital mockups, signage and outdoor media. Plus In Plus designs visual systems for brands and develops Line Launcher.",
     "login": "Log in — Plus In Plus",
     "loginDescription": "Sign in to your Plus In Plus account or staff dashboard.",
     "register": "Register — Plus In Plus",
     "registerDescription": "Create a free Plus In Plus account to place and track orders.",
-    "shop": "Shop — Plus In Plus",
-    "shopDescription": "Plus In Plus service catalog: small and large design projects with details and examples.",
-    "shopService": "Shop — Plus In Plus",
-    "shopServiceDescription": "Learn the details of this service and what a Plus In Plus design project includes.",
     "blog": "Blog — Plus In Plus",
     "blogDescription": "News, studio updates, and design stories from Plus In Plus.",
     "contact": "Contact us — Plus In Plus",
     "contactDescription": "Have an idea for signage, web mockups, or outdoor media? Send a message to Plus In Plus.",
     "admin": "Admin — Plus In Plus",
-    "siteDescription": "Plus In Plus — AI technology and design: Lumi Q1 and Kairo agents, graphic and digital design.",
-    "siteTitle": "Plus In Plus — AI and design",
+    "siteDescription": "Plus In Plus is a design studio: identity, websites, layouts, signage and outdoor media. Our own product is Line Launcher, a Minecraft launcher.",
+    "siteTitle": "Plus In Plus — design studio",
     "manager": "Manager — orders",
     "users": "Users — Plus In Plus",
     "services": "Services — Plus In Plus",
     "servicesDescription": "Browse small and large format design services from Plus In Plus studio.",
     "profile": "Profile — Plus In Plus",
-    "ai": "Lumi Q1 and Kairo AI agents — Plus In Plus",
-    "aiDescription": "Introducing the Plus In Plus AI direction: Lumi Q1 coding agent and Kairo, an informational legal assistant focused on Russian law."
+    "lineLauncher": "Line Launcher — a Minecraft launcher for game projects",
+    "lineLauncherDescription": "A minimal Minecraft launcher by Plus In Plus: one provider, one launcher, Tauri 2.12, Rust and React 19, Windows, macOS and Linux."
   },
   "actions": {
     "accountCreatedPleaseLogIn": "Your account was created. Please log in.",
@@ -1264,8 +1199,8 @@
     "invalidPrice": "Enter a valid price.",
     "invalidOptionConfiguration": "Enter a valid option configuration with non-empty names, valid prices, and at most one default per group.",
     "invalidPriceType": "Unknown price type.",
-    "cartEmpty": "The cart is empty — there is nothing to send.",
-    "cartItemUnavailable": "One of the services in the cart is no longer available. Remove it and try again.",
+    "cartEmpty": "Your request is empty — there is nothing to send yet.",
+    "cartItemUnavailable": "One of the services in your request is no longer available. Remove it and try again.",
     "founderInvulnerable": "Action denied. Founder is invulnerable.",
     "orderLocked": "Order is locked. Only Founder can edit.",
     "selectAtLeastOneService": "Please select at least one service.",
@@ -1273,11 +1208,11 @@
     "invalidDeadline": "Please choose a valid deadline date (today or in the future).",
     "cannotDeleteServiceWithActiveOrders": "Cannot delete a service that has active orders.",
     "cannotChangePriceWithActiveOrders": "Cannot change the price of a service included in an active order.",
-    "cartItemNotFound": "This cart line no longer exists. Refresh the cart and try again.",
+    "cartItemNotFound": "This request line no longer exists. Refresh the request and try again.",
     "itemUnavailable": "This service or product is not available for cart orders.",
     "insufficientStock": "The requested quantity exceeds available stock. Stock is reserved only after the price is agreed.",
     "invalidQuantity": "Enter a quantity between 1 and 99.",
-    "staleCart": "The cart changed in another tab. Refresh it and try again.",
+    "staleCart": "The request changed in another tab. Refresh it and try again.",
     "cancelPaidOrder": "A paid order cannot be cancelled online. Please contact us.",
     "cancelStartedOrder": "Work on this order has already started, so it cannot be cancelled.",
     "cancelFailed": "Could not cancel the order. Please try again.",
@@ -1355,18 +1290,18 @@
     }
   },
   "cart": {
-    "title": "Cart and orders",
-    "shoppingCart": "Shopping Cart",
+    "title": "Request and orders",
+    "shoppingCart": "Request",
     "subtitle": "Add studio services or shop products, send them as one request and follow its status right here.",
-    "open": "Open the cart",
-    "openWithCount": "Open the cart — {count} items",
-    "emptyTitle": "Your Cart is Empty",
+    "open": "Open the request",
+    "openWithCount": "Open the request — {count} items",
+    "emptyTitle": "Your request is empty",
     "emptyBody": "Add services or products to get started",
     "browseServices": "Browse Services",
-    "browseShop": "Browse Shop",
-    "addToCart": "Add to Cart",
+    "browseShop": "Browse services",
+    "addToCart": "Add to request",
     "added": "Added",
-    "addFailed": "Could not add the item to the cart. Please try again.",
+    "addFailed": "Could not add the item to the request. Please try again.",
     "serviceLabel": "Service",
     "productLabel": "Product",
     "orderDetails": "Order Details",
@@ -1376,12 +1311,12 @@
     "submitOrderRequest": "Submit Order Request",
     "submitting": "Submitting...",
     "loading": "Loading...",
-    "toShop": "Go to the shop",
-    "remove": "Remove from the cart",
-    "itemUnavailable": "This item is no longer available for ordering — remove it from the cart.",
+    "toShop": "Go to services",
+    "remove": "Remove from the request",
+    "itemUnavailable": "This item is no longer available for ordering — remove it from the request.",
     "itemStockLimited": "Only {count} available. Reduce the quantity or remove this item.",
     "resolveItems": "Remove unavailable items and adjust stock quantities before submitting.",
-    "loadFailed": "Could not load the cart. Please refresh and try again.",
+    "loadFailed": "Could not load the request. Please refresh and try again.",
     "updateFailed": "Could not update the quantity. Please try again.",
     "removeFailed": "Could not remove the item. Please try again.",
     "unavailableHint": "Unavailable items must be removed before checkout.",
@@ -1400,18 +1335,18 @@
   },
   "home": {
     "newsDescription": "Studio news, digital initiatives, and client project updates.",
-    "heroMuted": "AI and design",
-    "heroPrimary": "for the next generation",
-    "heroDescriptionLead": "We create visual systems and develop specialised AI agents. ",
-    "heroDescriptionStrong": "Two Plus In Plus directions: design for brands and digital assistants for coding and legal information.",
-    "heroFootnote": "Plus In Plus · AI + Design",
+    "heroMuted": "Design studio",
+    "heroPrimary": "Plus In Plus",
+    "heroDescriptionLead": "We design identity, websites, signage and outdoor media for brands that need to speak clearly. ",
+    "heroDescriptionStrong": "We start from meaning: positioning and structure first, then form — from the mark to finished layouts.",
+    "heroFootnote": "Plus In Plus · design studio",
     "heroAlt": "Plus In Plus studio showcase",
-    "ctaTitle": "Two directions. One digital environment.",
-    "ctaDescription": "Order design for your idea or explore the concepts behind Lumi Q1 and Kairo, the specialised AI agents from Plus In Plus.",
+    "ctaTitle": "Tell us about the task",
+    "ctaDescription": "Identity, a website, a sign or outdoor media — we will propose a plan and show how it will look.",
     "communityBadge": "Partners & Neighbors",
     "communityHeading": "Our partners and neighbors",
     "communityDescription": "We closely collaborate with TS Connect, an IT firm in Tambov, delivering reliable design and digital infrastructure for brands and organizations.",
-    "pipDescription": "AI and design studio: agents, identity, mockups, signage, and event collateral.",
+    "pipDescription": "Plus In Plus design studio: identity, digital layouts, signage and event collateral.",
     "tsConnectDescription": "Regional IT engineering and digital infrastructure partner in Tambov."
   },
   "navigation": {
@@ -1445,7 +1380,7 @@
     "youtubeDescription": "Watch design breakdowns and studio reels",
     "contactStudio": "Contact Studio",
     "contactStudioDescription": "Send a message directly to our team",
-    "ai": "AI"
+    "lineLauncher": "Line Launcher"
   },
   "services": {
     "title": "Our Services",
@@ -1466,7 +1401,28 @@
     "proceedToOrder": "Proceed to Order",
     "clearSelection": "Clear",
     "emptyCategory": "No active services in this category yet.",
-    "loadingServices": "Loading services…"
+    "loadingServices": "Loading services…",
+    "configurator": {
+      "title": "Configure your order",
+      "subtitle": "Choose the options — we will calculate the price and confirm it with you.",
+      "estimated": "Estimated price",
+      "from": "from",
+      "requestQuote": "Request a quote",
+      "signInToOrder": "Sign in to request a quote",
+      "selectAllRequired": "Select all required options",
+      "optional": "optional",
+      "priceOnRequest": "Price on request",
+      "notOrderable": "This service is not available for online ordering yet.",
+      "breakdownTitle": "How the price is built",
+      "base": "Base price",
+      "managerNote": "The final price is confirmed by a manager after discussing the details.",
+      "submitted": "Request {number} is accepted.",
+      "signInHint": "Sign in using the menu in the site header.",
+      "addToCart": "Add to request",
+      "addedToCart": "Added",
+      "viewCart": "Open the request",
+      "addToCartFailed": "Could not add to the request. Please try again."
+    }
   },
   "profile": {
     "title": "Profile",
@@ -1542,238 +1498,141 @@
     "operationFailed": "The operation failed. Check the details and try again."
   },
   "directions": {
-    "eyebrow": "Two directions · one digital environment",
-    "heading": "AI technology and design",
-    "description": "Plus In Plus develops specialised AI agents and continues to create visual solutions for brands. Both directions share a focus on clarity, code, and every pixel.",
-    "ai": {
-      "index": "01 / AI",
-      "title": "AI agents",
-      "status": "Announcement · soon",
-      "description": "Lumi Q1 for development tasks and Kairo for clear legal information focused on Russian law.",
-      "meta": "Lumi Q1 · Kairo",
-      "link": "Meet the agents"
-    },
+    "eyebrow": "Directions",
+    "heading": "A design practice and our own product",
+    "description": "Plus In Plus builds visual systems for brands and develops Line Launcher — a launcher assembled for one specific game project.",
     "design": {
-      "index": "02 / DESIGN",
+      "index": "01 / DESIGN",
       "title": "Design",
       "status": "Available now",
-      "description": "Identity, digital mockups, signage, and outdoor media — the established design practice of Plus In Plus.",
+      "description": "Identity, digital mockups, signage and outdoor media — the working practice of Plus In Plus.",
       "meta": "Branding · Web · Outdoor media",
       "link": "Explore design services"
+    },
+    "product": {
+      "index": "02 / PRODUCT",
+      "title": "Line Launcher",
+      "status": "In development · 0.15.4",
+      "description": "A Minecraft launcher for game projects: one provider, one launcher, a build branded for the client.",
+      "meta": "Tauri · Rust · React",
+      "link": "Open the product page"
     }
   },
-  "ai": {
-    "eyebrow": "Plus In Plus / AI",
-    "announcement": "Announcement · soon",
-    "title": "AI agents with a clear specialisation",
-    "intro": "Lumi Q1 and Kairo solve different problems: software development and clear legal information about Russian law. This overview highlights their main advantages, while dedicated pages explain each agent’s architecture in detail.",
-    "integrationNoticeTitle": "The working integration is being prepared",
-    "integrationNotice": "These pages explain Lumina technology, but do not launch a chat, execute code, or submit a legal request. Working capabilities will appear only after a separate integration is connected and verified.",
-    "lumi": {
-      "index": "01 / CODE",
-      "role": "Coding agent",
-      "status": "Coming soon",
-      "description": "Lumi Q1 combines a model based on Qwen2.5-Coder 7B with fixed tools for analysing and changing code. Access, approvals, and repository isolation are defined by architecture, not just a prompt.",
-      "note": "This description is based on the Lumina architecture. The working launch, available tools, and provider will be confirmed separately.",
-      "visualLabel": "Conceptual Lumi Q1 diagram: a task, tool calls, and an answer with returned results.",
-      "benefitsTitle": "Key advantages",
-      "benefits": [
-        "Off / read / all access levels with confirmation before file writes or commands.",
-        "A separate repository copy, a lumi/… branch, and publishing only by human decision.",
-        "Local, VPS, and cloud runtimes with a clear active mode."
-      ],
-      "detailsLink": "How Lumi works"
-    },
-    "kairo": {
-      "index": "02 / LEGAL",
-      "role": "Informational legal assistant · Russian law",
-      "status": "Coming soon",
-      "description": "Kairo explains Russian law in plain language. LangGraph connects knowledge-base research, deterministic calculations, citation checks, and a clear two-layer answer.",
-      "note": "Kairo is not a lawyer and does not replace individual legal advice. Responses are informational; the current law and the circumstances of each case must be checked separately.",
-      "visualLabel": "Conceptual Kairo diagram: a question, retrieval of the closest sources, and an answer with citation marks.",
-      "benefitsTitle": "Key advantages",
-      "benefits": [
-        "BM25 RAG with sources, references, and links for verification.",
-        "Code-based calculations with formulas and legal grounds, not model arithmetic.",
-        "A short practical answer separate from risks, norms, and detailed analysis."
-      ],
-      "detailsLink": "How Kairo works"
-    },
-    "designBridge": {
-      "title": "Design remains our second direction",
-      "description": "We continue to create visual systems, digital mockups, signage, and outdoor media. The AI direction complements this practice rather than replacing it.",
-      "cta": "Explore design services"
-    },
-    "animation": {
-      "play": "Play visualisation",
-      "pause": "Pause",
-      "resume": "Resume"
-    }
-  },
-  "agentPages": {
-    "back": "All AI agents",
-    "switcherLabel": "AI agent pages",
-    "advantages": "advantages",
-    "boundaries": "data and boundaries",
-    "nextAgent": "Next agent",
-    "animation": {
-      "play": "Play visualisation",
-      "pause": "Pause",
-      "resume": "Resume"
-    },
-    "lumi": {
-      "metaTitle": "Lumi Q1 — coding AI agent | Plus In Plus",
-      "metaDescription": "Lumi Q1 technology: Qwen2.5-Coder 7B, controlled tools, an isolated repository copy, and local or cloud runtimes.",
-      "name": "Lumi Q1",
-      "title": "Code, tools, and boundaries in one clear system",
-      "intro": "Lumi Q1 is built on Qwen2.5-Coder 7B and Ollama. The architecture separates model output from actions on a project: the model proposes a solution, while fixed code controls files, search, patches, and tests.",
-      "status": "This page describes the Lumina architecture. The working integration with this website is being prepared; there is no code execution form here.",
-      "visualCaption": "Tool calls / process",
-      "visualLabel": "Animated illustration of Lumi tool calls: a task reaches the agent, tools return results, and an answer is written.",
-      "benefitsTitle": "Why this architecture helps",
-      "benefits": [
-        {
-          "title": "Access has explicit levels",
-          "description": "The off, read, and permitted all modes separate reading from actions. File writes and commands require human confirmation."
-        },
-        {
-          "title": "Changes stay isolated",
-          "description": "Work happens in a separate repository copy and a lumi/… branch. The main branch is never changed automatically."
-        },
-        {
-          "title": "Commands are not chosen freely",
-          "description": "Fixed tools handle files, search, patches, and tests. Commands are governed by an allowlist and an audit log."
-        },
-        {
-          "title": "The model runtime is visible",
-          "description": "Local, VPS, and cloud modes remain distinguishable. The active provider and any fallback are shown to the user."
-        }
-      ],
-      "sections": [
-        {
-          "id": "tools",
-          "title": "Tools instead of unrestricted access",
-          "description": "Lumi does not receive arbitrary control over a computer. The access level determines the available tools, and code—not a promise in a prompt—controls execution.",
-          "points": [
-            "The off mode disables tools, read leaves reading and search, and all enables writes and commands under defined rules.",
-            "Changing a file or running a command requires explicit confirmation; silence means refusal.",
-            "The local CLI supports lumi undo through its change journal; the web version cannot see the developer’s disk."
-          ],
-          "mechanism": "permissions",
-          "visualLabel": "Lumi boundary diagram: files and search on the left, access policy in the centre, writes and commands behind human approval on the right."
-        },
-        {
-          "id": "repository",
-          "title": "A separate repository copy",
-          "description": "The project workflow uses a temporary copy and a lumi/… branch. The main branch is not used for writes, and the decision to publish remains with a person.",
-          "points": [
-            "Paths that look like secrets are filtered before a commit and surfaced in the skipped list.",
-            "Only the separate branch can be published, without force-push or an automatic pull request.",
-            "The copy is removed after publishing, rollback, or TTL expiry; the token is not stored in Git configuration."
-          ],
-          "mechanism": "sandbox",
-          "visualLabel": "Lumi repository sandbox diagram: the main branch stays above, work follows a separate branch, a person chooses publishing or rollback, and the copy is cleaned up."
-        },
-        {
-          "id": "runtime",
-          "title": "Local, VPS, or cloud runtime",
-          "description": "Lumi’s primary runtime is local Ollama with a model based on Qwen2.5-Coder 7B. A fallback chain can improve availability, but the active endpoint and the reason for switching must remain visible.",
-          "points": [
-            "Local mode keeps materials within the operator’s environment; cloud mode sends the request to an external provider.",
-            "The fallback order is local Ollama → VPS → a compatible cloud API.",
-            "Web and CLI are separate entry points: the local process works with your folder, while the server only accesses its permitted environment."
-          ],
-          "mechanism": "runtime",
-          "visualLabel": "Lumi runtime diagram: local Ollama, VPS, and cloud API are distinct routes with a visible active status."
-        }
-      ],
-      "closingTitle": "The result still needs verification",
-      "closingDescription": "Code-level boundaries reduce risk, but they do not turn a proposed patch into a production-ready solution.",
-      "closingPoints": [
-        "The model can miss the project architecture or propose code that does not compile.",
-        "Tests run only from the permitted command set; their results still need to be read and understood.",
-        "Keys, passwords, and protected files must not enter the working context."
-      ],
-      "cautionTitle": "What is described—and what is not connected yet",
-      "cautionText": "The Lumina documents describe the agent and its CLI/web environments. On this website, the page is a technology presentation, not a working terminal or repository sandbox.",
-      "nextTitle": "Russian law, sources, and verifiable calculations"
-    },
-    "kairo": {
-      "metaTitle": "Kairo — AI assistant for Russian law | Plus In Plus",
-      "metaDescription": "Kairo technology: LangGraph, BM25 RAG with sources, deterministic calculations, citation checks, and a two-layer answer.",
-      "name": "Kairo",
-      "title": "Legal information shaped into a clear next step",
-      "intro": "Kairo is an informational assistant focused on Russian law. A LangGraph workflow separates facts, legal research, calculations, contract review, and answer preparation so the model does not replace verifiable tools.",
-      "status": "This page describes the Lumina architecture. The working integration with this website is being prepared; there is no legal consultation form here.",
-      "visualCaption": "RAG answer / process",
-      "visualLabel": "Animated illustration of Kairo RAG: a question enters a document field, the closest sources are highlighted, and an answer is assembled with citation marks.",
-      "benefitsTitle": "What makes an answer more useful",
-      "benefits": [
-        {
-          "title": "Research is grounded in sources",
-          "description": "BM25 matches everyday wording to knowledge cards and returns references, excerpts, and links for verification."
-        },
-        {
-          "title": "Code calculates the numbers",
-          "description": "Separate functions calculate duties, interest, penalties, and deadlines with a formula, legal basis, and warnings."
-        },
-        {
-          "title": "Citations and amounts are checked",
-          "description": "Verification compares norms with the knowledge base and looks for amounts without a calculation or source data. Risks receive an explicit status."
-        },
-        {
-          "title": "The next step stays visible",
-          "description": "A short practical answer is separate from norms, risks, and calculations. Detail remains available without obscuring what to do next."
-        }
-      ],
-      "sections": [
-        {
-          "id": "graph",
-          "title": "LangGraph controls the order of work",
-          "description": "A request becomes a state containing facts, a plan, and artefacts. The planner selects the required nodes, while code normalises the order: research and calculations are prepared before assessment and document drafting.",
-          "points": [
-            "The state can be serialised into a SQLite checkpoint; the workflow is more than one long prompt.",
-            "Research, calculator, contract review, and drafting are separate stages, not a single opaque model response.",
-            "Document drafting can include a human-in-the-loop pause before the final response."
-          ],
-          "mechanism": "graph",
-          "visualLabel": "Kairo graph diagram: facts and planning lead to research, calculation, and verification before the answer is formed."
-        },
-        {
-          "id": "verification",
-          "title": "Research, calculations, and citations are checked separately",
-          "description": "BM25 searches knowledge cards using tokens, Russian stems, and synonyms. Calculators and citation checks are invoked by code: the model is not expected to remember a formula or invent an amount.",
-          "points": [
-            "A source includes a title, reference, excerpt, score, and URL when the card provides one.",
-            "A calculation returns a formula, legal basis, and warnings; it is the authoritative source of numbers.",
-            "Verification distinguishes ok, warn, and block; the verdict exposes risk, but a lawyer makes the decision."
-          ],
-          "mechanism": "verification",
-          "visualLabel": "Kairo verification diagram: sources pass through the model and deterministic code, with separate checks for citations, amounts, and formulas."
-        },
-        {
-          "id": "answer",
-          "title": "A short answer and a detailed analysis",
-          "description": "Two layers are assembled from verified artefacts: first a practical conclusion and three to five actions, then norms, risks, calculations, sources, and quality control.",
-          "points": [
-            "The short layer contains deadlines and money, required evidence, and no more than two clarifying questions.",
-            "An overly long answer is replaced by a deterministic assembly, so detail cannot hide the next step.",
-            "Documents remain drafts; when HITL is enabled, release requires a lawyer’s approval."
-          ],
-          "mechanism": "brief",
-          "visualLabel": "Kairo two-layer answer diagram: detailed norms, risks, and calculations on the left become a short conclusion, actions, and a separate detailed analysis on the right."
-        }
-      ],
-      "closingTitle": "A local environment for sensitive materials",
-      "closingDescription": "Kairo can run on local Qwen2.5-14B or through a configured cloud provider. For real case materials, the architecture provides a local model and disables external transfer through server configuration.",
-      "closingPoints": [
-        "The active model and mode must be visible in the interface; a cloud answer is never presented as local.",
-        "The knowledge base and versions of legal norms have a date; completeness and currency are not guaranteed.",
-        "Long documents can be truncated, and citations and practice still require professional verification."
-      ],
-      "cautionTitle": "Kairo is not a lawyer",
-      "cautionText": "Responses are informational and do not replace a lawyer or individual legal advice. Current law and the circumstances of each case must be checked separately.",
-      "nextTitle": "Code, tools, and safer repository work"
-    }
+  "lineLauncher": {
+    "eyebrow": "Studio product",
+    "title": "Line Launcher",
+    "lead": "A minimal Minecraft launcher for game projects. One provider, one launcher: the player signs in and presses Play instead of picking servers and typing addresses.",
+    "statusLabel": "Status",
+    "status": "In development · 0.15.4",
+    "repoCta": "GitHub repository",
+    "contactCta": "Discuss a project",
+    "releaseNote": "There are no public releases yet: the build lives in the open repository. Installers will appear here only after the project owner publishes them.",
+    "facts": [
+      {
+        "label": "Platforms",
+        "value": "Windows · macOS · Linux"
+      },
+      {
+        "label": "Stack",
+        "value": "Tauri 2.12 · Rust · React 19"
+      },
+      {
+        "label": "Based on",
+        "value": "Obsy Launcher"
+      },
+      {
+        "label": "Code",
+        "value": "Public repository"
+      }
+    ],
+    "whatTitle": "What it is",
+    "whatLead": "The launcher knows its project address: it is baked in at build time. The player never chooses a provider or types a server address — a single sign-in opens the project catalogue.",
+    "whatBody": "The project owner assembles the app for their own brand: name, logo, icons and API address. The player gets a launcher that contains nothing but that project.",
+    "featuresTitle": "What is inside",
+    "features": [
+      {
+        "title": "First run",
+        "text": "A short intro, then the choice of language, background gradient and motion — before signing in."
+      },
+      {
+        "title": "One sign-in",
+        "text": "A project account, not a Microsoft one. Servers with online-mode=true still require separate server-side authorisation."
+      },
+      {
+        "title": "Server catalogue",
+        "text": "Last choice, search, filters and live status when the provider publishes it."
+      },
+      {
+        "title": "Project build",
+        "text": "Play, verify integrity, prepare a build in advance or roll a release back."
+      },
+      {
+        "title": "Minecraft mode",
+        "text": "A provider-supported build and one-click launch."
+      },
+      {
+        "title": "Settings",
+        "text": "Memory, Java, appearance, window and data."
+      },
+      {
+        "title": "Wardrobe and profile",
+        "text": "A skin history with previews and a profile with a 3D skin view."
+      },
+      {
+        "title": "Player guidebook",
+        "text": "Six chapters of a built-in guide with GIF demos and a static poster under reduced motion."
+      }
+    ],
+    "galleryTitle": "Interface",
+    "galleryNote": "Screenshots from the public Line Launcher repository.",
+    "gallery": [
+      {
+        "src": "line-welcome",
+        "caption": "Welcome",
+        "alt": "Short welcome screen of the launcher"
+      },
+      {
+        "src": "line-servers",
+        "caption": "Server catalogue",
+        "alt": "Server catalogue with last choice, search and filters"
+      },
+      {
+        "src": "line-server",
+        "caption": "Build page",
+        "alt": "Server build page with Play and Verify actions"
+      },
+      {
+        "src": "line-minecraft",
+        "caption": "Minecraft mode",
+        "alt": "Server page in Minecraft mode"
+      },
+      {
+        "src": "line-settings",
+        "caption": "Settings",
+        "alt": "Memory, Java and appearance settings"
+      },
+      {
+        "src": "line-privacy",
+        "caption": "Privacy",
+        "alt": "Optional telemetry settings"
+      },
+      {
+        "src": "line-profile",
+        "caption": "Profile",
+        "alt": "Player profile with a 3D skin view"
+      },
+      {
+        "src": "line-guidebook",
+        "caption": "Player guidebook",
+        "alt": "Built-in player guidebook"
+      }
+    ],
+    "privacyTitle": "Privacy",
+    "privacyBody": "Telemetry is optional and off by default: consent is given separately and sits next to the provider policy link.",
+    "buildTitle": "Your own build",
+    "buildBody": "The build is branded for the project: name, logo, icons and API address. One provider, one launcher, no extra screens.",
+    "ctaTitle": "Need a launcher for your project?",
+    "ctaBody": "Tell us about the project — we will discuss a branded build, integration with your API and the timeline.",
+    "ctaButton": "Discuss a project"
   }
 }

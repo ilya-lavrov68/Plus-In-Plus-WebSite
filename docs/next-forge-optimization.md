@@ -192,7 +192,7 @@
 
 **Задачи.**
 
-1. Выбрать критичные сценарии: `/`, `/shop`, `/shop/[slug]`, `/blog`, `/blog/[slug]`, `/cart`, `/login`, `/profile`, manager order и admin CMS save.
+1. Выбрать критичные сценарии: `/`, `/services`, `/services/[slug]`, `/blog`, `/blog/[slug]`, `/cart`, `/login`, `/profile`, manager order и admin CMS save.
 2. Для каждого записать route rendering mode, auth/personalization, reads/writes, client components, third-party calls и invalidation paths.
 3. В production build/start измерить TTFB, LCP, INP, CLS, transferred JS/CSS/fonts/images, число requests и RSC payload.
 4. На сервере измерить total duration, middleware/guard/provider/Prisma segments, число SQL round trips, cold/warm различие и p50/p75/p95.

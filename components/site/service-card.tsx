@@ -66,7 +66,7 @@ export function ServiceCard({
       <div>
         {service.coverImage ? (
           <Link
-            href={`/shop/${encodeURIComponent(service.slug)}`}
+            href={`/services/${encodeURIComponent(service.slug)}`}
             aria-label={service.name}
             className="block aspect-[4/3] w-full overflow-hidden bg-muted/50"
           >
@@ -82,7 +82,7 @@ export function ServiceCard({
           <div className="flex items-start justify-between gap-2">
             <CardTitle className="text-lg leading-snug">
               <Link
-                href={`/shop/${encodeURIComponent(service.slug)}`}
+                href={`/services/${encodeURIComponent(service.slug)}`}
                 className="underline-offset-4 hover:underline"
               >
                 {service.name}
@@ -129,6 +129,7 @@ export function ServiceCard({
               itemId={service.id}
               itemName={service.name}
               size="sm"
+              variant="neutral"
               className="w-full"
             />
           ) : null}

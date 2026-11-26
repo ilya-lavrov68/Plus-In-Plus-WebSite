@@ -42,6 +42,16 @@ export default async function HomePage() {
         }}
         emptyTitle={tBlog("empty.title")}
         emptyDescription={tBlog("empty.description")}
+        labels={{
+          eyebrow: tBlog("eyebrow"),
+          emptyEyebrow: tBlog("empty.eyebrow"),
+          featuredLabel: tBlog("featured"),
+          readTimeTemplate: String(tBlog.raw("readTime")),
+          readLabel: tBlog("read"),
+          ctaTitle: tBlog("cta.title"),
+          ctaDescription: tBlog("cta.description"),
+          ctaAction: tBlog("cta.action"),
+        }}
       />
       <CtaSection />
     </>

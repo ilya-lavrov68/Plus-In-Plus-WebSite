@@ -167,7 +167,7 @@ test("blog empty states use the existing nested catalog messages", () => {
     assert.equal(typeof lookup(catalogs[locale], "blog.empty.title"), "string");
     assert.equal(typeof lookup(catalogs[locale], "blog.empty.description"), "string");
   }
-  for (const file of ["app/(site)/page.tsx", "app/(site)/blog/(index)/page.tsx", "app/(site)/shop/[slug]/content.tsx"]) {
+  for (const file of ["app/(site)/page.tsx", "app/(site)/blog/(index)/page.tsx", "app/(site)/services/[slug]/content.tsx"]) {
     const source = fs.readFileSync(path.join(rootDir, file), "utf8");
     assert.ok(source.includes('empty.title'), `${file} must read blog.empty.title`);
     assert.ok(source.includes('empty.description'), `${file} must read blog.empty.description`);
@@ -215,5 +215,48 @@ test("the validator limits quoted in the messages are the real ones", () => {
       const message = String(lookup(catalogs[locale], `actions.validation.${key}`));
       assert.ok(message.includes(value), `${locale}.json → actions.validation.${key} must mention ${value}: "${message}"`);
     }
+  }
+});
+
+test("ключи, собранные массивом в подвале, существуют в обоих словарях", () => {
+  // Подвал передаёт в Footer7 готовые метки: `t(key)` по списку. Такую
+  // конструкцию сканер литералов не видит, поэтому ключи проверяются напрямую,
+  // иначе опечатка в массиве даёт MISSING_MESSAGE только в рантайме.
+  const source = fs.readFileSync(path.join(rootDir, "components/site/footer.tsx"), "utf8");
+  const block = source.match(/const keys = \[([\s\S]*?)\];/);
+  assert.ok(block, "список ключей подвала найден");
+
+  const keys = [...block[1].matchAll(/"([a-zA-Z0-9_.]+)"/g)].map((match) => match[1]);
+  assert.ok(keys.length > 5, "список ключей не пустой");
+
+  for (const locale of locales) {
+    const footer = catalogs[locale].footer;
+    const missing = keys.filter((key) => {
+      const value = key.split(".").reduce((node, part) => (node == null ? undefined : node[part]), footer);
+      return typeof value !== "string";
+    });
+    assert.deepEqual(missing, [], `${locale}.json: подвал ссылается на несуществующие ключи`);
+  }
+});
+
+test("шаблоны с подстановкой читаются из словаря как есть, а не через форматтер", () => {
+  // t("readTime") без значения {count} падает и уходит в английский фолбэк:
+  // на русской странице появлялось «7 min read». Шаблон берём сырым.
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const root = path.resolve(__dirname, "..");
+  const files = [
+    "app/(site)/blog/(index)/page.tsx",
+    "app/(site)/blog/[slug]/content.tsx",
+    "app/(site)/page.tsx",
+    "app/(site)/services/[slug]/content.tsx",
+  ];
+  for (const file of files) {
+    const source = fs.readFileSync(path.join(root, file), "utf8");
+    assert.match(source, /readTimeTemplate[^\n]*\.raw\("readTime"\)/, `${file}: шаблон времени чтения берётся через raw`);
+  }
+  for (const locale of ["ru", "en"]) {
+    const messages = JSON.parse(fs.readFileSync(path.join(root, "messages", `${locale}.json`), "utf8"));
+    assert.match(messages.blog.readTime, /\{count\}/, `${locale}: шаблон с {count}`);
   }
 });
