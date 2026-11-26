@@ -83,10 +83,7 @@ export async function BrandDirections() {
       <div className="container">
         <div data-reveal="" className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start lg:gap-20">
           <div>
-            <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
-              {t("eyebrow")}
-            </p>
-            <h2 className="mt-4 text-3xl font-medium tracking-tight text-balance sm:text-4xl md:text-5xl">
+            <h2 className="text-3xl font-medium tracking-tight text-balance sm:text-4xl md:text-5xl">
               {t("heading")}
             </h2>
           </div>

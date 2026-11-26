@@ -105,10 +105,6 @@ export function StoryTimeline({ heading, description, events, labels }: StoryTim
       <div className="container">
         <div className="grid gap-6 lg:grid-cols-12 lg:items-end lg:gap-8">
           <div className="lg:col-span-7">
-            <p data-reveal="" className="flex items-center gap-3 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-              <span aria-hidden="true" className="h-px w-8 bg-foreground/40" />
-              {labels.eyebrow}
-            </p>
             <h2
               id="story-heading"
               data-reveal=""

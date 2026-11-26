@@ -44,10 +44,7 @@ export async function LineLauncherView() {
         <div className="container relative z-10">
           <div className="grid items-start gap-12 lg:grid-cols-[1.02fr_0.98fr] lg:gap-16">
             <div>
-              <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
-                {t("eyebrow")}
-              </p>
-              <h1 className="mt-5 text-4xl font-medium tracking-tight sm:text-5xl lg:text-6xl">
+              <h1 className="text-4xl font-medium tracking-tight sm:text-5xl lg:text-6xl">
                 {t("title")}
               </h1>
               <p className="measure mt-6 text-base leading-relaxed text-muted-foreground sm:text-lg">

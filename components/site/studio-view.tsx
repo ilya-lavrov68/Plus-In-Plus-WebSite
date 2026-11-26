@@ -34,10 +34,7 @@ export async function StudioView() {
   return (
     <div className="bg-background">
       <section className="container section-y">
-        <p className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">
-          {t("eyebrow")}
-        </p>
-        <h1 className="mt-5 max-w-4xl text-4xl font-medium tracking-tight sm:text-5xl lg:text-6xl">
+        <h1 className="max-w-4xl text-4xl font-medium tracking-tight sm:text-5xl lg:text-6xl">
           {t("title")}
         </h1>
         <p className="measure mt-6 text-base leading-[1.75] text-muted-foreground md:text-lg">

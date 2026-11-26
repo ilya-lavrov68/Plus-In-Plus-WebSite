@@ -18,10 +18,7 @@ export async function ProcessSection() {
       <div className="container">
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div className="max-w-xl">
-            <p className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">
-              {t("eyebrow")}
-            </p>
-            <h2 className="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">
+            <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
               {t("processTitle")}
             </h2>
             <p className="mt-4 text-base leading-[1.75] text-muted-foreground">

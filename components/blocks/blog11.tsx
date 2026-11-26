@@ -88,7 +88,6 @@ const Blog11 = ({
   categoryLabels = {},
   emptyTitle = "The blog is empty",
   emptyDescription = "Our first article is coming soon.",
-  eyebrow,
   featuredLabel = "Featured story",
   readTimeTemplate = "{count} min read",
   readLabel = "Read",
@@ -98,7 +97,6 @@ const Blog11 = ({
   ctaHref = "/contact",
   compact = false,
   featured,
-  emptyEyebrow,
 }: Blog11Props) => {
   const showFeatured = featured ?? !compact;
 
@@ -134,14 +132,7 @@ const Blog11 = ({
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
           <div className={compact ? "lg:col-span-12" : "lg:col-span-3"}>
             <div className={compact ? "" : "lg:sticky lg:top-28"}>
-              {eyebrow ? (
-                <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
-                  {eyebrow}
-                </p>
-              ) : null}
-              <HeadingTag
-                className={`text-4xl font-semibold tracking-tight md:text-5xl ${eyebrow ? "mt-4" : ""}`}
-              >
+              <HeadingTag className="text-4xl font-semibold tracking-tight md:text-5xl">
                 <DecryptText text={heading} seed={37} />
               </HeadingTag>
               {description ? (
@@ -221,12 +212,7 @@ const Blog11 = ({
               */
               <div data-reveal="" className="flex flex-col gap-6 py-4 sm:py-8">
                 <div className="max-w-xl">
-                  {emptyEyebrow ? (
-                    <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
-                      {emptyEyebrow}
-                    </p>
-                  ) : null}
-                  <h3 className="mt-4 text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
+                  <h3 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
                     {emptyTitle}
                   </h3>
                   <p className="mt-4 text-base leading-[1.75] text-muted-foreground">

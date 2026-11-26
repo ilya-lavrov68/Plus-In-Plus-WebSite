@@ -1,8 +1,6 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
 import { ArrowRight } from "lucide-react";
 
-import { MediaPlaceholder } from "@/components/site/media-placeholder";
 import { DecryptText } from "@/components/site/motion/decrypt-text";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -21,13 +19,6 @@ export interface Hero138Props {
     href: string;
   };
   footnote?: string;
-  image?: {
-    src: string;
-    alt: string;
-  };
-  showMediaStage?: boolean;
-  /** Авторская сцена вместо изображения: рисуется, пока `image` не передан. */
-  stageMedia?: ReactNode;
   className?: string;
 }
 
@@ -45,9 +36,6 @@ const Hero138 = ({
     href: "/contact",
   },
   footnote = "Plus In Plus Design Studio",
-  image,
-  showMediaStage = true,
-  stageMedia,
   className,
 }: Hero138Props) => {
   return (
@@ -121,39 +109,6 @@ const Hero138 = ({
         </div>
       </div>
 
-      {showMediaStage && (
-        <div data-reveal="" data-reveal-delay={180} className="relative mt-14 md:mt-20">
-          {/*
-            Полоса света во всю ширину вместо «коробки» с отступами и рамкой:
-            у сцены нет прямоугольного края, она растворяется в фоне маской.
-            Так первый экран читается как воздух и типографика, а не как
-            медиа-карточка.
-          */}
-          <div
-            className="relative w-full overflow-hidden"
-            style={{
-              maskImage:
-                "linear-gradient(to bottom, transparent 0%, #000 12%, #000 90%, transparent 100%), radial-gradient(130% 175% at 50% 45%, #000 52%, rgba(0,0,0,0.55) 80%, transparent 98%)",
-              WebkitMaskImage:
-                "linear-gradient(to bottom, transparent 0%, #000 12%, #000 90%, transparent 100%), radial-gradient(130% 175% at 50% 45%, #000 52%, rgba(0,0,0,0.55) 80%, transparent 98%)",
-              maskComposite: "intersect",
-              WebkitMaskComposite: "source-in",
-            }}
-          >
-            {image?.src ? (
-              <img
-                src={image.src}
-                alt={image.alt}
-                className="size-full object-cover object-center"
-              />
-            ) : stageMedia ? (
-              <div className="size-full">{stageMedia}</div>
-            ) : (
-              <MediaPlaceholder className="size-full" markClassName="h-16 sm:h-20" />
-            )}
-          </div>
-        </div>
-      )}
     </section>
   );
 };

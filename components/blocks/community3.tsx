@@ -17,7 +17,6 @@ export interface Community3Props {
 const Community3 = ({
   id = "community",
   tsConnectLogoSrc = "/assets/logos/ts-connect.svg",
-  badge = "Partners & Neighbors",
   heading = "Our partners and neighbors",
   description = "We closely collaborate with TS Connect, an IT firm in Tambov, delivering reliable design and digital infrastructure for brands and organizations.",
   studioDescription = "Next-generation studio for brand systems, mockups, signage, and event collateral.",
@@ -27,8 +26,7 @@ const Community3 = ({
     <section id={id} className="motion-section section-y">
       <div className="container">
         <div className="flex flex-col items-center text-center">
-          <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">{badge}</p>
-          <h2 className="mt-5 text-4xl font-semibold tracking-tight md:text-5xl">
+          <h2 className="text-4xl font-semibold tracking-tight md:text-5xl">
             <DecryptText text={heading} seed={29} />
           </h2>
           <p

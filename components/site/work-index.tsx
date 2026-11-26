@@ -50,15 +50,10 @@ export async function WorkIndex({
       <div className="container">
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div className="max-w-2xl">
-            {compact ? null : (
-              <p className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">
-                {t("eyebrow")}
-              </p>
-            )}
             <Heading
               className={cn(
                 "font-semibold tracking-tight",
-                compact ? "text-3xl md:text-4xl" : "mt-4 text-4xl md:text-5xl",
+                compact ? "text-3xl md:text-4xl" : "text-4xl md:text-5xl",
               )}
             >
               {heading ?? t("title")}
