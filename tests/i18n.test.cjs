@@ -238,3 +238,25 @@ test("ключи, собранные массивом в подвале, сущ�
     assert.deepEqual(missing, [], `${locale}.json: подвал ссылается на несуществующие ключи`);
   }
 });
+
+test("шаблоны с подстановкой читаются из словаря как есть, а не через форматтер", () => {
+  // t("readTime") без значения {count} падает и уходит в английский фолбэк:
+  // на русской странице появлялось «7 min read». Шаблон берём сырым.
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const root = path.resolve(__dirname, "..");
+  const files = [
+    "app/(site)/blog/(index)/page.tsx",
+    "app/(site)/blog/[slug]/content.tsx",
+    "app/(site)/page.tsx",
+    "app/(site)/services/[slug]/content.tsx",
+  ];
+  for (const file of files) {
+    const source = fs.readFileSync(path.join(root, file), "utf8");
+    assert.match(source, /readTimeTemplate[^\n]*\.raw\("readTime"\)/, `${file}: шаблон времени чтения берётся через raw`);
+  }
+  for (const locale of ["ru", "en"]) {
+    const messages = JSON.parse(fs.readFileSync(path.join(root, "messages", `${locale}.json`), "utf8"));
+    assert.match(messages.blog.readTime, /\{count\}/, `${locale}: шаблон с {count}`);
+  }
+});

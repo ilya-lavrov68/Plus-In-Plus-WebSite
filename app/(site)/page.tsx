@@ -46,7 +46,7 @@ export default async function HomePage() {
           eyebrow: tBlog("eyebrow"),
           emptyEyebrow: tBlog("empty.eyebrow"),
           featuredLabel: tBlog("featured"),
-          readTimeTemplate: tBlog("readTime"),
+          readTimeTemplate: String(tBlog.raw("readTime")),
           readLabel: tBlog("read"),
           ctaTitle: tBlog("cta.title"),
           ctaDescription: tBlog("cta.description"),

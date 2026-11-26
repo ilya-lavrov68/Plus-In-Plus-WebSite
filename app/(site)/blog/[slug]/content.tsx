@@ -56,7 +56,7 @@ export default async function BlogPostContent({ slug }: { slug: string }) {
         }}
         compact
         featuredLabel={tBlog("featured")}
-        readTimeTemplate={tBlog("readTime")}
+        readTimeTemplate={String(tBlog.raw("readTime"))}
         readLabel={tBlog("read")}
       />
     </>

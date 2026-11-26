@@ -42,7 +42,7 @@ export default async function BlogPage() {
       emptyEyebrow={t("empty.eyebrow")}
       eyebrow={t("eyebrow")}
       featuredLabel={t("featured")}
-      readTimeTemplate={t("readTime")}
+      readTimeTemplate={String(t.raw("readTime"))}
       readLabel={t("read")}
       ctaTitle={t("cta.title")}
       ctaDescription={t("cta.description")}

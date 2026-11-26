@@ -107,7 +107,7 @@ export default async function ServiceContent({ slug }: { slug: string }) {
         emptyEyebrow={tBlog("empty.eyebrow")}
         compact
         featuredLabel={tBlog("featured")}
-        readTimeTemplate={tBlog("readTime")}
+        readTimeTemplate={String(tBlog.raw("readTime"))}
         readLabel={tBlog("read")}
         ctaTitle={tBlog("cta.title")}
         ctaDescription={tBlog("cta.description")}
