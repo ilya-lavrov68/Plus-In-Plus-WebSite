@@ -1161,7 +1161,9 @@
     "servicesDescription": "Browse small and large format design services from Plus In Plus studio.",
     "profile": "Profile — Plus In Plus",
     "ai": "Lumi Q1 and Kairo AI agents — Plus In Plus",
-    "aiDescription": "Introducing the Plus In Plus AI direction: Lumi Q1 coding agent and Kairo, an informational legal assistant focused on Russian law."
+    "aiDescription": "Introducing the Plus In Plus AI direction: Lumi Q1 coding agent and Kairo, an informational legal assistant focused on Russian law.",
+    "lineLauncher": "Line Launcher — a Minecraft launcher for game projects",
+    "lineLauncherDescription": "A minimal Minecraft launcher by Plus In Plus: one provider, one launcher, Tauri 2.12, Rust and React 19, Windows, macOS and Linux."
   },
   "actions": {
     "accountCreatedPleaseLogIn": "Your account was created. Please log in.",
@@ -1775,5 +1777,122 @@
       "cautionText": "Responses are informational and do not replace a lawyer or individual legal advice. Current law and the circumstances of each case must be checked separately.",
       "nextTitle": "Code, tools, and safer repository work"
     }
+  },
+  "lineLauncher": {
+    "eyebrow": "Studio product",
+    "title": "Line Launcher",
+    "lead": "A minimal Minecraft launcher for game projects. One provider, one launcher: the player signs in and presses Play instead of picking servers and typing addresses.",
+    "statusLabel": "Status",
+    "status": "In development · 0.15.4",
+    "repoCta": "GitHub repository",
+    "contactCta": "Discuss a project",
+    "releaseNote": "There are no public releases yet: the build lives in the open repository. Installers will appear here only after the project owner publishes them.",
+    "facts": [
+      {
+        "label": "Platforms",
+        "value": "Windows · macOS · Linux"
+      },
+      {
+        "label": "Stack",
+        "value": "Tauri 2.12 · Rust · React 19"
+      },
+      {
+        "label": "Based on",
+        "value": "Obsy Launcher"
+      },
+      {
+        "label": "Code",
+        "value": "Public repository"
+      }
+    ],
+    "whatTitle": "What it is",
+    "whatLead": "The launcher knows its project address: it is baked in at build time. The player never chooses a provider or types a server address — a single sign-in opens the project catalogue.",
+    "whatBody": "The project owner assembles the app for their own brand: name, logo, icons and API address. The player gets a launcher that contains nothing but that project.",
+    "featuresTitle": "What is inside",
+    "features": [
+      {
+        "title": "First run",
+        "text": "A short intro, then the choice of language, background gradient and motion — before signing in."
+      },
+      {
+        "title": "One sign-in",
+        "text": "A project account, not a Microsoft one. Servers with online-mode=true still require separate server-side authorisation."
+      },
+      {
+        "title": "Server catalogue",
+        "text": "Last choice, search, filters and live status when the provider publishes it."
+      },
+      {
+        "title": "Project build",
+        "text": "Play, verify integrity, prepare a build in advance or roll a release back."
+      },
+      {
+        "title": "Minecraft mode",
+        "text": "A provider-supported build and one-click launch."
+      },
+      {
+        "title": "Settings",
+        "text": "Memory, Java, appearance, window and data."
+      },
+      {
+        "title": "Wardrobe and profile",
+        "text": "A skin history with previews and a profile with a 3D skin view."
+      },
+      {
+        "title": "Player guidebook",
+        "text": "Six chapters of a built-in guide with GIF demos and a static poster under reduced motion."
+      }
+    ],
+    "galleryTitle": "Interface",
+    "galleryNote": "Screenshots from the public Line Launcher repository.",
+    "gallery": [
+      {
+        "src": "line-welcome",
+        "caption": "Welcome",
+        "alt": "Short welcome screen of the launcher"
+      },
+      {
+        "src": "line-servers",
+        "caption": "Server catalogue",
+        "alt": "Server catalogue with last choice, search and filters"
+      },
+      {
+        "src": "line-server",
+        "caption": "Build page",
+        "alt": "Server build page with Play and Verify actions"
+      },
+      {
+        "src": "line-minecraft",
+        "caption": "Minecraft mode",
+        "alt": "Server page in Minecraft mode"
+      },
+      {
+        "src": "line-settings",
+        "caption": "Settings",
+        "alt": "Memory, Java and appearance settings"
+      },
+      {
+        "src": "line-privacy",
+        "caption": "Privacy",
+        "alt": "Optional telemetry settings"
+      },
+      {
+        "src": "line-profile",
+        "caption": "Profile",
+        "alt": "Player profile with a 3D skin view"
+      },
+      {
+        "src": "line-guidebook",
+        "caption": "Player guidebook",
+        "alt": "Built-in player guidebook"
+      }
+    ],
+    "privacyTitle": "Privacy",
+    "privacyBody": "Telemetry is optional and off by default: consent is given separately and sits next to the provider policy link.",
+    "buildTitle": "Your own build",
+    "buildBody": "The build is branded for the project: name, logo, icons and API address. One provider, one launcher, no extra screens.",
+    "ctaTitle": "Need a launcher for your project?",
+    "ctaBody": "Tell us about the project — we will discuss a branded build, integration with your API and the timeline.",
+    "ctaButton": "Discuss a project"
   }
 }

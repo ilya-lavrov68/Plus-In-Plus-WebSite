@@ -135,7 +135,8 @@ test("empty shop keeps coming-soon metadata and stays out of sitemap while publi
   const entries = await sitemap();
   const urls = entries.map((entry) => entry.url);
   assert.ok(urls.includes("https://example.test/services"));
-  assert.ok(urls.includes("https://example.test/ai"));
+  assert.ok(urls.includes("https://example.test/line-launcher"));
+  assert.equal(urls.some((url) => url.includes("/ai")), false, "ИИ-маршруты не попадают в sitemap");
   assert.ok(urls.includes("https://example.test/contact"));
   assert.ok(urls.includes("https://example.test/shop/sign-design"));
   assert.ok(urls.includes("https://example.test/blog/studio-news"));

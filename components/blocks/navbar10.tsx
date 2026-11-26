@@ -134,9 +134,9 @@ export function buildNavigation(featuredPost?: Navbar10Props["featuredPost"]): M
 
   return [
     {
-      title: "AI",
+      title: "LINE LAUNCHER",
       id: 4,
-      url: "/ai",
+      url: "/line-launcher",
     },
     {
       title: "FOR PLAY",

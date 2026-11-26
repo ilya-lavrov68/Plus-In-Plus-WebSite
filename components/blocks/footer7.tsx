@@ -83,7 +83,7 @@ const Footer7 = ({
     {
       title: t("resources"),
       links: [
-        { name: t("ai"), href: "/ai" },
+        { name: "Line Launcher", href: "/line-launcher" },
         { name: t("aboutLinks.blog"), href: "/blog" },
         { name: t("aboutLinks.studioNews"), href: "/blog" },
         { name: t("companyLinks.account"), href: "/login" },

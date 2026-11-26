@@ -28,19 +28,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 1,
     },
     {
-      url: absoluteUrl("/ai"),
-      changeFrequency: "weekly",
+      url: absoluteUrl("/line-launcher"),
+      changeFrequency: "monthly",
       priority: 0.9,
-    },
-    {
-      url: absoluteUrl("/ai/lumi"),
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: absoluteUrl("/ai/kairo"),
-      changeFrequency: "monthly",
-      priority: 0.8,
     },
     {
       url: absoluteUrl("/services"),

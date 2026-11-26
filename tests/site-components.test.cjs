@@ -381,8 +381,8 @@ test("Dedicated agent pages use four distinct Illos shader processes per agent",
   assert.match(mechanism, /AgentShaderPlayer/);
   assert.match(mechanism, /MECHANISM_SCENES/);
   assert.doesNotMatch(mechanism, /PermissionsScene|SandboxScene|agent-motion|setInterval/);
-  assert.ok(sitemap.includes('absoluteUrl("/ai/lumi")'));
-  assert.ok(sitemap.includes('absoluteUrl("/ai/kairo")'));
+  assert.ok(sitemap.includes('absoluteUrl("/line-launcher")'));
+  assert.equal(sitemap.includes("/ai"), false, "sitemap больше не перечисляет ИИ-страницы");
 });
 
 test("Brand accent and shader implementation keep the approved visual and motion contract", () => {
@@ -580,8 +580,8 @@ test("Navbar10 and Footer7 render all required navigation items and footer colum
   const navigationWithoutPosts = buildNavigation();
   assert.deepEqual(
     navigationWithoutPosts.find((item) => item.id === 4),
-    { title: "AI", id: 4, url: "/ai" },
-    "AI must be a direct desktop and mobile navigation item"
+    { title: "LINE LAUNCHER", id: 4, url: "/line-launcher" },
+    "Line Launcher is a direct desktop and mobile navigation item"
   );
   const aboutWithoutPosts = navigationWithoutPosts.find((item) => item.id === 3);
   assert.equal(aboutWithoutPosts?.imageLink?.url, "/blog");
@@ -632,8 +632,10 @@ test("Navbar10 and Footer7 render all required navigation items and footer colum
 
   const termsLink = footerView.root.findAllByType("a").find((link) => textOf(link) === "Terms of use");
   assert.equal(termsLink?.props.href, "/terms");
-  const aiLink = footerView.root.findAllByType("a").find((link) => link.props.href === "/ai");
-  assert.ok(aiLink, "Footer must link to the AI direction");
+  const productLink = footerView.root
+    .findAllByType("a")
+    .find((link) => link.props.href === "/line-launcher");
+  assert.ok(productLink, "Footer must link to the Line Launcher product page");
   const studioNewsLinks = footerView.root.findAllByType("a").filter((link) => textOf(link) === "Studio news");
   assert.ok(studioNewsLinks.some((link) => link.props.href === "/blog"));
   assert.ok(studioNewsLinks.every((link) => link.props.href !== "/blog/we-re-up-and-running"));
