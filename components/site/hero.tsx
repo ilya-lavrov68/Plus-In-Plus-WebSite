@@ -1,5 +1,5 @@
 import { Hero138 } from "@/components/blocks/hero138";
-import { HazeglowField } from "@/components/site/hazeglow-field";
+import { HeroWorkStrip } from "@/components/site/hero-work-strip";
 import { getRequestTranslations } from "@/lib/server-i18n";
 
 export async function Hero() {
@@ -14,7 +14,7 @@ export async function Hero() {
       primaryCta={{ label: hero("startProject"), href: "/contact" }}
       secondaryCta={{ label: hero("viewWork"), href: "/work" }}
       footnote={t("heroFootnote")}
-      stageMedia={<HazeglowField variant="hero" className="size-full" />}
+      stageMedia={<HeroWorkStrip />}
     />
   );
 }

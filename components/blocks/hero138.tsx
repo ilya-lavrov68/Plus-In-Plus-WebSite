@@ -122,26 +122,35 @@ const Hero138 = ({
       </div>
 
       {showMediaStage && (
-        <div data-reveal="" data-reveal-delay={180} className="relative mt-16 md:mt-28">
-          <div className="container relative z-10">
-            <div className="hero-media-frame relative overflow-hidden rounded-2xl bg-white/[0.055] p-1.5 [--pip-nest-gap:6px] [--pip-radius-outer:var(--radius-2xl)] sm:p-2.5 sm:[--pip-nest-gap:10px]">
-              {image?.src ? (
-                <img
-                  src={image.src}
-                  alt={image.alt}
-                  className="nested-radius aspect-[16/9] w-full object-cover object-center"
-                />
-              ) : stageMedia ? (
-                <div className="nested-radius aspect-[16/9] overflow-hidden">
-                  {stageMedia}
-                </div>
-              ) : (
-                <MediaPlaceholder
-                  className="nested-radius aspect-[16/9]"
-                  markClassName="h-16 sm:h-20"
-                />
-              )}
-            </div>
+        <div data-reveal="" data-reveal-delay={180} className="relative mt-14 md:mt-20">
+          {/*
+            Полоса света во всю ширину вместо «коробки» с отступами и рамкой:
+            у сцены нет прямоугольного края, она растворяется в фоне маской.
+            Так первый экран читается как воздух и типографика, а не как
+            медиа-карточка.
+          */}
+          <div
+            className="relative w-full overflow-hidden"
+            style={{
+              maskImage:
+                "linear-gradient(to bottom, transparent 0%, #000 12%, #000 90%, transparent 100%), radial-gradient(130% 175% at 50% 45%, #000 52%, rgba(0,0,0,0.55) 80%, transparent 98%)",
+              WebkitMaskImage:
+                "linear-gradient(to bottom, transparent 0%, #000 12%, #000 90%, transparent 100%), radial-gradient(130% 175% at 50% 45%, #000 52%, rgba(0,0,0,0.55) 80%, transparent 98%)",
+              maskComposite: "intersect",
+              WebkitMaskComposite: "source-in",
+            }}
+          >
+            {image?.src ? (
+              <img
+                src={image.src}
+                alt={image.alt}
+                className="size-full object-cover object-center"
+              />
+            ) : stageMedia ? (
+              <div className="size-full">{stageMedia}</div>
+            ) : (
+              <MediaPlaceholder className="size-full" markClassName="h-16 sm:h-20" />
+            )}
           </div>
         </div>
       )}

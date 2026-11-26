@@ -44,9 +44,11 @@ export async function ChangelogView() {
         </p>
 
         {data ? (
-          <div className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-3 text-sm">
+          // Сводка — обычная строка данных: без плашки и лишнего контраста.
+          <div className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
             {data.latestVersion ? (
-              <span className="rounded-full bg-[var(--pip-accent-neutral)] px-3 py-1 font-medium text-[var(--pip-ink-light)]">
+              <span className="inline-flex items-center gap-2 font-medium text-foreground">
+                <span aria-hidden="true" className="size-1.5 rounded-full bg-signal" />
                 {t("latestBadge", { version: data.latestVersion })}
               </span>
             ) : null}
@@ -98,7 +100,7 @@ export async function ChangelogView() {
             showRussianNotice={locale !== "ru"}
           />
         ) : (
-          <div className="rounded-2xl bg-white/[0.045] p-8 md:p-10">
+          <div className="max-w-2xl">
             <h2 className="text-xl font-medium">{t("unavailable.title")}</h2>
             <p className="measure mt-3 text-sm leading-relaxed text-muted-foreground">
               {t("unavailable.description")}

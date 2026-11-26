@@ -44,13 +44,15 @@ export async function StudioView() {
           {t("lead")}
         </p>
 
-        <dl className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Факты — строка определений с волосяной линией сверху, а не
+            четыре одинаковые плашки: так читается как справка о студии. */}
+        <dl className="mt-12 grid grid-cols-1 gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
           {(t.raw("facts") as Array<{ label: string; value: string }>).map((fact) => (
-            <div key={fact.label} className="rounded-xl bg-white/[0.045] p-5">
+            <div key={fact.label} className="flex flex-col gap-2 pt-4 [background-image:linear-gradient(to_right,rgba(255,255,255,0.14),rgba(255,255,255,0))] [background-position:top] [background-repeat:no-repeat] [background-size:100%_1px]">
               <dt className="text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
                 {fact.label}
               </dt>
-              <dd className="mt-2 text-sm leading-relaxed text-foreground">{fact.value}</dd>
+              <dd className="text-sm leading-relaxed text-foreground">{fact.value}</dd>
             </div>
           ))}
         </dl>
@@ -62,11 +64,8 @@ export async function StudioView() {
         </h2>
         <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-3">
           {principles.map((principle) => (
-            <div
-              key={principle.title}
-              data-reveal=""
-              className="flex flex-col gap-3 rounded-2xl bg-white/[0.045] p-6"
-            >
+            <div key={principle.title} data-reveal="" className="flex flex-col gap-3 pt-5 lg:pr-6">
+              <span aria-hidden="true" className="h-px w-full bg-white/12" />
               <h3 className="text-lg font-medium tracking-tight">{principle.title}</h3>
               <p className="text-sm leading-relaxed text-muted-foreground">{principle.body}</p>
             </div>
@@ -85,12 +84,12 @@ export async function StudioView() {
             {t("processLead")}
           </p>
         </div>
-        <ProcessSteps steps={process} className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4" />
+        <ProcessSteps steps={process} className="mt-10" />
       </section>
 
       <section id="partners" className="container section-y-tight">
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div className="flex flex-col gap-4 rounded-2xl bg-white/[0.045] p-8">
+        <div className="grid gap-10 lg:grid-cols-2 lg:gap-0 lg:divide-x lg:divide-white/[0.1]">
+          <div className="flex flex-col gap-4 lg:pr-16">
             <p className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">
               {t("partnersEyebrow")}
             </p>
@@ -102,7 +101,7 @@ export async function StudioView() {
             </p>
           </div>
 
-          <div className="flex flex-col gap-4 rounded-2xl bg-white/[0.045] p-8">
+          <div className="flex flex-col gap-4 lg:pl-16">
             <p className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">
               {t("productEyebrow")}
             </p>

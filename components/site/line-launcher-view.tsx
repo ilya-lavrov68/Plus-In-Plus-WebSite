@@ -2,7 +2,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, ExternalLink } from "lucide-react";
 
-import { HazeglowField } from "@/components/site/hazeglow-field";
 import { Button } from "@/components/ui/button";
 import { getRequestTranslations } from "@/lib/server-i18n";
 
@@ -101,18 +100,22 @@ export async function LineLauncherView() {
               </dl>
             </div>
 
-            <div className="relative min-h-[22rem] overflow-hidden rounded-3xl bg-card lg:min-h-[30rem]">
-              <HazeglowField className="absolute inset-0" />
-              <div className="relative flex h-full flex-col justify-between p-6 sm:p-8">
-                <span
-                  aria-hidden="true"
-                  className="block size-11 rounded-md bg-[var(--pip-accent-signal)]"
+            <div>
+              {/* Первый экран показывает настоящий интерфейс, а не фоновую
+                  графику: скриншот честнее и спокойнее любого паттерна. */}
+              <div className="relative overflow-hidden rounded-2xl bg-card [--pip-nest-gap:0.5rem] [--pip-radius-outer:var(--radius-2xl)] p-2">
+                <Image
+                  src={`${SCREENSHOT_DIR}/line-server.webp`}
+                  alt={gallery[2]?.alt ?? ""}
+                  width={1600}
+                  height={900}
+                  sizes="(min-width: 1280px) 600px, 100vw"
+                  className="nested-radius w-full object-cover"
                 />
-                {/* Текст лежит на подложке: графика под ним подвижная и цветная. */}
-                <p className="max-w-[22rem] rounded-lg bg-background/85 px-4 py-3 text-sm leading-relaxed text-foreground">
-                  {t("buildBody")}
-                </p>
               </div>
+              <p className="mt-4 max-w-[26rem] text-sm leading-relaxed text-muted-foreground">
+                {t("buildBody")}
+              </p>
             </div>
           </div>
         </div>
@@ -192,16 +195,17 @@ export async function LineLauncherView() {
       </section>
 
       <section className="py-16 md:py-24">
-        <div className="container grid gap-10 sm:grid-cols-2">
-          <div className="rounded-xl bg-card p-7 sm:p-9">
+        {/* Две темы продукта — колонки с волосяной линией сверху, без карточек. */}
+        <div className="container grid gap-10 pt-6 sm:grid-cols-2 sm:gap-16">
+          <div className="flex flex-col gap-3 [background-image:linear-gradient(to_right,rgba(255,255,255,0.14),rgba(255,255,255,0))] [background-position:top] [background-repeat:no-repeat] [background-size:100%_1px] sm:pt-6">
             <h2 className="text-lg font-medium">{t("privacyTitle")}</h2>
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            <p className="text-sm leading-relaxed text-muted-foreground">
               {t("privacyBody")}
             </p>
           </div>
-          <div className="rounded-xl bg-card p-7 sm:p-9">
+          <div className="flex flex-col gap-3 [background-image:linear-gradient(to_right,rgba(255,255,255,0.14),rgba(255,255,255,0))] [background-position:top] [background-repeat:no-repeat] [background-size:100%_1px] sm:pt-6">
             <h2 className="text-lg font-medium">{t("buildTitle")}</h2>
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            <p className="text-sm leading-relaxed text-muted-foreground">
               {t("buildBody")}
             </p>
           </div>
@@ -209,15 +213,18 @@ export async function LineLauncherView() {
       </section>
 
       <section className="pb-20 md:pb-28">
-        <div className="container">
-          <div className="rounded-2xl bg-card px-7 py-12 sm:px-12">
-            <h2 className="max-w-2xl text-2xl font-medium tracking-tight sm:text-3xl">
-              {t("ctaTitle")}
-            </h2>
-            <p className="measure mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
-              {t("ctaBody")}
-            </p>
-            <div className="mt-7 flex flex-wrap items-center gap-3">
+        {/* Финальный призыв — типографика на фоне, без коробки. */}
+        <div className="container pt-10 [background-image:linear-gradient(to_right,rgba(255,255,255,0.12),rgba(255,255,255,0))] [background-position:top] [background-repeat:no-repeat] [background-size:100%_1px]">
+          <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
+            <div>
+              <h2 className="max-w-2xl text-2xl font-medium tracking-tight text-balance sm:text-3xl">
+                {t("ctaTitle")}
+              </h2>
+              <p className="measure mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
+                {t("ctaBody")}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 lg:justify-end">
               <Button asChild size="lg" variant="primary">
                 <Link href="/contact">
                   {t("ctaButton")}
