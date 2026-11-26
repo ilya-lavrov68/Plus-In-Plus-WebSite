@@ -275,11 +275,10 @@ test("Hero138 renders the restored studio statement, its two CTAs and the media 
   assert.ok(links.some((link) => link.href === "/contact" && link.text.includes("Contact us")));
 
   const primary = view.root.findAllByType("a").find((link) => link.props.href === "/services");
-  // Главный CTA — белая кнопка, при наведении она лишь немного темнеет.
-  assert.match(primary.props.className, /bg-foreground text-background/);
-  assert.match(primary.props.className, /hover:bg-foreground\/9\d/);
+  // Главный CTA — оранжевая кнопка с тёмным текстом, при наведении она темнеет.
+  assert.match(primary.props.className, /bg-primary text-primary-foreground/);
+  assert.match(primary.props.className, /hover:bg-brand-signal-strong/);
   assert.equal(primary.props.className.includes("text-signal"), false);
-  assert.doesNotMatch(primary.props.className, /bg-primary/);
   assert.ok(
     view.root.findAll((node) => node.props?.["data-reveal"] !== undefined).length >= 2,
     "the hero reveals its blocks progressively",
@@ -397,7 +396,7 @@ test("Brand accent and shader implementation keep the approved visual and motion
     path.resolve(__dirname, "../components/ai/agent-diagram.tsx"),
     "utf8"
   );
-  assert.match(globals, /--primary:\s*#FFFF01;/);
+  assert.match(globals, /--primary:\s*var\(--pip-action\);/);
   assert.match(globals, /--radius-lg:/);
   assert.doesNotMatch(globals, /text-shadow/);
   assert.match(tailwind, /DEFAULT:\s*"var\(--primary\)"/);
