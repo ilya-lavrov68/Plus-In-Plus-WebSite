@@ -48,6 +48,7 @@ const ROUTES = [
   { name: "home-en", path: "/" },
   { name: "line-launcher-ru", path: "/ru/line-launcher" },
   { name: "line-launcher-en", path: "/line-launcher" },
+  { name: "line-launcher-changelog-ru", path: "/ru/line-launcher/changelog" },
   { name: "work-ru", path: "/ru/work" },
   { name: "work-case-ru", path: "/ru/work/line-launcher" },
   { name: "studio-ru", path: "/ru/studio" },

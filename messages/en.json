@@ -395,7 +395,8 @@
     "insights": "Design insights",
     "largeDesigns": "Large designs",
     "description": "Plus In Plus is a design studio: identity, websites, signage and outdoor media. We also develop our own product, Line Launcher.",
-    "product": "Line Launcher"
+    "product": "Line Launcher",
+    "changelog": "Release history"
   },
   "auth": {
     "login": "Log in",
@@ -1109,7 +1110,9 @@
     "work": "Work — Plus In Plus",
     "workDescription": "Plus In Plus product, brand and website: what we made, how it works and what you can check.",
     "studio": "Studio — Plus In Plus",
-    "studioDescription": "Plus In Plus design practice: principles, process, partner TS Connect and the Line Launcher product."
+    "studioDescription": "Plus In Plus design practice: principles, process, partner TS Connect and the Line Launcher product.",
+    "lineLauncherChangelog": "Line Launcher — release history",
+    "lineLauncherChangelogDescription": "Every Line Launcher release: what was added, changed and fixed in each version. Notes come from the repository CHANGELOG.md."
   },
   "actions": {
     "accountCreatedPleaseLogIn": "Your account was created. Please log in.",
@@ -1648,7 +1651,53 @@
     "buildBody": "The build is branded for the project: name, logo, icons and API address. One provider, one launcher, no extra screens.",
     "ctaTitle": "Need a launcher for your project?",
     "ctaBody": "Tell us about the project — we will discuss a branded build, integration with your API and the timeline.",
-    "ctaButton": "Discuss a project"
+    "ctaButton": "Discuss a project",
+    "changelogCta": "Release history"
+  },
+  "changelog": {
+    "eyebrow": "Line Launcher · a studio product",
+    "title": "Release history",
+    "lead": "Every launcher release: what was added, changed and fixed. The text comes from the repository CHANGELOG.md, with no rewrite.",
+    "backToProduct": "Line Launcher",
+    "latestBadge": "Latest version {version}",
+    "versionsCount": "{count, plural, one {# version} other {# versions}}",
+    "updated": "last release on {date}",
+    "sourceChangelog": "CHANGELOG.md",
+    "sourceTags": "Tags",
+    "releasesNote": "There are no public GitHub releases yet: notes live in CHANGELOG.md and a tag marks a ready build. That is also why there is no download button here.",
+    "searchLabel": "Search the changes",
+    "searchPlaceholder": "Try: Forge, logs, wardrobe",
+    "clearSearch": "Clear search",
+    "found": "Versions: {count}",
+    "filter": {
+      "all": "All",
+      "added": "Added",
+      "changed": "Changed",
+      "fixed": "Fixed"
+    },
+    "kind": {
+      "added": "Added",
+      "changed": "Changed",
+      "fixed": "Fixed",
+      "removed": "Removed",
+      "security": "Security"
+    },
+    "latest": "Latest",
+    "copyLink": "Copy version link",
+    "copied": "Copied",
+    "openInRepository": "Open in repository",
+    "githubRelease": "GitHub release",
+    "indexLabel": "Versions",
+    "russianNotice": "Release notes are maintained in Russian inside the project repository, so the original text is shown unchanged.",
+    "empty": {
+      "title": "Nothing matched",
+      "description": "Try another query or reset the filter — for example «logs», «palette» or «Forge».",
+      "reset": "Reset filters"
+    },
+    "unavailable": {
+      "title": "The release history is not synced yet",
+      "description": "The release data file was not generated in this environment. Run npm run changelog:sync to fetch CHANGELOG.md from the Line Launcher repository."
+    }
   },
   "work": {
     "eyebrow": "Work",

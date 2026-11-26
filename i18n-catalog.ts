@@ -21,6 +21,7 @@ export const CLIENT_MESSAGE_NAMESPACES = [
   "account",
   "auth",
   "cart",
+  "changelog",
   "common",
   "contact",
   "cookies",

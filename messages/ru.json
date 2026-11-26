@@ -395,7 +395,8 @@
     "insights": "Дизайн-инсайты",
     "largeDesigns": "Крупноформатный дизайн",
     "description": "Plus In Plus — дизайн-студия: айдентика, сайты, вывески и наружная реклама. Развиваем собственный продукт Line Launcher.",
-    "product": "Line Launcher"
+    "product": "Line Launcher",
+    "changelog": "История версий"
   },
   "auth": {
     "login": "Войти",
@@ -1109,7 +1110,9 @@
     "work": "Работы — Plus In Plus",
     "workDescription": "Продукт, бренд и сайт студии Plus In Plus: что сделали, как устроено и что можно проверить.",
     "studio": "Студия — Plus In Plus",
-    "studioDescription": "Дизайн-практика Plus In Plus: принципы, процесс работы, партнёр TS Connect и продукт Line Launcher."
+    "studioDescription": "Дизайн-практика Plus In Plus: принципы, процесс работы, партнёр TS Connect и продукт Line Launcher.",
+    "lineLauncherChangelog": "Line Launcher — история версий",
+    "lineLauncherChangelogDescription": "Все релизы Line Launcher: что добавили, изменили и исправили в каждой версии лаунчера. Тексты из CHANGELOG.md репозитория."
   },
   "actions": {
     "accountCreatedPleaseLogIn": "Аккаунт создан. Войдите в него.",
@@ -1648,7 +1651,53 @@
     "buildBody": "Сборка брендируется под проект: название, логотип, иконки и адрес API. Один провайдер — один лаунчер, без лишних экранов.",
     "ctaTitle": "Нужен лаунчер для вашего проекта?",
     "ctaBody": "Расскажите о проекте — обсудим брендированную сборку, интеграцию с вашим API и сроки.",
-    "ctaButton": "Обсудить проект"
+    "ctaButton": "Обсудить проект",
+    "changelogCta": "История версий"
+  },
+  "changelog": {
+    "eyebrow": "Line Launcher · продукт студии",
+    "title": "История версий",
+    "lead": "Все релизы лаунчера: что добавили, что поменяли и что исправили. Тексты — из CHANGELOG.md репозитория, без пересказа.",
+    "backToProduct": "Line Launcher",
+    "latestBadge": "Последняя версия {version}",
+    "versionsCount": "{count, plural, one {# версия} few {# версии} many {# версий} other {# версии}}",
+    "updated": "последний релиз — {date}",
+    "sourceChangelog": "CHANGELOG.md",
+    "sourceTags": "Теги",
+    "releasesNote": "Публичных релизов на GitHub пока нет: записи ведутся в CHANGELOG.md, а тег ставится на готовую сборку. Поэтому кнопки «Скачать» здесь тоже нет.",
+    "searchLabel": "Поиск по изменениям",
+    "searchPlaceholder": "Например: Forge, логи, гардероб",
+    "clearSearch": "Очистить поиск",
+    "found": "Версий: {count}",
+    "filter": {
+      "all": "Все",
+      "added": "Добавлено",
+      "changed": "Изменено",
+      "fixed": "Исправлено"
+    },
+    "kind": {
+      "added": "Добавлено",
+      "changed": "Изменено",
+      "fixed": "Исправлено",
+      "removed": "Удалено",
+      "security": "Безопасность"
+    },
+    "latest": "Последняя",
+    "copyLink": "Ссылка на версию",
+    "copied": "Скопировано",
+    "openInRepository": "Открыть в репозитории",
+    "githubRelease": "Релиз на GitHub",
+    "indexLabel": "Версии",
+    "russianNotice": "Записи об изменениях ведутся в репозитории на русском — показываем оригинальный текст без перевода.",
+    "empty": {
+      "title": "Ничего не нашлось",
+      "description": "Попробуйте другой запрос или сбросьте фильтр: например, «логи», «палитра» или «Forge».",
+      "reset": "Сбросить фильтры"
+    },
+    "unavailable": {
+      "title": "История версий ещё не синхронизирована",
+      "description": "Файл с релизами не собран на этом окружении. Запустите npm run changelog:sync, чтобы загрузить CHANGELOG.md из репозитория Line Launcher."
+    }
   },
   "work": {
     "eyebrow": "Работы",

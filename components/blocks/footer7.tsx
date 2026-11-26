@@ -29,7 +29,7 @@ const DEFAULT_LABELS: Record<string, string> = {
   "aboutLinks.howWeWork": "How we work", "aboutLinks.ourPartners": "Our partners", "aboutLinks.studioNews": "Studio news", "aboutLinks.blog": "Journal",
   "aboutLinks.work": "Work", "aboutLinks.studio": "Studio",
   "companyLinks.account": "Account", "companyLinks.contactUs": "Contact us", "legalLinks.privacyPolicy": "Privacy Policy", "legalLinks.termsOfUse": "Terms of use",
-  "orderDesign": "Order a design", "description": "A next-generation design studio packaging ideas into clear, memorable design—from website mockups to signage and outdoor collateral.", "privacyPolicy": "Privacy Policy",
+  "orderDesign": "Order a design", "changelog": "Release history", "description": "A next-generation design studio packaging ideas into clear, memorable design—from website mockups to signage and outdoor collateral.", "privacyPolicy": "Privacy Policy",
   "servicesLinks.signDesign": "Sign Design", "servicesLinks.bagDesign": "Bag Design", "servicesLinks.websiteDesign": "Website design", "servicesLinks.badgeDesign": "Badge design", "servicesLinks.posterDesign": "Poster design", "servicesLinks.bannerMockupDesign": "Banner mockup design", "servicesLinks.largeBillboard": "Large Billboard", "servicesLinks.rooftopAdvertising": "Rooftop advertising", "auth.register": "Register",
 };
 
@@ -85,6 +85,7 @@ const Footer7 = ({
       title: t("resources"),
       links: [
         { name: t("product"), href: "/line-launcher" },
+        { name: t("changelog"), href: "/line-launcher/changelog" },
         { name: t("companyLinks.account"), href: "/login" },
         { name: t("auth.register"), href: "/signup" },
       ],

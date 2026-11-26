@@ -12,6 +12,8 @@
     "db:audit-retention": "node scripts/run-ts.cjs scripts/pseudonymize-audit.ts",
     "db:promote-admin": "node scripts/run-ts.cjs scripts/promote-admin.ts",
     "db:seed:services": "node scripts/run-ts.cjs scripts/seed-services.ts",
+    "changelog:sync": "node scripts/sync-changelog.mjs",
+    "changelog:check": "node scripts/sync-changelog.mjs --check",
     "deploy:verify": "node scripts/verify-deployment.cjs",
     "dev": "node scripts/dev.cjs",
     "dev:webpack": "node scripts/dev.cjs --webpack",

@@ -75,6 +75,13 @@ export async function LineLauncherView() {
                 <span className="rounded-full bg-secondary px-3 py-1 font-medium text-secondary-foreground">
                   {t("status")}
                 </span>
+                <Link
+                  href="/line-launcher/changelog"
+                  className="inline-flex items-center gap-1.5 text-sm text-foreground underline decoration-white/30 underline-offset-4 transition-colors hover:decoration-white/70 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                >
+                  {t("changelogCta")}
+                  <ArrowUpRight aria-hidden="true" className="size-3.5" />
+                </Link>
                 <p className="measure text-xs leading-relaxed text-muted-foreground">
                   {t("releaseNote")}
                 </p>
