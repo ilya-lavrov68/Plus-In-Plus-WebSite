@@ -14,7 +14,7 @@ export async function ProcessSection() {
   const steps = t.raw("process") as ProcessStep[];
 
   return (
-    <section className="section-y bg-muted/40">
+    <section className="section-y">
       <div className="container">
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div className="max-w-xl">
@@ -36,7 +36,7 @@ export async function ProcessSection() {
           </Button>
         </div>
 
-        <ProcessSteps steps={steps} className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4" />
+        <ProcessSteps steps={steps} className="mt-12" />
       </div>
     </section>
   );

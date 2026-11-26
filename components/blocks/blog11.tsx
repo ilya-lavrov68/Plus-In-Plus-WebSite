@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ArrowUpRight } from "lucide-react";
 
-import { HazeglowField } from "@/components/site/hazeglow-field";
 import { DecryptText } from "@/components/site/motion/decrypt-text";
 import { Button } from "@/components/ui/button";
 import type { BlogCardData } from "@/lib/blog-card";
@@ -215,25 +214,26 @@ const Blog11 = ({
 
           <div className={compact ? "lg:col-span-12" : "lg:col-span-9"}>
             {posts.length === 0 ? (
-              <div data-reveal="" className="relative overflow-hidden rounded-2xl bg-card">
-                <HazeglowField
-                  variant="design"
-                  className="pointer-events-none absolute inset-0 size-full opacity-70"
-                />
-                <div
-                  aria-hidden="true"
-                  className="absolute inset-0 bg-[linear-gradient(100deg,rgba(17,15,16,0.94)_0%,rgba(17,15,16,0.72)_52%,rgba(17,15,16,0.42)_100%)]"
-                />
-                <div className="relative flex min-h-[21rem] max-w-xl flex-col justify-center gap-4 p-8 sm:p-12">
+              /*
+                Пустой журнал — это текст, а не «плашка со свечением». Шумный
+                Hazeglow здесь мешал читать и создавал ложное ощущение
+                контента; остаются воздух, крупный заголовок и честные рубрики.
+              */
+              <div data-reveal="" className="flex flex-col gap-6 py-4 sm:py-8">
+                <div className="max-w-xl">
                   {emptyEyebrow ? (
                     <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
                       {emptyEyebrow}
                     </p>
                   ) : null}
-                  <h3 className="text-2xl font-semibold tracking-tight sm:text-3xl">{emptyTitle}</h3>
-                  <p className="text-base leading-[1.75] text-muted-foreground">{emptyDescription}</p>
+                  <h3 className="mt-4 text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
+                    {emptyTitle}
+                  </h3>
+                  <p className="mt-4 text-base leading-[1.75] text-muted-foreground">
+                    {emptyDescription}
+                  </p>
                   {ctaAction ? (
-                    <div className="mt-2">
+                    <div className="mt-6">
                       <Button asChild size="lg">
                         <Link href={ctaHref}>
                           {ctaAction}
@@ -242,17 +242,18 @@ const Blog11 = ({
                       </Button>
                     </div>
                   ) : null}
-                  {/* Рубрики показывают, о чём будет журнал: это реальная
-                      таксономия студии, а не придуманные темы. */}
-                  <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
-                    {CATEGORY_ORDER.map((category) => (
-                      <li key={category} className="inline-flex items-center gap-2">
-                        <span aria-hidden="true" className="size-1 rounded-full bg-signal" />
-                        {categoryLabel(category)}
-                      </li>
-                    ))}
-                  </ul>
                 </div>
+
+                {/* Рубрики показывают, о чём будет журнал: реальная
+                    таксономия студии, а не придуманные темы. */}
+                <ul className="mt-2 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
+                  {CATEGORY_ORDER.map((category) => (
+                    <li key={category} className="inline-flex items-center gap-2">
+                      <span aria-hidden="true" className="size-1 rounded-full bg-signal" />
+                      {categoryLabels?.[category] ?? category}
+                    </li>
+                  ))}
+                </ul>
               </div>
             ) : (
               <div className="space-y-8">

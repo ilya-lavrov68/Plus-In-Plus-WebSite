@@ -32,6 +32,14 @@
       "skillPath": "skills/grill-me/SKILL.md",
       "license": "MIT",
       "computedHash": "3453dc07810c0d27692b7ccbe625f0ebcd4a9deb94211b219340465789e367db"
+    },
+    "project-design-system": {
+      "source": "owner-provided",
+      "sourceType": "local",
+      "skillPath": "project-design-system.md",
+      "license": "proprietary",
+      "computedHash": "24ec0805dd68d45fbfc32c3bf4bfa5e08314922116246fe336cb2e5d47ae5f72",
+      "note": "Главный обязательный дизайн-скилл проекта: читается до любой правки UI и вёрстки."
     }
   }
 }

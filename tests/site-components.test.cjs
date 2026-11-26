@@ -1603,12 +1603,19 @@ test("card hover and reveal motion stay layout-stable and preserve scroll anchor
     communityView = create(React.createElement(Community3));
   });
 
-  const cards = [featureView, communityView].flatMap((view) =>
-    view.root.findAllByType("div").filter((node) =>
-      String(node.props.className).includes("glass-surface"),
-    ),
+  // Community3 больше не карточки: логотипы партнёров живут строкой,
+  // поэтому стабильность раскладки проверяется на карточках Feature314.
+  const cards = featureView.root
+    .findAllByType("div")
+    .filter((node) => String(node.props.className).includes("glass-surface"));
+  assert.equal(cards.length, 3);
+  assert.equal(
+    communityView.root
+      .findAllByType("div")
+      .filter((node) => String(node.props.className).includes("glass-surface")).length,
+    0,
+    "у сообщества нет карточных подложек",
   );
-  assert.equal(cards.length, 5);
   for (const card of cards) {
     assert.doesNotMatch(card.props.className, /hover:-translate|group-hover:-translate/);
     assert.equal(card.props["data-reveal"], "");

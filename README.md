@@ -394,7 +394,7 @@ CMS-слоя в проекте больше нет: Payload удалён вме�
 | Маршрут | Блок UI / Модуль | Назначение |
 | --- | --- | --- |
 | `/` (`/[locale]`) | `Navbar 10` · `Hero 138` · `BrandDirections` · `Feature 314` · `Community 3` · `Blog 11` · `CTA 13` · `Footer 7` | Главная дизайн-студии: hero о практике, два направления (дизайн и Line Launcher), история, услуги, партнёры, журнал и контакт |
-| `/line-launcher` | `LineLauncherView` · `HazeglowField` | Страница flagship-продукта: реальные факты, статус без обещаний, скриншоты из репозитория, ссылка на GitHub и заявка в студию |
+| `/line-launcher` | `LineLauncherView` | Страница flagship-продукта: реальные факты, статус без обещаний, скриншоты из репозитория, ссылка на GitHub и заявка в студию |
 | `/services` | `ServicesCatalogView` · `ServiceCard` | Каталог активных опубликованных услуг из БД с переходом к конфигуратору и добавлением в корзину |
 | `/services/[slug]` | `Product Detail 1` + конфигуратор | Карточка услуги из БД с расчётом опций, добавлением в корзину и быстрой заявкой; старые адреса `/shop/…` отдают 308 на этот маршрут |
 | `/contact` | `ContactOrderForm` + `createOrder` | Выбор нескольких услуг и отправка брифа в БД; legacy `POST /api/support` доступен только авторизованному клиенту |
@@ -413,7 +413,8 @@ CMS-слоя в проекте больше нет: Payload удалён вме�
 | `app/actions/`, `app/api/`, `app/uploads/` | Существующие server actions и прикладные route handlers на прежних путях |
 | `components/blocks/` | Базовые секции на базе **Shadcnblocks** (`navbar10`, `hero138`, `feature314`, `community3`, `blog11`, `blogpost11`, `services11`, `product-detail1`, `contact29`, `signup10`, `cta13`, `footer7`) |
 | `components/site/`, `admin/`, `ui/`, `spectrumui/` | Обёртки секций с данными из SQL, админ-панель, UI-примитивы и графики |
-| `components/site/line-launcher-view.tsx`, `hazeglow-field.tsx` | Страница продукта и клиентский слой Hazeglow (ascii/dither, фолбэк без WebGL, reduced motion) |
+| `components/site/line-launcher-view.tsx` | Страница продукта: реальный интерфейс лаунчера, факты из репозитория, ссылка на историю версий |
+| `components/site/hover-glow.tsx` | Единственная точка входа Hazeglow: деликатное свечение по наведению, маска по краям, отключение для touch и reduced motion |
 | `public/assets/logos/` | Официальная векторная айдентика: полный логотип `npip.svg` (шапка и футер), знак `lnpip.svg` и логотип партнёра `ts-connect.svg` |
 | `public/uploads/` | Локальное хранилище перекодированных в `.webp` аватаров и обложек (вне Git) |
 | `lib/` | Слой SQL (`db.ts`, `data.ts`, `commerce-data.ts`, `accounts.ts`), правила заказов, Auth.js и RBAC-проверки, валидация, санитизация HTML, загрузка изображений, Robokassa, i18n |

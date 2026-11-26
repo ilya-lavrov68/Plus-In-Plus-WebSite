@@ -2,8 +2,7 @@ import Link from "next/link";
 
 import { BrandMark, TsConnectLogo } from "@/components/site/logo";
 import { DecryptText } from "@/components/site/motion/decrypt-text";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+
 
 export interface Community3Props {
   id?: string;
@@ -28,13 +27,7 @@ const Community3 = ({
     <section id={id} className="motion-section section-y">
       <div className="container">
         <div className="flex flex-col items-center text-center">
-          <Badge
-            variant="secondary"
-            data-reveal=""
-            className="rounded-full border-0 bg-white/[0.055] px-3.5 py-1 text-xs backdrop-blur-2xl"
-          >
-            {badge}
-          </Badge>
+          <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">{badge}</p>
           <h2 className="mt-5 text-4xl font-semibold tracking-tight md:text-5xl">
             <DecryptText text={heading} seed={29} />
           </h2>
@@ -46,44 +39,33 @@ const Community3 = ({
             {description}
           </p>
 
-          <div className="mt-16 grid w-full max-w-2xl grid-cols-1 gap-7 sm:grid-cols-2">
-            <Card
-              data-reveal=""
-              data-reveal-delay={100}
-              className="glass-surface group rounded-2xl border-0 bg-white/[0.05] p-8 transition-[background-color] duration-200 ease-out hover:bg-white/[0.08]"
+          {/*
+            Логотипы партнёров живут строкой на общем фоне: две одинаковые
+            карточки с подложкой выглядели как прайс, а не как сообщество.
+          */}
+          <div className="mt-14 flex w-full max-w-3xl flex-col items-stretch gap-8 sm:flex-row sm:items-center sm:justify-center sm:gap-16">
+            <Link
+              href="/studio"
+              className="group flex items-center justify-center rounded-lg px-4 py-3 transition-colors hover:bg-white/[0.04] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
             >
-              <Link
-                href="/"
-                className="flex h-full flex-col items-center justify-center gap-4 text-center"
-              >
-                <div className="flex h-16 items-center justify-center transition-opacity duration-200 ease-out group-hover:opacity-80">
-                  <BrandMark className="h-10"label="Plus In Plus" />
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {studioDescription}
-                </p>
-              </Link>
-            </Card>
+              <BrandMark className="h-9 transition-opacity duration-200 ease-out group-hover:opacity-85" label="Plus In Plus" />
+            </Link>
 
-            <Card
-              data-reveal=""
-              data-reveal-delay={150}
-              className="glass-surface group rounded-2xl border-0 bg-white/[0.05] p-8 transition-[background-color] duration-200 ease-out hover:bg-white/[0.08]"
+            <span aria-hidden="true" className="mx-auto h-px w-12 bg-white/12 sm:h-14 sm:w-px" />
+
+            <a
+              href="https://tsconnect.ru"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center justify-center rounded-lg px-4 py-3 transition-colors hover:bg-white/[0.04] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
             >
-              <a
-                href="https://tsconnect.ru"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-full flex-col items-center justify-center gap-4 text-center"
-              >
-                <div className="flex h-16 items-center justify-center transition-opacity duration-200 ease-out group-hover:opacity-80">
-                  <TsConnectLogo src={tsConnectLogoSrc} className="h-8" />
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {partnerDescription}
-                </p>
-              </a>
-            </Card>
+              <TsConnectLogo src={tsConnectLogoSrc} className="h-7 transition-opacity duration-200 ease-out group-hover:opacity-85" />
+            </a>
+          </div>
+
+          <div className="mt-8 grid w-full max-w-3xl gap-3 text-sm leading-[1.7] text-muted-foreground sm:grid-cols-2 sm:gap-10">
+            <p>{studioDescription}</p>
+            <p>{partnerDescription}</p>
           </div>
         </div>
       </div>

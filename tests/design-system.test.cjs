@@ -343,19 +343,33 @@ test("поле ввода читается: тёмная поверхность,
   );
 });
 
-test("графический язык студии один: Hazeglow в стилях ascii и dither", () => {
-  const field = read("components/site/hazeglow-field.tsx");
-  for (const variant of ["hero", "design", "product"]) {
-    assert.match(field, new RegExp(`\\b${variant}: \\{`), `в CONFIGS нет варианта ${variant}`);
-  }
-
-  const effects = [...field.matchAll(/effect:\s*"([\w-]+)"/g)].map((match) => match[1]);
-  assert.ok(effects.length >= 3, "у каждого варианта объявлен эффект");
-  assert.deepEqual(
-    [...new Set(effects)].sort(),
-    ["ascii", "dither"],
-    "ведущий эффект — только ascii и dither: glass/blob и прочие как ведущие не используются",
+test("Hazeglow живёт только в мягком свечении по наведению", () => {
+  // Правило `project-design-system`: постоянных сцен и плотных паттернов нет.
+  // Единственная точка входа библиотеки — `hover-glow.tsx`: в покое на
+  // странице не рисуется ни одного WebGL-контекста.
+  assert.equal(
+    fs.existsSync(path.resolve(__dirname, "../components/site/hazeglow-field.tsx")),
+    false,
+    "статичных полей Hazeglow на сайте больше нет",
   );
+
+  const glow = read("components/site/hover-glow.tsx");
+  assert.match(glow, /effect: "none"/, "свечение без растровых эффектов");
+  assert.match(glow, /effectAmount: 0/, "эффект полностью выключен");
+  assert.match(glow, /maskImage/, "края свечения гасятся маской");
+  assert.equal(
+    /#eeeeee|#ff5f01|#6b6364/i.test(glow),
+    false,
+    "в свечении нет белого и оранжевого: акцент остаётся у действий",
+  );
+
+  const effects = [...glow.matchAll(/effect:\s*"([\w-]+)"/g)].map((match) => match[1]);
+  assert.deepEqual([...new Set(effects)], ["none"], "только none: dither/ascii не возвращаются");
+
+  const grains = [...glow.matchAll(/grain:\s*([\d.]+)/g)].map((match) => Number(match[1]));
+  for (const grain of grains) {
+    assert.ok(grain <= 0.12, `grain ${grain} добавляет шум`);
+  }
 
   // Пиксельные спрайты сняты с сайта целиком: компонент, генератор, ассеты и кадровая анимация.
   for (const retired of [
@@ -376,7 +390,12 @@ test("графический язык студии один: Hazeglow в сти�
 
   // Направления студии показываются тем же полем, а не собственными картинками.
   const directions = read("components/site/brand-directions.tsx");
-  assert.match(directions, /HazeglowField/, "карточки направлений используют Hazeglow");
+  assert.match(directions, /HoverGlow/, "направления светятся только при наведении");
+  assert.equal(
+    directions.includes("HazeglowField"),
+    false,
+    "постоянных полей Hazeglow в направлениях нет: в покое поверхность чистая",
+  );
   assert.doesNotMatch(directions, /Pixel|sprite/i, "пиксельных спрайтов в направлениях нет");
 });
 
