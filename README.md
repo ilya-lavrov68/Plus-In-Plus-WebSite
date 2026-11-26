@@ -434,6 +434,8 @@ CMS-слоя в проекте больше нет: Payload удалён вме�
 | `npm test` | Запуск полного набора автотестов (`tests/*.test.cjs`) |
 | `npm run security:audit` / `npm run security:dependencies` | Проверка security-политик исходников и полный аудит зависимостей |
 | `npm run db:migrate` | Применяет `db/schema.sql` к базе из `DATABASE_URL`; повторный запуск безопасен |
+| `npm run changelog:sync` | Перечитывает `CHANGELOG.md`, теги и релизы Line Launcher на GitHub и обновляет `content/line-launcher-changelog.json` для страницы `/line-launcher/changelog` (см. `docs/line-launcher-changelog.md`) |
+| `npm run changelog:check` | Проверяет, что файл истории версий совпадает с репозиторием продукта, ничего не записывая |
 | `npm run db:check` | Read-only проверка подключения ко всем обязательным таблицам схемы |
 | `npm run db:audit-retention -- --older-than-days=365` | Dry-run псевдонимизации старых ActivityLog; apply требует отдельный ключ и `--apply --confirm=PSEUDONYMIZE` |
 | `npm run db:seed:services` | Идемпотентное добавление базовых услуг в локальную/test БД; тестовые аккаунты с известными паролями не создаются |

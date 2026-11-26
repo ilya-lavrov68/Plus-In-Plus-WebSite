@@ -24,6 +24,14 @@
       "sourceType": "github",
       "skillPath": "skills/spritecook-workflow-essentials/SKILL.md",
       "computedHash": "aaf3fb9488d81af6ffcb58fbceaf629685cad4029f5e33bd9f9e0499cfec13d7"
+    },
+    "grill-me": {
+      "source": "satya-janghu/agent-skills",
+      "sourceType": "github",
+      "sourceCommit": "d4505d01b2272129d83da70e2b66a48b2588953a",
+      "skillPath": "skills/grill-me/SKILL.md",
+      "license": "MIT",
+      "computedHash": "3453dc07810c0d27692b7ccbe625f0ebcd4a9deb94211b219340465789e367db"
     }
   }
 }

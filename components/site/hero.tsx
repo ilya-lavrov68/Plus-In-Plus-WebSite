@@ -11,8 +11,8 @@ export async function Hero() {
       headingPrimary={t("heroPrimary")}
       descriptionLead={t("heroDescriptionLead")}
       descriptionStrong={t("heroDescriptionStrong")}
-      primaryCta={{ label: hero("orderDesign"), href: "/services" }}
-      secondaryCta={{ label: hero("exploreProduct"), href: "/line-launcher" }}
+      primaryCta={{ label: hero("startProject"), href: "/contact" }}
+      secondaryCta={{ label: hero("viewWork"), href: "/work" }}
       footnote={t("heroFootnote")}
       stageMedia={<HazeglowField variant="hero" className="size-full" />}
     />

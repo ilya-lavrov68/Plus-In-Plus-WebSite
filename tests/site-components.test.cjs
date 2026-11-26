@@ -327,44 +327,37 @@ test("Navbar10 and Footer7 render all required navigation items and footer colum
     footerView = create(React.createElement(Footer7));
   });
   const navText = textOf(navView.root);
-  // Раздел SHOP временно скрыт из навигации до появления мерча: в меню
-  // остаются FOR PLAY, ABOUT PIP и SOCNET, прямой путь /shop показывает
-  // заглушку, а FOR PLAY хранит «Order a design» и «Design services».
-  for (const item of ["FOR PLAY", "ABOUT PIP", "SOCNET", "Contact", "Log in"]) {
+  // Верхнее меню — четыре раздела студии и акцентная кнопка брифа.
+  // Соцсети, аккаунт и Line Launcher живут вне верхней навигации: первые два
+  // в шапке справа и в подвале, продукт — в «Студии» и полосой на главной.
+  for (const item of ["Work", "Services", "Studio", "Journal", "Start a project"]) {
     assert.ok(navText.includes(item), `Missing navbar item: ${item}`);
   }
-  assert.ok(!navText.includes("SHOP"), "SHOP must be hidden from the navbar while the shop is disabled");
+  for (const retired of ["FOR PLAY", "ABOUT PIP", "SOCNET", "SHOP"]) {
+    assert.ok(!navText.includes(retired), `${retired} must not be a top-level navigation item`);
+  }
   const navImgs = navView.root.findAllByType("img").map((img) => img.props.src);
   assert.ok(
     navImgs.includes("/assets/logos/npip.svg"),
     "Navbar10 must use full drawn wordmark /assets/logos/npip.svg"
   );
 
-  const featuredNavigation = buildNavigation({
-    title: "Newest featured story",
-    slug: "newest-featured-story",
-    coverImage: "/uploads/blog/newest-cover.webp",
-  });
-  const featuredCard = featuredNavigation.find((item) => item.id === 3)?.imageLink;
-  assert.deepEqual(featuredCard, {
-    url: "/blog/newest-featured-story",
-    image: "/uploads/blog/newest-cover.webp",
-    label: "Newest featured story",
-  });
-  const navigationWithoutPosts = buildNavigation();
   assert.deepEqual(
-    navigationWithoutPosts.find((item) => item.id === 4),
-    { title: "LINE LAUNCHER", id: 4, url: "/line-launcher" },
-    "Line Launcher is a direct desktop and mobile navigation item"
+    buildNavigation(),
+    [
+      { id: 1, title: "Работы", url: "/work" },
+      { id: 2, title: "Услуги", url: "/services" },
+      { id: 3, title: "Студия", url: "/studio" },
+      { id: 4, title: "Журнал", url: "/blog" },
+    ],
+    "меню — четыре раздела: работы, услуги, студия, журнал",
   );
-  const aboutWithoutPosts = navigationWithoutPosts.find((item) => item.id === 3);
-  assert.equal(aboutWithoutPosts?.imageLink?.url, "/blog");
-  assert.equal(aboutWithoutPosts?.imageLink?.label, "Blog");
+  const localizedNavigation = buildNavigation({ work: "Work", journal: "Journal" });
+  assert.equal(localizedNavigation[0].title, "Work");
+  assert.equal(localizedNavigation[3].title, "Journal");
   assert.ok(
-    aboutWithoutPosts?.groupLinks?.every((group) =>
-      group.links.every((link) => link.url !== "/blog/we-re-up-and-running")
-    ),
-    "navigation must not restore an unpublished static article"
+    buildNavigation().every((item) => !item.imageLink && !item.groupLinks),
+    "раздел верхнего меню ведёт на свою страницу и не открывает выпадающую панель",
   );
   const navbarSource = fs.readFileSync(
     path.resolve(__dirname, "../components/blocks/navbar10.tsx"),
@@ -410,9 +403,21 @@ test("Navbar10 and Footer7 render all required navigation items and footer colum
     .findAllByType("a")
     .find((link) => link.props.href === "/line-launcher");
   assert.ok(productLink, "Footer must link to the Line Launcher product page");
-  const studioNewsLinks = footerView.root.findAllByType("a").filter((link) => textOf(link) === "Studio news");
-  assert.ok(studioNewsLinks.some((link) => link.props.href === "/blog"));
-  assert.ok(studioNewsLinks.every((link) => link.props.href !== "/blog/we-re-up-and-running"));
+  // Журнал, работы и студия — разделы сайта: подвал ведёт на них по одному
+  // разу и не дублирует одну и ту же ссылку под разными названиями.
+  const journalLinks = footerView.root.findAllByType("a").filter((link) => textOf(link) === "Journal");
+  assert.equal(journalLinks.length, 1);
+  assert.equal(journalLinks[0].props.href, "/blog");
+  for (const [label, href] of [["Work", "/work"], ["Studio", "/studio"], ["Our partners", "/studio#partners"]]) {
+    const link = footerView.root.findAllByType("a").find((candidate) => textOf(candidate) === label);
+    assert.equal(link?.props.href, href, `footer must link ${label} to ${href}`);
+  }
+  const hrefs = footerView.root.findAllByType("a").map((link) => link.props.href);
+  assert.equal(
+    hrefs.filter((href) => href === "/blog").length,
+    1,
+    "подвал не должен дважды вести в журнал",
+  );
   const footerText = textOf(footerView.root);
   for (const col of ["Services", "About", "Resources", "Legal", "Company", "© 2026 Plus In Plus"]) {
     assert.ok(footerText.includes(col), `Missing footer item: ${col}`);

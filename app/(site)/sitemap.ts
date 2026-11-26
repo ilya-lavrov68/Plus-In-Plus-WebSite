@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 
 import { getSitemapPosts, getSitemapServices, serviceHref } from "@/lib/data";
 import { absoluteUrl } from "@/lib/seo";
+import { WORK_CASES } from "@/lib/work-cases";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: absoluteUrl("/line-launcher"),
       changeFrequency: "monthly",
       priority: 0.9,
+    },
+    {
+      url: absoluteUrl("/line-launcher/changelog"),
+      changeFrequency: "weekly",
+      priority: 0.7,
+    },
+    {
+      url: absoluteUrl("/work"),
+      changeFrequency: "monthly",
+      priority: 0.9,
+    },
+    {
+      url: absoluteUrl("/studio"),
+      changeFrequency: "monthly",
+      priority: 0.8,
     },
     {
       url: absoluteUrl("/services"),
@@ -38,6 +54,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: absoluteUrl(path),
       changeFrequency: "yearly" as const,
       priority: 0.2,
+    })),
+    ...WORK_CASES.map((item) => ({
+      url: absoluteUrl(`/work/${item.slug}`),
+      changeFrequency: "yearly" as const,
+      priority: 0.7,
     })),
     ...services.map((service) => ({
       url: absoluteUrl(serviceHref(service)),

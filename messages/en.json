@@ -102,7 +102,12 @@
     "languages": {
       "en": "English",
       "ru": "Русский"
-    }
+    },
+    "work": "Work",
+    "services": "Services",
+    "studio": "Studio",
+    "journal": "Journal",
+    "startProject": "Start a project"
   },
   "announcement": {
     "message": "Plus In Plus — A next-generation design studio",
@@ -113,7 +118,9 @@
     "order": "Order",
     "contactUs": "Contact us",
     "orderDesign": "Order a design",
-    "exploreProduct": "Line Launcher"
+    "exploreProduct": "Line Launcher",
+    "startProject": "Start a project",
+    "viewWork": "View work"
   },
   "categories": {
     "title": "Order a design you won't regret",
@@ -347,7 +354,9 @@
       "howWeWork": "How we work",
       "ourPartners": "Our partners",
       "studioNews": "Studio news",
-      "blog": "Blog"
+      "blog": "Journal",
+      "work": "Work",
+      "studio": "Studio"
     },
     "resourcesLinks": {
       "ozone": "Ozone project",
@@ -386,7 +395,8 @@
     "insights": "Design insights",
     "largeDesigns": "Large designs",
     "description": "Plus In Plus is a design studio: identity, websites, signage and outdoor media. We also develop our own product, Line Launcher.",
-    "product": "Line Launcher"
+    "product": "Line Launcher",
+    "changelog": "Release history"
   },
   "auth": {
     "login": "Log in",
@@ -1096,7 +1106,13 @@
     "servicesDescription": "Browse small and large format design services from Plus In Plus studio.",
     "profile": "Profile — Plus In Plus",
     "lineLauncher": "Line Launcher — a Minecraft launcher for game projects",
-    "lineLauncherDescription": "A minimal Minecraft launcher by Plus In Plus: one provider, one launcher, Tauri 2.12, Rust and React 19, Windows, macOS and Linux."
+    "lineLauncherDescription": "A minimal Minecraft launcher by Plus In Plus: one provider, one launcher, Tauri 2.12, Rust and React 19, Windows, macOS and Linux.",
+    "work": "Work — Plus In Plus",
+    "workDescription": "Plus In Plus product, brand and website: what we made, how it works and what you can check.",
+    "studio": "Studio — Plus In Plus",
+    "studioDescription": "Plus In Plus design practice: principles, process, partner TS Connect and the Line Launcher product.",
+    "lineLauncherChangelog": "Line Launcher — release history",
+    "lineLauncherChangelogDescription": "Every Line Launcher release: what was added, changed and fixed in each version. Notes come from the repository CHANGELOG.md."
   },
   "actions": {
     "accountCreatedPleaseLogIn": "Your account was created. Please log in.",
@@ -1347,7 +1363,9 @@
     "communityHeading": "Our partners and neighbors",
     "communityDescription": "We closely collaborate with TS Connect, an IT firm in Tambov, delivering reliable design and digital infrastructure for brands and organizations.",
     "pipDescription": "Plus In Plus design studio: identity, digital layouts, signage and event collateral.",
-    "tsConnectDescription": "Regional IT engineering and digital infrastructure partner in Tambov."
+    "tsConnectDescription": "Regional IT engineering and digital infrastructure partner in Tambov.",
+    "workTitle": "Selected work",
+    "workLead": "Three projects that show how we think and what we can make by hand."
   },
   "navigation": {
     "orderDesign": "Order a design",
@@ -1633,6 +1651,114 @@
     "buildBody": "The build is branded for the project: name, logo, icons and API address. One provider, one launcher, no extra screens.",
     "ctaTitle": "Need a launcher for your project?",
     "ctaBody": "Tell us about the project — we will discuss a branded build, integration with your API and the timeline.",
-    "ctaButton": "Discuss a project"
+    "ctaButton": "Discuss a project",
+    "changelogCta": "Release history"
+  },
+  "changelog": {
+    "eyebrow": "Line Launcher · a studio product",
+    "title": "Release history",
+    "lead": "Every launcher release: what was added, changed and fixed. The text comes from the repository CHANGELOG.md, with no rewrite.",
+    "backToProduct": "Line Launcher",
+    "latestBadge": "Latest version {version}",
+    "versionsCount": "{count, plural, one {# version} other {# versions}}",
+    "updated": "last release on {date}",
+    "sourceChangelog": "CHANGELOG.md",
+    "sourceTags": "Tags",
+    "releasesNote": "There are no public GitHub releases yet: notes live in CHANGELOG.md and a tag marks a ready build. That is also why there is no download button here.",
+    "searchLabel": "Search the changes",
+    "searchPlaceholder": "Try: Forge, logs, wardrobe",
+    "clearSearch": "Clear search",
+    "found": "Versions: {count}",
+    "filter": {
+      "all": "All",
+      "added": "Added",
+      "changed": "Changed",
+      "fixed": "Fixed"
+    },
+    "kind": {
+      "added": "Added",
+      "changed": "Changed",
+      "fixed": "Fixed",
+      "removed": "Removed",
+      "security": "Security"
+    },
+    "latest": "Latest",
+    "copyLink": "Copy version link",
+    "copied": "Copied",
+    "openInRepository": "Open in repository",
+    "githubRelease": "GitHub release",
+    "indexLabel": "Versions",
+    "russianNotice": "Release notes are maintained in Russian inside the project repository, so the original text is shown unchanged.",
+    "empty": {
+      "title": "Nothing matched",
+      "description": "Try another query or reset the filter — for example «logs», «palette» or «Forge».",
+      "reset": "Reset filters"
+    },
+    "unavailable": {
+      "title": "The release history is not synced yet",
+      "description": "The release data file was not generated in this environment. Run npm run changelog:sync to fetch CHANGELOG.md from the Line Launcher repository."
+    }
+  },
+  "work": {
+    "eyebrow": "Work",
+    "title": "Studio work",
+    "lead": "Our own product, brand and website — everything you can check right now. Client projects are published only with the client's permission.",
+    "all": "All work",
+    "open": "View case",
+    "back": "All work",
+    "caseEyebrow": "Case",
+    "galleryTitle": "Screens and assets"
+  },
+  "studio": {
+    "eyebrow": "Studio",
+    "title": "Plus In Plus design practice",
+    "lead": "We design visual systems for brands: identity, signage and wayfinding, digital layouts and event collateral. We start from meaning — position and structure first, form second. In parallel we build our own product, Line Launcher.",
+    "facts": [
+      {
+        "label": "Practice",
+        "value": "Identity, signage, digital"
+      },
+      {
+        "label": "Partner",
+        "value": "TS Connect, Tambov"
+      },
+      {
+        "label": "Product",
+        "value": "Line Launcher 0.15.4"
+      },
+      {
+        "label": "Language",
+        "value": "One primitive: Hazeglow dither / ascii"
+      }
+    ],
+    "principlesTitle": "Principles",
+    "processTitle": "How we work",
+    "processLead": "Four steps with no setup wizards: you always know where the project stands and what is needed from you.",
+    "process": [
+      {
+        "title": "Brief",
+        "body": "We unpack the task: where the work will be seen, what has to change, and what limits exist on timing and production."
+      },
+      {
+        "title": "Concept",
+        "body": "We show two or three directions with reasoning — what works for your case and why."
+      },
+      {
+        "title": "Artwork",
+        "body": "We build the final layout: typography, colour, surfaces, print and installation requirements."
+      },
+      {
+        "title": "Handover",
+        "body": "We hand over source files and stay for production: checking files, colours and how the artwork lands on site."
+      }
+    ],
+    "partnersEyebrow": "Partners",
+    "partnersTitle": "TS Connect",
+    "partnersBody": "An IT company from Tambov. Together we connect design with digital infrastructure: from identity to services that run.",
+    "productEyebrow": "Product",
+    "productTitle": "Line Launcher",
+    "productBody": "Our own Minecraft launcher: the player opens the app and presses Play, with no manual server or Java setup.",
+    "productAction": "Product page",
+    "processAll": "About the studio"
   }
 }

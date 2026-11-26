@@ -191,10 +191,28 @@ test("empty CMS content shows an honest empty state rather than a preset timelin
 
 test("landing order and native protected Story global are explicit", () => {
   const page = fs.readFileSync(path.resolve(__dirname, "../app/(site)/page.tsx"), "utf8");
-  const hero = page.indexOf("<Hero />");
-  const story = page.indexOf("<Story />");
-  const features = page.indexOf("<Features />");
-  assert.ok(hero >= 0 && hero < story && story < features, "Hero → Story → Features");
+  // Порядок главной фиксирован: сначала позиционирование студии, затем
+  // собственные работы, направления, процесс, сообщество, журнал и бриф.
+  const order = [
+    "<Hero />",
+    "<WorkIndex",
+    "<BrandDirections />",
+    "<ProcessSection />",
+    "<Community />",
+    "<BlogSection",
+    "<CtaSection />",
+  ];
+  let cursor = -1;
+  for (const marker of order) {
+    const at = page.indexOf(marker);
+    assert.ok(at > cursor, `порядок блоков главной нарушен на ${marker}`);
+    cursor = at;
+  }
+  assert.doesNotMatch(page, /<Story \/>/, "история студии переехала со главной на страницу «Студия»");
+  const studioPage = fs.readFileSync(path.resolve(__dirname, "../app/(site)/studio/page.tsx"), "utf8");
+  assert.match(studioPage, /<StudioView \/>/);
+  const studioView = fs.readFileSync(path.resolve(__dirname, "../components/site/studio-view.tsx"), "utf8");
+  assert.match(studioView, /<Story \/>/, "страница «Студия» показывает историю студии");
 
   // История студии живёт в таблицах story/story_events и читается через SQL.
   const schema = fs.readFileSync(path.resolve(__dirname, "../db/schema.sql"), "utf8");
