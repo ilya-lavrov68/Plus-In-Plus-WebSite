@@ -217,3 +217,24 @@ test("the validator limits quoted in the messages are the real ones", () => {
     }
   }
 });
+
+test("ключи, собранные массивом в подвале, существуют в обоих словарях", () => {
+  // Подвал передаёт в Footer7 готовые метки: `t(key)` по списку. Такую
+  // конструкцию сканер литералов не видит, поэтому ключи проверяются напрямую,
+  // иначе опечатка в массиве даёт MISSING_MESSAGE только в рантайме.
+  const source = fs.readFileSync(path.join(rootDir, "components/site/footer.tsx"), "utf8");
+  const block = source.match(/const keys = \[([\s\S]*?)\];/);
+  assert.ok(block, "список ключей подвала найден");
+
+  const keys = [...block[1].matchAll(/"([a-zA-Z0-9_.]+)"/g)].map((match) => match[1]);
+  assert.ok(keys.length > 5, "список ключей не пустой");
+
+  for (const locale of locales) {
+    const footer = catalogs[locale].footer;
+    const missing = keys.filter((key) => {
+      const value = key.split(".").reduce((node, part) => (node == null ? undefined : node[part]), footer);
+      return typeof value !== "string";
+    });
+    assert.deepEqual(missing, [], `${locale}.json: подвал ссылается на несуществующие ключи`);
+  }
+});
