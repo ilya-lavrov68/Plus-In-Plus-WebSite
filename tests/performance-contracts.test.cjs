@@ -48,7 +48,7 @@ beforeEach(() => {
   mock.queries.length = 0;
 });
 
-test("blog cards exclude article bodies, sections, excerpts and navigation-only fields", () => {
+test("blog cards carry a short excerpt but exclude article bodies and navigation-only fields", () => {
   const card = toBlogCardData({
     id: "post-1",
     slug: "post-1",
@@ -56,7 +56,8 @@ test("blog cards exclude article bodies, sections, excerpts and navigation-only 
     dateLabel: "October 26, 2026",
     category: "Studio",
     image: "/uploads/blog/cover.webp",
-    excerpt: "Not needed by the card",
+    excerpt: "Short teaser the list shows",
+    readTime: 4,
     htmlContent: "<p>Full article must stay on the server</p>",
     sections: [{ title: "Full section", paragraphs: ["Server only"] }],
     metaLabel: "Server-only metadata",
@@ -69,8 +70,15 @@ test("blog cards exclude article bodies, sections, excerpts and navigation-only 
     dateLabel: "October 26, 2026",
     category: "Studio",
     image: "/uploads/blog/cover.webp",
+    excerpt: "Short teaser the list shows",
+    readTime: 4,
   });
-  assert.doesNotMatch(JSON.stringify(card), /Full article|Full section|Not needed|Server-only/);
+  assert.doesNotMatch(JSON.stringify(card), /Full article|Full section|Server-only/);
+
+  // Анонс в карточке короткий: длинный текст не должен уезжать в браузер.
+  const longCard = toBlogCardData({ ...card, excerpt: "Д".repeat(600) });
+  assert.ok(longCard.excerpt.length <= 220, "анонс обрезается до 220 символов");
+  assert.match(longCard.excerpt, /…$/);
 
   const blogSource = source("components/blocks/blog11.tsx");
   assert.doesNotMatch(blogSource, /STUDIO_BLOG_POSTS|from "@\/lib\/studio-catalog"/);

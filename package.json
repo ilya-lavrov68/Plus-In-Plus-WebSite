@@ -19,7 +19,6 @@
     "lint": "eslint .",
     "security:audit": "node scripts/security-audit.cjs",
     "security:dependencies": "npm audit",
-    "sprites:directions": "node scripts/generate-direction-sprites.cjs",
     "start": "next start",
     "test": "node --test tests/*.test.cjs",
     "typecheck": "tsc --noEmit",

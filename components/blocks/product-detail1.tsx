@@ -104,7 +104,7 @@ const ProductDetail1 = ({
                   itemType="service"
                   itemId={serviceId}
                   itemName={service.title}
-                  variant="outline"
+                  variant="neutral"
                   size="lg"
                 />
               ) : null}

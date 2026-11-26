@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Check, ShoppingCart } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { notifyCartUpdated } from "@/components/site/cart-icon";
@@ -15,7 +15,7 @@ export interface AddToCartButtonProps {
   itemType: "service" | "product";
   itemId: string;
   itemName: string;
-  variant?: "default" | "outline" | "secondary";
+  variant?: "default" | "outline" | "secondary" | "neutral";
   size?: "default" | "sm" | "lg";
   className?: string;
 }
@@ -97,7 +97,7 @@ export function AddToCartButton({
         </>
       ) : (
         <>
-          <ShoppingCart aria-hidden="true" className="h-4 w-4" />
+          <Plus aria-hidden="true" className="h-4 w-4" />
           {t("addToCart")}
         </>
       )}

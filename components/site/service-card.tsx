@@ -129,6 +129,7 @@ export function ServiceCard({
               itemId={service.id}
               itemName={service.name}
               size="sm"
+              variant="neutral"
               className="w-full"
             />
           ) : null}

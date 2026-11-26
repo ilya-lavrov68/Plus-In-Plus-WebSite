@@ -18,7 +18,7 @@ export function MediaPlaceholder({
     <div
       aria-hidden="true"
       className={cn(
-        "relative flex w-full items-center justify-center overflow-hidden bg-muted",
+        "dither-field relative flex w-full items-center justify-center overflow-hidden",
         className,
       )}
     >

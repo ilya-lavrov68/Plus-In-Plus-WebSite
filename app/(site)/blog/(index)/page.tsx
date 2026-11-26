@@ -39,6 +39,14 @@ export default async function BlogPage() {
       categoryLabels={{ Design: t("categoryDesign"), Studio: t("categoryStudio"), Outdoor: t("categoryOutdoor") }}
       emptyTitle={t("empty.title")}
       emptyDescription={t("empty.description")}
+      emptyEyebrow={t("empty.eyebrow")}
+      eyebrow={t("eyebrow")}
+      featuredLabel={t("featured")}
+      readTimeTemplate={t("readTime")}
+      readLabel={t("read")}
+      ctaTitle={t("cta.title")}
+      ctaDescription={t("cta.description")}
+      ctaAction={t("cta.action")}
       asPageHeading
     />
   );

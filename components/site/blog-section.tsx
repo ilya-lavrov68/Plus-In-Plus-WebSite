@@ -1,4 +1,4 @@
-import { Blog11 } from "@/components/blocks/blog11";
+import { Blog11, type Blog11Props } from "@/components/blocks/blog11";
 import { toBlogCardData } from "@/lib/blog-card";
 import { STUDIO_BLOG_POSTS, type CatalogBlogPost } from "@/lib/studio-catalog";
 
@@ -12,6 +12,19 @@ interface BlogSectionProps {
   emptyDescription?: string;
   asPageHeading?: boolean;
   id?: string;
+  labels?: Pick<
+    Blog11Props,
+    | "eyebrow"
+    | "featuredLabel"
+    | "readTimeTemplate"
+    | "readLabel"
+    | "ctaTitle"
+    | "ctaDescription"
+    | "ctaAction"
+    | "emptyEyebrow"
+    | "compact"
+    | "featured"
+  >;
 }
 
 export function BlogSection({
@@ -24,6 +37,7 @@ export function BlogSection({
   emptyDescription,
   asPageHeading = false,
   id,
+  labels,
 }: BlogSectionProps) {
   return (
     <Blog11
@@ -36,6 +50,7 @@ export function BlogSection({
       emptyTitle={emptyTitle}
       emptyDescription={emptyDescription}
       asPageHeading={asPageHeading}
+      {...labels}
     />
   );
 }

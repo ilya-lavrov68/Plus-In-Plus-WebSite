@@ -60,8 +60,8 @@
     "label": "Mobile navigation",
     "home": "Home",
     "services": "Services",
-    "cart": "Cart",
-    "menu": "Menu"
+    "menu": "Menu",
+    "request": "Request"
   },
   "cookies": {
     "title": "We use cookies",
@@ -91,7 +91,7 @@
     "login": "Log in",
     "logout": "Log out",
     "profile": "Profile",
-    "cart": "Cart",
+    "cart": "Request",
     "account": "Account",
     "admin": "Admin Panel",
     "yourAccount": "Your account",
@@ -135,13 +135,13 @@
     },
     "individual": {
       "title": "Individual selection",
-      "description": "We take an individualized approach with each person"
+      "description": "Every project starts with your situation, not a template"
     },
     "support": {
       "title": "Digital support",
       "description": "We are here when a design needs refinement or a digital workflow needs a clear explanation"
     },
-    "heading": "Pixels, code, and human meaning.",
+    "heading": "Form, code and human meaning.",
     "button": "Contact us"
   },
   "story": {
@@ -199,13 +199,14 @@
     "openOriginalPost": "Open original post",
     "empty": {
       "title": "The blog is empty",
-      "description": "Our first article is coming soon."
+      "description": "Our first article is coming soon.",
+      "eyebrow": "Coming soon"
     },
     "preparing": {
       "title": "This article is being prepared",
       "description": "Please check back soon for the full article."
     },
-    "readTime": "{count}-minute read",
+    "readTime": "{count} min read",
     "sampleArticle": {
       "title": "We're Up and Running",
       "lead": "We’ve long wanted to bring together in one place everything that Plus In Plus has become: our approach, our services, and the projects through which we put ideas to the test. Now our new website is live—and it’s more than just an updated showcase. It’s a clearer story of how we help products become cohesive and ready for growth.",
@@ -249,7 +250,15 @@
     "otherNewsDescription": "Explore more articles and stories from the Plus In Plus team.",
     "articleNavigation": "Article navigation",
     "listDescription": "Updates from our design studio, product ecosystems, and client projects.",
-    "otherNews": "Other News"
+    "otherNews": "Other News",
+    "eyebrow": "Studio journal",
+    "featured": "Featured story",
+    "read": "Read",
+    "cta": {
+      "title": "Have a project?",
+      "description": "Tell us about it — we will suggest where to start and what to do first.",
+      "action": "Discuss a project"
+    }
   },
   "gallery": {
     "title": "Gallery",
@@ -1190,8 +1199,8 @@
     "invalidPrice": "Enter a valid price.",
     "invalidOptionConfiguration": "Enter a valid option configuration with non-empty names, valid prices, and at most one default per group.",
     "invalidPriceType": "Unknown price type.",
-    "cartEmpty": "The cart is empty — there is nothing to send.",
-    "cartItemUnavailable": "One of the services in the cart is no longer available. Remove it and try again.",
+    "cartEmpty": "Your request is empty — there is nothing to send yet.",
+    "cartItemUnavailable": "One of the services in your request is no longer available. Remove it and try again.",
     "founderInvulnerable": "Action denied. Founder is invulnerable.",
     "orderLocked": "Order is locked. Only Founder can edit.",
     "selectAtLeastOneService": "Please select at least one service.",
@@ -1199,11 +1208,11 @@
     "invalidDeadline": "Please choose a valid deadline date (today or in the future).",
     "cannotDeleteServiceWithActiveOrders": "Cannot delete a service that has active orders.",
     "cannotChangePriceWithActiveOrders": "Cannot change the price of a service included in an active order.",
-    "cartItemNotFound": "This cart line no longer exists. Refresh the cart and try again.",
+    "cartItemNotFound": "This request line no longer exists. Refresh the request and try again.",
     "itemUnavailable": "This service or product is not available for cart orders.",
     "insufficientStock": "The requested quantity exceeds available stock. Stock is reserved only after the price is agreed.",
     "invalidQuantity": "Enter a quantity between 1 and 99.",
-    "staleCart": "The cart changed in another tab. Refresh it and try again.",
+    "staleCart": "The request changed in another tab. Refresh it and try again.",
     "cancelPaidOrder": "A paid order cannot be cancelled online. Please contact us.",
     "cancelStartedOrder": "Work on this order has already started, so it cannot be cancelled.",
     "cancelFailed": "Could not cancel the order. Please try again.",
@@ -1281,18 +1290,18 @@
     }
   },
   "cart": {
-    "title": "Cart and orders",
-    "shoppingCart": "Shopping Cart",
+    "title": "Request and orders",
+    "shoppingCart": "Request",
     "subtitle": "Add studio services or shop products, send them as one request and follow its status right here.",
-    "open": "Open the cart",
-    "openWithCount": "Open the cart — {count} items",
-    "emptyTitle": "Your Cart is Empty",
+    "open": "Open the request",
+    "openWithCount": "Open the request — {count} items",
+    "emptyTitle": "Your request is empty",
     "emptyBody": "Add services or products to get started",
     "browseServices": "Browse Services",
-    "browseShop": "Browse Shop",
-    "addToCart": "Add to Cart",
+    "browseShop": "Browse services",
+    "addToCart": "Add to request",
     "added": "Added",
-    "addFailed": "Could not add the item to the cart. Please try again.",
+    "addFailed": "Could not add the item to the request. Please try again.",
     "serviceLabel": "Service",
     "productLabel": "Product",
     "orderDetails": "Order Details",
@@ -1302,12 +1311,12 @@
     "submitOrderRequest": "Submit Order Request",
     "submitting": "Submitting...",
     "loading": "Loading...",
-    "toShop": "Go to the shop",
-    "remove": "Remove from the cart",
-    "itemUnavailable": "This item is no longer available for ordering — remove it from the cart.",
+    "toShop": "Go to services",
+    "remove": "Remove from the request",
+    "itemUnavailable": "This item is no longer available for ordering — remove it from the request.",
     "itemStockLimited": "Only {count} available. Reduce the quantity or remove this item.",
     "resolveItems": "Remove unavailable items and adjust stock quantities before submitting.",
-    "loadFailed": "Could not load the cart. Please refresh and try again.",
+    "loadFailed": "Could not load the request. Please refresh and try again.",
     "updateFailed": "Could not update the quantity. Please try again.",
     "removeFailed": "Could not remove the item. Please try again.",
     "unavailableHint": "Unavailable items must be removed before checkout.",
@@ -1409,10 +1418,10 @@
       "managerNote": "The final price is confirmed by a manager after discussing the details.",
       "submitted": "Request {number} is accepted.",
       "signInHint": "Sign in using the menu in the site header.",
-      "addToCart": "Add to cart",
+      "addToCart": "Add to request",
       "addedToCart": "Added",
-      "viewCart": "Open the cart",
-      "addToCartFailed": "Could not add to the cart. Please try again."
+      "viewCart": "Open the request",
+      "addToCartFailed": "Could not add to the request. Please try again."
     }
   },
   "profile": {

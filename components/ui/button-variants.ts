@@ -23,6 +23,13 @@ export const buttonVariants = cva(
           "bg-transparent text-foreground hover:bg-white/[0.08] hover:text-foreground",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-white/[0.14] hover:text-foreground",
+        /*
+         * Вторичное действие — светлая плашка #EEEEEE с тёмным текстом
+         * (решение владельца). Наведение только темнит поверхность: оттенок и
+         * роль кнопки не меняются.
+         */
+        neutral:
+          "bg-[var(--pip-accent-neutral)] text-[var(--pip-ink-light)] hover:bg-[var(--pip-accent-neutral-strong)]",
         ghost:
           "text-foreground hover:bg-white/[0.07] hover:text-foreground",
         link: "text-signal underline-offset-4 hover:underline",

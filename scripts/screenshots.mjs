@@ -242,6 +242,16 @@ async function settle(page) {
     window.scrollTo(0, 0);
     await pause(200);
   });
+  // Полный кадр снимается за один проход: если какой-то блок остался pending
+  // (ленивый smooth-scroll конкурирует с программной прокруткой), дожимаем его
+  // до конечного состояния, иначе в кадре будет пустая секция.
+  await page.evaluate(() => {
+    document
+      .querySelectorAll('[data-reveal="pending"]')
+      .forEach((element) => {
+        element.dataset.reveal = "visible";
+      });
+  });
   // Даём DecryptText и reveal-анимациям доиграть до конечного кадра.
   await sleep(900);
 }

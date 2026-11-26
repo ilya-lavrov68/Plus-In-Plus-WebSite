@@ -106,6 +106,27 @@ test("вторичные кнопки остаются нейтральными"
   assert.match(headerPrimary[1], /bg-primary text-primary-foreground/, "главная кнопка шапки — действие");
 });
 
+test("вторичное действие — светлая плашка #EEEEEE с тёмным текстом", () => {
+  const variants = read("components/ui/button-variants.ts");
+  const neutral = variants.match(/\bneutral:\s*"([^"]*)"/);
+  assert.ok(neutral, "не найден вариант neutral для вторичного действия");
+  assert.match(neutral[1], /bg-\[var\(--pip-accent-neutral\)\]/, "заливка — нейтральный #EEEEEE");
+  assert.match(neutral[1], /text-\[var\(--pip-ink-light\)\]/, "текст на светлом — тёмный #0E1015");
+  assert.match(
+    neutral[1],
+    /hover:bg-\[var\(--pip-accent-neutral-strong\)\]/,
+    "ховер только темнит светлую плашку",
+  );
+  assert.equal(neutral[1].includes("bg-primary"), false, "акцентная заливка остаётся у главного действия");
+
+  const hero = read("components/blocks/hero138.tsx");
+  assert.match(hero, /variant="neutral"/, "вторичный CTA героя — светлая плашка");
+
+  const globals = read("styles/globals.css");
+  assert.match(globals, /--pip-accent-neutral: #eeeeee/, "примитив светлой поверхности");
+  assert.match(globals, /--pip-accent-neutral-strong: #e2e2e2/, "затемнение светлой поверхности");
+});
+
 test("у интерфейса нет декоративных обводок", () => {
   const offenders = [];
   for (const file of publicSources) {
@@ -319,5 +340,60 @@ test("поле ввода читается: тёмная поверхность,
     /filled: "[^"]*text-signal/.test(ui),
     false,
     "жёлтого текста на кнопках панели нет",
+  );
+});
+
+test("графический язык студии один: Hazeglow в стилях ascii и dither", () => {
+  const field = read("components/site/hazeglow-field.tsx");
+  for (const variant of ["hero", "design", "product"]) {
+    assert.match(field, new RegExp(`\\b${variant}: \\{`), `в CONFIGS нет варианта ${variant}`);
+  }
+
+  const effects = [...field.matchAll(/effect:\s*"([\w-]+)"/g)].map((match) => match[1]);
+  assert.ok(effects.length >= 3, "у каждого варианта объявлен эффект");
+  assert.deepEqual(
+    [...new Set(effects)].sort(),
+    ["ascii", "dither"],
+    "ведущий эффект — только ascii и dither: glass/blob и прочие как ведущие не используются",
+  );
+
+  // Пиксельные спрайты сняты с сайта целиком: компонент, генератор, ассеты и кадровая анимация.
+  for (const retired of [
+    "components/site/pixel-direction-sprite.tsx",
+    "scripts/generate-direction-sprites.cjs",
+    "tests/direction-sprites.test.cjs",
+    "public/assets/pixels",
+  ]) {
+    assert.equal(fs.existsSync(path.join(root, retired)), false, `${retired} не должен возвращаться`);
+  }
+  const globals = read("styles/globals.css");
+  assert.doesNotMatch(globals, /pixel-direction|pixel-sprite/, "CSS пиксельных спрайтов удалён");
+  assert.equal(
+    JSON.parse(read("package.json")).scripts["sprites:directions"],
+    undefined,
+    "скрипт генерации спрайтов удалён",
+  );
+
+  // Направления студии показываются тем же полем, а не собственными картинками.
+  const directions = read("components/site/brand-directions.tsx");
+  assert.match(directions, /HazeglowField/, "карточки направлений используют Hazeglow");
+  assert.doesNotMatch(directions, /Pixel|sprite/i, "пиксельных спрайтов в направлениях нет");
+});
+
+test("обложки-заглушки нарисованы в растровом стиле, а не пиксельными спрайтами", () => {
+  for (const file of ["public/assets/placeholders/service-cover.svg", "public/assets/placeholders/post-cover.svg"]) {
+    const source = read(file);
+    assert.match(source, /pattern/, `${file}: растровая сетка точек`);
+    assert.match(source, /radialGradient/, `${file}: мягкая световая масса`);
+    assert.equal(
+      source.includes('width="5.99992"'),
+      false,
+      `${file}: блоки пиксельного спрайта сняты`,
+    );
+  }
+  assert.equal(
+    fs.existsSync(path.join(root, "public/assets/shop")),
+    false,
+    "ретайджед-стоковые мокапы удалены из public",
   );
 });

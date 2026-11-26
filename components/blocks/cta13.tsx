@@ -49,7 +49,7 @@ const Cta13 = ({
                 <Link href={primaryButton.url}>{primaryButton.text}</Link>
               </Button>
               {secondaryButton && (
-                <Button size="lg"variant="secondary"asChild>
+                <Button size="lg"variant="neutral"asChild>
                   <Link href={secondaryButton.url}>{secondaryButton.text}</Link>
                 </Button>
               )}

@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { ArrowUpRight } from "lucide-react";
 
 import { HazeglowField } from "@/components/site/hazeglow-field";
-import { PixelDirectionSprite } from "@/components/site/pixel-direction-sprite";
 import { getRequestTranslations } from "@/lib/server-i18n";
 
 interface DirectionCardProps {
@@ -67,8 +66,8 @@ function DirectionCard({
 
 /**
  * Два направления бренда на главной: действующая дизайн-практика и собственный
- * продукт студии. Медиа у карточек разное: пиксельный спрайт держит дизайн,
- * Hazeglow — продуктовый блок, чтобы сетка не выглядела штампованной.
+ * продукт студии. Обе карточки держит Hazeglow — dither у дизайна и ascii у
+ * продукта: графический язык студии теперь один.
  */
 export async function BrandDirections() {
   const t = await getRequestTranslations("directions");
@@ -99,10 +98,7 @@ export async function BrandDirections() {
               meta={t("design.meta")}
               linkLabel={t("design.link")}
               media={
-                <PixelDirectionSprite
-                  variant="design"
-                  className="absolute inset-0 size-full"
-                />
+                <HazeglowField variant="design" className="absolute inset-0 size-full" />
               }
             />
           </div>

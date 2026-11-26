@@ -13,7 +13,7 @@ interface MobileBottomNavProps {
   onNavigate: () => void;
 }
 
-type MobileNavigationIcon = "home" | "services" | "cart";
+type MobileNavigationIcon = "home" | "services" | "request";
 
 interface MobileNavigationItem {
   href: string;
@@ -21,13 +21,13 @@ interface MobileNavigationItem {
 }
 
 /**
- * Корзина и заказы объединены на /cart, поэтому отдельной вкладки «Заказы»
- * в мобильной навигации нет: все отправленные заявки видны под корзиной.
+ * Заявка и заказы объединены на /cart, поэтому отдельной вкладки «Заказы»
+ * в мобильной навигации нет: все отправленные заявки видны под заявкой.
  */
 const ITEMS: MobileNavigationItem[] = [
   { href: "/", label: "home" },
   { href: "/services", label: "services" },
-  { href: "/cart", label: "cart" },
+  { href: "/cart", label: "request" },
 ];
 
 function normalizePathname(pathname: string) {
@@ -78,15 +78,17 @@ function MobileNavIcon({
         <rect className="mobile-nav-animate-bottom mobile-nav-delay-3"x="3"y="14"width="7"height="7"rx="1" />
       </>
     ),
-    cart: (
+    // Заявка — это документ, а не магазинная корзина: иконка читается как бланк.
+    request: (
       <>
         <path
           pathLength={1}
           className="mobile-nav-animate-stroke"
-          d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57L21 7H5.12"
+          d="M13.5 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V8.5z"
         />
-        <circle className="mobile-nav-animate-bottom mobile-nav-delay-2"cx="8"cy="21"r="1" />
-        <circle className="mobile-nav-animate-bottom mobile-nav-delay-3"cx="19"cy="21"r="1" />
+        <path className="mobile-nav-animate-bottom mobile-nav-delay-1" d="M13.5 3v5.5H19" />
+        <path className="mobile-nav-animate-bottom mobile-nav-delay-2" d="M8.5 13h7" />
+        <path className="mobile-nav-animate-bottom mobile-nav-delay-3" d="M8.5 16.5h7" />
       </>
     ),
   }[name];

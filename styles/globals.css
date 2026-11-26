@@ -149,15 +149,6 @@
   }
 }
 
-@keyframes pixel-direction-frames {
-  from {
-    background-position: 0 0;
-  }
-  to {
-    background-position: -1920px 0;
-  }
-}
-
 @theme {
   --font-sans: "Google Sans Flex", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-sans-flex: "Google Sans Flex", "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -293,6 +284,24 @@
   padding-block: clamp(3.5rem, 2.5rem + 4vw, 6rem);
 }
 
+/*
+ * Растровая фактура нейтральных медиа-слотов. Тот же язык, что у Hazeglow в
+ * стиле dither: сетка точек поверх мягкой световой массы. Сделано на CSS, а не
+ * на WebGL, чтобы не плодить десятки GL-контекстов на длинных страницах.
+ */
+@utility dither-field {
+  background-color: var(--pip-surface-dark, #110f10);
+  background-image:
+    radial-gradient(
+      120% 90% at 72% 52%,
+      rgba(107, 99, 100, 0.55) 0%,
+      rgba(74, 69, 70, 0.28) 38%,
+      rgba(17, 15, 16, 0) 72%
+    ),
+    radial-gradient(circle, rgba(238, 238, 238, 0.18) 0.9px, transparent 1.05px);
+  background-size: 100% 100%, 6px 6px;
+}
+
 /* Комфортная длина строки для длинных текстов: ~70 символов. */
 @utility measure {
   max-width: 68ch;
@@ -336,6 +345,7 @@
 :root {
   /* Примитивы: не переопределяются темами, кроме прямого решения владельца. */
   --pip-accent-neutral: #eeeeee;
+  --pip-accent-neutral-strong: #e2e2e2;
   --pip-accent-signal: #ff5f01;
   --pip-accent-signal-strong: #e65400;
   --pip-ink-light: #0e1015;
@@ -627,53 +637,6 @@
 }
 
 @layer components {
-  /* Смысловой pixel-sprite дизайн-практики: сетка фона неподвижна, кадры
-   * меняются через steps, финальный кадр остаётся доступен без JS и при
-   * reduced motion. */
-  .pixel-direction-sprite {
-    --pixel-sprite-scale: 4;
-    display: grid;
-    place-items: center;
-    overflow: hidden;
-    background-color: hsl(var(--background));
-    background-image:
-      linear-gradient(hsl(var(--foreground) / 0.035) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(var(--foreground) / 0.035) 1px, transparent 1px);
-    background-size: 32px 32px;
-  }
-
-  .pixel-direction-sprite__sheet {
-    width: 80px;
-    height: 40px;
-    flex: none;
-    transform: scale(var(--pixel-sprite-scale));
-    image-rendering: pixelated;
-    background-repeat: no-repeat;
-    background-size: 1920px 40px;
-    background-position: -1840px 0;
-  }
-
-  .pixel-direction-sprite--design .pixel-direction-sprite__sheet {
-    background-image: url("/assets/pixels/direction-design.png");
-  }
-
-  .pixel-direction-sprite[data-active="true"] .pixel-direction-sprite__sheet {
-    animation: pixel-direction-frames 2.4s steps(24, end) infinite;
-  }
-
-  @media (width < 381px) {
-    .pixel-direction-sprite {
-      --pixel-sprite-scale: 3;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .pixel-direction-sprite__sheet {
-      animation: none !important;
-      background-position: -1840px 0;
-    }
-  }
-
   /* Clip only decorative motion overflow, never the reading layout. Excluding
    * these subtrees from scroll anchoring also prevents one-shot transforms and
    * hover polish from becoming the browser's next anchor target. */

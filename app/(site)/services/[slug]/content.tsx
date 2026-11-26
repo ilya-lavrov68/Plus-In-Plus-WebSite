@@ -104,6 +104,14 @@ export default async function ServiceContent({ slug }: { slug: string }) {
         }}
         emptyTitle={tBlog("empty.title")}
         emptyDescription={tBlog("empty.description")}
+        emptyEyebrow={tBlog("empty.eyebrow")}
+        compact
+        featuredLabel={tBlog("featured")}
+        readTimeTemplate={tBlog("readTime")}
+        readLabel={tBlog("read")}
+        ctaTitle={tBlog("cta.title")}
+        ctaDescription={tBlog("cta.description")}
+        ctaAction={tBlog("cta.action")}
       />
     </>
   );

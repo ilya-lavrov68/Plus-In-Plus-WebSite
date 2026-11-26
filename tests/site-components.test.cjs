@@ -605,11 +605,11 @@ test("MobileBottomNav renders four touch targets and animates individual SVG ico
     assert.match(link.props.className, /min-h-14/);
     assert.match(link.props.className, /focus-visible:outline-2/);
   }
-  for (const label of ["Home", "Services", "Cart", "Menu"]) {
+  for (const label of ["Home", "Services", "Request", "Menu"]) {
     assert.ok(textOf(nav).includes(label), "Missing mobile tab: " + label);
   }
   // Заказы объединены с корзиной: отдельной вкладки «Orders» больше нет.
-  assert.ok(!textOf(nav).includes("Orders"), "Orders tab must be merged into Cart");
+  assert.ok(!textOf(nav).includes("Orders"), "Orders tab must be merged into Request");
 
   const home = links.find((link) => link.props.href === "/");
   const homeIcon = home.findByProps({ "data-icon": "home" });
@@ -648,14 +648,15 @@ test("MobileBottomNav renders four touch targets and animates individual SVG ico
     .find((span) => String(span.props.className).includes("bg-destructive"));
   assert.ok(badge, "The cart badge must be rendered");
   assert.doesNotMatch(badge.props.className, /animate-mobile-nav-badge/);
-  assert.equal(cart.props["aria-label"], "Open the cart — 104 items");
-  const cartIcon = cart.findByProps({ "data-icon": "cart" });
-  assert.equal(cartIcon.findAllByType("circle").length, 2);
+  assert.equal(cart.props["aria-label"], "Open the request — 104 items");
+  // Заявка — документ, а не корзина: у иконки нет кружков-колёсиков.
+  const requestIcon = cart.findByProps({ "data-icon": "request" });
+  assert.equal(requestIcon.findAllByType("circle").length, 0);
   assert.ok(
-    cartIcon
+    requestIcon
       .findAllByType("path")
       .some((path) => path.props.pathLength === 1 && String(path.props.className).includes("mobile-nav-animate-stroke")),
-    "The cart contour must support stroke drawing",
+    "The request contour must support stroke drawing",
   );
 
   const menu = view.root.findByProps({ id: "mobile-menu-trigger" });
@@ -756,12 +757,12 @@ test("Navbar10 shares one cart request between desktop and mobile navigation", a
 
   assert.equal(cartRequests, 1);
   const desktopCart = view.root.findByProps({ "data-testid": "cart-icon" });
-  assert.equal(desktopCart.props["aria-label"], "Open the cart — 7 items");
+  assert.equal(desktopCart.props["aria-label"], "Open the request — 7 items");
   const mobileNav = view.root.findByProps({ "data-testid": "mobile-bottom-nav" });
   const mobileCart = mobileNav
     .findAllByType("a")
     .find((link) => link.props.href === "/cart");
-  assert.equal(mobileCart.props["aria-label"], "Open the cart — 7 items");
+  assert.equal(mobileCart.props["aria-label"], "Open the request — 7 items");
 
   act(() => view.unmount());
 });
@@ -963,7 +964,14 @@ test("Blog11 and Blogpost11 render We're Up and Running with all 4 verbatim sect
   assert.equal(COVER_IMAGE_GUIDES.blog.recommended, "1,600 × 1,200 px");
   assert.equal(COVER_IMAGE_GUIDES.services.aspectRatio, "4:3");
   assert.equal(COVER_IMAGE_GUIDES.services.recommended, "1,600 × 1,200 px");
-  assert.ok(listView.root.findAllByType("img").every((image) => /object-contain/.test(image.props.className)));
+  assert.ok(
+    listView.root.findAllByType("img").every((image) => /object-cover/.test(image.props.className)),
+    "обложки кадрируются по 4:3, а не вписываются с полями",
+  );
+  assert.ok(
+    listView.root.findAllByProps({ className: "relative aspect-[4/3] overflow-hidden bg-muted" }).length > 0,
+    "контейнер обложки держит соотношение 4:3",
+  );
   assert.ok(postView.root.findAllByType("img").every((image) => /object-contain/.test(image.props.className)));
   const postText = textOf(postView.root);
   for (const snippet of [
@@ -1133,9 +1141,9 @@ test("the merged /cart page shows the cart and the submitted orders together", a
   });
 
   const text = textOf(view.root);
-  assert.match(text, /Cart and orders/, "the page owns both flows");
-  assert.match(text, /Shopping Cart/, "the cart section is rendered");
-  assert.match(text, /Your Cart is Empty/, "an empty cart no longer hides the orders");
+  assert.match(text, /Request and orders/, "the page owns both flows");
+  assert.match(text, /RequestYour request is empty/, "the request section is rendered");
+  assert.match(text, /Your request is empty/, "an empty request no longer hides the orders");
   assert.match(text, /My orders/, "the orders section is rendered");
   assert.match(text, /ПИП-000007/, "the submitted order is listed under the cart");
   assert.ok(buttonByText(view.root, "Cancel order"), "the order can be cancelled in place");

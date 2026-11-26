@@ -59,7 +59,7 @@ export async function LineLauncherView() {
                 <Button asChild size="lg" variant="primary">
                   <Link href="/contact">{t("contactCta")}</Link>
                 </Button>
-                <Button asChild size="lg" variant="outline">
+                <Button asChild size="lg" variant="neutral">
                   <a
                     href={REPOSITORY_URL}
                     target="_blank"
@@ -217,7 +217,7 @@ export async function LineLauncherView() {
                   <ArrowUpRight aria-hidden="true" />
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="outline">
+              <Button asChild size="lg" variant="neutral">
                 <a href={REPOSITORY_URL} target="_blank" rel="noreferrer noopener">
                   {t("repoCta")}
                 </a>
