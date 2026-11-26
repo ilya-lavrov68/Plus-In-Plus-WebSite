@@ -6,11 +6,13 @@ export async function CtaSection() {
     getRequestTranslations("home"),
     getRequestTranslations("hero"),
   ]);
+  // Главный сценарий сайта — бриф: акцентная кнопка ведёт на форму заявки,
+  // а услуги и продукт остаются вторичными действиями.
   return (
     <Cta13
       heading={t("ctaTitle")}
       description={t("ctaDescription")}
-      primaryButton={{ text: hero("orderDesign"), url: "/services" }}
+      primaryButton={{ text: hero("startProject"), url: "/contact" }}
       secondaryButton={{ text: hero("exploreProduct"), url: "/line-launcher" }}
     />
   );

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" fill="none" role="img" aria-label="Plus In Plus">
+  <defs>
+    <radialGradient id="mass" cx="0.32" cy="0.42" r="0.8">
+      <stop offset="0" stop-color="#4a4546" stop-opacity="0.9" />
+      <stop offset="0.5" stop-color="#2b292a" stop-opacity="0.55" />
+      <stop offset="1" stop-color="#110f10" stop-opacity="0" />
+    </radialGradient>
+    <pattern id="dither" width="6" height="6" patternUnits="userSpaceOnUse">
+      <path d="M3 1.1a1.9 1.9 0 1 1 0 3.8a1.9 1.9 0 1 1 0-3.8Z" fill="#eeeeee" fill-opacity="0.16" />
+    </pattern>
+  </defs>
+  <rect width="1600" height="1000" fill="#110f10" />
+  <rect width="1600" height="1000" fill="url(#mass)" />
+  <rect width="1600" height="1000" fill="url(#dither)" />
+
+  <!-- Знак студии на сетке 6×6: плюс из квадратов, как в логотипе. -->
+  <g transform="translate(560 330) scale(5.6)">
+    <rect x="18" y="0" width="12" height="12" fill="#eeeeee" />
+    <rect x="30" y="12" width="12" height="12" fill="#ff5f01" />
+    <rect x="12" y="18" width="12" height="12" fill="#eeeeee" />
+    <rect x="24" y="24" width="12" height="12" fill="#ff5f01" />
+    <rect x="12" y="30" width="12" height="12" fill="#eeeeee" />
+    <rect x="0" y="24" width="12" height="12" fill="#eeeeee" />
+  </g>
+
+  <!-- Палитра студии как носитель, а не как декор. -->
+  <g transform="translate(120 880)">
+    <rect width="72" height="24" fill="#eeeeee" />
+    <rect x="88" width="72" height="24" fill="#ff5f01" />
+    <rect x="176" width="72" height="24" fill="#2b292a" />
+    <rect x="264" width="72" height="24" fill="#110f10" stroke="#4a4546" stroke-width="1" />
+  </g>
+</svg>

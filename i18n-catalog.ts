@@ -27,7 +27,6 @@ export const CLIENT_MESSAGE_NAMESPACES = [
   "errors",
   "header",
   "mobileNav",
-  "navigation",
   "orders",
   "profile",
   "security",

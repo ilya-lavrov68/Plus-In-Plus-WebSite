@@ -3,22 +3,7 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
-import {
-  BookOpen,
-  ChevronRight,
-  Compass,
-  Globe,
-  Layers,
-  LayoutDashboard,
-  MessageSquare,
-  Paintbrush,
-  Send,
-  Sparkles,
-  Users,
-  Video,
-  X,
-  type LucideIcon,
-} from "lucide-react";
+import { ChevronRight, LayoutDashboard, X, type LucideIcon } from "lucide-react";
 import {
   forwardRef,
   Fragment,
@@ -85,13 +70,6 @@ export interface MenuItem {
   groupLinks?: MenuGroup[];
 }
 
-// Раздел SHOP скрыт из навигации, поэтому услуги (services) шапке больше не
-// нужны: пропс оставлен исторически и игнорируется.
-export interface Navbar10Props {
-  services?: unknown[];
-  featuredPost?: { title: string; slug: string; coverImage: string } | null;
-}
-
 type DesktopMenuItemProps = {
   onOpen?: (value: string) => void;
   onPanelEnter?: (value: string) => void;
@@ -124,161 +102,42 @@ type NavLinkProps = {
   onMouseLeave?: MouseEventHandler<HTMLAnchorElement>;
 };
 
-export function buildNavigation(featuredPost?: Navbar10Props["featuredPost"]): MenuItem[] {
-  // Магазин мерча удалён: публичного каталога товаров больше нет. Страницы
-  // услуг живут на /services/[slug], а старые адреса /shop/… отдают 308 туда же.
-  const featuredPostUrl = featuredPost?.slug
-    ? `/blog/${encodeURIComponent(featuredPost.slug)}`
-    : "/blog";
+export interface NavigationLabels {
+  work: string;
+  services: string;
+  studio: string;
+  journal: string;
+}
+
+/**
+ * Меню сайта: четыре задачи посетителя вместо разделов-метафор.
+ *
+ * Раньше здесь жили «FOR PLAY», «ABOUT PIP» и «SOCNET»: метки ничего не
+ * обещали, а половина пунктов вела на якоря главной. Теперь каждый пункт — это
+ * отдельная страница: работы, услуги, студия, журнал. Соцсети и аккаунт живут в
+ * подвале и в правом верхнем углу, а не в основном меню.
+ */
+export const DEFAULT_NAVIGATION_LABELS: NavigationLabels = {
+  work: "Работы",
+  services: "Услуги",
+  studio: "Студия",
+  journal: "Журнал",
+};
+
+export function buildNavigation(labels: Partial<NavigationLabels> = {}): MenuItem[] {
+  const merged = { ...DEFAULT_NAVIGATION_LABELS, ...labels };
 
   return [
-    {
-      title: "LINE LAUNCHER",
-      id: 4,
-      url: "/line-launcher",
-    },
-    {
-      title: "FOR PLAY",
-      id: 1,
-      links: [
-        {
-          label: "Order a design",
-          icon: Paintbrush,
-          description: "Get a tailored design crafted around your brand idea",
-          url: "/contact",
-        },
-        {
-          label: "Design services",
-          icon: Layers,
-          description: "Explore small and large format visual solutions",
-          url: "/services",
-        },
-        {
-          label: "Plus For Play",
-          icon: Sparkles,
-          description: "Interactive ecosystem and creative studio experiments",
-          url: "/#community",
-        },
-        {
-          label: "Ozone project",
-          icon: Compass,
-          description: "Product thinking tested across live digital systems",
-          url: "/#features",
-        },
-      ],
-    },
-    {
-      title: "ABOUT PIP",
-      id: 3,
-      imageLink: {
-        url: featuredPostUrl,
-        ...(featuredPost?.coverImage
-          ? { image: featuredPost.coverImage }
-          : {}),
-        label: featuredPost?.title || "Blog",
-      },
-      groupLinks: [
-        {
-          title: "Studio",
-          links: [
-            {
-              label: "How we work",
-              icon: Sparkles,
-              description: "Confidential, individualized studio process",
-              url: "/#features",
-            },
-            {
-              label: "Our partners",
-              icon: Users,
-              description: "Collaboration with TS Connect in Tambov",
-              url: "/#community",
-            },
-            {
-              label: "Studio news",
-              icon: BookOpen,
-              description: "Latest updates from Plus In Plus",
-              url: "/#news",
-            },
-          ],
-        },
-        {
-          title: "Journal",
-          links: [
-            {
-              label: "Blog",
-              icon: BookOpen,
-              description: "Articles, studio notes, and visual design stories",
-              url: "/blog",
-            },
-            ...(featuredPost
-              ? [
-                  {
-                    label: featuredPost.title,
-                    icon: Compass,
-                    description: "Latest updates from Plus In Plus",
-                    url: featuredPostUrl,
-                  },
-                ]
-              : []),
-            {
-              label: "Contact us",
-              icon: MessageSquare,
-              description: "Discuss your project with the Plus In Plus team",
-              url: "/contact",
-            },
-          ],
-        },
-      ],
-    },
-    {
-      title: "SOCNET",
-      id: 2,
-      featuredLinks: [
-        {
-          label: "Telegram Channel",
-          icon: Send,
-          description:
-            "Studio releases, mockups, and behind-the-scenes updates",
-          url: "https://t.me/plusinplus",
-          external: true,
-        },
-        {
-          label: "VK Community",
-          icon: Globe,
-          description:
-            "Case studies, client stories, and community discussions",
-          url: "https://vk.com/plusinplus",
-          external: true,
-        },
-      ],
-      links: [
-        {
-          label: "YouTube",
-          icon: Video,
-          description: "Watch design breakdowns and studio reels",
-          url: "https://www.youtube.com/@plusinplus",
-          external: true,
-        },
-        {
-          label: "Blog",
-          icon: BookOpen,
-          description: "Long-form studio essays and announcements",
-          url: "/blog",
-        },
-        {
-          label: "Contact Studio",
-          icon: MessageSquare,
-          description: "Send a message directly to our team",
-          url: "/contact",
-        },
-      ],
-    },
+    { id: 1, title: merged.work, url: "/work" },
+    { id: 2, title: merged.services, url: "/services" },
+    { id: 3, title: merged.studio, url: "/studio" },
+    { id: 4, title: merged.journal, url: "/blog" },
   ];
 }
 
 const MOBILE_BREAKPOINT = 1024;
 
-const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
+const Navbar10 = () => {
   const [open, setOpen] = useState<boolean>(false);
   // Открытый раздел шапки: наведение мыши и клик ведут к одному состоянию,
   // поэтому подменю появляется сразу при наведении, а не только по нажатию.
@@ -290,48 +149,14 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
   const cartCount = useCartCount();
   const t = useTranslations("header");
   const tc = useTranslations("common");
-  const tn = useTranslations("navigation");
   const navigation = useMemo(() => {
-    const labels: Record<string, string> = {
-      "Order a design": "orderDesign", "Design services": "designServices", "Plus For Play": "plusForPlay", "Ozone project": "ozoneProject",
-      "Studio": "studio", "Journal": "journal", "How we work": "howWeWork", "Our partners": "ourPartners", "Studio news": "studioNews",
-      "Blog": "blog", "We're Up and Running": "launchStory", "Contact us": "contactUs", "Telegram Channel": "telegramChannel",
-      "VK Community": "vkCommunity", "YouTube": "youtube", "Contact Studio": "contactStudio",
-    };
-    const descriptions: Record<string, string> = {
-      "Get a tailored design crafted around your brand idea": "orderDesignDescription",
-      "Explore small and large format visual solutions": "designServicesDescription",
-      "Interactive ecosystem and creative studio experiments": "plusForPlayDescription",
-      "Product thinking tested across live digital systems": "ozoneProjectDescription",
-      "Confidential, individualized studio process": "howWeWorkDescription",
-      "Collaboration with TS Connect in Tambov": "ourPartnersDescription",
-      "Latest updates from Plus In Plus": "studioNewsDescription",
-      "Read the launch story behind the new website": "launchStoryDescription",
-      "Discuss your project with the Plus In Plus team": "contactUsDescription",
-      "Studio releases, mockups, and behind-the-scenes updates": "telegramDescription",
-      "Case studies, client stories, and community discussions": "vkDescription",
-      "Watch design breakdowns and studio reels": "youtubeDescription",
-      "Long-form studio essays and announcements": "blogDescription",
-      "Send a message directly to our team": "contactStudioDescription",
-    };
-    const localizeLink = (link: MenuLink): MenuLink => ({
-      ...link,
-      label: link.label && labels[link.label] ? tn(labels[link.label]) : link.label,
-      description: link.description && descriptions[link.description] ? tn(descriptions[link.description]) : link.description,
+    return buildNavigation({
+      work: t("work"),
+      services: t("services"),
+      studio: t("studio"),
+      journal: t("journal"),
     });
-    return buildNavigation(featuredPost).map((item) => ({
-      ...item,
-      title: item.id === 4 ? tn("lineLauncher") : item.id === 1 ? t("forPlay") : item.id === 3 ? t("about") : t("socnet"),
-      links: item.links?.map(localizeLink),
-      featuredLinks: item.featuredLinks?.map(localizeLink),
-      imageLink: item.imageLink ? localizeLink(item.imageLink) : undefined,
-      groupLinks: item.groupLinks?.map((group) => ({
-        ...group,
-        title: labels[group.title] ? tn(labels[group.title]) : group.title,
-        links: group.links.map(localizeLink),
-      })),
-    }));
-  }, [t, tn, featuredPost]);
+  }, [t]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -453,7 +278,7 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
                 <LanguageSwitcher />
                 {session?.user ? <CartIcon count={cartCount} /> : null}
                 <Button variant="outline"size="sm"asChild>
-                  <Link href="/contact">{t("contact")}</Link>
+                  <Link href="/contact">{t("startProject")}</Link>
                 </Button>
                 {session?.user ? (
                   <div className="flex items-center gap-2">
@@ -512,7 +337,7 @@ const Navbar10 = ({ featuredPost }: Navbar10Props = {}) => {
         open={open}
         navigation={navigation}
         onClose={() => setOpen(false)}
-        contactLabel={t("contact")}
+        contactLabel={t("startProject")}
         loginLabel={t("login")}
         profileLabel={t("profile")}
         accountLabel={t("account")}

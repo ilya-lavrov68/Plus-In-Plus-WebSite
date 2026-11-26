@@ -58,11 +58,12 @@ function sourceFiles() {
 
 /**
  * Translator variables of one file: `const t = useTranslations("admin")` and the server-side
- * `getTranslations("admin")` / `getActionTranslator()` (which is bound to `actions.*`).
+ * `getTranslations("admin")` / `getRequestTranslations("admin")` (project helper for server
+ * components) plus `getActionTranslator()` (which is bound to `actions.*`).
  */
 function translatorsOf(source) {
   const translators = new Map();
-  const pattern = /const\s+(\w+)\s*=\s*(?:await\s+)?(?:useTranslations|getTranslations)\(\s*(?:"([^"]*)")?\s*\)/g;
+  const pattern = /const\s+(\w+)\s*=\s*(?:await\s+)?(?:useTranslations|getTranslations|getRequestTranslations)\(\s*(?:"([^"]*)")?\s*\)/g;
   for (const match of source.matchAll(pattern)) translators.set(match[1], match[2] ?? "");
   if (/getActionTranslator\(/.test(source)) translators.set("t", "actions");
   return translators;

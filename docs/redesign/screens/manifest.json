@@ -1,22 +1,8 @@
 {
-  "generatedAt": "2026-11-26T19:39:59.361Z",
-  "baseUrl": "http://127.0.0.1:43693",
+  "generatedAt": "2026-11-26T20:36:17.570Z",
+  "baseUrl": "http://127.0.0.1:3101",
   "mode": "production",
   "shots": [
-    {
-      "route": "/ru",
-      "viewport": "desktop",
-      "width": 1440,
-      "title": "Plus In Plus — дизайн-студия",
-      "file": "docs/redesign/screens/home-ru-desktop.webp"
-    },
-    {
-      "route": "/ru",
-      "viewport": "mobile",
-      "width": 390,
-      "title": "Plus In Plus — дизайн-студия",
-      "file": "docs/redesign/screens/home-ru-mobile.webp"
-    },
     {
       "route": "/",
       "viewport": "desktop",
@@ -121,6 +107,62 @@
       "width": 1440,
       "title": "reduced motion",
       "file": "docs/redesign/screens/home-ru-reduced-motion.webp"
+    },
+    {
+      "route": "/ru",
+      "viewport": "desktop",
+      "width": 1440,
+      "title": "Plus In Plus — дизайн-студия",
+      "file": "docs/redesign/screens/home-ru-desktop.webp"
+    },
+    {
+      "route": "/ru",
+      "viewport": "mobile",
+      "width": 390,
+      "title": "Plus In Plus — дизайн-студия",
+      "file": "docs/redesign/screens/home-ru-mobile.webp"
+    },
+    {
+      "route": "/ru/studio",
+      "viewport": "desktop",
+      "width": 1440,
+      "title": "Студия — Plus In Plus",
+      "file": "docs/redesign/screens/studio-ru-desktop.webp"
+    },
+    {
+      "route": "/ru/studio",
+      "viewport": "mobile",
+      "width": 390,
+      "title": "Студия — Plus In Plus",
+      "file": "docs/redesign/screens/studio-ru-mobile.webp"
+    },
+    {
+      "route": "/ru/work",
+      "viewport": "desktop",
+      "width": 1440,
+      "title": "Работы — Plus In Plus",
+      "file": "docs/redesign/screens/work-ru-desktop.webp"
+    },
+    {
+      "route": "/ru/work",
+      "viewport": "mobile",
+      "width": 390,
+      "title": "Работы — Plus In Plus",
+      "file": "docs/redesign/screens/work-ru-mobile.webp"
+    },
+    {
+      "route": "/ru/work/line-launcher",
+      "viewport": "desktop",
+      "width": 1440,
+      "title": "Line Launcher — Продуктовый дизайн и интерфейс",
+      "file": "docs/redesign/screens/work-case-ru-desktop.webp"
+    },
+    {
+      "route": "/ru/work/line-launcher",
+      "viewport": "mobile",
+      "width": 390,
+      "title": "Line Launcher — Продуктовый дизайн и интерфейс",
+      "file": "docs/redesign/screens/work-case-ru-mobile.webp"
     }
   ]
 }
