@@ -101,7 +101,8 @@ export async function LineLauncherView() {
                   aria-hidden="true"
                   className="block size-11 rounded-md bg-[var(--pip-accent-signal)]"
                 />
-                <p className="max-w-[22rem] text-sm leading-relaxed text-foreground">
+                {/* Текст лежит на подложке: графика под ним подвижная и цветная. */}
+                <p className="max-w-[22rem] rounded-lg bg-background/85 px-4 py-3 text-sm leading-relaxed text-foreground">
                   {t("buildBody")}
                 </p>
               </div>
