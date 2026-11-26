@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "status": "owner-approved-core",
+  "source": {
+    "authority": "User's latest design-system correction",
+    "note": "The six core values below are fixed brand foundations. Any additional surface/component colors must be derived and centrally tokenized, never scattered as ad-hoc literals."
+  },
+  "core": {
+    "accentNeutral": { "value": "#EEEEEE", "role": "neutral/light accent; primary light text on dark surfaces" },
+    "accentSignal": { "value": "#FF5F01", "role": "orange brand/action accent; on orange fills use #0E1015 text" },
+    "textOnLight": { "value": "#0E1015", "role": "text on light surfaces" },
+    "textOnColor": { "value": "#0E1015", "role": "text on colorful surfaces, including the orange accent" },
+    "textOnDark": { "value": "#EEEEEE", "role": "text on dark surfaces" },
+    "surfaceDark": { "value": "#110F10", "role": "base dark surface" },
+    "surfaceGray": { "value": "#2B292A", "role": "base gray/raised dark surface" }
+  },
+  "contrastChecks": {
+    "textOnLightOnNeutralAccent": "16.40:1",
+    "textOnColorOnOrangeAccent": "6.24:1",
+    "textOnDarkOnDarkSurface": "16.46:1",
+    "textOnDarkOnGraySurface": "12.45:1",
+    "note": "Ratios use the exact solid sRGB core colors. Recheck actual composites, opacity, imagery and hover/focus states after implementation."
+  },
+  "systemRules": [
+    "Keep the core palette values unchanged unless the owner explicitly changes them.",
+    "Build a hierarchy of primitive tokens, semantic tokens, and component tokens; components should consume semantic/component tokens rather than hard-coded hex values.",
+    "Individual modules and finished components may have distinct surface treatments or additional colors, but every addition must be named, centrally defined, accessible, and consistent with the site-wide system.",
+    "Use #0E1015 for text on light and colorful surfaces; use #EEEEEE for text on dark surfaces.",
+    "Do not place #EEEEEE text on #FF5F01 fills; use #0E1015 for readable contrast.",
+    "Use the orange accent with intent; preserve enough neutral space for hierarchy.",
+    "The current Line Launcher logo asset uses a warm-white fill; preserve source brand assets unless the owner separately approves a logo change."
+  ]
+}

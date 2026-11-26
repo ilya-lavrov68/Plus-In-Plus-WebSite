@@ -227,6 +227,42 @@ test("палитра проходит контраст на всех парах 
   assert.doesNotMatch(globals, /--md-signal: #ece38a/, "жёлтый акцент админки убран");
 });
 
+test("радиусы заданы иерархией, а вложенный угол считается по формуле", () => {
+  const globals = read("styles/globals.css");
+
+  // Шкала: строго возрастает и покрывает все ступени, которыми пользуется UI.
+  const scale = ["xs", "sm", "md", "lg", "xl", "2xl", "3xl"].map((step) => {
+    const match = globals.match(new RegExp(`--radius-${step}:\\s*(\\d+)px;`));
+    assert.ok(match, `ступень --radius-${step} должна быть в px`);
+    return Number(match[1]);
+  });
+  for (let i = 1; i < scale.length; i += 1) {
+    assert.ok(scale[i] > scale[i - 1], "каждая следующая ступень больше предыдущей");
+  }
+  assert.ok(scale.at(-1) >= 28, "крупные полотна получают свой радиус");
+
+  // Вложенный угол: внутренний = внешний − отступ, с нижним клампом.
+  assert.match(globals, /@utility nested-radius\s*{/, "утилита вложенного угла объявлена");
+  assert.match(globals, /--pip-radius-outer/, "внешний радиус читается из переменной");
+  assert.match(globals, /--pip-nest-gap/, "отступ до края читается из переменной");
+  assert.match(
+    globals,
+    /calc\(\s*var\(--pip-radius-outer[\s\S]*?-\s*var\(--pip-nest-gap/,
+    "формула вычитает отступ из внешнего радиуса",
+  );
+  assert.match(globals, /max\(\s*var\(--radius-xs\)/, "угол не становится острее базовой метки");
+
+  // Произвольные радиусы в разметке запрещены: только ступени шкалы.
+  const offenders = [];
+  for (const file of [...filesUnder("components"), ...filesUnder("app")]) {
+    if (file.endsWith(".css")) continue;
+    for (const match of read(file).matchAll(/rounded-\[[^\]]+\]/g)) {
+      offenders.push(`${file}: ${match[0]}`);
+    }
+  }
+  assert.deepEqual(offenders, [], "радиус вернулся произвольным значением");
+});
+
 test("тема админки доходит до элементов: цветовые роли объявлены inline", () => {
   const globals = read("styles/globals.css");
 

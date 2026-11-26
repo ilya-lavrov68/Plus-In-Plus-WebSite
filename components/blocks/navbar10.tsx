@@ -657,7 +657,7 @@ const DropdownMenu1 = ({ links }: { links?: MenuLink[] }) => {
             ref={(el) => {
               if (el) imageRefs.current[index] = el;
             }}
-            className={`absolute top-12 left-12 aspect-video w-[40rem] overflow-hidden rounded-[1.25rem] transition-[transform,opacity] duration-300 ease-out will-change-[transform,opacity] ${
+            className={`absolute top-12 left-12 aspect-video w-[40rem] overflow-hidden rounded-xl transition-[transform,opacity] duration-300 ease-out will-change-[transform,opacity] ${
               index === 0
                 ? "z-10 translate-y-0 opacity-100"
                 : "pointer-events-none z-0 translate-y-12 opacity-0"

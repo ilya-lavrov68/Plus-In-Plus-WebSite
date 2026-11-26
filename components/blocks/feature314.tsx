@@ -100,13 +100,13 @@ const Feature314 = ({
                 key={card.title}
                 data-reveal=""
                 data-reveal-delay={index * 70}
-                className="glass-surface group col-span-1 rounded-[1.5rem] border-0 bg-white/[0.065] p-4 transition-[background-color] duration-200 ease-out hover:bg-white/[0.09]"
+                className="glass-surface group col-span-1 rounded-xl border-0 bg-white/[0.065] p-4 [--pip-nest-gap:1rem] [--pip-radius-outer:var(--radius-xl)] transition-[background-color] duration-200 ease-out hover:bg-white/[0.09]"
               >
                 <Link
                   href={card.url}
                   className="flex h-full w-full flex-col justify-between gap-7"
                 >
-                  <div className="relative h-40 overflow-hidden rounded-[1.15rem]">
+                  <div className="nested-radius relative h-40 overflow-hidden">
                     {card.image ? (
                       <img
                         src={card.image}
@@ -140,10 +140,10 @@ const Feature314 = ({
             <Card
               data-reveal=""
               data-reveal-delay={120}
-              className="glass-surface group min-h-[30rem] rounded-[1.75rem] border-0 bg-white/[0.065] p-2 md:col-span-2"
+              className="glass-surface group min-h-[30rem] rounded-2xl border-0 bg-white/[0.065] p-2 [--pip-nest-gap:0.5rem] [--pip-radius-outer:var(--radius-2xl)] md:col-span-2"
             >
               <Link href={bigCard.url} className="flex h-full flex-col">
-                <div className="relative min-h-[24rem] flex-1 overflow-hidden rounded-[1.35rem]">
+                <div className="nested-radius relative min-h-[24rem] flex-1 overflow-hidden">
                   {bigCard.image ? (
                     <img
                       src={bigCard.image}

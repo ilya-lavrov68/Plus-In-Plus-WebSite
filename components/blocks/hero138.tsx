@@ -142,16 +142,16 @@ const Hero138 = ({
           </div>
 
           <div className="container relative z-10">
-            <div className="hero-media-frame relative overflow-hidden rounded-[1.75rem] bg-white/[0.055] p-1.5 sm:p-2.5">
+            <div className="hero-media-frame relative overflow-hidden rounded-2xl bg-white/[0.055] p-1.5 [--pip-nest-gap:6px] [--pip-radius-outer:var(--radius-2xl)] sm:p-2.5 sm:[--pip-nest-gap:10px]">
               {image?.src ? (
                 <img
                   src={image.src}
                   alt={image.alt}
-                  className="aspect-[16/9] w-full rounded-[1.35rem] object-cover object-center"
+                  className="nested-radius aspect-[16/9] w-full object-cover object-center"
                 />
               ) : (
                 <MediaPlaceholder
-                  className="aspect-[16/9] rounded-[1.35rem]"
+                  className="nested-radius aspect-[16/9]"
                   markClassName="h-16 sm:h-20"
                 />
               )}
