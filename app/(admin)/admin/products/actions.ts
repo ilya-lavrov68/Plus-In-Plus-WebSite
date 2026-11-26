@@ -70,7 +70,7 @@ export async function saveProduct(formData: FormData): Promise<void> {
   });
 
   revalidatePath("/admin/products");
-  revalidatePath("/shop");
+  revalidatePath("/services");
   redirect(`/admin/products/${encodeURIComponent(id)}?saved=1`);
 }
 
@@ -112,7 +112,7 @@ export async function createProduct(formData: FormData): Promise<void> {
     });
 
     revalidatePath("/admin/products");
-    revalidatePath("/shop");
+    revalidatePath("/services");
     redirect(`/admin/products/${encodeURIComponent(id)}?saved=1`);
   } catch (error) {
     if (error instanceof ProductRuleError) {

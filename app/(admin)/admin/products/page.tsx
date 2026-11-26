@@ -72,7 +72,7 @@ export default async function AdminProductsPage() {
                       </Link>
                     ) : null}
                     <Link
-                      href={`/shop/${product.slug}`}
+                      href={`/services/${product.slug}`}
                       className="text-xs text-on-surface-variant underline-offset-4 hover:underline"
                       target="_blank"
                       rel="noreferrer"

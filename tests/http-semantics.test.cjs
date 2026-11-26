@@ -68,7 +68,7 @@ Module._load = function (name, parent, isMain) {
 };
 
 const blogPage = require("../app/(site)/blog/[slug]/page.tsx");
-const shopPage = require("../app/(site)/shop/[slug]/page.tsx");
+const shopPage = require("../app/(site)/services/[slug]/page.tsx");
 
 beforeEach(() => {
   locale = "en";
@@ -85,7 +85,7 @@ test("missing blog slugs invoke notFound in metadata and rendering for EN and RU
   }
 });
 
-test("missing shop slugs redirect in metadata and rendering for EN and RU", async () => {
+test("missing service slugs redirect in metadata and rendering for EN and RU", async () => {
   for (const currentLocale of ["en", "ru"]) {
     locale = currentLocale;
     const props = { params: Promise.resolve({ slug: "definitely-missing" }) };
@@ -100,12 +100,12 @@ test("dynamic routes have no ancestor loading boundary that streams an early she
     "app/(site)/loading.tsx",
     "app/(site)/blog/loading.tsx",
     "app/(site)/blog/[slug]/loading.tsx",
-    "app/(site)/shop/loading.tsx",
-    "app/(site)/shop/[slug]/loading.tsx",
+    "app/(site)/services/loading.tsx",
+    "app/(site)/services/[slug]/loading.tsx",
   ]) {
     assert.equal(fs.existsSync(path.join(__dirname, "..", file)), false, file);
   }
-  for (const route of ["blog", "shop"]) {
+  for (const route of ["blog", "services"]) {
     const source = fs.readFileSync(path.join(__dirname, "..", "app", "(site)", route, "[slug]", "page.tsx"), "utf8");
     assert.doesNotMatch(source, /<Suspense/);
   }

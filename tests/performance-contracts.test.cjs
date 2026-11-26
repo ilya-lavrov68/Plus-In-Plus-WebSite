@@ -78,7 +78,7 @@ test("blog cards exclude article bodies, sections, excerpts and navigation-only 
     "components/site/blog-section.tsx",
     "app/(site)/blog/(index)/page.tsx",
     "app/(site)/blog/[slug]/content.tsx",
-    "app/(site)/shop/[slug]/content.tsx",
+    "app/(site)/services/[slug]/content.tsx",
   ]) {
     assert.match(source(file), /map\(toBlogCardData\)/, file);
   }
@@ -101,7 +101,7 @@ test("latest-post readers apply the database limit before mapping card content",
   assert.match(query.sql, /limit \?/);
   assert.equal(query.args[query.args.length - 1], 3);
   assert.match(source("app/(site)/page.tsx"), /getPublishedPosts\(3\)/);
-  assert.match(source("app/(site)/shop/[slug]/content.tsx"), /getPublishedPosts\(3\)/);
+  assert.match(source("app/(site)/services/[slug]/content.tsx"), /getPublishedPosts\(3\)/);
 });
 
 test("sitemap keeps both unbounded reads but selects only URL and date fields", async () => {

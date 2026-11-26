@@ -201,7 +201,7 @@ test("create actions log the new record and redirect to its card", async () => {
     ["post.created", "product.created", "service.created"],
   );
   assert.ok(logs.every((row) => row.actor_id_id === "usr-admin"), "every change is attributed to the admin");
-  assert.ok(invalidated.includes("/shop"));
+  assert.ok(invalidated.includes("/services"));
   assert.ok(invalidated.includes("/services"));
 });
 

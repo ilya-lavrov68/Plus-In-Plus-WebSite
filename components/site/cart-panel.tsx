@@ -230,7 +230,7 @@ export function CartPanel() {
           <Button onClick={() => router.push("/services")}>
             {t("browseServices")}
           </Button>
-          <Button variant="outline" onClick={() => router.push("/shop")}>
+          <Button variant="outline" onClick={() => router.push("/services")}>
             {t("browseShop")}
           </Button>
         </div>

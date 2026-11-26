@@ -550,8 +550,8 @@ test("mobile bottom navigation resolves localized and nested active routes", () 
     ["/ru", "/", true],
     ["/ru/services", "/services", true],
     ["/en/services/sign-design", "/services", true],
-    ["/shop/sign-design", "/services", true],
-    ["/ru/shop/sign-design", "/services", true],
+    ["/services/sign-design", "/services", true],
+    ["/ru/services/sign-design", "/services", true],
     ["/ru/cart", "/cart", true],
     ["/cart/checkout", "/cart", true],
     ["/blog", "/services", false],
@@ -568,7 +568,7 @@ test("mobile bottom navigation resolves localized and nested active routes", () 
 });
 
 test("MobileBottomNav renders four touch targets and animates individual SVG icon parts", () => {
-  currentPathname = "/ru/shop/sign-design";
+  currentPathname = "/ru/services/sign-design";
   let menuToggles = 0;
   let navigations = 0;
   let view;

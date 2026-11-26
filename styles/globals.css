@@ -400,11 +400,6 @@
     --pip-signal: var(--pip-accent-signal);
     --pip-violet: #8f9cfc;
 
-    --hero-pillar-1: 22 99% 50%;
-    --hero-pillar-2: 0 0% 32%;
-    --hero-pillar-3: 0 0% 62%;
-    --hero-pillar-4: 0 0% 22%;
-
     --spectrum-primary: var(--pip-accent-signal);
     --spectrum-primary-hover: var(--pip-accent-signal-strong);
     --spectrum-secondary: #262626;

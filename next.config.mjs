@@ -19,6 +19,12 @@ const nextConfig = {
    */
   async redirects() {
     return [
+      // Магазин мерча закрыт: каталог товаров удалён, а страницы услуг
+      // переехали на /services/[slug]. Старый адрес ведёт к тому же каталогу.
+      { source: "/shop", destination: "/services", permanent: true },
+      { source: "/shop/:path*", destination: "/services/:path*", permanent: true },
+      { source: "/ru/shop", destination: "/ru/services", permanent: true },
+      { source: "/ru/shop/:path*", destination: "/ru/services/:path*", permanent: true },
       { source: "/ai", destination: "/services", permanent: true },
       { source: "/ai/:path*", destination: "/services", permanent: true },
       { source: "/ru/ai", destination: "/ru/services", permanent: true },

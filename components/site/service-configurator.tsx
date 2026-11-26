@@ -37,7 +37,7 @@ export function ServiceConfigurator({
   onAddToCart,
   className,
 }: ServiceConfiguratorProps) {
-  const t = useTranslations("shop.configurator");
+  const t = useTranslations("services.configurator");
   const locale = useLocale();
   const { status: authStatus } = useSession();
 

@@ -21,7 +21,6 @@ for (const extension of [".ts", ".tsx"]) {
 }
 
 const messages = require("../messages/en.json");
-let productRows = [];
 let publishedServices = [];
 let publishedPosts = [];
 let settingRows = [];
@@ -71,31 +70,8 @@ Module._load = function (name, parent, isMain) {
     return {
       getSitemapServices: async () => publishedServices,
       getSitemapPosts: async () => publishedPosts,
-      serviceHref: (service) => `/shop/${encodeURIComponent(service.slug || service.id)}`,
+      serviceHref: (service) => `/services/${encodeURIComponent(service.slug || service.id)}`,
     };
-  }
-  if (name === "@/lib/commerce-data") {
-    const real = originalLoad.call(this, path.join(__dirname, "..", "lib", "commerce-data.ts"), parent, isMain);
-    return {
-      ...real,
-      // Каталог читает активные товары один раз и маппит их в карточки.
-      listActiveProducts: async () =>
-        productRows.filter((row) => row.isActive).map((row) => ({
-          id: row.id,
-          name: row.name,
-          slug: row.slug,
-          description: row.description,
-          price: row.price,
-          coverImage: row.coverImage,
-          cover: { url: row.coverImage },
-          category: row.category,
-          stock: row.stock,
-          isActive: row.isActive,
-        })),
-    };
-  }
-  if (name === "@/components/site/shop-catalog-view") {
-    return { ShopCatalogView: () => null };
   }
   if (name.startsWith("@/")) {
     name = path.resolve(__dirname, "..", name.slice(2));
@@ -103,7 +79,6 @@ Module._load = function (name, parent, isMain) {
   return originalLoad.call(this, name, parent, isMain);
 };
 
-const shopPage = require("../app/(site)/shop/(index)/page.tsx");
 const sitemap = require("../app/(site)/sitemap.ts").default;
 const robots = require("../app/robots.ts").default;
 const { getPublicSiteSettings } = require("../lib/public-site-settings.ts");
@@ -120,13 +95,9 @@ beforeEach(() => {
   settingQueries = [];
 });
 
-test("empty shop keeps coming-soon metadata and stays out of sitemap while public service routes remain indexed", async () => {
+test("sitemap indexes the product page and every live service route", async () => {
   publishedServices = [{ id: "service-1", slug: "sign-design" }];
   publishedPosts = [{ slug: "studio-news", publishedAt: null }];
-
-  const metadata = await shopPage.generateMetadata();
-  assert.equal(metadata.title, messages.shop.comingSoonTitle);
-  assert.deepEqual(metadata.robots, { index: false, follow: true });
 
   const entries = await sitemap();
   const urls = entries.map((entry) => entry.url);
@@ -134,51 +105,9 @@ test("empty shop keeps coming-soon metadata and stays out of sitemap while publi
   assert.ok(urls.includes("https://example.test/line-launcher"));
   assert.equal(urls.some((url) => url.includes("/ai")), false, "ИИ-маршруты не попадают в sitemap");
   assert.ok(urls.includes("https://example.test/contact"));
-  assert.ok(urls.includes("https://example.test/shop/sign-design"));
+  assert.ok(urls.includes("https://example.test/services/sign-design"));
   assert.ok(urls.includes("https://example.test/blog/studio-news"));
-  assert.ok(!urls.includes("https://example.test/shop"));
-});
-
-test("active products switch shop to catalog metadata and add only the catalog route to sitemap", async () => {
-  productRows = [
-    {
-      id: "product-active",
-      name: "Studio tote",
-      slug: "studio-tote",
-      description: "A product from the database",
-      price: 2500,
-      coverImage: null,
-      category: "merch",
-      stock: 4,
-      isActive: true,
-    },
-    {
-      id: "product-hidden",
-      name: "Hidden product",
-      slug: "hidden-product",
-      description: null,
-      price: 1000,
-      coverImage: null,
-      category: null,
-      stock: 0,
-      isActive: false,
-    },
-  ];
-
-  const metadata = await shopPage.generateMetadata();
-  assert.equal(metadata.title, messages.shop.catalogTitle);
-  assert.equal(metadata.description, messages.shop.catalogDescription);
-  assert.deepEqual(metadata.robots, { index: true, follow: true });
-
-  const page = await shopPage.default();
-  assert.deepEqual(
-    page.props.products.map((product) => product.id),
-    ["product-active"]
-  );
-
-  const urls = (await sitemap()).map((entry) => entry.url);
-  assert.equal(urls.filter((url) => url === "https://example.test/shop").length, 1);
-  assert.ok(!urls.some((url) => url.includes("hidden-product")));
+  assert.equal(urls.some((url) => url.includes("/shop")), false, "магазин удалён из sitemap");
 });
 
 test("sitemap keeps encoded slugs, legacy service ids and optional publication dates", async () => {
@@ -193,8 +122,8 @@ test("sitemap keeps encoded slugs, legacy service ids and optional publication d
   ];
 
   const entries = await sitemap();
-  assert.ok(entries.some((entry) => entry.url === "https://example.test/shop/legacy%20service"));
-  assert.ok(entries.some((entry) => entry.url === "https://example.test/shop/design%2Fsign"));
+  assert.ok(entries.some((entry) => entry.url === "https://example.test/services/legacy%20service"));
+  assert.ok(entries.some((entry) => entry.url === "https://example.test/services/design%2Fsign"));
 
   const datedPost = entries.find((entry) => entry.url === "https://example.test/blog/news%2Ftoday");
   assert.equal(datedPost.lastModified, publishedAt);

@@ -31,7 +31,7 @@ export async function generateMetadata({
   return createPageMetadata({
     title: `${service.title} — Plus In Plus`,
     description: service.shortDesc || tMeta("servicesDescription"),
-    path: `/shop/${encodeURIComponent(slug)}`,
+    path: `/services/${encodeURIComponent(slug)}`,
     image: service.coverImage,
     locale,
   });

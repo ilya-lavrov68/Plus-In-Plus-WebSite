@@ -85,7 +85,7 @@ export async function saveService(formData: FormData): Promise<void> {
 
   revalidatePath("/admin/services");
   revalidatePath("/services");
-  revalidatePath("/shop");
+  revalidatePath("/services");
   revalidatePath("/");
   redirect(`/admin/services/${encodeURIComponent(id)}?saved=1`);
 }
@@ -140,7 +140,7 @@ export async function createService(formData: FormData): Promise<void> {
 
     revalidatePath("/admin/services");
     revalidatePath("/services");
-    revalidatePath("/shop");
+    revalidatePath("/services");
     revalidatePath("/");
     redirect(`/admin/services/${encodeURIComponent(id)}?saved=1`);
   } catch (error) {

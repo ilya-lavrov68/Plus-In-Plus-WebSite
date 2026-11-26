@@ -178,7 +178,7 @@ test("saveProduct stores the product, logs it and revalidates the shop", async (
   const [log] = await database.rows(`select action, actor_id_id from activity_logs where entity_id = 'prd-1'`);
   assert.equal(log.action, "product.updated");
   assert.equal(log.actor_id_id, "usr-admin");
-  for (const url of ["/admin/products", "/shop"]) {
+  for (const url of ["/admin/products", "/services"]) {
     assert.ok(invalidated.includes(url), `${url} must be revalidated`);
   }
 });

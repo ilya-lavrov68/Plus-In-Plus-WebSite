@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { ArrowRight } from "lucide-react";
 
 import { MediaPlaceholder } from "@/components/site/media-placeholder";
@@ -25,6 +26,8 @@ export interface Hero138Props {
     alt: string;
   };
   showMediaStage?: boolean;
+  /** Авторская сцена вместо изображения: рисуется, пока `image` не передан. */
+  stageMedia?: ReactNode;
   className?: string;
 }
 
@@ -44,6 +47,7 @@ const Hero138 = ({
   footnote = "Plus In Plus Design Studio",
   image,
   showMediaStage = true,
+  stageMedia,
   className,
 }: Hero138Props) => {
   return (
@@ -119,28 +123,6 @@ const Hero138 = ({
 
       {showMediaStage && (
         <div data-reveal="" data-reveal-delay={180} className="relative mt-16 md:mt-28">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -top-12 right-0 left-0 mx-auto grid h-80 max-w-6xl grid-cols-4 gap-8 px-8 opacity-25 blur-3xl"
-          >
-            <div
-              className="h-full rounded-full"
-              style={{ backgroundColor: "hsl(var(--hero-pillar-1))" }}
-            />
-            <div
-              className="h-full rounded-full"
-              style={{ backgroundColor: "hsl(var(--hero-pillar-2))" }}
-            />
-            <div
-              className="h-full rounded-full"
-              style={{ backgroundColor: "hsl(var(--hero-pillar-3))" }}
-            />
-            <div
-              className="h-full rounded-full"
-              style={{ backgroundColor: "hsl(var(--hero-pillar-4))" }}
-            />
-          </div>
-
           <div className="container relative z-10">
             <div className="hero-media-frame relative overflow-hidden rounded-2xl bg-white/[0.055] p-1.5 [--pip-nest-gap:6px] [--pip-radius-outer:var(--radius-2xl)] sm:p-2.5 sm:[--pip-nest-gap:10px]">
               {image?.src ? (
@@ -149,6 +131,10 @@ const Hero138 = ({
                   alt={image.alt}
                   className="nested-radius aspect-[16/9] w-full object-cover object-center"
                 />
+              ) : stageMedia ? (
+                <div className="nested-radius aspect-[16/9] overflow-hidden">
+                  {stageMedia}
+                </div>
               ) : (
                 <MediaPlaceholder
                   className="nested-radius aspect-[16/9]"

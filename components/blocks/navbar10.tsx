@@ -125,9 +125,8 @@ type NavLinkProps = {
 };
 
 export function buildNavigation(featuredPost?: Navbar10Props["featuredPost"]): MenuItem[] {
-  // Раздел SHOP временно скрыт из навигации до появления мерча. Прямые ссылки
-  // на страницы услуг (/shop/[slug]) продолжают работать — заявки создаются
-  // через них, а /shop показывает заглушку «Shop is coming soon».
+  // Магазин мерча удалён: публичного каталога товаров больше нет. Страницы
+  // услуг живут на /services/[slug], а старые адреса /shop/… отдают 308 туда же.
   const featuredPostUrl = featuredPost?.slug
     ? `/blog/${encodeURIComponent(featuredPost.slug)}`
     : "/blog";

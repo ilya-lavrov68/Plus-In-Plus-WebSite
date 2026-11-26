@@ -55,7 +55,7 @@ const Footer7 = ({
   const serviceLinks = [
     ...services.slice(0, 4).map((service) => ({
       name: serviceNames[service.slug] ?? service.title,
-      href: `/shop/${service.slug}`,
+      href: `/services/${service.slug}`,
     })),
     { name: t("largeDesigns"), href: "/services" },
   ];

@@ -41,12 +41,7 @@ export function isMobileNavigationActive(pathname: string, href: string) {
   const current = normalizePathname(pathname);
 
   if (href === "/services") {
-    return (
-      current === "/services" ||
-      current.startsWith("/services/") ||
-      current === "/shop" ||
-      current.startsWith("/shop/")
-    );
+    return current === "/services" || current.startsWith("/services/");
   }
 
   if (href === "/") return current === "/";
