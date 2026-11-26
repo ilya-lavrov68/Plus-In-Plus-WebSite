@@ -11,6 +11,20 @@ const securityHeaders = [
 const nextConfig = {
   poweredByHeader: false,
   allowedDevOrigins: ["*.e2b.app"],
+  /**
+   * Направление ИИ закрыто окончательно. Его страницы не должны отдавать 404
+   * из поиска: единственный подходящий адрес для старого входящего трафика —
+   * каталог дизайн-услуг. Префикс локали сохраняется, чтобы RU-ссылки не
+   * перебрасывали человека в англоязычную версию.
+   */
+  async redirects() {
+    return [
+      { source: "/ai", destination: "/services", permanent: true },
+      { source: "/ai/:path*", destination: "/services", permanent: true },
+      { source: "/ru/ai", destination: "/ru/services", permanent: true },
+      { source: "/ru/ai/:path*", destination: "/ru/services", permanent: true },
+    ];
+  },
   async headers() {
     const headers = [...securityHeaders];
     const publicUrl = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "";

@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 interface PixelDirectionSpriteProps {
-  variant?: "ai" | "design";
+  variant?: "design";
   className?: string;
 }
 
@@ -14,7 +14,7 @@ interface PixelDirectionSpriteProps {
  * CSS steps сохраняет пиксельную сетку; вне viewport и в скрытой вкладке
  * показывается неподвижный финальный кадр, reduced motion не запускает цикл.
  */
-export function PixelDirectionSprite({ variant = "ai", className }: PixelDirectionSpriteProps) {
+export function PixelDirectionSprite({ variant = "design", className }: PixelDirectionSpriteProps) {
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

@@ -11,7 +11,7 @@ export async function Hero() {
       descriptionLead={t("heroDescriptionLead")}
       descriptionStrong={t("heroDescriptionStrong")}
       primaryCta={{ label: hero("orderDesign"), href: "/services" }}
-      secondaryCta={{ label: hero("exploreAi"), href: "/ai" }}
+      secondaryCta={{ label: hero("exploreProduct"), href: "/line-launcher" }}
       footnote={t("heroFootnote")}
     />
   );

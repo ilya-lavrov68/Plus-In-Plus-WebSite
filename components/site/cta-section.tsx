@@ -11,7 +11,7 @@ export async function CtaSection() {
       heading={t("ctaTitle")}
       description={t("ctaDescription")}
       primaryButton={{ text: hero("orderDesign"), url: "/services" }}
-      secondaryButton={{ text: hero("exploreAi"), url: "/ai" }}
+      secondaryButton={{ text: hero("exploreProduct"), url: "/line-launcher" }}
     />
   );
 }

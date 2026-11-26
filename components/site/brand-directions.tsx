@@ -1,6 +1,8 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { ArrowUpRight } from "lucide-react";
 
+import { HazeglowField } from "@/components/site/hazeglow-field";
 import { PixelDirectionSprite } from "@/components/site/pixel-direction-sprite";
 import { getRequestTranslations } from "@/lib/server-i18n";
 
@@ -12,7 +14,7 @@ interface DirectionCardProps {
   description: string;
   meta: string;
   linkLabel: string;
-  pattern: "ai" | "design";
+  media: ReactNode;
   accent?: boolean;
 }
 
@@ -24,7 +26,7 @@ function DirectionCard({
   description,
   meta,
   linkLabel,
-  pattern,
+  media,
   accent = false,
 }: DirectionCardProps) {
   return (
@@ -33,7 +35,7 @@ function DirectionCard({
       className="group flex h-full flex-col overflow-hidden rounded-2xl bg-card transition-colors duration-200 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
     >
       <div className="relative h-40 shrink-0 overflow-hidden bg-background sm:h-48">
-        <PixelDirectionSprite variant={pattern} className="absolute inset-0 size-full" />
+        {media}
       </div>
       <div className="flex flex-1 flex-col p-7 sm:p-9">
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
@@ -63,7 +65,11 @@ function DirectionCard({
   );
 }
 
-/** Два равноправных направления бренда на главной: ИИ и существующий дизайн. */
+/**
+ * Два направления бренда на главной: действующая дизайн-практика и собственный
+ * продукт студии. Медиа у карточек разное: пиксельный спрайт держит дизайн,
+ * Hazeglow — продуктовый блок, чтобы сетка не выглядела штампованной.
+ */
 export async function BrandDirections() {
   const t = await getRequestTranslations("directions");
 
@@ -85,19 +91,6 @@ export async function BrandDirections() {
         <div className="mt-14 grid gap-6 md:grid-cols-2 md:items-stretch">
           <div data-reveal="" data-reveal-delay={80}>
             <DirectionCard
-              href="/ai"
-              index={t("ai.index")}
-              title={t("ai.title")}
-              status={t("ai.status")}
-              description={t("ai.description")}
-              meta={t("ai.meta")}
-              linkLabel={t("ai.link")}
-              pattern="ai"
-              accent
-            />
-          </div>
-          <div data-reveal="" data-reveal-delay={140}>
-            <DirectionCard
               href="/services"
               index={t("design.index")}
               title={t("design.title")}
@@ -105,7 +98,25 @@ export async function BrandDirections() {
               description={t("design.description")}
               meta={t("design.meta")}
               linkLabel={t("design.link")}
-              pattern="design"
+              media={
+                <PixelDirectionSprite
+                  variant="design"
+                  className="absolute inset-0 size-full"
+                />
+              }
+            />
+          </div>
+          <div data-reveal="" data-reveal-delay={140}>
+            <DirectionCard
+              href="/line-launcher"
+              index={t("product.index")}
+              title={t("product.title")}
+              status={t("product.status")}
+              description={t("product.description")}
+              meta={t("product.meta")}
+              linkLabel={t("product.link")}
+              media={<HazeglowField className="absolute inset-0 size-full" />}
+              accent
             />
           </div>
         </div>

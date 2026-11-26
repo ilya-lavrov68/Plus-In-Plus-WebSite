@@ -632,8 +632,9 @@
 }
 
 @layer components {
-  /* Два смысловых pixel-sprite: сетка фона неподвижна, кадры меняются через
-   * steps, а финальный кадр остаётся доступен без JS и при reduced motion. */
+  /* Смысловой pixel-sprite дизайн-практики: сетка фона неподвижна, кадры
+   * меняются через steps, финальный кадр остаётся доступен без JS и при
+   * reduced motion. */
   .pixel-direction-sprite {
     --pixel-sprite-scale: 4;
     display: grid;
@@ -655,10 +656,6 @@
     background-repeat: no-repeat;
     background-size: 1920px 40px;
     background-position: -1840px 0;
-  }
-
-  .pixel-direction-sprite--ai .pixel-direction-sprite__sheet {
-    background-image: url("/assets/pixels/direction-ai.png");
   }
 
   .pixel-direction-sprite--design .pixel-direction-sprite__sheet {

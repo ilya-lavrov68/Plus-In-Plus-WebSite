@@ -1,11 +1,15 @@
 #!/usr/bin/env node
 
 /**
- * Локальные pixel-sprite листы для двух направлений бренда.
+ * Локальный pixel-sprite дизайн-практики.
  *
- * Никаких сетевых генераций и случайных пикселей: исходная палитра и каждый
- * кадр воспроизводятся командой `node scripts/generate-direction-sprites.cjs`.
- * Сетка 80 × 40, 24 кадра, прозрачный фон, только nearest-neighbor при выводе.
+ * Никаких сетевых генераций и случайных пикселей: палитра и каждый кадр
+ * воспроизводятся командой `npm run sprites:directions`. Сетка 80 × 40,
+ * 24 кадра, прозрачный фон, только nearest-neighbor при выводе.
+ *
+ * Спрайт один: направление ИИ закрыто, поэтому `direction-ai.png` больше не
+ * выпускается. Палитра — утверждённые значения бренда (оранжевый, тёплый белый,
+ * серый), а не прежний жёлтый.
  */
 
 const fs = require("node:fs");
@@ -18,10 +22,10 @@ const FRAME_COUNT = 24;
 const OUTPUT_DIRECTORY = path.resolve(__dirname, "../public/assets/pixels");
 
 const PALETTE = Object.freeze({
-  ink: Object.freeze([244, 244, 242, 255]),
-  neutral: Object.freeze([166, 166, 174, 255]),
-  dim: Object.freeze([96, 96, 104, 255]),
-  accent: Object.freeze([255, 255, 1, 255]),
+  ink: Object.freeze([238, 238, 238, 255]),
+  neutral: Object.freeze([185, 181, 182, 255]),
+  dim: Object.freeze([110, 106, 107, 255]),
+  accent: Object.freeze([255, 95, 1, 255]),
 });
 
 function createFrame() {
@@ -96,72 +100,10 @@ function drawPath(frame, points, color, count = points.length) {
   for (const [x, y] of points.slice(0, count)) frame.rectangle(x, y, 1, 1, color);
 }
 
-const AI_CHECK_POINTS = rasterizePath([[62, 20], [65, 23], [71, 17]]);
 const DESIGN_PLUS_POINTS = rasterizePath([
   [36, 12], [40, 12], [40, 18], [46, 18], [46, 22], [40, 22], [40, 28],
   [36, 28], [36, 22], [30, 22], [30, 18], [36, 18], [36, 12],
 ]);
-
-function drawAgentCore(frame, processingIndex) {
-  const active = processingIndex >= 0;
-  frame.outline(36, 15, 11, 11, active ? PALETTE.neutral : PALETTE.dim);
-  frame.rectangle(40, 13, 3, 1, PALETTE.dim);
-  frame.rectangle(40, 27, 3, 1, PALETTE.dim);
-  frame.rectangle(41, 20, 1, 1, PALETTE.neutral);
-
-  if (active) {
-    const positions = [[41, 18], [43, 20], [41, 22], [39, 20]];
-    const [x, y] = positions[processingIndex];
-    frame.rectangle(x, y, 2, 2, PALETTE.accent);
-  }
-}
-
-function createAiFrame(index) {
-  const frame = createFrame();
-
-  // Три стабильные зоны: редактор, agent core и проверяемый результат.
-  frame.outline(4, 8, 25, 24, PALETTE.dim);
-  frame.rectangle(7, 10, 2, 1, PALETTE.neutral);
-  frame.rectangle(11, 10, 5, 1, PALETTE.dim);
-  frame.rectangle(4, 13, 25, 1, PALETTE.dim);
-  frame.line(8, 18, 10, 20, PALETTE.neutral);
-  frame.line(10, 20, 8, 22, PALETTE.neutral);
-  frame.rectangle(13, 18, 9, 1, PALETTE.neutral);
-  frame.rectangle(13, 22, 6, 1, PALETTE.dim);
-
-  frame.outline(57, 8, 19, 24, PALETTE.dim);
-  frame.rectangle(60, 10, 3, 1, PALETTE.neutral);
-  frame.rectangle(57, 13, 19, 1, PALETTE.dim);
-  frame.rectangle(29, 20, 7, 1, PALETTE.dim);
-  frame.rectangle(47, 20, 10, 1, PALETTE.dim);
-  drawPath(frame, AI_CHECK_POINTS, PALETTE.dim);
-
-  // 0–3: короткая строка кода появляется слева направо, без прыжка курсора.
-  const codeLength = index < 4 ? [2, 4, 6, 9][index] : 9;
-  frame.rectangle(13, 26, codeLength, 1, PALETTE.ink);
-  if (index < 4) frame.rectangle(14 + codeLength, 25, 1, 3, PALETTE.neutral);
-
-  let processingIndex = -1;
-  if (index >= 9 && index <= 12) processingIndex = index - 9;
-  drawAgentCore(frame, processingIndex);
-
-  // 4–8 и 13–19: один пакет проходит последовательно через agent workflow.
-  if (index >= 4 && index <= 8) {
-    const x = [29, 30, 31, 32, 33][index - 4];
-    frame.rectangle(x, 19, 2, 2, PALETTE.accent);
-  } else if (index >= 13 && index <= 19) {
-    const x = [47, 48, 49, 50, 51, 52, 54][index - 13];
-    frame.rectangle(x, 19, 2, 2, PALETTE.accent);
-  }
-
-  // 20–23: результат подтверждается одним непрерывным штрихом.
-  if (index >= 20) {
-    const count = Math.round(((index - 19) / 4) * AI_CHECK_POINTS.length);
-    drawPath(frame, AI_CHECK_POINTS, PALETTE.accent, count);
-  }
-
-  return frame.data;
-}
 
 function isDesignPlusInterior(x, y) {
   const vertical = x >= 37 && x <= 39 && y >= 13 && y <= 27;
@@ -241,17 +183,15 @@ function joinFrames(frames) {
   return sheet;
 }
 
-function createSpriteSheet(kind) {
-  if (kind !== "ai" && kind !== "design") throw new Error(`Unknown direction sprite: ${kind}`);
-  const frames = Array.from({ length: FRAME_COUNT }, (_, index) =>
-    kind === "ai" ? createAiFrame(index) : createDesignFrame(index));
-  return joinFrames(frames);
+function createSpriteSheet() {
+  return joinFrames(
+    Array.from({ length: FRAME_COUNT }, (_, index) => createDesignFrame(index))
+  );
 }
 
-async function writeSpriteSheet(kind) {
-  const output = path.join(OUTPUT_DIRECTORY, `direction-${kind}.png`);
-  const data = createSpriteSheet(kind);
-  await sharp(data, {
+async function writeSpriteSheet() {
+  const output = path.join(OUTPUT_DIRECTORY, "direction-design.png");
+  await sharp(createSpriteSheet(), {
     raw: { width: FRAME_WIDTH * FRAME_COUNT, height: FRAME_HEIGHT, channels: 4 },
   }).png({ compressionLevel: 9 }).toFile(output);
   return output;
@@ -259,8 +199,8 @@ async function writeSpriteSheet(kind) {
 
 async function main() {
   fs.mkdirSync(OUTPUT_DIRECTORY, { recursive: true });
-  const outputs = await Promise.all([writeSpriteSheet("ai"), writeSpriteSheet("design")]);
-  for (const output of outputs) console.log(path.relative(process.cwd(), output));
+  const output = await writeSpriteSheet();
+  console.log(path.relative(process.cwd(), output));
 }
 
 if (require.main === module) {

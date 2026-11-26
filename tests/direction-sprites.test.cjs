@@ -33,7 +33,7 @@ test("Direction sprite sheets are reproducible, distinct and limited to the appr
     ...Object.values(PALETTE).map((color) => color.join(":")),
   ]);
 
-  for (const kind of ["ai", "design"]) {
+  for (const kind of ["design"]) {
     const expected = createSpriteSheet(kind);
     const filename = path.resolve(__dirname, `../public/assets/pixels/direction-${kind}.png`);
     const { data, info } = await sharp(filename).raw().toBuffer({ resolveWithObject: true });
