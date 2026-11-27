@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
-type Platform = "windows" | "macos" | "linux";
+type Platform = "windows" | "linux";
 
 export interface DownloadCopy {
   title: string;
@@ -20,7 +20,7 @@ export interface DownloadCopy {
   requirements: string;
 }
 
-const PLATFORMS: Platform[] = ["windows", "macos", "linux"];
+const PLATFORMS: Platform[] = ["windows", "linux"];
 
 /**
  * Панель выбора сборки в духе JetBrains: версия × платформа × формат.

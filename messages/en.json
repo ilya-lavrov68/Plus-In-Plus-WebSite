@@ -1548,7 +1548,7 @@
     "facts": [
       {
         "label": "Platforms",
-        "value": "Windows · macOS · Linux"
+        "value": "Windows · Linux"
       },
       {
         "label": "Stack",
@@ -1571,18 +1571,21 @@
       "versions": ["0.15.4 — in development"],
       "platforms": {
         "windows": "Windows",
-        "macos": "macOS",
         "linux": "Linux"
       },
       "formats": {
         "windows": [".exe — installer", ".msi — installer"],
-        "macos": [".dmg — image"],
         "linux": [".AppImage", ".deb — package"]
       },
       "action": "Download",
       "unavailable": "No public builds yet — files appear after the first release",
       "requirementsLabel": "Runs on",
-      "requirements": "Windows, macOS, Linux"
+      "requirements": "Windows, Linux"
+    },
+    "whatsNew": {
+      "title": "What's new",
+      "link": "All versions",
+      "note": "A short read of the Line Launcher release history."
     },
     "whatTitle": "What it is",
     "whatLead": "The launcher knows its project address: it is baked in at build time. The player never chooses a provider or types a server address — a single sign-in opens the project catalogue.",

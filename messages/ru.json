@@ -1548,7 +1548,7 @@
     "facts": [
       {
         "label": "Платформы",
-        "value": "Windows · macOS · Linux"
+        "value": "Windows · Linux"
       },
       {
         "label": "Стек",
@@ -1571,18 +1571,21 @@
       "versions": ["0.15.4 — в разработке"],
       "platforms": {
         "windows": "Windows",
-        "macos": "macOS",
         "linux": "Linux"
       },
       "formats": {
         "windows": [".exe — установщик", ".msi — установщик"],
-        "macos": [".dmg — образ"],
         "linux": [".AppImage", ".deb — пакет"]
       },
       "action": "Скачать",
       "unavailable": "Публичных сборок пока нет — файлы появятся после первого релиза",
       "requirementsLabel": "Требования",
-      "requirements": "Windows, macOS, Linux"
+      "requirements": "Windows, Linux"
+    },
+    "whatsNew": {
+      "title": "Что нового",
+      "link": "Все версии",
+      "note": "Кратко из истории версий Line Launcher."
     },
     "whatTitle": "Что это",
     "whatLead": "Лаунчер знает адрес своего проекта — он зашит на этапе сборки. Игрок не выбирает провайдера и не вводит адреса серверов: один вход открывает каталог проекта.",

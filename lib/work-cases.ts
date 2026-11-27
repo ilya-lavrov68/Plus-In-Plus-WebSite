@@ -89,7 +89,7 @@ export const WORK_CASES: WorkCase[] = [
           "Собственный продукт студии. Мы проектируем интерфейс и собираем его: от первого экрана до профиля игрока и настроек запуска. Продукт развивается публично — версия, стек и экраны можно проверить в репозитории.",
         facts: [
           { label: "Роль", value: "Дизайн интерфейса и фронтенд" },
-          { label: "Платформы", value: "Windows · macOS · Linux" },
+          { label: "Платформы", value: "Windows · Linux" },
           { label: "Стек", value: "Tauri 2.12, Rust, React 19" },
           { label: "Статус", value: "0.15.4, в разработке" },
         ],
@@ -126,7 +126,7 @@ export const WORK_CASES: WorkCase[] = [
           "The studio's own product. We design the interface and build it — from the first screen to the player profile and launch settings. The product is developed in public: version, stack and screens can be checked in the repository.",
         facts: [
           { label: "Role", value: "Interface design and frontend" },
-          { label: "Platforms", value: "Windows · macOS · Linux" },
+          { label: "Platforms", value: "Windows · Linux" },
           { label: "Stack", value: "Tauri 2.12, Rust, React 19" },
           { label: "Status", value: "0.15.4, in development" },
         ],

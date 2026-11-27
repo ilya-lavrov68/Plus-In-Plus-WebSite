@@ -6,8 +6,12 @@ import {
   LineLauncherDownload,
   type DownloadCopy,
 } from "@/components/site/line-launcher-download";
+import { InlineMarkdown } from "@/components/site/inline-markdown";
 import { PageGlow } from "@/components/site/page-glow";
 import { Button } from "@/components/ui/button";
+import { formatChangelogDate } from "@/lib/changelog-format";
+import { getChangelog } from "@/lib/changelog";
+import { getRequestLocale } from "@/lib/request-locale";
 import { getRequestTranslations } from "@/lib/server-i18n";
 import { HAZEGLOW_CELL } from "@/lib/hazeglow-scale";
 
@@ -39,12 +43,19 @@ interface Screenshot {
  * помечены как неопубликованные, а кнопка скачивания неактивна.
  */
 export async function LineLauncherView() {
-  const t = await getRequestTranslations("lineLauncher");
+  const [locale, t] = await Promise.all([
+    getRequestLocale(),
+    getRequestTranslations("lineLauncher"),
+  ]);
 
   const facts = t.raw("facts") as Fact[];
   const download = t.raw("download") as DownloadCopy;
   const features = t.raw("features") as Feature[];
   const gallery = t.raw("gallery") as Screenshot[];
+  const whatsNew = t.raw("whatsNew") as { title: string; link: string };
+  // Блок краткий и честный: записи берутся из той же истории версий, что и
+  // страница changelog. Нет данных — нет и блока.
+  const recent = getChangelog()?.entries.slice(0, 3) ?? [];
 
   return (
     <div className="relative isolate bg-background">
@@ -131,6 +142,49 @@ export async function LineLauncherView() {
           <LineLauncherDownload copy={download} />
         </div>
       </section>
+
+      {recent.length > 0 ? (
+        <section className="relative pb-16 md:pb-20">
+          <div className="container relative z-10">
+            <div className="bg-card px-6 py-8 md:px-8 md:py-10">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+                <h2 className="text-2xl font-medium tracking-tight sm:text-3xl">
+                  {whatsNew.title}
+                </h2>
+                <Link
+                  href="/line-launcher/changelog"
+                  className="text-sm text-signal underline-offset-4 hover:underline"
+                >
+                  {whatsNew.link}
+                </Link>
+              </div>
+              <ul className="mt-6 grid gap-5">
+                {recent.map((entry) => (
+                  <li
+                    key={entry.version}
+                    className="grid gap-1 sm:grid-cols-[7rem_1fr] sm:gap-6"
+                  >
+                    <div className="flex items-baseline gap-2 sm:flex-col sm:gap-0.5">
+                      <span className="font-mono text-sm text-foreground">
+                        {entry.version}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatChangelogDate(entry.date, locale)}
+                      </span>
+                    </div>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      <InlineMarkdown
+                        text={entry.intro[0] ?? entry.sections[0]?.title ?? ""}
+                        repositoryUrl={REPOSITORY_URL}
+                      />
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section className="border-0 py-16 md:py-24">
         <div className="container grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
