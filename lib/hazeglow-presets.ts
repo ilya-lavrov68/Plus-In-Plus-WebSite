@@ -83,7 +83,7 @@ function payloadOf(link: string): string | null {
 export function presetConfig(
   preset: HazeglowPreset,
 ): Partial<GradientConfig> | null {
-  const link = HAZEGLOW_LINKS[preset];
+  const link = HAZEGLOW_LINKS[presetFor(preset)];
   const payload = link ? payloadOf(link) : null;
   if (!payload) return null;
   const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");

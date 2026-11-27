@@ -40,6 +40,7 @@ function buildConfig(
   variant: SectionGlowVariant,
   effectSize: number,
   preset: HazeglowPreset,
+  canvasFromPreset: boolean,
 ): GradientConfig {
   const ascii = variant === "ascii";
   // Краски берутся из присланного градиента, правила проекта — поверх него.
@@ -94,6 +95,10 @@ interface SectionGlowProps {
    * берётся фон сайта, а не придуманный агентом.
    */
   preset?: HazeglowPreset;
+  /** Маска по краям. В hero выключается: градиент владельца не обрезается. */
+  mask?: boolean;
+  /** База холста из присланного градиента, а не из палитры проекта. */
+  canvasFromPreset?: boolean;
   /** Ячейка в CSS-пикселях: по умолчанию крупная печатная. */
   cell?: number;
   /** Прозрачность слоя: чем плотнее текст над ним, тем тише фон. */
@@ -104,6 +109,8 @@ export function SectionGlow({
   className,
   variant = "dither",
   preset = "site",
+  mask = true,
+  canvasFromPreset = false,
   cell = HAZEGLOW_CELL.section,
   intensity = 0.55,
 }: SectionGlowProps) {
@@ -139,15 +146,19 @@ export function SectionGlow({
     >
       <div
         className="size-full"
-        style={{
-          maskImage:
-            "radial-gradient(125% 130% at 54% 36%, #000 0%, #000 40%, rgba(0,0,0,0.72) 66%, rgba(0,0,0,0.22) 86%, transparent 97%)",
-          WebkitMaskImage:
-            "radial-gradient(125% 130% at 54% 36%, #000 0%, #000 40%, rgba(0,0,0,0.72) 66%, rgba(0,0,0,0.22) 86%, transparent 97%)",
-        }}
+        style={
+          mask
+            ? {
+                maskImage:
+                  "radial-gradient(125% 130% at 54% 36%, #000 0%, #000 40%, rgba(0,0,0,0.72) 66%, rgba(0,0,0,0.22) 86%, transparent 97%)",
+                WebkitMaskImage:
+                  "radial-gradient(125% 130% at 54% 36%, #000 0%, #000 40%, rgba(0,0,0,0.72) 66%, rgba(0,0,0,0.22) 86%, transparent 97%)",
+              }
+            : undefined
+        }
       >
         <Hazeglow
-          config={buildConfig(variant, effectSize, preset)}
+          config={buildConfig(variant, effectSize, preset, canvasFromPreset)}
           className="size-full"
         />
       </div>
