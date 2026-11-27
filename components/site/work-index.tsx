@@ -84,12 +84,12 @@ export async function WorkIndex({
                 alt={featured.coverAlt}
                 loading={compact ? "lazy" : "eager"}
                 decoding="async"
-                className="aspect-[16/10] w-full object-contain opacity-95 transition-opacity duration-500 ease-out group-hover:opacity-100"
+                className="aspect-[16/10] w-full object-cover object-top opacity-95 transition-opacity duration-500 ease-out group-hover:opacity-100"
               />
-              <HoverGlow intensity={0.4} />
             </Link>
 
-            <div className="flex flex-col gap-4 lg:pb-2">
+            <div className="relative flex flex-col gap-4 overflow-hidden lg:pb-2">
+              <HoverGlow pattern={`work:${featured.slug}`} intensity={0.4} />
               <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase">
                 <span>{featured.discipline}</span>
                 <span className="tracking-normal normal-case">{featured.year}</span>
@@ -149,7 +149,7 @@ function WorkRow({ item, openLabel }: { item: LocalizedWorkCase; openLabel: stri
             aria-hidden="true"
             loading="lazy"
             decoding="async"
-            className="aspect-[16/10] w-full object-contain opacity-90 transition-opacity duration-300 ease-out group-hover:opacity-100"
+            className="aspect-[16/10] w-full object-cover object-top opacity-90 transition-opacity duration-300 ease-out group-hover:opacity-100"
           />
         </span>
 

@@ -651,10 +651,24 @@ test("Hazeglow: крупная ячейка, dither и ascii по типу ст�
   const hover = read("components/site/hover-glow.tsx");
   assert.match(hover, /motion: "none"/, "hover показывает статичный кадр");
   assert.match(hover, /speed: 0/, "hover не анимируется");
+  // Паттерны подсветки присылает владелец: своя ссылка на каждый, палитра
+  // сводится к одной оси, кадр статичный.
+  const patterns = read("lib/hover-patterns.ts");
+  assert.match(patterns, /HOVER_PATTERN_LINKS/, "реестр паттернов объявлен");
+  assert.match(
+    patterns,
+    /monochromePalette/,
+    "палитра паттерна сводится к одному оттенку",
+  );
   assert.match(
     hover,
-    /effect: preset\?\.effect \?\? "dither"/,
-    "наведение использует эффект присланного градиента",
+    /hoverPatternFor\(pattern\)/,
+    "паттерн выбирается по ключу карточки",
+  );
+  assert.match(
+    hover,
+    /if \(!config\) return null;/,
+    "без присланного паттерна подсветка не рисуется",
   );
   assert.match(hover, /maskImage/, "у подсветки тоже есть маска по краям");
   const hoverAmounts = [...hover.matchAll(/effectAmount: ([\d.]+)/g)].map(

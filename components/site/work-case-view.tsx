@@ -51,7 +51,7 @@ export async function WorkCaseView({ slug }: { slug: string }) {
           <img
             src={view.cover}
             alt={view.coverAlt}
-            className="aspect-[16/9] w-full object-contain"
+            className="aspect-[16/9] w-full object-cover object-top"
           />
         </div>
 

@@ -124,14 +124,14 @@ export async function LineLauncherView() {
             <div>
               {/* Первый экран показывает настоящий интерфейс, а не фоновую
                   графику: скриншот честнее и спокойнее любого паттерна. */}
-              <div className="relative overflow-hidden rounded-2xl bg-card [--pip-nest-gap:0.5rem] [--pip-radius-outer:var(--radius-2xl)] p-2">
+              <div className="relative overflow-hidden bg-card p-2">
                 <Image
                   src={`${SCREENSHOT_DIR}/line-server.webp`}
                   alt={gallery[2]?.alt ?? ""}
                   width={1600}
                   height={900}
                   sizes="(min-width: 1280px) 600px, 100vw"
-                  className="block w-full"
+                  className="w-full object-cover"
                 />
               </div>
               <p className="mt-4 max-w-[26rem] bg-card px-4 py-3 text-sm leading-relaxed text-muted-foreground">
@@ -202,7 +202,7 @@ export async function LineLauncherView() {
           </div>
         </div>
         <div className="container mt-12">
-          <div className="overflow-hidden rounded-2xl bg-card [--pip-nest-gap:0.5rem] [--pip-radius-outer:var(--radius-2xl)]">
+          <div className="overflow-hidden bg-card">
             <div className="p-2">
               <Image
                 src={`${SCREENSHOT_DIR}/line-servers.webp`}
@@ -210,7 +210,7 @@ export async function LineLauncherView() {
                 width={1600}
                 height={900}
                 sizes="(min-width: 1280px) 1200px, 100vw"
-                className="block w-full"
+                className="w-full object-cover"
               />
             </div>
           </div>
