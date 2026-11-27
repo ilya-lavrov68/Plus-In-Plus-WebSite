@@ -66,13 +66,7 @@ function PostMeta({
   return (
     <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium tracking-[0.12em] uppercase ${muted}`}>
       <span>{categoryLabel}</span>
-      <span aria-hidden="true" className="opacity-40">
-        ·
-      </span>
       <time className="tracking-normal normal-case">{dateLabel}</time>
-      <span aria-hidden="true" className="opacity-40">
-        ·
-      </span>
       <span className="tracking-normal normal-case">{readTime(readTimeTemplate, minutes)}</span>
     </div>
   );

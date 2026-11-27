@@ -982,7 +982,7 @@ test("Blog11 and Blogpost11 render We're Up and Running with all 4 verbatim sect
   const postText = textOf(postView.root);
   for (const snippet of [
     "We're Up and Running",
-    "October 7, 2026 · 4-minute read",
+    "October 7, 2026 | 4-minute read",
     "It's Not Just About Design",
     "Why We Needed a New Website",
     "Experience That Grows Alongside Our Products",

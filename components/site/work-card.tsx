@@ -46,9 +46,6 @@ export function WorkCard({ item, openLabel, featured = false, className }: WorkC
       <div className="flex flex-1 flex-col gap-3 px-1">
         <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase">
           <span>{item.discipline}</span>
-          <span aria-hidden="true" className="opacity-40">
-            ·
-          </span>
           <span className="tracking-normal normal-case">{item.year}</span>
         </p>
         <h3

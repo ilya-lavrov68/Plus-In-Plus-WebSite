@@ -81,8 +81,8 @@ test("файл данных описывает только релизы из р
 test("последняя версия в данных совпадает с версией на страницах сайта", () => {
   const latest = data.latestVersion;
   const checks = [
-    ["messages/ru.json", /"status": "В разработке · (\d+\.\d+\.\d+)"/],
-    ["messages/en.json", /"status": "In development · (\d+\.\d+\.\d+)"/],
+    ["messages/ru.json", /"status": "В разработке \| (\d+\.\d+\.\d+)"/],
+    ["messages/en.json", /"status": "In development \| (\d+\.\d+\.\d+)"/],
     ["lib/work-cases.ts", /value: "(\d+\.\d+\.\d+), в разработке"/],
   ];
 

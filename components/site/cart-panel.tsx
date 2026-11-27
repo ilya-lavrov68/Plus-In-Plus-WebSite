@@ -253,7 +253,7 @@ export function CartPanel() {
                   {item.itemType === "service"
                     ? t("serviceLabel")
                     : t("productLabel")}
-                  {item.category ? ` · ${item.category}` : ""}
+                  {item.category ? ` | ${item.category}` : ""}
                 </div>
                 {item.unavailable ? (
                   <p className="mt-1 text-sm text-destructive">{t("itemUnavailable")}</p>

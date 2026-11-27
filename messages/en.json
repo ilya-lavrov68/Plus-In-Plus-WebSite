@@ -641,7 +641,7 @@
     "servicesSubtitle": "Covers are stored in /public/uploads/services/.",
     "postsCount": "{count} published",
     "blogPosts": "Blog posts",
-    "views7d": "Views · 7 days",
+    "views7d": "Views | 7 days",
     "views30d": "{count} in 30 days",
     "adminsCount": "{count} admin(s)",
     "manage": "Manage",
@@ -654,7 +654,7 @@
     "editService": "Edit service",
     "editPost": "Edit post",
     "viewSite": "View site",
-    "activityLast7Days": "Activity · last 7 days",
+    "activityLast7Days": "Activity | last 7 days",
     "activitySubtitle": "Page views collected by the lightweight site metric.",
     "viewsTitle": "{count} views",
     "featuredPost": "Featured post",
@@ -1355,7 +1355,7 @@
     "heroPrimary": "Plus In Plus",
     "heroDescriptionLead": "We design identity, websites, signage and outdoor media for brands that need to speak clearly. ",
     "heroDescriptionStrong": "We start from meaning: positioning and structure first, then form — from the mark to finished layouts.",
-    "heroFootnote": "Plus In Plus · design studio",
+    "heroFootnote": "Plus In Plus | design studio",
     "heroAlt": "Plus In Plus studio showcase",
     "ctaTitle": "Tell us about the task",
     "ctaDescription": "Identity, a website, a sign or outdoor media — we will propose a plan and show how it will look.",
@@ -1524,15 +1524,15 @@
       "title": "Design",
       "status": "Available now",
       "description": "Identity, digital mockups, signage and outdoor media — the working practice of Plus In Plus.",
-      "meta": "Branding · Web · Outdoor media",
+      "meta": "Branding | Web | Outdoor media",
       "link": "Explore design services"
     },
     "product": {
       "index": "02 / PRODUCT",
       "title": "Line Launcher",
-      "status": "In development · 0.15.4",
+      "status": "In development | 0.15.4",
       "description": "A Minecraft launcher for game projects: one provider, one launcher, a build branded for the client.",
-      "meta": "Tauri · Rust · React",
+      "meta": "Tauri | Rust | React",
       "link": "Open the product page"
     }
   },
@@ -1541,18 +1541,18 @@
     "title": "Line Launcher",
     "lead": "A minimal Minecraft launcher for game projects. One provider, one launcher: the player signs in and presses Play instead of picking servers and typing addresses.",
     "statusLabel": "Status",
-    "status": "In development · 0.15.4",
+    "status": "In development | 0.15.4",
     "repoCta": "GitHub repository",
     "contactCta": "Discuss a project",
     "releaseNote": "There are no public releases yet: the build lives in the open repository. Installers will appear here only after the project owner publishes them.",
     "facts": [
       {
         "label": "Platforms",
-        "value": "Windows · Linux"
+        "value": "Windows | Linux"
       },
       {
         "label": "Stack",
-        "value": "Tauri 2.12 · Rust · React 19"
+        "value": "Tauri 2.12 | Rust | React 19"
       },
       {
         "label": "Based on",
@@ -1685,7 +1685,7 @@
     "changelogCta": "Release history"
   },
   "changelog": {
-    "eyebrow": "Line Launcher · a studio product",
+    "eyebrow": "Line Launcher | a studio product",
     "title": "Release history",
     "lead": "Every launcher release: what was added, changed and fixed. The text comes from the repository CHANGELOG.md, with no rewrite.",
     "backToProduct": "Line Launcher",

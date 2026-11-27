@@ -27,7 +27,7 @@ export function localizeBlogPosts(
       return {
         ...post,
         dateLabel: date,
-        metaLabel: `${date} · ${t("readTime", { count: post.readTime })}`,
+        metaLabel: `${date} | ${t("readTime", { count: post.readTime })}`,
       };
     }
 
@@ -42,7 +42,7 @@ export function localizeBlogPosts(
       sections: sample?.sections ?? post.sections,
       htmlContent: undefined,
       dateLabel: date,
-      metaLabel: `${date} · ${t("readTime", { count: post.readTime })}`,
+      metaLabel: `${date} | ${t("readTime", { count: post.readTime })}`,
     };
   });
 }
