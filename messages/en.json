@@ -1563,6 +1563,27 @@
         "value": "Public repository"
       }
     ],
+    "download": {
+      "title": "Download",
+      "versionLabel": "Version",
+      "platformLabel": "Platform",
+      "formatLabel": "Format",
+      "versions": ["0.15.4 — in development"],
+      "platforms": {
+        "windows": "Windows",
+        "macos": "macOS",
+        "linux": "Linux"
+      },
+      "formats": {
+        "windows": [".exe — installer", ".msi — installer"],
+        "macos": [".dmg — image"],
+        "linux": [".AppImage", ".deb — package"]
+      },
+      "action": "Download",
+      "unavailable": "No public builds yet — files appear after the first release",
+      "requirementsLabel": "Runs on",
+      "requirements": "Windows, macOS, Linux"
+    },
     "whatTitle": "What it is",
     "whatLead": "The launcher knows its project address: it is baked in at build time. The player never chooses a provider or types a server address — a single sign-in opens the project catalogue.",
     "whatBody": "The project owner assembles the app for their own brand: name, logo, icons and API address. The player gets a launcher that contains nothing but that project.",

@@ -2,6 +2,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, ExternalLink } from "lucide-react";
 
+import {
+  LineLauncherDownload,
+  type DownloadCopy,
+} from "@/components/site/line-launcher-download";
 import { PageGlow } from "@/components/site/page-glow";
 import { Button } from "@/components/ui/button";
 import { getRequestTranslations } from "@/lib/server-i18n";
@@ -30,13 +34,15 @@ interface Screenshot {
  * Страница flagship-продукта.
  *
  * Все утверждения взяты из публичного репозитория Line Launcher: описание,
- * возможности, платформы и стек. Публичных релизов у проекта нет, поэтому
- * кнопки «Скачать» на странице нет — только репозиторий и контакт студии.
+ * возможности, платформы и стек. Публичных релизов у проекта нет, поэтому панель
+ * скачивания показывает структуру (версия × платформа × формат), но все форматы
+ * помечены как неопубликованные, а кнопка скачивания неактивна.
  */
 export async function LineLauncherView() {
   const t = await getRequestTranslations("lineLauncher");
 
   const facts = t.raw("facts") as Fact[];
+  const download = t.raw("download") as DownloadCopy;
   const features = t.raw("features") as Feature[];
   const gallery = t.raw("gallery") as Screenshot[];
 
@@ -117,6 +123,12 @@ export async function LineLauncherView() {
               </p>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="relative pb-16 md:pb-20">
+        <div className="container relative z-10">
+          <LineLauncherDownload copy={download} />
         </div>
       </section>
 
