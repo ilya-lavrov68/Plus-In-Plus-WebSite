@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-27T11:52:23.235Z",
+  "generatedAt": "2026-11-27T11:55:03.314Z",
   "baseUrl": "http://127.0.0.1:3000",
   "mode": "production",
   "shots": [
@@ -58,20 +58,6 @@
       "width": 390,
       "title": "Line Launcher — Minecraft-лаунчер для игровых проектов",
       "file": "docs/redesign/screens/line-launcher-en-mobile.webp"
-    },
-    {
-      "route": "/ru/line-launcher/changelog",
-      "viewport": "desktop",
-      "width": 1440,
-      "title": "Line Launcher — история версий",
-      "file": "docs/redesign/screens/line-launcher-changelog-ru-desktop.webp"
-    },
-    {
-      "route": "/ru/line-launcher/changelog",
-      "viewport": "mobile",
-      "width": 390,
-      "title": "Line Launcher — история версий",
-      "file": "docs/redesign/screens/line-launcher-changelog-ru-mobile.webp"
     },
     {
       "route": "/ru/work",
@@ -177,6 +163,20 @@
       "width": 1440,
       "title": "reduced motion",
       "file": "docs/redesign/screens/home-ru-reduced-motion.webp"
+    },
+    {
+      "route": "/ru/line-launcher/changelog",
+      "viewport": "desktop",
+      "width": 1440,
+      "title": "Line Launcher — история версий",
+      "file": "docs/redesign/screens/line-launcher-changelog-ru-desktop.webp"
+    },
+    {
+      "route": "/ru/line-launcher/changelog",
+      "viewport": "mobile",
+      "width": 390,
+      "title": "Line Launcher — история версий",
+      "file": "docs/redesign/screens/line-launcher-changelog-ru-mobile.webp"
     }
   ]
 }
