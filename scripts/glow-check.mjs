@@ -109,6 +109,6 @@ const presets = readFileSync(
   "utf8",
 );
 console.log(
-  "\nвставка: либ/хазеглоу-пресеты →",
-  presets.includes("site: null") ? "site (сейчас пусто)" : "site занят",
+  "\nвставка: lib/hazeglow-presets.ts → HAZEGLOW_LINKS.site",
+  presets.includes("site: null") ? "(сейчас пусто)" : "(уже занят)",
 );
