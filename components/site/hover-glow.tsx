@@ -1,10 +1,9 @@
 "use client";
 
-import { Hazeglow, type GradientConfig } from "hazeglow";
+import { Hazeglow } from "hazeglow";
 import { useEffect, useRef, useState } from "react";
 
-import { presetConfig } from "@/lib/hazeglow-presets";
-import { effectSizeFor, HAZEGLOW_CELL } from "@/lib/hazeglow-scale";
+import { hoverPatternFor } from "@/lib/hover-patterns";
 import { cn } from "@/lib/utils";
 
 /**
@@ -15,29 +14,18 @@ import { cn } from "@/lib/utils";
  * текста. Анимации нет вовсе (`motion: "none"`, `speed: 0`): шейдер рисует
  * один кадр и останавливается.
  */
-const PALETTE = [
-  "#110f10",
-  "#241610",
-  "#3a1d0e",
-  "#5a250b",
-  "#8f3407",
-  "#ff5f01",
-];
-
 interface HoverGlowProps {
   className?: string;
+  /** Ключ карточки: по нему выбирается свой паттерн, а не общий на всех. */
+  pattern: string;
   /** Прозрачность кадра в наведённом состоянии. */
   intensity?: number;
 }
 
-export function HoverGlow({ className, intensity = 0.4 }: HoverGlowProps) {
+export function HoverGlow({ className, pattern, intensity = 0.4 }: HoverGlowProps) {
   const hostRef = useRef<HTMLSpanElement>(null);
   const [active, setActive] = useState(false);
   const [allowed, setAllowed] = useState(false);
-  const [effectSize, setEffectSize] = useState(() =>
-    effectSizeFor(320, HAZEGLOW_CELL.hover),
-  );
-
   useEffect(() => {
     if (
       typeof window === "undefined" ||
@@ -61,19 +49,9 @@ export function HoverGlow({ className, intensity = 0.4 }: HoverGlowProps) {
     const host = hostRef.current?.parentElement;
     if (!host) return;
 
-    const measure = () => {
-      const rect = host.getBoundingClientRect();
-      const minSide = Math.min(rect.width, rect.height) || 320;
-      setEffectSize(effectSizeFor(minSide, HAZEGLOW_CELL.hover));
-    };
-
-    const enter = () => {
-      measure();
-      setActive(true);
-    };
+    const enter = () => setActive(true);
     const leave = () => setActive(false);
 
-    measure();
     host.addEventListener("pointerenter", enter);
     host.addEventListener("pointerleave", leave);
     host.addEventListener("focusin", enter);
@@ -86,36 +64,10 @@ export function HoverGlow({ className, intensity = 0.4 }: HoverGlowProps) {
     };
   }, [allowed]);
 
-  const preset = presetConfig("site");
-  const config: GradientConfig = {
-    ...(preset ?? {}),
-    version: 1,
-    seed: 23,
-    shape: "pill",
-    center: [0.68, 0.34],
-    size: [1.15, 1.05],
-    roundness: 0.95,
-    softness: 0.7,
-    rotation: 0,
-    rampDirection: 0.8,
-    angle: 118,
-    warp: 0.05,
-    warpScale: 1.2,
-    palette: PALETTE,
-    background: "#110f10",
-    mesh: [],
-    grain: 0.04,
-    // Статичный кадр: ни движения, ни перерисовки — даже если градиент
-    // прислан с анимацией.
-    motion: "none",
-    speed: 0,
-    loop: 0,
-    hover: 0,
-    hoverMode: "pull",
-    effect: "dither",
-    effectSize,
-    effectAmount: 0.9,
-  };
+  const config = hoverPatternFor(pattern);
+  // Паттернов ещё нет — подсветка не рисуется: выдуманный паттерн хуже, чем
+  // чистая поверхность.
+  if (!config) return null;
 
   return (
     <span

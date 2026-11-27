@@ -49,10 +49,10 @@ export function PageGlow({
   }, [cell]);
 
   const colors = presetConfig(preset);
-  // Краски, свет и движение — из присланного градиента; тип эффекта, размер
-  // клетки, число ступеней и зерно — правила проекта. Малое число ступеней
-  // превращало плавный градиент в сплошную серую сетку из точек.
-  const config: GradientConfig = {
+  // Присланный градиент применяется как есть: масштаб растра, движение и база
+  // холста — из ссылки. Пересчёт клетки под размер блока делал рисунок крупнее,
+  // чем в редакторе, и он читался как сетка пикселей.
+  const config: GradientConfig = colors ?? {
     version: 1,
     seed: 3,
     shape: "pill",
@@ -68,16 +68,15 @@ export function PageGlow({
     palette: ["#110f10", "#2b292a", "#ff5f01"],
     background: "#110f10",
     mesh: [],
+    grain: 0.02,
     motion: "drift",
     speed: 0.3,
     loop: 0,
     hover: 0,
     hoverMode: "push",
-    ...(colors ?? {}),
     effect: variant === "ascii" ? "ascii" : "dither",
     effectSize,
     effectAmount: variant === "ascii" ? 0.85 : 1,
-    grain: 0.02,
   };
 
   return (

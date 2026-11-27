@@ -53,7 +53,7 @@ export function presetFor(section: HazeglowPreset): HazeglowPreset {
 }
 
 /** Вытащить payload из ссылки или вернуть строку как есть. */
-function payloadOf(link: string): string | null {
+export function payloadOf(link: string): string | null {
   const value = link.trim();
   if (!value) return null;
   const hash = value.includes("#") ? value.slice(value.indexOf("#") + 1) : "";
@@ -81,9 +81,7 @@ function payloadOf(link: string): string | null {
  * поэтому сначала проверяем JSON сами: иначе опечатка в ссылке выглядела бы как
  * «градиент применился, но какой-то чужой».
  */
-export function presetConfig(
-  preset: HazeglowPreset,
-): Partial<GradientConfig> | null {
+export function presetConfig(preset: HazeglowPreset): GradientConfig | null {
   const link = HAZEGLOW_LINKS[presetFor(preset)];
   const payload = link ? payloadOf(link) : null;
   if (!payload) return null;

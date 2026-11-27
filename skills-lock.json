@@ -38,7 +38,7 @@
       "sourceType": "local",
       "skillPath": "project-design-system.md",
       "license": "proprietary",
-      "computedHash": "cb6f84f3557063251933cbe3554ac351e3504800de5da53651b07a4f7fc3717e",
+      "computedHash": "16b63696e11f292dbfb6a3b7008b4bb195e97e754c54eaa4163104caa546588f",
       "note": "Главный обязательный дизайн-скилл: чек-лист, анти-шаблон, правила Hazeglow (крупная ячейка, dither/ascii, оранжевый акцент, статичный hover)."
     }
   }

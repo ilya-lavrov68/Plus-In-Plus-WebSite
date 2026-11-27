@@ -73,23 +73,12 @@ function buildConfig(
     effectAmount: ascii ? 0.9 : 1,
   };
   if (!colors) return builtIn;
-  // Авторский градиент задаёт всё, кроме типа эффекта и размера ячейки:
-  // владелец собирает свет, плотность и движение в редакторе, а проект
-  // отвечает за то, что это dither/ascii и что клетка измерена в CSS-пикселях.
-  return {
-    ...builtIn,
-    ...colors,
-    effect: builtIn.effect,
-    // Число ступеней и зерно — правила проекта: из ссылки берутся краски,
-    // свет и движение, а не плотность растра. Малое число ступеней превращает
-    // плавный градиент в сплошную серую сетку из точек.
-    effectAmount: builtIn.effectAmount,
-    grain: builtIn.grain,
-    effectSize,
-    // База холста — цвет страницы: иначе чёрный прямоугольник шейдера виден
-    // на фоне #110F10 как отдельная плашка.
-    background: builtIn.background,
-  };
+  // Присланный градиент применяется ровно так, как собран в редакторе: эффект,
+  // размер клетки, число ступеней, зерно, движение и база холста — всё из
+  // ссылки. Проект не пересчитывает масштаб, иначе рисунок перестаёт совпадать
+  // с тем, что владелец видел в редакторе: клетка становится крупнее и растр
+  // читается как сетка пикселей.
+  return colors;
 }
 
 interface SectionGlowProps {
@@ -121,6 +110,8 @@ export function SectionGlow({
 }: SectionGlowProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const [effectSize, setEffectSize] = useState(() => effectSizeFor(720, cell));
+  // Присланный градиент не обрезается маской: фон идёт во всю секцию.
+  const hasPreset = presetConfig(preset) !== null;
 
   useEffect(() => {
     const host = hostRef.current;
@@ -152,7 +143,7 @@ export function SectionGlow({
       <div
         className="size-full"
         style={
-          mask
+          mask && !hasPreset
             ? {
                 maskImage:
                   "radial-gradient(125% 130% at 54% 36%, #000 0%, #000 40%, rgba(0,0,0,0.72) 66%, rgba(0,0,0,0.22) 86%, transparent 97%)",

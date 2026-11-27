@@ -106,7 +106,7 @@ const Feature314 = ({
                   href={card.url}
                   className="flex h-full w-full flex-col justify-between gap-7"
                 >
-                  <div className="nested-radius relative h-40 overflow-hidden">
+                  <div className="relative h-40 overflow-hidden">
                     {card.image ? (
                       <img
                         src={card.image}
@@ -143,7 +143,7 @@ const Feature314 = ({
               className="glass-surface group min-h-[30rem] rounded-2xl border-0 bg-white/[0.065] p-2 [--pip-nest-gap:0.5rem] [--pip-radius-outer:var(--radius-2xl)] md:col-span-2"
             >
               <Link href={bigCard.url} className="flex h-full flex-col">
-                <div className="nested-radius relative min-h-[24rem] flex-1 overflow-hidden">
+                <div className="relative min-h-[24rem] flex-1 overflow-hidden">
                   {bigCard.image ? (
                     <img
                       src={bigCard.image}

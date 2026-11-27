@@ -228,10 +228,7 @@ const Blog11 = ({
                     таксономия студии, а не придуманные темы. */}
                 <ul className="mt-2 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
                   {CATEGORY_ORDER.map((category) => (
-                    <li key={category} className="inline-flex items-center gap-2">
-                      <span aria-hidden="true" className="size-1 rounded-full bg-signal" />
-                      {categoryLabels?.[category] ?? category}
-                    </li>
+                    <li key={category}>{categoryLabels?.[category] ?? category}</li>
                   ))}
                 </ul>
               </div>

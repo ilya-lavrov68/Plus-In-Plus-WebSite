@@ -77,7 +77,7 @@ export async function WorkIndex({
             <Link
               href={`/work/${featured.slug}`}
               aria-label={featured.title}
-              className="group relative block overflow-hidden rounded-xl bg-white/[0.045] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+              className="group relative block overflow-hidden bg-white/[0.045] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
             >
               <img
                 src={featured.cover}
@@ -86,10 +86,10 @@ export async function WorkIndex({
                 decoding="async"
                 className="aspect-[16/10] w-full object-cover object-top opacity-95 transition-opacity duration-500 ease-out group-hover:opacity-100"
               />
-              <HoverGlow intensity={0.4} />
             </Link>
 
-            <div className="flex flex-col gap-4 lg:pb-2">
+            <div className="relative flex flex-col gap-4 overflow-hidden lg:pb-2">
+              <HoverGlow pattern={`work:${featured.slug}`} intensity={0.4} />
               <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase">
                 <span>{featured.discipline}</span>
                 <span className="tracking-normal normal-case">{featured.year}</span>
@@ -142,7 +142,7 @@ function WorkRow({ item, openLabel }: { item: LocalizedWorkCase; openLabel: stri
         href={`/work/${item.slug}`}
         className="group flex items-center gap-5 py-5 transition-colors hover:bg-white/[0.035] focus-visible:bg-white/[0.05] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:gap-8 sm:py-6"
       >
-        <span className="relative block w-20 shrink-0 overflow-hidden rounded-md bg-white/[0.05] sm:w-28">
+        <span className="relative block w-20 shrink-0 overflow-hidden bg-white/[0.05] sm:w-28">
           <img
             src={item.cover}
             alt=""

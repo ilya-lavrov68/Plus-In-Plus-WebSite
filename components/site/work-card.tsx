@@ -1,4 +1,6 @@
 import Link from "next/link";
+
+import { HoverGlow } from "@/components/site/hover-glow";
 import { ArrowUpRight } from "lucide-react";
 
 import type { LocalizedWorkCase } from "@/lib/work-cases";
@@ -27,8 +29,8 @@ export function WorkCard({ item, openLabel, featured = false, className }: WorkC
     >
       <div
         className={cn(
-          "relative overflow-hidden rounded-2xl bg-white/[0.055] p-1.5 [--pip-nest-gap:6px] [--pip-radius-outer:var(--radius-2xl)]",
-          featured && "p-2 [--pip-nest-gap:8px]",
+          "relative overflow-hidden bg-white/[0.055] p-1.5",
+          featured && "p-2",
         )}
       >
         <img
@@ -37,13 +39,14 @@ export function WorkCard({ item, openLabel, featured = false, className }: WorkC
           loading="lazy"
           decoding="async"
           className={cn(
-            "nested-radius w-full object-cover object-top",
-            featured ? "aspect-[16/9]" : "aspect-[16/10]",
+            "aspect-[16/10] w-full object-cover object-top",
           )}
         />
       </div>
 
-      <div className="flex flex-1 flex-col gap-3 px-1">
+      {/* Подсветка живёт на поверхности карточки: кадр её не получает. */}
+      <div className="relative flex flex-1 flex-col gap-3 overflow-hidden px-1 py-1">
+        <HoverGlow pattern={`work:${item.slug}`} />
         <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase">
           <span>{item.discipline}</span>
           <span className="tracking-normal normal-case">{item.year}</span>

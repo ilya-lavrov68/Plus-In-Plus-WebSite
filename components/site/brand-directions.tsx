@@ -37,7 +37,7 @@ function DirectionRow({
       href={href}
       className="group relative flex flex-col gap-4 overflow-hidden py-8 transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:flex-row sm:items-baseline sm:gap-10 sm:py-10"
     >
-      <HoverGlow intensity={0.5} />
+      <HoverGlow pattern={`direction:${href}`} intensity={0.5} />
 
       <div className="flex items-baseline gap-4 sm:w-56 sm:shrink-0 sm:flex-col sm:gap-2">
         <span className="font-mono text-xs text-muted-foreground">{index}</span>

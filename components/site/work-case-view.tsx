@@ -47,11 +47,11 @@ export async function WorkCaseView({ slug }: { slug: string }) {
           </p>
         </header>
 
-        <div className="mt-10 overflow-hidden rounded-2xl bg-white/[0.055] p-1.5 [--pip-nest-gap:6px] [--pip-radius-outer:var(--radius-2xl)] sm:p-2 [--pip-nest-gap:8px]">
+        <div className="mt-10 overflow-hidden bg-white/[0.055] p-1.5 sm:p-2">
           <img
             src={view.cover}
             alt={view.coverAlt}
-            className="nested-radius aspect-[16/9] w-full object-cover object-top"
+            className="aspect-[16/9] w-full object-cover object-top"
           />
         </div>
 
@@ -84,11 +84,7 @@ export async function WorkCaseView({ slug }: { slug: string }) {
                 {section.bullets?.length ? (
                   <ul className="mt-6 space-y-3">
                     {section.bullets.map((bullet) => (
-                      <li key={bullet} className="flex gap-3 text-base leading-relaxed">
-                        <span
-                          aria-hidden="true"
-                          className="mt-2.5 size-1.5 shrink-0 rounded-full bg-signal"
-                        />
+                      <li key={bullet} className="text-base leading-relaxed">
                         <span className="text-foreground/90">{bullet}</span>
                       </li>
                     ))}
@@ -107,13 +103,13 @@ export async function WorkCaseView({ slug }: { slug: string }) {
             <div className="mt-8 grid grid-cols-1 gap-8 md:grid-cols-2">
               {view.gallery.map((image) => (
                 <figure key={image.src} className="flex flex-col gap-3">
-                  <div className="overflow-hidden rounded-xl bg-white/[0.05] p-1.5 [--pip-nest-gap:6px] [--pip-radius-outer:var(--radius-xl)]">
+                  <div className="overflow-hidden bg-white/[0.05] p-1.5">
                     <img
                       src={image.src}
                       alt={image.alt}
                       loading="lazy"
                       decoding="async"
-                      className="nested-radius aspect-[16/10] w-full bg-background object-contain"
+                      className="aspect-[16/10] w-full bg-background object-contain"
                     />
                   </div>
                   {image.caption ? (
