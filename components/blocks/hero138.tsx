@@ -63,13 +63,13 @@ const Hero138 = ({
             text={headingMuted}
             trigger="mount"
             seed={3}
-            className="block text-foreground/70"
+            className="block text-[#110f10]/70"
           />
           <DecryptText
             text={headingPrimary}
             trigger="mount"
             seed={5}
-            className="mt-2 block text-foreground md:mt-4"
+            className="mt-2 block text-[#110f10] md:mt-4"
           />
         </h1>
 
@@ -84,7 +84,12 @@ const Hero138 = ({
             </Button>
           )}
           {secondaryCta && (
-            <Button variant="neutral" size="lg" asChild>
+            <Button
+              variant="neutral"
+              size="lg"
+              asChild
+              className="bg-[#2b292a] text-[#eeeeee] hover:bg-[#3a3838]"
+            >
               <Link href={secondaryCta.href} className="group">
                 {secondaryCta.label}
                 <ArrowRight className="ml-1 size-4 transition-transform duration-200 ease-out group-hover:translate-x-1" />

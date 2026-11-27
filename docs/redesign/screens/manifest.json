@@ -1,8 +1,22 @@
 {
-  "generatedAt": "2026-11-27T13:13:08.778Z",
+  "generatedAt": "2026-11-27T13:23:28.705Z",
   "baseUrl": "http://127.0.0.1:3000",
   "mode": "production",
   "shots": [
+    {
+      "route": "/ru",
+      "viewport": "desktop",
+      "width": 1440,
+      "title": "Plus In Plus — дизайн-студия",
+      "file": "docs/redesign/screens/home-ru-desktop.webp"
+    },
+    {
+      "route": "/ru",
+      "viewport": "mobile",
+      "width": 390,
+      "title": "Plus In Plus — дизайн-студия",
+      "file": "docs/redesign/screens/home-ru-mobile.webp"
+    },
     {
       "route": "/",
       "viewport": "desktop",
@@ -163,20 +177,6 @@
       "width": 1440,
       "title": "reduced motion",
       "file": "docs/redesign/screens/home-ru-reduced-motion.webp"
-    },
-    {
-      "route": "/ru",
-      "viewport": "desktop",
-      "width": 1440,
-      "title": "Plus In Plus — дизайн-студия",
-      "file": "docs/redesign/screens/home-ru-desktop.webp"
-    },
-    {
-      "route": "/ru",
-      "viewport": "mobile",
-      "width": 390,
-      "title": "Plus In Plus — дизайн-студия",
-      "file": "docs/redesign/screens/home-ru-mobile.webp"
     }
   ]
 }
