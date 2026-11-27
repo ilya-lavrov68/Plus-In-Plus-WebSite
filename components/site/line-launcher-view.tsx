@@ -154,27 +154,27 @@ export async function LineLauncherView() {
           intensity={1}
         />
         <div className="container relative z-10">
-          <h2 className="text-2xl font-medium tracking-tight sm:text-3xl">
+          <h2 className="bg-card px-6 py-6 text-2xl font-medium tracking-tight sm:text-3xl md:px-7">
             {t("featuresTitle")}
           </h2>
-          <ol className="mt-10">
+          <div className="mt-10 grid gap-4 sm:grid-cols-2">
             {features.map((feature, index) => (
-              <li
+              <article
                 key={feature.title}
-                className="grid gap-2 py-6 [background-image:linear-gradient(to_right,rgba(255,255,255,0.12),rgba(255,255,255,0))] [background-position:top] [background-repeat:no-repeat] [background-size:100%_1px] sm:grid-cols-[3rem_1fr_1.5fr] sm:items-baseline sm:gap-10"
+                className="bg-card px-6 py-6 md:px-7 md:py-7"
               >
                 <span className="font-mono text-xs text-muted-foreground">
                   {String(index + 1).padStart(2, "0")}
                 </span>
-                <h3 className="text-lg font-medium tracking-tight">
+                <h3 className="mt-3 text-lg font-medium tracking-tight">
                   {feature.title}
                 </h3>
-                <p className="text-sm leading-relaxed text-muted-foreground">
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                   {feature.text}
                 </p>
-              </li>
+              </article>
             ))}
-          </ol>
+          </div>
         </div>
       </section>
 
@@ -240,8 +240,8 @@ export async function LineLauncherView() {
           canvasFromPreset
           intensity={1}
         />
-        <div className="container relative z-10 pt-10 [background-image:linear-gradient(to_right,rgba(255,255,255,0.12),rgba(255,255,255,0))] [background-position:top] [background-repeat:no-repeat] [background-size:100%_1px]">
-          <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
+        <div className="container relative z-10 pt-12">
+          <div className="grid gap-8 bg-card px-6 py-8 md:px-10 md:py-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
             <div>
               <h2 className="max-w-2xl text-2xl font-medium tracking-tight text-balance sm:text-3xl">
                 {t("ctaTitle")}
