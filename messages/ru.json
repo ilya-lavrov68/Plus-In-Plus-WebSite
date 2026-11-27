@@ -107,7 +107,8 @@
     "services": "Услуги",
     "studio": "Студия",
     "journal": "Журнал",
-    "startProject": "Обсудить проект"
+    "startProject": "Обсудить проект",
+    "products": "Продукты"
   },
   "announcement": {
     "message": "Plus In Plus — дизайн-студия нового поколения",
@@ -1568,14 +1569,22 @@
       "versionLabel": "Версия",
       "platformLabel": "Платформа",
       "formatLabel": "Формат",
-      "versions": ["0.15.4 — в разработке"],
+      "versions": [
+        "0.15.4 — в разработке"
+      ],
       "platforms": {
         "windows": "Windows",
         "linux": "Linux"
       },
       "formats": {
-        "windows": [".exe — установщик", ".msi — установщик"],
-        "linux": [".AppImage", ".deb — пакет"]
+        "windows": [
+          ".exe — установщик",
+          ".msi — установщик"
+        ],
+        "linux": [
+          ".AppImage",
+          ".deb — пакет"
+        ]
       },
       "action": "Скачать",
       "unavailable": "Публичных сборок пока нет — файлы появятся после первого релиза",

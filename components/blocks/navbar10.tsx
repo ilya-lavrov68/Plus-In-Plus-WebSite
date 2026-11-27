@@ -2,8 +2,14 @@
 
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { useTranslations } from "next-intl";
-import { ChevronRight, LayoutDashboard, X, type LucideIcon } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+import {
+  ChevronRight,
+  LayoutDashboard,
+  Rocket,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import {
   forwardRef,
   Fragment,
@@ -23,6 +29,7 @@ import { MediaPlaceholder } from "@/components/site/media-placeholder";
 import { LanguageSwitcher } from "@/components/site/language-switcher";
 import { MobileBottomNav } from "@/components/site/mobile-bottom-nav";
 import { HeaderWordmarkLogo } from "@/components/site/logo";
+import { PRODUCTS, productTagline } from "@/lib/products";
 import { UserAvatar } from "@/components/site/user-avatar";
 import {
   Accordion,
@@ -48,6 +55,8 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 export interface MenuLink {
   label?: string;
   description?: string;
+  /** Версия или статус рядом с названием продукта. */
+  badge?: string;
   url: string;
   external?: boolean;
   icon?: LucideIcon;
@@ -103,6 +112,7 @@ type NavLinkProps = {
 };
 
 export interface NavigationLabels {
+  products: string;
   work: string;
   services: string;
   studio: string;
@@ -118,16 +128,31 @@ export interface NavigationLabels {
  * подвале и в правом верхнем углу, а не в основном меню.
  */
 export const DEFAULT_NAVIGATION_LABELS: NavigationLabels = {
+  products: "Продукты",
   work: "Работы",
   services: "Услуги",
   studio: "Студия",
   journal: "Журнал",
 };
 
-export function buildNavigation(labels: Partial<NavigationLabels> = {}): MenuItem[] {
+export function buildNavigation(
+  labels: Partial<NavigationLabels> = {},
+  locale: string = "ru",
+): MenuItem[] {
   const merged = { ...DEFAULT_NAVIGATION_LABELS, ...labels };
 
   return [
+    {
+      id: 5,
+      title: merged.products,
+      links: PRODUCTS.map((product) => ({
+        label: product.name,
+        description: productTagline(product, locale),
+        badge: product.badge,
+        url: product.href,
+        icon: Rocket,
+      })),
+    },
     { id: 1, title: merged.work, url: "/work" },
     { id: 2, title: merged.services, url: "/services" },
     { id: 3, title: merged.studio, url: "/studio" },
@@ -149,14 +174,16 @@ const Navbar10 = () => {
   const cartCount = useCartCount();
   const t = useTranslations("header");
   const tc = useTranslations("common");
+  const locale = useLocale();
   const navigation = useMemo(() => {
     return buildNavigation({
+      products: t("products"),
       work: t("work"),
       services: t("services"),
       studio: t("studio"),
       journal: t("journal"),
-    });
-  }, [t]);
+    }, locale);
+  }, [t, locale]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -387,6 +414,7 @@ const DesktopMenuItem = ({
             className="w-dvw animate-[fade-in-slide-down_0.24s_cubic-bezier(0.22,1,0.36,1)_forwards] px-8 pt-6 pb-12"
           >
             <div className="container">
+              {item.id === 5 && <DropdownMenuProducts links={item.links} />}
               {item.id === 1 && <DropdownMenu1 links={item.links} />}
               {item.id === 2 && (
                 <DropdownMenu2
@@ -417,6 +445,48 @@ const DesktopMenuItem = ({
         {item.title}
       </NavigationMenuLink>
     </NavigationMenuItem>
+  );
+};
+
+/**
+ * Каталог продуктов: строки «имя — версия — назначение».
+ *
+ * Ближайший аналог — меню Products у JetBrains: список, который растёт
+ * построчно вместе с реестром `lib/products.ts`, без правки разметки.
+ */
+const DropdownMenuProducts = ({ links }: { links?: MenuLink[] }) => {
+  if (!links?.length) return null;
+
+  return (
+    <ul className="grid w-full max-w-2xl grid-cols-1 gap-x-8 py-2 sm:grid-cols-2">
+      {links.map((link) => (
+        <li key={link.url}>
+          <Link
+            href={link.url}
+            className="group/product flex items-start gap-4 px-3 py-4 transition-colors duration-200 hover:bg-white/[0.05] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            <span className="mt-0.5 flex size-10 shrink-0 items-center justify-center bg-white/[0.06]">
+              {link.icon ? (
+                <link.icon aria-hidden="true" className="size-4" />
+              ) : null}
+            </span>
+            <span className="min-w-0">
+              <span className="flex flex-wrap items-baseline gap-x-2">
+                <span className="font-medium">{link.label}</span>
+                {link.badge ? (
+                  <span className="text-xs text-muted-foreground">
+                    {link.badge}
+                  </span>
+                ) : null}
+              </span>
+              <span className="mt-1 block text-sm leading-[1.6] text-muted-foreground">
+                {link.description}
+              </span>
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 };
 

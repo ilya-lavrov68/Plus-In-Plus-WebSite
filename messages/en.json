@@ -107,7 +107,8 @@
     "services": "Services",
     "studio": "Studio",
     "journal": "Journal",
-    "startProject": "Start a project"
+    "startProject": "Start a project",
+    "products": "Products"
   },
   "announcement": {
     "message": "Plus In Plus — A next-generation design studio",
@@ -1568,14 +1569,22 @@
       "versionLabel": "Version",
       "platformLabel": "Platform",
       "formatLabel": "Format",
-      "versions": ["0.15.4 — in development"],
+      "versions": [
+        "0.15.4 — in development"
+      ],
       "platforms": {
         "windows": "Windows",
         "linux": "Linux"
       },
       "formats": {
-        "windows": [".exe — installer", ".msi — installer"],
-        "linux": [".AppImage", ".deb — package"]
+        "windows": [
+          ".exe — installer",
+          ".msi — installer"
+        ],
+        "linux": [
+          ".AppImage",
+          ".deb — package"
+        ]
       },
       "action": "Download",
       "unavailable": "No public builds yet — files appear after the first release",
