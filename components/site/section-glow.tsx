@@ -3,6 +3,7 @@
 import { Hazeglow, type GradientConfig } from "hazeglow";
 import { useEffect, useRef, useState } from "react";
 
+import { presetConfig } from "@/lib/hazeglow-presets";
 import { effectSizeFor, HAZEGLOW_CELL } from "@/lib/hazeglow-scale";
 import { cn } from "@/lib/utils";
 
@@ -11,19 +12,27 @@ import { cn } from "@/lib/utils";
  *
  * Правила проекта (`project-design-system` §2):
  * - эффект живёт под контентом, с маской по краям, без резких границ;
- * - ячейка крупная: 16–24 CSS px, а не «пиксель монитора»;
+ * - ячейка крупная: 20–24 CSS px, а не «пиксель монитора»;
  * - оранжевый — последняя ступень палитры, поэтому работает акцентом;
  * - на страницах софта и ИТ-продуктов эффект `ascii`, на остальном сайте —
  *   `dither`; на одной странице один эффект.
  */
 type SectionGlowVariant = "dither" | "ascii";
 
+/**
+ * Ряд из семи ступеней по одной оранжевой оси.
+ *
+ * Скачок оттенка между ступенями (серый → оранжевый) при крупной ячейке давал
+ * фиолетово-бирюзовые точки: каналы квантовались независимо. Один тон, семь
+ * шагов по светлоте — и растр остаётся тёплым при любом размере клетки.
+ */
 const PALETTE = [
   "#110f10",
-  "#151313",
-  "#1b1819",
-  "#242122",
-  "#2b292a",
+  "#1a1210",
+  "#241610",
+  "#3a1d0e",
+  "#5a250b",
+  "#8f3407",
   "#ff5f01",
 ];
 
@@ -32,7 +41,9 @@ function buildConfig(
   effectSize: number,
 ): GradientConfig {
   const ascii = variant === "ascii";
-  return {
+  // Краски берутся из присланного градиента, правила проекта — поверх него.
+  const preset = presetConfig(ascii ? "software" : "site");
+  const builtIn: GradientConfig = {
     version: 1,
     seed: ascii ? 61 : 47,
     shape: ascii ? "blob" : "pill",
@@ -48,15 +59,32 @@ function buildConfig(
     palette: PALETTE,
     background: "#110f10",
     mesh: [],
-    grain: 0.04,
-    motion: "drift",
-    speed: 0.08,
+    grain: 0.02,
+    // Фон живёт: медленный поток, а не статичная картинка.
+    motion: "flow",
+    speed: 0.3,
     loop: 0,
     hover: 0,
     hoverMode: "pull",
     effect: ascii ? "ascii" : "dither",
     effectSize,
-    effectAmount: ascii ? 0.55 : 0.9,
+    effectAmount: ascii ? 0.9 : 1,
+  };
+  if (!preset) return builtIn;
+  return {
+    ...builtIn,
+    ...preset,
+    // Растр, анимация и плотность остаются проектными.
+    effect: builtIn.effect,
+    effectSize,
+    motion:
+      preset.motion && preset.motion !== "none"
+        ? preset.motion
+        : builtIn.motion,
+    speed:
+      preset.motion && preset.motion !== "none"
+        ? (preset.speed ?? builtIn.speed)
+        : builtIn.speed,
   };
 }
 
@@ -109,9 +137,9 @@ export function SectionGlow({
         className="size-full"
         style={{
           maskImage:
-            "radial-gradient(95% 120% at 72% 50%, #000 0%, rgba(0,0,0,0.8) 40%, rgba(0,0,0,0.3) 70%, transparent 92%)",
+            "radial-gradient(120% 140% at 74% 46%, #000 0%, #000 26%, rgba(0,0,0,0.86) 52%, rgba(0,0,0,0.34) 78%, transparent 96%)",
           WebkitMaskImage:
-            "radial-gradient(95% 120% at 72% 50%, #000 0%, rgba(0,0,0,0.8) 40%, rgba(0,0,0,0.3) 70%, transparent 92%)",
+            "radial-gradient(120% 140% at 74% 46%, #000 0%, #000 26%, rgba(0,0,0,0.86) 52%, rgba(0,0,0,0.34) 78%, transparent 96%)",
         }}
       >
         <Hazeglow

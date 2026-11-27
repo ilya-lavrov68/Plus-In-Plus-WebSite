@@ -2,10 +2,10 @@ import { Hero138 } from "@/components/blocks/hero138";
 import { getRequestTranslations } from "@/lib/server-i18n";
 
 /**
- * Первый экран студии — только типографика и действия.
+ * Первый экран студии — имя и действия.
  *
- * Ни сцены, ни шейдера, ни карусели работ: крупный заголовок, спокойное
- * описание и два действия. Работы начинаются ниже, отдельной секцией.
+ * Описание студии живёт в следующей секции: на первом экране только заголовок
+ * и две кнопки, как на сайтах Google и JetBrains.
  */
 export async function Hero() {
   const t = await getRequestTranslations("home");
@@ -14,11 +14,8 @@ export async function Hero() {
     <Hero138
       headingMuted={t("heroMuted")}
       headingPrimary={t("heroPrimary")}
-      descriptionLead={t("heroDescriptionLead")}
-      descriptionStrong={t("heroDescriptionStrong")}
       primaryCta={{ label: hero("startProject"), href: "/contact" }}
       secondaryCta={{ label: hero("viewWork"), href: "/work" }}
-      footnote={t("heroFootnote")}
     />
   );
 }

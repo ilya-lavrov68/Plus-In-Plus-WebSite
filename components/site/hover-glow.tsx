@@ -3,6 +3,7 @@
 import { Hazeglow, type GradientConfig } from "hazeglow";
 import { useEffect, useRef, useState } from "react";
 
+import { presetConfig } from "@/lib/hazeglow-presets";
 import { effectSizeFor, HAZEGLOW_CELL } from "@/lib/hazeglow-scale";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +15,14 @@ import { cn } from "@/lib/utils";
  * текста. Анимации нет вовсе (`motion: "none"`, `speed: 0`): шейдер рисует
  * один кадр и останавливается.
  */
-const PALETTE = ["#110f10", "#2b292a", "#ff5f01"];
+const PALETTE = [
+  "#110f10",
+  "#241610",
+  "#3a1d0e",
+  "#5a250b",
+  "#8f3407",
+  "#ff5f01",
+];
 
 interface HoverGlowProps {
   className?: string;
@@ -78,7 +86,9 @@ export function HoverGlow({ className, intensity = 0.4 }: HoverGlowProps) {
     };
   }, [allowed]);
 
+  const preset = presetConfig("site");
   const config: GradientConfig = {
+    ...(preset ?? {}),
     version: 1,
     seed: 23,
     shape: "pill",
@@ -95,7 +105,8 @@ export function HoverGlow({ className, intensity = 0.4 }: HoverGlowProps) {
     background: "#110f10",
     mesh: [],
     grain: 0.04,
-    // Статичный кадр: ни движения, ни перерисовки.
+    // Статичный кадр: ни движения, ни перерисовки — даже если градиент
+    // прислан с анимацией.
     motion: "none",
     speed: 0,
     loop: 0,
@@ -103,7 +114,7 @@ export function HoverGlow({ className, intensity = 0.4 }: HoverGlowProps) {
     hoverMode: "pull",
     effect: "dither",
     effectSize,
-    effectAmount: 0.85,
+    effectAmount: 0.9,
   };
 
   return (

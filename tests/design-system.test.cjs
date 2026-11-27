@@ -353,7 +353,7 @@ test("Hazeglow: крупная ячейка, dither и ascii по типу ст�
   );
 
   const scale = read("lib/hazeglow-scale.ts");
-  for (const [key, min] of [["section", 6], ["hero", 6], ["ascii", 16], ["hover", 4]]) {
+  for (const [key, min] of [["section", 20], ["hero", 24], ["ascii", 40], ["hover", 10]]) {
     const match = scale.match(new RegExp(`${key}: (\\d+)`));
     assert.ok(match, `в HAZEGLOW_CELL нет ${key}`);
     assert.ok(Number(match[1]) >= min, `ячейка ${key} должна быть не меньше ${min} px`);
@@ -365,6 +365,12 @@ test("Hazeglow: крупная ячейка, dither и ascii по типу ст�
   assert.match(section, /palette: PALETTE/, "палитра вынесена в константу");
   assert.match(section, /#ff5f01/, "фирменный оранжевый участвует как акцент");
   assert.match(section, /maskImage/, "края фона гасятся маской");
+  assert.match(section, /motion: "flow"/, "фон секции анимирован");
+  assert.equal(
+    (section.match(/#[0-9a-f]{6}/gi) ?? []).filter((hex) => !/^#(110f10|ff5f01)$/i.test(hex)).length >= 5,
+    true,
+    "палитра — ряд ступеней по одной тёплой оси",
+  );
   assert.equal(
     /#eeeeee|#6b6364/i.test(section),
     false,

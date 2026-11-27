@@ -246,7 +246,7 @@ const textOf = (node) =>
     .map((child) => (typeof child === "string" ? child : textOf(child)))
     .join("");
 
-test("Hero138 renders the restored studio statement, its two CTAs and the media stage", () => {
+test("Hero138: имя студии и два действия, без описания и подписи", () => {
   let view;
   act(() => {
     view = create(React.createElement(Hero138));
@@ -254,23 +254,24 @@ test("Hero138 renders the restored studio statement, its two CTAs and the media 
   const text = textOf(view.root);
   // DecryptText рисует скрэмбл-слой, поэтому заголовок проверяем по структуре.
   assert.equal(view.root.findAllByType("h1").length, 1);
-  assert.match(text, /Have an idea but don't know how to showcase it\?/);
-  assert.match(text, /Plus In Plus Design Studio/);
+  assert.equal(view.root.findAllByType("p").length, 0, "в hero нет абзацев и подписей");
+  assert.equal(text.includes("Design Studio"), false, "подписи под кнопками нет");
   const links = view.root.findAllByType("a").map((a) => ({
     href: a.props.href,
     text: textOf(a),
   }));
-  assert.ok(links.some((link) => link.href === "/services" && link.text.includes("Order")));
-  assert.ok(links.some((link) => link.href === "/contact" && link.text.includes("Contact us")));
+  assert.equal(links.length, 2, "на первом экране ровно два действия");
+  assert.ok(links.some((link) => link.href === "/contact" && link.text.includes("Обсудить проект")));
+  assert.ok(links.some((link) => link.href === "/work" && link.text.includes("Смотреть работы")));
 
-  const primary = view.root.findAllByType("a").find((link) => link.props.href === "/services");
+  const primary = view.root.findAllByType("a").find((link) => link.props.href === "/contact");
   // Главный CTA — оранжевая кнопка с тёмным текстом, при наведении она темнеет.
   assert.match(primary.props.className, /bg-primary text-primary-foreground/);
   assert.match(primary.props.className, /hover:bg-brand-signal-strong/);
   assert.equal(primary.props.className.includes("text-signal"), false);
   assert.ok(
-    view.root.findAll((node) => node.props?.["data-reveal"] !== undefined).length >= 2,
-    "the hero reveals its blocks progressively",
+    view.root.findAll((node) => node.props?.["data-reveal"] !== undefined).length >= 1,
+    "действия появляются с задержкой",
   );
   act(() => view.unmount());
 });
