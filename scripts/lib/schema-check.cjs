@@ -7,6 +7,7 @@ const EXPECTED_TABLES = [
   "mfa_backup_codes",
   "webauthn_credentials",
   "services",
+  "studio_products",
   "products",
   "posts",
   "media",

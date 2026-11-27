@@ -500,3 +500,31 @@ CREATE INDEX `webauthn_credentials_created_at_idx` ON `webauthn_credentials` (`c
 CREATE INDEX `webauthn_credentials_updated_at_idx` ON `webauthn_credentials` (`updated_at`);
 -- index webauthn_credentials_user_id_idx
 CREATE INDEX `webauthn_credentials_user_id_idx` ON `webauthn_credentials` (`user_id_id`);
+
+-- table studio_products
+CREATE TABLE `studio_products` (
+    `id` text(36) PRIMARY KEY NOT NULL,
+    `slug` text NOT NULL,
+    `name` text NOT NULL,
+    `tagline_ru` text,
+    `tagline_en` text,
+    `summary_ru` text,
+    `summary_en` text,
+    `version` text,
+    `status_label` text,
+    `repo_url` text,
+    `changelog_path` text DEFAULT 'CHANGELOG.md',
+    `download_url` text,
+    `page_path` text,
+    `facts` text,
+    `is_published` integer DEFAULT false NOT NULL,
+    `sort_order` integer DEFAULT 0 NOT NULL,
+    `changelog_json` text,
+    `changelog_synced_at` text,
+    `updated_at` text DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL,
+    `created_at` text DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL
+  );
+-- index studio_products_slug_idx
+CREATE UNIQUE INDEX `studio_products_slug_idx` ON `studio_products` (`slug`);
+-- index studio_products_sort_order_idx
+CREATE INDEX `studio_products_sort_order_idx` ON `studio_products` (`sort_order`);

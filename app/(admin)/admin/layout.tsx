@@ -58,6 +58,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       label: t.shell.groups.catalog,
       items: [
         { href: "/admin/services", label: t.nav.services },
+        ...(staff.isAdmin ? [{ href: "/admin/studio-products", label: t.nav.studioProducts }] : []),
         { href: "/admin/products", label: t.nav.products },
       ],
     },

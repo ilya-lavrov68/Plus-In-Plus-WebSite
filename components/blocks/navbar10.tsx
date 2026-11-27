@@ -111,6 +111,14 @@ type NavLinkProps = {
   onMouseLeave?: MouseEventHandler<HTMLAnchorElement>;
 };
 
+/** Продукт для меню шапки: приходит из админки, без React-иконок. */
+export interface NavbarProduct {
+  name: string;
+  description?: string;
+  badge?: string;
+  href: string;
+}
+
 export interface NavigationLabels {
   products: string;
   work: string;
@@ -138,20 +146,33 @@ export const DEFAULT_NAVIGATION_LABELS: NavigationLabels = {
 export function buildNavigation(
   labels: Partial<NavigationLabels> = {},
   locale: string = "ru",
+  products?: NavbarProduct[],
 ): MenuItem[] {
   const merged = { ...DEFAULT_NAVIGATION_LABELS, ...labels };
 
-  return [
-    {
-      id: 5,
-      title: merged.products,
-      links: PRODUCTS.map((product) => ({
+  // Опубликованные продукты из админки важнее статического реестра: реестр —
+  // подстраховка для чистой установки, где витрина ещё пустая.
+  const productLinks: MenuLink[] = products?.length
+    ? products.map((product) => ({
+        label: product.name,
+        description: product.description,
+        badge: product.badge,
+        url: product.href,
+        icon: Rocket,
+      }))
+    : PRODUCTS.map((product) => ({
         label: product.name,
         description: productTagline(product, locale),
         badge: product.badge,
         url: product.href,
         icon: Rocket,
-      })),
+      }));
+
+  return [
+    {
+      id: 5,
+      title: merged.products,
+      links: productLinks,
     },
     { id: 1, title: merged.work, url: "/work" },
     { id: 2, title: merged.services, url: "/services" },
@@ -162,7 +183,7 @@ export function buildNavigation(
 
 const MOBILE_BREAKPOINT = 1024;
 
-const Navbar10 = () => {
+const Navbar10 = ({ products }: { products?: NavbarProduct[] } = {}) => {
   const [open, setOpen] = useState<boolean>(false);
   // Открытый раздел шапки: наведение мыши и клик ведут к одному состоянию,
   // поэтому подменю появляется сразу при наведении, а не только по нажатию.
@@ -182,8 +203,8 @@ const Navbar10 = () => {
       services: t("services"),
       studio: t("studio"),
       journal: t("journal"),
-    }, locale);
-  }, [t, locale]);
+    }, locale, products);
+  }, [t, locale, products]);
 
   useEffect(() => {
     const handleResize = () => {

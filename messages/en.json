@@ -1799,5 +1799,16 @@
     "productBody": "Our own Minecraft launcher: the player opens the app and presses Play, with no manual server or Java setup.",
     "productAction": "Product page",
     "processAll": "About the studio"
+  },
+  "productPage": {
+    "contactCta": "Start a project",
+    "repoCta": "Repository on GitHub",
+    "downloadCta": "Download",
+    "whatsNew": "What's new",
+    "aboutTitle": "What it is",
+    "allVersions": "All versions",
+    "emptyChangelog": "Version history appears here after the first sync with the repository.",
+    "releases": "Releases",
+    "status": "Status"
   }
 }
