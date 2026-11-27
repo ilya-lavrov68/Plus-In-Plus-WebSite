@@ -52,7 +52,16 @@ const Hero138 = ({
       {/* Скрим только под типографикой: правый край отдан растру. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,#110f10_0%,rgba(17,15,16,0.94)_34%,rgba(17,15,16,0.42)_58%,rgba(17,15,16,0)_76%)]"
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(17,15,16,0.12)_0%,rgba(17,15,16,0.36)_28%,rgba(17,15,16,0.86)_42%,#110f10_54%)] lg:hidden"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 hidden bg-[linear-gradient(90deg,#110f10_0%,#110f10_46%,rgba(17,15,16,0.95)_56%,rgba(17,15,16,0.62)_68%,rgba(17,15,16,0.18)_79%,rgba(17,15,16,0)_88%)] lg:block"
+      />
+      {/* Нижняя кромка растворяется, иначе на границе секции виден шов. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-[linear-gradient(to_top,#110f10_0%,rgba(17,15,16,0.85)_45%,rgba(17,15,16,0)_100%)]"
       />
       <div className="container relative z-10">
         <h1 className="text-5xl leading-[0.92] font-medium tracking-tight text-balance sm:text-6xl md:text-7xl lg:text-[7.5rem]">

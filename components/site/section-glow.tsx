@@ -71,20 +71,17 @@ function buildConfig(
     effectAmount: ascii ? 0.9 : 1,
   };
   if (!preset) return builtIn;
+  // Авторский градиент задаёт всё, кроме типа эффекта и размера ячейки:
+  // владелец собирает свет, плотность и движение в редакторе, а проект
+  // отвечает за то, что это dither/ascii и что клетка измерена в CSS-пикселях.
   return {
     ...builtIn,
     ...preset,
-    // Растр, анимация и плотность остаются проектными.
     effect: builtIn.effect,
     effectSize,
-    motion:
-      preset.motion && preset.motion !== "none"
-        ? preset.motion
-        : builtIn.motion,
-    speed:
-      preset.motion && preset.motion !== "none"
-        ? (preset.speed ?? builtIn.speed)
-        : builtIn.speed,
+    // База холста — цвет страницы: иначе чёрный прямоугольник шейдера виден
+    // на фоне #110F10 как отдельная плашка.
+    background: builtIn.background,
   };
 }
 
@@ -101,7 +98,7 @@ export function SectionGlow({
   className,
   variant = "dither",
   cell = HAZEGLOW_CELL.section,
-  intensity = 0.85,
+  intensity = 0.55,
 }: SectionGlowProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const [effectSize, setEffectSize] = useState(() => effectSizeFor(720, cell));
@@ -137,9 +134,9 @@ export function SectionGlow({
         className="size-full"
         style={{
           maskImage:
-            "radial-gradient(120% 140% at 74% 46%, #000 0%, #000 26%, rgba(0,0,0,0.86) 52%, rgba(0,0,0,0.34) 78%, transparent 96%)",
+            "radial-gradient(125% 130% at 54% 36%, #000 0%, #000 40%, rgba(0,0,0,0.72) 66%, rgba(0,0,0,0.22) 86%, transparent 97%)",
           WebkitMaskImage:
-            "radial-gradient(120% 140% at 74% 46%, #000 0%, #000 26%, rgba(0,0,0,0.86) 52%, rgba(0,0,0,0.34) 78%, transparent 96%)",
+            "radial-gradient(125% 130% at 54% 36%, #000 0%, #000 40%, rgba(0,0,0,0.72) 66%, rgba(0,0,0,0.22) 86%, transparent 97%)",
         }}
       >
         <Hazeglow

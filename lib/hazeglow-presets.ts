@@ -13,8 +13,8 @@ import { decodeConfig, type GradientConfig } from "hazeglow";
  * там, где его быть не должно.
  */
 export const HAZEGLOW_LINKS: Record<HazeglowPreset, string | null> = {
-  /** Сайт студии: dither-фон секций. */
-  site: null,
+  /** Сайт студии: dither-фон секций (градиент владельца, hero лендинга). */
+  site: "https://hazeglow.dev/generator#c=eyJ2ZXJzaW9uIjoxLCJzZWVkIjozLCJzaGFwZSI6ImJsb2IiLCJjZW50ZXIiOlswLjUsMC4zXSwic2l6ZSI6WzAuOSwxXSwicm91bmRuZXNzIjowLjQ1LCJzb2Z0bmVzcyI6MC4yMiwicm90YXRpb24iOjAsInJhbXBEaXJlY3Rpb24iOjAuNTUsImFuZ2xlIjo5MCwid2FycCI6MC42LCJ3YXJwU2NhbGUiOjEsInBhbGV0dGUiOlsiI2EwYjJjZiIsIiNhNWIxYzAiLCIjYTlhMzljIiwiI2Y1ODIyMCIsIiNlYTRmMDgiXSwiYmFja2dyb3VuZCI6IiMwMDAwMDAiLCJtZXNoIjpbWzAuODkxLDAuMDA3LCIjMWQyYzQ0Il0sWzAuMDExLDAuNjc5LCIjNWI2ZjhhIl0sWzAuOTQ3LDAuNzc3LCIjYTlhMzljIl0sWzAuNDIzLDAuODkzLCIjZjU4MjIwIl0sWzAuMTIxLDAuMTM5LCIjZWE0ZjA4Il0sWzAuNDQ1LDAuNDMzLCIjMDAwMDAwIl0sWzAuMzg5LDAuMTEyLCIjMWQyYzQ0Il0sWzAuMTcxLDAuODIsIiM1YjZmOGEiXV0sImdyYWluIjowLjI1LCJtb3Rpb24iOiJkcmlmdCIsInNwZWVkIjoxLCJsb29wIjowLCJob3ZlciI6MCwiaG92ZXJNb2RlIjoicHVzaCIsImVmZmVjdCI6ImRpdGhlciIsImVmZmVjdFNpemUiOjQsImVmZmVjdEFtb3VudCI6MC4xNX0",
   /** Line Launcher и страницы софта: ascii-фон. */
   software: null,
 };
@@ -26,7 +26,11 @@ function payloadOf(link: string): string | null {
   const value = link.trim();
   if (!value) return null;
   const hash = value.includes("#") ? value.slice(value.indexOf("#") + 1) : "";
-  if (hash) return hash;
+  if (hash) {
+    // Ссылка редактора кладёт в хеш параметр целиком: `#c=<payload>`.
+    const inner = hash.includes("=") ? hash.slice(hash.indexOf("=") + 1) : hash;
+    return inner || null;
+  }
   const queryStart = value.indexOf("?");
   if (queryStart >= 0) {
     const params = new URLSearchParams(value.slice(queryStart + 1));

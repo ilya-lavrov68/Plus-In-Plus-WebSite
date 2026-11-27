@@ -18,7 +18,11 @@ if (!link) {
 
 function payloadOf(value) {
   const hash = value.includes("#") ? value.slice(value.indexOf("#") + 1) : "";
-  if (hash) return hash;
+  if (hash) {
+    // Ссылка редактора кладёт в хеш параметр целиком: `#c=<payload>`.
+    const inner = hash.includes("=") ? hash.slice(hash.indexOf("=") + 1) : hash;
+    return inner || null;
+  }
   const queryStart = value.indexOf("?");
   if (queryStart >= 0) {
     const params = new URLSearchParams(value.slice(queryStart + 1));

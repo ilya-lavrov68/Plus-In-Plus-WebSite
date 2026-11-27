@@ -36,9 +36,12 @@ const Cta13 = ({
         крупный заголовок и одно действие важнее, чем ещё одна «коробка».
         Свет за заголовком мягкий, с маской по краям.
       */}
-      <SectionGlow variant="dither" intensity={0.6} />
+      <SectionGlow variant="dither" intensity={0.45} />
       <div className="container relative z-10">
-        <div data-reveal="" className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
+        <div
+          data-reveal=""
+          className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-end"
+        >
           <div>
             <h2 className="max-w-3xl text-4xl font-semibold tracking-tight text-balance md:text-6xl">
               <DecryptText text={heading} seed={43} />

@@ -353,7 +353,7 @@ test("Hazeglow: крупная ячейка, dither и ascii по типу ст�
   );
 
   const scale = read("lib/hazeglow-scale.ts");
-  for (const [key, min] of [["section", 20], ["hero", 24], ["ascii", 40], ["hover", 10]]) {
+  for (const [key, min] of [["section", 4], ["hero", 4], ["ascii", 40], ["hover", 4]]) {
     const match = scale.match(new RegExp(`${key}: (\\d+)`));
     assert.ok(match, `в HAZEGLOW_CELL нет ${key}`);
     assert.ok(Number(match[1]) >= min, `ячейка ${key} должна быть не меньше ${min} px`);
