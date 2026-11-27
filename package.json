@@ -25,7 +25,8 @@
     "test": "node --test tests/*.test.cjs",
     "typecheck": "tsc --noEmit",
     "browser:restore": "node scripts/visual-browser.mjs",
-    "screenshots": "node scripts/screenshots.mjs"
+    "screenshots": "node scripts/screenshots.mjs",
+    "glow:check": "node scripts/glow-check.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^6.0.0",
