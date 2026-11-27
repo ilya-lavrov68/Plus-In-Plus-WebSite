@@ -3,62 +3,39 @@
 import { Hazeglow, type GradientConfig } from "hazeglow";
 import { useEffect, useRef, useState } from "react";
 
+import { effectSizeFor, HAZEGLOW_CELL } from "@/lib/hazeglow-scale";
 import { cn } from "@/lib/utils";
 
 /**
- * Деликатное свечение Hazeglow для интерактивных поверхностей.
+ * Статичный Hazeglow-кадр для наведения на карточку или строку.
  *
- * Правило проекта (`project-design-system`): в покое поверхность чистая, шум
- * допустим только как реакция на наведение. Поэтому canvas живёт лишь пока
- * указатель (или фокус) внутри родителя: вне hover в DOM нет ни одного WebGL
- * контекста, а значит нет ни шума, ни расхода GPU.
- *
- * Свечение мягкое: палитра из тональных ступеней бренда без оранжевого,
- * эффект выключен, зерно минимальное, края гасятся маской — у подсветки нет
- * прямоугольной границы.
+ * Правило проекта: в покое поверхность чистая, при наведении появляется
+ * **неподвижный** крупный растр — он читается как фактура и не отвлекает от
+ * текста. Анимации нет вовсе (`motion: "none"`, `speed: 0`): шейдер рисует
+ * один кадр и останавливается.
  */
-
-const SOFT_GLOW: GradientConfig = {
-  version: 1,
-  seed: 23,
-  shape: "blob",
-  center: [0.68, 0.34],
-  size: [1.15, 1.05],
-  roundness: 0.95,
-  softness: 0.95,
-  rotation: 0,
-  rampDirection: 0.8,
-  angle: 118,
-  warp: 0.06,
-  warpScale: 1.2,
-  // Только тональные ступени: свечение не спорит с оранжевым действием.
-  palette: ["#171515", "#242122", "#2b292a", "#3a3637"],
-  background: "#110f10",
-  mesh: [],
-  grain: 0.08,
-  motion: "drift",
-  speed: 0.14,
-  loop: 0,
-  hover: 0.3,
-  hoverMode: "pull",
-  effect: "none",
-  effectSize: 8,
-  effectAmount: 0,
-};
+const PALETTE = ["#110f10", "#2b292a", "#ff5f01"];
 
 interface HoverGlowProps {
   className?: string;
-  /** Прозрачность свечения в наведённом состоянии (0–1). */
+  /** Прозрачность кадра в наведённом состоянии. */
   intensity?: number;
 }
 
-export function HoverGlow({ className, intensity = 0.55 }: HoverGlowProps) {
+export function HoverGlow({ className, intensity = 0.4 }: HoverGlowProps) {
   const hostRef = useRef<HTMLSpanElement>(null);
   const [active, setActive] = useState(false);
   const [allowed, setAllowed] = useState(false);
+  const [effectSize, setEffectSize] = useState(() =>
+    effectSizeFor(320, HAZEGLOW_CELL.hover),
+  );
 
   useEffect(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    if (
+      typeof window === "undefined" ||
+      typeof window.matchMedia !== "function"
+    )
+      return;
     const hoverable = window.matchMedia("(hover: hover) and (pointer: fine)");
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
     const sync = () => setAllowed(hoverable.matches && !reduced.matches);
@@ -76,8 +53,19 @@ export function HoverGlow({ className, intensity = 0.55 }: HoverGlowProps) {
     const host = hostRef.current?.parentElement;
     if (!host) return;
 
-    const enter = () => setActive(true);
+    const measure = () => {
+      const rect = host.getBoundingClientRect();
+      const minSide = Math.min(rect.width, rect.height) || 320;
+      setEffectSize(effectSizeFor(minSide, HAZEGLOW_CELL.hover));
+    };
+
+    const enter = () => {
+      measure();
+      setActive(true);
+    };
     const leave = () => setActive(false);
+
+    measure();
     host.addEventListener("pointerenter", enter);
     host.addEventListener("pointerleave", leave);
     host.addEventListener("focusin", enter);
@@ -90,25 +78,52 @@ export function HoverGlow({ className, intensity = 0.55 }: HoverGlowProps) {
     };
   }, [allowed]);
 
+  const config: GradientConfig = {
+    version: 1,
+    seed: 23,
+    shape: "pill",
+    center: [0.68, 0.34],
+    size: [1.15, 1.05],
+    roundness: 0.95,
+    softness: 0.7,
+    rotation: 0,
+    rampDirection: 0.8,
+    angle: 118,
+    warp: 0.05,
+    warpScale: 1.2,
+    palette: PALETTE,
+    background: "#110f10",
+    mesh: [],
+    grain: 0.04,
+    // Статичный кадр: ни движения, ни перерисовки.
+    motion: "none",
+    speed: 0,
+    loop: 0,
+    hover: 0,
+    hoverMode: "pull",
+    effect: "dither",
+    effectSize,
+    effectAmount: 0.85,
+  };
+
   return (
     <span
       ref={hostRef}
       aria-hidden="true"
       className={cn(
-        "pointer-events-none absolute inset-0 z-0 overflow-hidden opacity-0 transition-opacity duration-500 ease-out",
+        "pointer-events-none absolute inset-0 z-0 overflow-hidden opacity-0 transition-opacity duration-200 ease-out",
         active && "opacity-100",
         className,
       )}
       style={{
         opacity: active ? intensity : 0,
-        // Края свечения растворяются в фоне: у подсветки нет резкой рамки.
         maskImage:
-          "radial-gradient(120% 100% at 62% 28%, #000 0%, rgba(0,0,0,0.85) 38%, transparent 78%)",
+          "radial-gradient(115% 100% at 64% 30%, #000 0%, rgba(0,0,0,0.7) 46%, transparent 82%)",
         WebkitMaskImage:
-          "radial-gradient(120% 100% at 62% 28%, #000 0%, rgba(0,0,0,0.85) 38%, transparent 78%)",
+          "radial-gradient(115% 100% at 64% 30%, #000 0%, rgba(0,0,0,0.7) 46%, transparent 82%)",
       }}
     >
-      {active ? <Hazeglow config={SOFT_GLOW} className="size-full" /> : null}
+      {active ? <Hazeglow config={config} className="size-full" /> : null}
     </span>
   );
 }

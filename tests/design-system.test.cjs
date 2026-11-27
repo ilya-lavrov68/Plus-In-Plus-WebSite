@@ -343,33 +343,54 @@ test("поле ввода читается: тёмная поверхность,
   );
 });
 
-test("Hazeglow живёт только в мягком свечении по наведению", () => {
-  // Правило `project-design-system`: постоянных сцен и плотных паттернов нет.
-  // Единственная точка входа библиотеки — `hover-glow.tsx`: в покое на
-  // странице не рисуется ни одного WebGL-контекста.
+test("Hazeglow: крупная ячейка, dither и ascii по типу страницы", () => {
+  // Правило `project-design-system` §2: растр крупный (16–24 CSS px), эффект
+  // зависит от типа страницы, оранжевый — акцентная ступень палитры.
   assert.equal(
     fs.existsSync(path.resolve(__dirname, "../components/site/hazeglow-field.tsx")),
     false,
-    "статичных полей Hazeglow на сайте больше нет",
+    "статичных полей Hazeglow старого образца нет",
   );
 
-  const glow = read("components/site/hover-glow.tsx");
-  assert.match(glow, /effect: "none"/, "свечение без растровых эффектов");
-  assert.match(glow, /effectAmount: 0/, "эффект полностью выключен");
-  assert.match(glow, /maskImage/, "края свечения гасятся маской");
-  assert.equal(
-    /#eeeeee|#ff5f01|#6b6364/i.test(glow),
-    false,
-    "в свечении нет белого и оранжевого: акцент остаётся у действий",
-  );
-
-  const effects = [...glow.matchAll(/effect:\s*"([\w-]+)"/g)].map((match) => match[1]);
-  assert.deepEqual([...new Set(effects)], ["none"], "только none: dither/ascii не возвращаются");
-
-  const grains = [...glow.matchAll(/grain:\s*([\d.]+)/g)].map((match) => Number(match[1]));
-  for (const grain of grains) {
-    assert.ok(grain <= 0.12, `grain ${grain} добавляет шум`);
+  const scale = read("lib/hazeglow-scale.ts");
+  for (const [key, min] of [["section", 6], ["hero", 6], ["ascii", 16], ["hover", 4]]) {
+    const match = scale.match(new RegExp(`${key}: (\\d+)`));
+    assert.ok(match, `в HAZEGLOW_CELL нет ${key}`);
+    assert.ok(Number(match[1]) >= min, `ячейка ${key} должна быть не меньше ${min} px`);
   }
+  assert.match(scale, /effectSizeFor/, "размер ячейки считается от стороны элемента");
+
+  const section = read("components/site/section-glow.tsx");
+  assert.match(section, /effect: ascii \? "ascii" : "dither"/, "dither на сайте, ascii на софте");
+  assert.match(section, /palette: PALETTE/, "палитра вынесена в константу");
+  assert.match(section, /#ff5f01/, "фирменный оранжевый участвует как акцент");
+  assert.match(section, /maskImage/, "края фона гасятся маской");
+  assert.equal(
+    /#eeeeee|#6b6364/i.test(section),
+    false,
+    "белого и серого в фоновом шейдере нет",
+  );
+
+  const hover = read("components/site/hover-glow.tsx");
+  assert.match(hover, /motion: "none"/, "hover показывает статичный кадр");
+  assert.match(hover, /speed: 0/, "hover не анимируется");
+  assert.match(hover, /effect: "dither"/, "наведение использует тот же dither");
+  assert.match(hover, /maskImage/, "у подсветки тоже есть маска по краям");
+  const hoverAmounts = [...hover.matchAll(/effectAmount: ([\d.]+)/g)].map((match) => Number(match[1]));
+  for (const amount of hoverAmounts) {
+    assert.ok(amount <= 0.9, `effectAmount ${amount} под курсором слишком плотный`);
+  }
+
+  assert.match(
+    read("components/blocks/hero138.tsx"),
+    /<SectionGlow[\s\S]{0,120}variant="dither"/,
+    "первый экран получает крупный dither-фон секции",
+  );
+  assert.match(
+    read("components/site/line-launcher-view.tsx"),
+    /SectionGlow variant="ascii"/,
+    "страницы софта получают ascii-фон",
+  );
 
   // Пиксельные спрайты сняты с сайта целиком: компонент, генератор, ассеты и кадровая анимация.
   for (const retired of [

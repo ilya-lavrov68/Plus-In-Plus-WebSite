@@ -291,7 +291,7 @@ async function capture(browser, route, viewport) {
   await settle(page);
 
   const file = path.join(outputDir, `${route.name}-${viewport.name}.webp`);
-  await page.screenshot({ path: file, type: "webp", quality: 78, fullPage: true });
+  await page.screenshot({ path: file, type: "webp", quality: 92, fullPage: true });
   const title = await page.title();
   await page.close();
 
@@ -314,7 +314,7 @@ async function captureReducedMotion(browser) {
   await settle(page);
 
   const file = path.join(outputDir, "home-ru-reduced-motion.webp");
-  await page.screenshot({ path: file, type: "webp", quality: 78, fullPage: true });
+  await page.screenshot({ path: file, type: "webp", quality: 92, fullPage: true });
   await page.close();
   return file;
 }
