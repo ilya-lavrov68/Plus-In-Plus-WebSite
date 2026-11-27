@@ -53,6 +53,11 @@ export async function LineLauncherView() {
   const features = t.raw("features") as Feature[];
   const gallery = t.raw("gallery") as Screenshot[];
   const whatsNew = t.raw("whatsNew") as { title: string; link: string };
+  const links = t.raw("links") as {
+    repo: string;
+    issues: string;
+    releases: string;
+  };
   // Блок краткий и честный: записи берутся из той же истории версий, что и
   // страница changelog. Нет данных — нет и блока.
   const recent = getChangelog()?.entries.slice(0, 3) ?? [];
@@ -289,6 +294,58 @@ export async function LineLauncherView() {
               {t("buildBody")}
             </p>
           </div>
+        </div>
+      </section>
+
+      <section className="relative pb-16 md:pb-20">
+        <div className="container relative z-10">
+          {/* Полоса ссылок вместо JetBrains-трио: документации и сообщества у
+              проекта нет, поэтому остаются только существующие адреса. */}
+          <nav
+            aria-label={t("linksLabel")}
+            className="bg-card px-6 py-5 md:px-8"
+          >
+            <ul className="flex flex-wrap items-baseline gap-x-8 gap-y-2 text-sm">
+              <li>
+                <a
+                  href={REPOSITORY_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+                >
+                  {links.repo}
+                </a>
+              </li>
+              <li>
+                <a
+                  href={`${REPOSITORY_URL}/issues`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+                >
+                  {links.issues}
+                </a>
+              </li>
+              <li>
+                <a
+                  href={`${REPOSITORY_URL}/releases`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+                >
+                  {links.releases}
+                </a>
+              </li>
+              <li>
+                <Link
+                  href="/line-launcher/changelog"
+                  className="text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+                >
+                  {whatsNew.link}
+                </Link>
+              </li>
+            </ul>
+          </nav>
         </div>
       </section>
 

@@ -1587,6 +1587,12 @@
       "link": "All versions",
       "note": "A short read of the Line Launcher release history."
     },
+    "links": {
+      "repo": "Repository",
+      "issues": "Issue tracker",
+      "releases": "Releases"
+    },
+    "linksLabel": "Project links",
     "whatTitle": "What it is",
     "whatLead": "The launcher knows its project address: it is baked in at build time. The player never chooses a provider or types a server address — a single sign-in opens the project catalogue.",
     "whatBody": "The project owner assembles the app for their own brand: name, logo, icons and API address. The player gets a launcher that contains nothing but that project.",
