@@ -41,7 +41,7 @@ export async function LineLauncherView() {
   const gallery = t.raw("gallery") as Screenshot[];
 
   return (
-    <div className="relative bg-background">
+    <div className="relative isolate bg-background">
       {/* Один фон на всю страницу: без швов между секциями и без повторов. */}
       <PageGlow preset="software" variant="ascii" cell={HAZEGLOW_CELL.ascii} />
       <section className="relative border-0 pt-16 pb-20 md:pt-24 md:pb-28">
@@ -172,13 +172,15 @@ export async function LineLauncherView() {
         </div>
       </section>
 
-      <section className="bg-card/40 py-16 md:py-24">
+      <section className="py-16 md:py-24">
         <div className="container">
           <div className="flex flex-wrap items-end justify-between gap-4">
-            <h2 className="text-2xl font-medium tracking-tight sm:text-3xl">
+            <h2 className="bg-card px-6 py-6 text-2xl font-medium tracking-tight sm:text-3xl md:px-7">
               {t("galleryTitle")}
             </h2>
-            <p className="text-xs text-muted-foreground">{t("galleryNote")}</p>
+            <p className="bg-card px-4 py-3 text-xs text-muted-foreground">
+              {t("galleryNote")}
+            </p>
           </div>
           <div className="mt-10 space-y-14">
             {gallery.map((shot) => (
@@ -189,7 +191,7 @@ export async function LineLauncherView() {
                 <figcaption className="bg-card px-4 py-3 text-sm leading-relaxed text-muted-foreground lg:mb-4">
                   {shot.caption}
                 </figcaption>
-                <div className="overflow-hidden bg-card/40">
+                <div className="overflow-hidden bg-card">
                   <Image
                     src={`${SCREENSHOT_DIR}/${shot.src}.webp`}
                     alt={shot.alt}

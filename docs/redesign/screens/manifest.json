@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-27T15:12:17.899Z",
+  "generatedAt": "2026-11-27T16:34:28.699Z",
   "baseUrl": "http://127.0.0.1:3000",
   "mode": "production",
   "shots": [
@@ -30,20 +30,6 @@
       "width": 390,
       "title": "Plus In Plus — дизайн-студия",
       "file": "docs/redesign/screens/home-en-mobile.webp"
-    },
-    {
-      "route": "/ru/line-launcher",
-      "viewport": "desktop",
-      "width": 1440,
-      "title": "Line Launcher — Minecraft-лаунчер для игровых проектов",
-      "file": "docs/redesign/screens/line-launcher-ru-desktop.webp"
-    },
-    {
-      "route": "/ru/line-launcher",
-      "viewport": "mobile",
-      "width": 390,
-      "title": "Line Launcher — Minecraft-лаунчер для игровых проектов",
-      "file": "docs/redesign/screens/line-launcher-ru-mobile.webp"
     },
     {
       "route": "/line-launcher",
@@ -177,6 +163,20 @@
       "width": 1440,
       "title": "reduced motion",
       "file": "docs/redesign/screens/home-ru-reduced-motion.webp"
+    },
+    {
+      "route": "/ru/line-launcher",
+      "viewport": "desktop",
+      "width": 1440,
+      "title": "Line Launcher — Minecraft-лаунчер для игровых проектов",
+      "file": "docs/redesign/screens/line-launcher-ru-desktop.webp"
+    },
+    {
+      "route": "/ru/line-launcher",
+      "viewport": "mobile",
+      "width": 390,
+      "title": "Line Launcher — Minecraft-лаунчер для игровых проектов",
+      "file": "docs/redesign/screens/line-launcher-ru-mobile.webp"
     }
   ]
 }

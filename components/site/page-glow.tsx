@@ -1,7 +1,7 @@
 "use client";
 
 import { Hazeglow, type GradientConfig } from "hazeglow";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { presetConfig, type HazeglowPreset } from "@/lib/hazeglow-presets";
 import { effectSizeFor, HAZEGLOW_CELL } from "@/lib/hazeglow-scale";
@@ -28,21 +28,24 @@ export function PageGlow({
   cell?: number;
   className?: string;
 }) {
-  const hostRef = useRef<HTMLDivElement>(null);
   const [effectSize, setEffectSize] = useState(() => effectSizeFor(900, cell));
+  // `?glow=full` — режим съёмки: слой разворачивается на всю высоту страницы,
+  // чтобы полный кадр показал фон целиком, а не только в первом экране.
+  const [pageHeight, setPageHeight] = useState<number | null>(null);
 
   useEffect(() => {
-    const host = hostRef.current;
-    if (!host) return;
+    const fullPage =
+      new URLSearchParams(window.location.search).get("glow") === "full";
     const measure = () => {
-      const rect = host.getBoundingClientRect();
-      const minSide = Math.min(rect.width, rect.height) || 900;
-      setEffectSize(effectSizeFor(minSide, cell));
+      const height = fullPage
+        ? document.documentElement.scrollHeight
+        : window.innerHeight;
+      setEffectSize(effectSizeFor(Math.min(window.innerWidth, height), cell));
+      setPageHeight(fullPage ? height : null);
     };
     measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(host);
-    return () => observer.disconnect();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
   }, [cell]);
 
   const colors = presetConfig(preset);
@@ -77,11 +80,13 @@ export function PageGlow({
 
   return (
     <div
-      ref={hostRef}
       aria-hidden="true"
       data-page-glow=""
+      style={
+        pageHeight ? { position: "absolute", height: pageHeight } : undefined
+      }
       className={cn(
-        "pointer-events-none absolute inset-0 z-0 overflow-hidden",
+        "pointer-events-none fixed inset-0 -z-10 overflow-hidden",
         className,
       )}
     >
