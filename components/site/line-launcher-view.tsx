@@ -85,15 +85,13 @@ export async function LineLauncherView() {
                 </p>
               </div>
 
-              <dl className="mt-12 grid grid-cols-2 gap-x-8 gap-y-6">
+              <dl className="mt-10 flex flex-wrap gap-x-8 gap-y-3 text-sm">
                 {facts.map((fact) => (
-                  <div key={fact.label}>
+                  <div key={fact.label} className="flex items-baseline gap-2">
                     <dt className="text-xs tracking-[0.14em] text-muted-foreground uppercase">
                       {fact.label}
                     </dt>
-                    <dd className="mt-1.5 text-sm font-medium sm:text-base">
-                      {fact.value}
-                    </dd>
+                    <dd className="font-medium">{fact.value}</dd>
                   </div>
                 ))}
               </dl>
@@ -151,22 +149,32 @@ export async function LineLauncherView() {
           variant="ascii"
           preset="software"
           cell={HAZEGLOW_CELL.ascii}
-          intensity={0.5}
+          mask={false}
+          canvasFromPreset
+          intensity={1}
         />
         <div className="container relative z-10">
           <h2 className="text-2xl font-medium tracking-tight sm:text-3xl">
             {t("featuresTitle")}
           </h2>
-          <ul className="mt-10 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
-            {features.map((feature) => (
-              <li key={feature.title}>
-                <h3 className="text-base font-medium">{feature.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+          <ol className="mt-10">
+            {features.map((feature, index) => (
+              <li
+                key={feature.title}
+                className="grid gap-2 py-6 [background-image:linear-gradient(to_right,rgba(255,255,255,0.12),rgba(255,255,255,0))] [background-position:top] [background-repeat:no-repeat] [background-size:100%_1px] sm:grid-cols-[3rem_1fr_1.5fr] sm:items-baseline sm:gap-10"
+              >
+                <span className="font-mono text-xs text-muted-foreground">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <h3 className="text-lg font-medium tracking-tight">
+                  {feature.title}
+                </h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">
                   {feature.text}
                 </p>
               </li>
             ))}
-          </ul>
+          </ol>
         </div>
       </section>
 
@@ -178,24 +186,26 @@ export async function LineLauncherView() {
             </h2>
             <p className="text-xs text-muted-foreground">{t("galleryNote")}</p>
           </div>
-          <div className="mt-10 grid gap-6 sm:grid-cols-2">
+          <div className="mt-10 space-y-14">
             {gallery.map((shot) => (
               <figure
                 key={shot.src}
-                className="overflow-hidden rounded-xl bg-background"
+                className="grid gap-4 lg:grid-cols-[0.3fr_0.7fr] lg:items-end lg:gap-10"
               >
-                <Image
-                  src={`${SCREENSHOT_DIR}/${shot.src}.webp`}
-                  alt={shot.alt}
-                  width={1600}
-                  height={900}
-                  sizes="(min-width: 640px) 560px, 100vw"
-                  className="w-full object-cover"
-                  loading="lazy"
-                />
-                <figcaption className="px-4 py-3 text-sm text-muted-foreground">
+                <figcaption className="text-sm leading-relaxed text-muted-foreground lg:pb-4">
                   {shot.caption}
                 </figcaption>
+                <div className="overflow-hidden bg-card/40">
+                  <Image
+                    src={`${SCREENSHOT_DIR}/${shot.src}.webp`}
+                    alt={shot.alt}
+                    width={1600}
+                    height={900}
+                    sizes="(min-width: 1024px) 900px, 100vw"
+                    className="w-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
               </figure>
             ))}
           </div>
@@ -226,7 +236,9 @@ export async function LineLauncherView() {
           variant="ascii"
           preset="software"
           cell={HAZEGLOW_CELL.ascii}
-          intensity={0.45}
+          mask={false}
+          canvasFromPreset
+          intensity={1}
         />
         <div className="container relative z-10 pt-10 [background-image:linear-gradient(to_right,rgba(255,255,255,0.12),rgba(255,255,255,0))] [background-position:top] [background-repeat:no-repeat] [background-size:100%_1px]">
           <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
