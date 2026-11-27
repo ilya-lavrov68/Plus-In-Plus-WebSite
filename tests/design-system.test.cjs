@@ -364,6 +364,10 @@ test("Hazeglow: крупная ячейка, dither и ascii по типу ст�
   assert.match(section, /effect: ascii \? "ascii" : "dither"/, "dither на сайте, ascii на софте");
   assert.match(section, /palette: PALETTE/, "палитра вынесена в константу");
   assert.match(section, /preset\?: HazeglowPreset/, "фон секции выбирается пресетом");
+  const pageGlow = read("components/site/page-glow.tsx");
+  assert.match(pageGlow, /absolute inset-0/, "общий фон растянут на всю страницу");
+  assert.match(pageGlow, /presetConfig\(preset\)/, "краски берутся из пресета владельца");
+  assert.match(pageGlow, /effect: variant === "ascii" \? "ascii" : "dither"/, "тип эффекта проектный");
   assert.match(section, /#ff5f01/, "фирменный оранжевый участвует как акцент");
   assert.match(section, /maskImage/, "края фона гасятся маской");
   assert.match(section, /motion: "flow"/, "фон секции анимирован");
@@ -393,10 +397,16 @@ test("Hazeglow: крупная ячейка, dither и ascii по типу ст�
     /<SectionGlow[\s\S]{0,120}variant="dither"[\s\S]{0,120}preset="hero"/,
     "первый экран получает свой dither-фон секции",
   );
+  const launcher = read("components/site/line-launcher-view.tsx");
   assert.match(
-    read("components/site/line-launcher-view.tsx"),
-    /<SectionGlow[\s\S]{0,80}variant="ascii"/,
-    "страницы софта получают ascii-фон",
+    launcher,
+    /<PageGlow[\s\S]{0,120}variant="ascii"/,
+    "страницы софта получают общий ascii-фон страницы",
+  );
+  assert.equal(
+    /<SectionGlow/.test(launcher),
+    false,
+    "фон не размножается по секциям: он один на страницу",
   );
 
   // Пиксельные спрайты сняты с сайта целиком: компонент, генератор, ассеты и кадровая анимация.
