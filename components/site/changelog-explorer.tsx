@@ -223,7 +223,7 @@ export function ChangelogExplorer({
                       "focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                       active
                         ? "bg-[var(--pip-accent-neutral)] text-[var(--pip-ink-light)]"
-                        : "text-muted-foreground hover:bg-white/[0.05] hover:text-foreground",
+                        : "bg-white/[0.06] text-muted-foreground hover:bg-white/[0.1] hover:text-foreground",
                     )}
                   >
                     {t(`filter.${filter}`)}
@@ -246,15 +246,15 @@ export function ChangelogExplorer({
         </div>
 
         {showRussianNotice ? (
-          <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+          <p className="mt-4 rounded-lg bg-white/[0.045] px-4 py-3 text-sm leading-relaxed text-muted-foreground">
             {t("russianNotice")}
           </p>
         ) : null}
 
         {visible.length === 0 ? (
-          <div className="mt-10 max-w-md">
+          <div className="mt-8 rounded-2xl bg-white/[0.045] p-8 text-center">
             <p className="text-lg font-medium">{t("empty.title")}</p>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t("empty.description")}</p>
+            <p className="mt-2 text-sm text-muted-foreground">{t("empty.description")}</p>
             <button
               type="button"
               onClick={() => {
@@ -267,7 +267,7 @@ export function ChangelogExplorer({
             </button>
           </div>
         ) : (
-          <ol className="mt-8 divide-y divide-white/[0.07]">
+          <ol className="mt-8 space-y-5">
             {visible.map((entry) => {
               const anchor = versionAnchor(entry.version);
               const isLatest = entry.version === latestVersion;
@@ -277,7 +277,7 @@ export function ChangelogExplorer({
                   <article
                     id={anchor}
                     aria-labelledby={`${anchor}-title`}
-                    className="scroll-mt-40 py-10 first:pt-8 md:py-12"
+                    className="scroll-mt-40 rounded-2xl bg-white/[0.045] p-6 md:p-8"
                   >
                     <header className="flex flex-wrap items-start justify-between gap-4">
                       <div className="min-w-0">
@@ -289,7 +289,7 @@ export function ChangelogExplorer({
                             {entry.version}
                           </h2>
                           {isLatest ? (
-                            <span className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">
+                            <span className="rounded-full bg-[var(--pip-accent-neutral)] px-2.5 py-0.5 text-[11px] font-medium tracking-wide text-[var(--pip-ink-light)] uppercase">
                               {t("latest")}
                             </span>
                           ) : null}
@@ -337,6 +337,19 @@ export function ChangelogExplorer({
                       {entry.sections.map((section) => (
                         <section key={section.title}>
                           <h3 className="flex items-center gap-2 text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
+                            {section.kind === "note" ? null : (
+                              <span
+                                aria-hidden="true"
+                                className={cn(
+                                  "size-1.5 rounded-full",
+                                  section.kind === "added" && "bg-[var(--pip-accent-neutral)]",
+                                  section.kind === "changed" && "bg-white/50",
+                                  section.kind === "fixed" && "bg-[var(--pip-signal)]",
+                                  section.kind === "removed" && "bg-white/30",
+                                  section.kind === "security" && "bg-[var(--pip-signal)]",
+                                )}
+                              />
+                            )}
                             {KNOWN_KINDS.has(section.kind) ? t(`kind.${section.kind}`) : section.title}
                           </h3>
 
