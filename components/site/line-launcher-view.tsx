@@ -147,7 +147,12 @@ export async function LineLauncherView() {
       </section>
 
       <section className="relative overflow-hidden py-16 md:py-24">
-        <SectionGlow variant="ascii" cell={HAZEGLOW_CELL.ascii} intensity={0.5} />
+        <SectionGlow
+          variant="ascii"
+          preset="software"
+          cell={HAZEGLOW_CELL.ascii}
+          intensity={0.5}
+        />
         <div className="container relative z-10">
           <h2 className="text-2xl font-medium tracking-tight sm:text-3xl">
             {t("featuresTitle")}
@@ -175,7 +180,10 @@ export async function LineLauncherView() {
           </div>
           <div className="mt-10 grid gap-6 sm:grid-cols-2">
             {gallery.map((shot) => (
-              <figure key={shot.src} className="overflow-hidden rounded-xl bg-background">
+              <figure
+                key={shot.src}
+                className="overflow-hidden rounded-xl bg-background"
+              >
                 <Image
                   src={`${SCREENSHOT_DIR}/${shot.src}.webp`}
                   alt={shot.alt}
@@ -214,7 +222,12 @@ export async function LineLauncherView() {
 
       <section className="relative overflow-hidden pb-20 md:pb-28">
         {/* Финальный призыв — типографика на фоне, без коробки. */}
-        <SectionGlow variant="ascii" cell={HAZEGLOW_CELL.ascii} intensity={0.45} />
+        <SectionGlow
+          variant="ascii"
+          preset="software"
+          cell={HAZEGLOW_CELL.ascii}
+          intensity={0.45}
+        />
         <div className="container relative z-10 pt-10 [background-image:linear-gradient(to_right,rgba(255,255,255,0.12),rgba(255,255,255,0))] [background-position:top] [background-repeat:no-repeat] [background-size:100%_1px]">
           <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
             <div>
@@ -233,7 +246,11 @@ export async function LineLauncherView() {
                 </Link>
               </Button>
               <Button asChild size="lg" variant="neutral">
-                <a href={REPOSITORY_URL} target="_blank" rel="noreferrer noopener">
+                <a
+                  href={REPOSITORY_URL}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                >
                   {t("repoCta")}
                 </a>
               </Button>

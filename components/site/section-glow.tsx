@@ -3,7 +3,7 @@
 import { Hazeglow, type GradientConfig } from "hazeglow";
 import { useEffect, useRef, useState } from "react";
 
-import { presetConfig } from "@/lib/hazeglow-presets";
+import { presetConfig, type HazeglowPreset } from "@/lib/hazeglow-presets";
 import { effectSizeFor, HAZEGLOW_CELL } from "@/lib/hazeglow-scale";
 import { cn } from "@/lib/utils";
 
@@ -39,10 +39,11 @@ const PALETTE = [
 function buildConfig(
   variant: SectionGlowVariant,
   effectSize: number,
+  preset: HazeglowPreset,
 ): GradientConfig {
   const ascii = variant === "ascii";
   // Краски берутся из присланного градиента, правила проекта — поверх него.
-  const preset = presetConfig(ascii ? "software" : "site");
+  const colors = presetConfig(preset);
   const builtIn: GradientConfig = {
     version: 1,
     seed: ascii ? 61 : 47,
@@ -70,13 +71,13 @@ function buildConfig(
     effectSize,
     effectAmount: ascii ? 0.9 : 1,
   };
-  if (!preset) return builtIn;
+  if (!colors) return builtIn;
   // Авторский градиент задаёт всё, кроме типа эффекта и размера ячейки:
   // владелец собирает свет, плотность и движение в редакторе, а проект
   // отвечает за то, что это dither/ascii и что клетка измерена в CSS-пикселях.
   return {
     ...builtIn,
-    ...preset,
+    ...colors,
     effect: builtIn.effect,
     effectSize,
     // База холста — цвет страницы: иначе чёрный прямоугольник шейдера виден
@@ -88,6 +89,11 @@ function buildConfig(
 interface SectionGlowProps {
   className?: string;
   variant?: SectionGlowVariant;
+  /**
+   * Чей это фон. У каждой секции свой градиент владельца; пока ссылки нет —
+   * берётся фон сайта, а не придуманный агентом.
+   */
+  preset?: HazeglowPreset;
   /** Ячейка в CSS-пикселях: по умолчанию крупная печатная. */
   cell?: number;
   /** Прозрачность слоя: чем плотнее текст над ним, тем тише фон. */
@@ -97,6 +103,7 @@ interface SectionGlowProps {
 export function SectionGlow({
   className,
   variant = "dither",
+  preset = "site",
   cell = HAZEGLOW_CELL.section,
   intensity = 0.55,
 }: SectionGlowProps) {
@@ -140,7 +147,7 @@ export function SectionGlow({
         }}
       >
         <Hazeglow
-          config={buildConfig(variant, effectSize)}
+          config={buildConfig(variant, effectSize, preset)}
           className="size-full"
         />
       </div>

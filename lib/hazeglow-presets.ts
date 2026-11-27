@@ -13,13 +13,43 @@ import { decodeConfig, type GradientConfig } from "hazeglow";
  * там, где его быть не должно.
  */
 export const HAZEGLOW_LINKS: Record<HazeglowPreset, string | null> = {
-  /** Сайт студии: dither-фон секций (градиент владельца, hero лендинга). */
+  /** Первый экран главной: свой фон от владельца. */
+  hero: null,
+  /** Фон сайта по умолчанию, пока у секции нет своего градиента. */
   site: "https://hazeglow.dev/generator#c=eyJ2ZXJzaW9uIjoxLCJzZWVkIjozLCJzaGFwZSI6ImJsb2IiLCJjZW50ZXIiOlswLjUsMC4zXSwic2l6ZSI6WzAuOSwxXSwicm91bmRuZXNzIjowLjQ1LCJzb2Z0bmVzcyI6MC4yMiwicm90YXRpb24iOjAsInJhbXBEaXJlY3Rpb24iOjAuNTUsImFuZ2xlIjo5MCwid2FycCI6MC42LCJ3YXJwU2NhbGUiOjEsInBhbGV0dGUiOlsiI2EwYjJjZiIsIiNhNWIxYzAiLCIjYTlhMzljIiwiI2Y1ODIyMCIsIiNlYTRmMDgiXSwiYmFja2dyb3VuZCI6IiMwMDAwMDAiLCJtZXNoIjpbWzAuODkxLDAuMDA3LCIjMWQyYzQ0Il0sWzAuMDExLDAuNjc5LCIjNWI2ZjhhIl0sWzAuOTQ3LDAuNzc3LCIjYTlhMzljIl0sWzAuNDIzLDAuODkzLCIjZjU4MjIwIl0sWzAuMTIxLDAuMTM5LCIjZWE0ZjA4Il0sWzAuNDQ1LDAuNDMzLCIjMDAwMDAwIl0sWzAuMzg5LDAuMTEyLCIjMWQyYzQ0Il0sWzAuMTcxLDAuODIsIiM1YjZmOGEiXV0sImdyYWluIjowLjI1LCJtb3Rpb24iOiJkcmlmdCIsInNwZWVkIjoxLCJsb29wIjowLCJob3ZlciI6MCwiaG92ZXJNb2RlIjoicHVzaCIsImVmZmVjdCI6ImRpdGhlciIsImVmZmVjdFNpemUiOjQsImVmZmVjdEFtb3VudCI6MC4xNX0",
   /** Line Launcher и страницы софта: ascii-фон. */
   software: null,
+  /** Секции главной: каждая получает свой фон от владельца. */
+  work: null,
+  directions: null,
+  process: null,
+  community: null,
+  journal: null,
+  cta: null,
 };
 
-export type HazeglowPreset = "site" | "software";
+export type HazeglowPreset =
+  | "hero"
+  | "site"
+  | "software"
+  | "work"
+  | "directions"
+  | "process"
+  | "community"
+  | "journal"
+  | "cta";
+
+/**
+ * Правило проекта: фоны секций рисует владелец.
+ *
+ * Агент не придумывает градиент сам и не «улучшает» присланный: пока ссылки
+ * для секции нет, она берёт фон сайта (`site`), а не собственную выдумку.
+ * Как только владелец присылает ссылку — она кладётся в свой ключ и
+ * применяется только к этой секции.
+ */
+export function presetFor(section: HazeglowPreset): HazeglowPreset {
+  return HAZEGLOW_LINKS[section] ? section : "site";
+}
 
 /** Вытащить payload из ссылки или вернуть строку как есть. */
 function payloadOf(link: string): string | null {

@@ -36,7 +36,7 @@ const Cta13 = ({
         крупный заголовок и одно действие важнее, чем ещё одна «коробка».
         Свет за заголовком мягкий, с маской по краям.
       */}
-      <SectionGlow variant="dither" intensity={0.45} />
+      <SectionGlow variant="dither" preset="cta" intensity={0.45} />
       <div className="container relative z-10">
         <div
           data-reveal=""

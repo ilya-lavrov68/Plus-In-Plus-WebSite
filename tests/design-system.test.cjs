@@ -363,6 +363,7 @@ test("Hazeglow: крупная ячейка, dither и ascii по типу ст�
   const section = read("components/site/section-glow.tsx");
   assert.match(section, /effect: ascii \? "ascii" : "dither"/, "dither на сайте, ascii на софте");
   assert.match(section, /palette: PALETTE/, "палитра вынесена в константу");
+  assert.match(section, /preset\?: HazeglowPreset/, "фон секции выбирается пресетом");
   assert.match(section, /#ff5f01/, "фирменный оранжевый участвует как акцент");
   assert.match(section, /maskImage/, "края фона гасятся маской");
   assert.match(section, /motion: "flow"/, "фон секции анимирован");
@@ -389,12 +390,12 @@ test("Hazeglow: крупная ячейка, dither и ascii по типу ст�
 
   assert.match(
     read("components/blocks/hero138.tsx"),
-    /<SectionGlow[\s\S]{0,120}variant="dither"/,
-    "первый экран получает крупный dither-фон секции",
+    /<SectionGlow[\s\S]{0,120}variant="dither"[\s\S]{0,120}preset="hero"/,
+    "первый экран получает свой dither-фон секции",
   );
   assert.match(
     read("components/site/line-launcher-view.tsx"),
-    /SectionGlow variant="ascii"/,
+    /<SectionGlow[\s\S]{0,80}variant="ascii"/,
     "страницы софта получают ascii-фон",
   );
 

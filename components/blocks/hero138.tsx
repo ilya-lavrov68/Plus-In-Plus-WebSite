@@ -48,7 +48,12 @@ const Hero138 = ({
         className,
       )}
     >
-      <SectionGlow variant="dither" cell={HAZEGLOW_CELL.hero} intensity={1} />
+      <SectionGlow
+        variant="dither"
+        preset="hero"
+        cell={HAZEGLOW_CELL.hero}
+        intensity={1}
+      />
       {/* Скрим только под типографикой: правый край отдан растру. */}
       <div
         aria-hidden="true"
