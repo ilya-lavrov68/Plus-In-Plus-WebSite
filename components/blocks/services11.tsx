@@ -22,7 +22,6 @@ export interface Services11CatalogProps {
 
 const Services11Catalog = ({
   id,
-  eyebrow,
   heading,
   subtitle,
   description,
@@ -42,11 +41,6 @@ const Services11Catalog = ({
       <div className="container">
         <div className="grid grid-cols-1 gap-8 pb-14 lg:grid-cols-12 lg:items-end">
           <div className="lg:col-span-5">
-            {eyebrow && (
-              <p className="mb-3 text-xs font-medium tracking-wider text-muted-foreground uppercase">
-                {eyebrow}
-              </p>
-            )}
             <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
               {heading}
             </h2>

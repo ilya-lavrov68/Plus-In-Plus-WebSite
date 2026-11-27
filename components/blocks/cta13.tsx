@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { DecryptText } from "@/components/site/motion/decrypt-text";
+import { SectionGlow } from "@/components/site/section-glow";
 import { Button } from "@/components/ui/button";
 
 export interface Cta13Props {
@@ -35,19 +36,12 @@ const Cta13 = ({
         крупный заголовок и одно действие важнее, чем ещё одна «коробка».
         Свет за заголовком мягкий, с маской по краям.
       */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(58% 120% at 22% 40%, rgba(255,95,1,0.10), rgba(255,95,1,0) 62%)",
-          maskImage: "linear-gradient(to bottom, transparent, #000 30%, #000 70%, transparent)",
-          WebkitMaskImage: "linear-gradient(to bottom, transparent, #000 30%, #000 70%, transparent)",
-        }}
-      />
-
+      <SectionGlow variant="dither" preset="cta" intensity={0.45} />
       <div className="container relative z-10">
-        <div data-reveal="" className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
+        <div
+          data-reveal=""
+          className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-end"
+        >
           <div>
             <h2 className="max-w-3xl text-4xl font-semibold tracking-tight text-balance md:text-6xl">
               <DecryptText text={heading} seed={43} />

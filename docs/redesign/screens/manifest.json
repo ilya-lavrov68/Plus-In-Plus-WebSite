@@ -1,57 +1,8 @@
 {
-  "generatedAt": "2026-11-26T22:21:08.984Z",
-  "baseUrl": "http://127.0.0.1:3102",
+  "generatedAt": "2026-11-27T19:12:49.378Z",
+  "baseUrl": "http://127.0.0.1:3000",
   "mode": "production",
   "shots": [
-    {
-      "route": "/",
-      "viewport": "desktop",
-      "width": 1440,
-      "title": "Plus In Plus — дизайн-студия",
-      "file": "docs/redesign/screens/home-en-desktop.webp"
-    },
-    {
-      "route": "/",
-      "viewport": "mobile",
-      "width": 390,
-      "title": "Plus In Plus — дизайн-студия",
-      "file": "docs/redesign/screens/home-en-mobile.webp"
-    },
-    {
-      "route": "/ru/services/sign-design",
-      "viewport": "desktop",
-      "width": 1440,
-      "title": "Дизайн вывески — Plus In Plus",
-      "file": "docs/redesign/screens/service-detail-ru-desktop.webp"
-    },
-    {
-      "route": "/ru/services/sign-design",
-      "viewport": "mobile",
-      "width": 390,
-      "title": "Дизайн вывески — Plus In Plus",
-      "file": "docs/redesign/screens/service-detail-ru-mobile.webp"
-    },
-    {
-      "route": "/ru",
-      "viewport": "desktop",
-      "width": 1440,
-      "title": "reduced motion",
-      "file": "docs/redesign/screens/home-ru-reduced-motion.webp"
-    },
-    {
-      "route": "/line-launcher",
-      "viewport": "desktop",
-      "width": 1440,
-      "title": "Line Launcher — Minecraft-лаунчер для игровых проектов",
-      "file": "docs/redesign/screens/line-launcher-en-desktop.webp"
-    },
-    {
-      "route": "/line-launcher",
-      "viewport": "mobile",
-      "width": 390,
-      "title": "Line Launcher — Minecraft-лаунчер для игровых проектов",
-      "file": "docs/redesign/screens/line-launcher-en-mobile.webp"
-    },
     {
       "route": "/ru",
       "viewport": "desktop",
@@ -65,6 +16,20 @@
       "width": 390,
       "title": "Plus In Plus — дизайн-студия",
       "file": "docs/redesign/screens/home-ru-mobile.webp"
+    },
+    {
+      "route": "/",
+      "viewport": "desktop",
+      "width": 1440,
+      "title": "Plus In Plus — дизайн-студия",
+      "file": "docs/redesign/screens/home-en-desktop.webp"
+    },
+    {
+      "route": "/",
+      "viewport": "mobile",
+      "width": 390,
+      "title": "Plus In Plus — дизайн-студия",
+      "file": "docs/redesign/screens/home-en-mobile.webp"
     },
     {
       "route": "/ru/line-launcher",
@@ -81,18 +46,18 @@
       "file": "docs/redesign/screens/line-launcher-ru-mobile.webp"
     },
     {
-      "route": "/ru/studio",
+      "route": "/line-launcher",
       "viewport": "desktop",
       "width": 1440,
-      "title": "Студия — Plus In Plus",
-      "file": "docs/redesign/screens/studio-ru-desktop.webp"
+      "title": "Line Launcher — Minecraft-лаунчер для игровых проектов",
+      "file": "docs/redesign/screens/line-launcher-en-desktop.webp"
     },
     {
-      "route": "/ru/studio",
+      "route": "/line-launcher",
       "viewport": "mobile",
       "width": 390,
-      "title": "Студия — Plus In Plus",
-      "file": "docs/redesign/screens/studio-ru-mobile.webp"
+      "title": "Line Launcher — Minecraft-лаунчер для игровых проектов",
+      "file": "docs/redesign/screens/line-launcher-en-mobile.webp"
     },
     {
       "route": "/ru/line-launcher/changelog",
@@ -123,18 +88,32 @@
       "file": "docs/redesign/screens/work-ru-mobile.webp"
     },
     {
-      "route": "/ru/blog",
+      "route": "/ru/work/line-launcher",
       "viewport": "desktop",
       "width": 1440,
-      "title": "Блог — Plus In Plus",
-      "file": "docs/redesign/screens/blog-ru-desktop.webp"
+      "title": "Line Launcher — Продуктовый дизайн и интерфейс",
+      "file": "docs/redesign/screens/work-case-ru-desktop.webp"
     },
     {
-      "route": "/ru/blog",
+      "route": "/ru/work/line-launcher",
       "viewport": "mobile",
       "width": 390,
-      "title": "Блог — Plus In Plus",
-      "file": "docs/redesign/screens/blog-ru-mobile.webp"
+      "title": "Line Launcher — Продуктовый дизайн и интерфейс",
+      "file": "docs/redesign/screens/work-case-ru-mobile.webp"
+    },
+    {
+      "route": "/ru/studio",
+      "viewport": "desktop",
+      "width": 1440,
+      "title": "Студия — Plus In Plus",
+      "file": "docs/redesign/screens/studio-ru-desktop.webp"
+    },
+    {
+      "route": "/ru/studio",
+      "viewport": "mobile",
+      "width": 390,
+      "title": "Студия — Plus In Plus",
+      "file": "docs/redesign/screens/studio-ru-mobile.webp"
     },
     {
       "route": "/ru/services",
@@ -165,6 +144,20 @@
       "file": "docs/redesign/screens/service-detail-ru-mobile.webp"
     },
     {
+      "route": "/ru/blog",
+      "viewport": "desktop",
+      "width": 1440,
+      "title": "Блог — Plus In Plus",
+      "file": "docs/redesign/screens/blog-ru-desktop.webp"
+    },
+    {
+      "route": "/ru/blog",
+      "viewport": "mobile",
+      "width": 390,
+      "title": "Блог — Plus In Plus",
+      "file": "docs/redesign/screens/blog-ru-mobile.webp"
+    },
+    {
       "route": "/ru/contact",
       "viewport": "desktop",
       "width": 1440,
@@ -179,18 +172,11 @@
       "file": "docs/redesign/screens/contact-ru-mobile.webp"
     },
     {
-      "route": "/ru/work/line-launcher",
+      "route": "/ru",
       "viewport": "desktop",
       "width": 1440,
-      "title": "Line Launcher — Продуктовый дизайн и интерфейс",
-      "file": "docs/redesign/screens/work-case-ru-desktop.webp"
-    },
-    {
-      "route": "/ru/work/line-launcher",
-      "viewport": "mobile",
-      "width": 390,
-      "title": "Line Launcher — Продуктовый дизайн и интерфейс",
-      "file": "docs/redesign/screens/work-case-ru-mobile.webp"
+      "title": "reduced motion",
+      "file": "docs/redesign/screens/home-ru-reduced-motion.webp"
     }
   ]
 }

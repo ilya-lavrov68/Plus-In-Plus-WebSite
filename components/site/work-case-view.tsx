@@ -37,9 +37,6 @@ export async function WorkCaseView({ slug }: { slug: string }) {
         <header className="mt-8 max-w-4xl">
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
             <span>{view.discipline}</span>
-            <span aria-hidden="true" className="opacity-40">
-              ·
-            </span>
             <span className="tracking-normal normal-case">{view.year}</span>
           </p>
           <h1 className="mt-5 text-4xl font-medium tracking-tight sm:text-5xl lg:text-6xl">

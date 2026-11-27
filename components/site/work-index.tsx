@@ -50,15 +50,10 @@ export async function WorkIndex({
       <div className="container">
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div className="max-w-2xl">
-            {compact ? null : (
-              <p className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">
-                {t("eyebrow")}
-              </p>
-            )}
             <Heading
               className={cn(
                 "font-semibold tracking-tight",
-                compact ? "text-3xl md:text-4xl" : "mt-4 text-4xl md:text-5xl",
+                compact ? "text-3xl md:text-4xl" : "text-4xl md:text-5xl",
               )}
             >
               {heading ?? t("title")}
@@ -97,9 +92,6 @@ export async function WorkIndex({
             <div className="flex flex-col gap-4 lg:pb-2">
               <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase">
                 <span>{featured.discipline}</span>
-                <span aria-hidden="true" className="opacity-40">
-                  ·
-                </span>
                 <span className="tracking-normal normal-case">{featured.year}</span>
               </p>
               <h3 className="text-2xl font-medium tracking-tight text-balance md:text-3xl">
@@ -164,9 +156,6 @@ function WorkRow({ item, openLabel }: { item: LocalizedWorkCase; openLabel: stri
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             <span className="tracking-[0.12em] uppercase">{item.discipline}</span>
-            <span aria-hidden="true" className="opacity-40">
-              ·
-            </span>
             <span>{item.year}</span>
           </span>
           <span className="mt-1.5 block truncate text-lg font-medium tracking-tight sm:text-xl">

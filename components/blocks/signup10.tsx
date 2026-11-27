@@ -415,7 +415,7 @@ const Signup10 = ({
         {/* Обложка: спокойное фирменное поле вместо прежнего постера агентов. */}
         <div aria-hidden="true" className="relative hidden overflow-hidden bg-card lg:flex lg:items-end lg:p-12">
           <p className="text-xs font-medium tracking-[0.22em] text-muted-foreground uppercase">
-            Plus In Plus · Design Studio
+            Plus In Plus | Design Studio
           </p>
         </div>
       </div>

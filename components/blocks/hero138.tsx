@@ -1,17 +1,15 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
 import { ArrowRight } from "lucide-react";
 
-import { MediaPlaceholder } from "@/components/site/media-placeholder";
 import { DecryptText } from "@/components/site/motion/decrypt-text";
+import { SectionGlow } from "@/components/site/section-glow";
 import { Button } from "@/components/ui/button";
+import { HAZEGLOW_CELL } from "@/lib/hazeglow-scale";
 import { cn } from "@/lib/utils";
 
 export interface Hero138Props {
   headingMuted?: string;
   headingPrimary?: string;
-  descriptionLead?: string;
-  descriptionStrong?: string;
   primaryCta?: {
     label: string;
     href: string;
@@ -20,140 +18,86 @@ export interface Hero138Props {
     label: string;
     href: string;
   };
-  footnote?: string;
-  image?: {
-    src: string;
-    alt: string;
-  };
-  showMediaStage?: boolean;
-  /** Авторская сцена вместо изображения: рисуется, пока `image` не передан. */
-  stageMedia?: ReactNode;
   className?: string;
 }
 
+/**
+ * Первый экран: имя студии и два действия.
+ *
+ * Ни описания, ни подписи, ни панели — принцип как у Google и JetBrains:
+ * один короткий тезис, читаемый за секунду, и две кнопки. Всё остальное
+ * начинается ниже. Фон секции — анимированный крупный dither.
+ */
 const Hero138 = ({
-  headingMuted = "A next-generation",
-  headingPrimary = "design studio",
-  descriptionLead = "Have an idea but don't know how to showcase it? ",
-  descriptionStrong = "We'll package it in a stylish, clear design—from website mockups to posters and event collateral.",
+  headingMuted = "Дизайн-студия",
+  headingPrimary = "Plus In Plus",
   primaryCta = {
-    label: "Order",
-    href: "/services",
-  },
-  secondaryCta = {
-    label: "Contact us",
+    label: "Обсудить проект",
     href: "/contact",
   },
-  footnote = "Plus In Plus Design Studio",
-  image,
-  showMediaStage = true,
-  stageMedia,
+  secondaryCta = {
+    label: "Смотреть работы",
+    href: "/work",
+  },
   className,
 }: Hero138Props) => {
   return (
     <section
       className={cn(
-        "motion-section relative overflow-hidden bg-background pt-20 pb-24 md:pt-28 md:pb-32",
-        className
+        "motion-section relative flex min-h-[72vh] items-end overflow-hidden bg-background pt-32 pb-16 md:min-h-[80vh] md:pb-24",
+        className,
       )}
     >
+      {/* Градиент владельца лежит всей секцией: без маски, скримов и сдвигов. */}
+      <SectionGlow
+        variant="dither"
+        preset="hero"
+        cell={HAZEGLOW_CELL.hero}
+        mask={false}
+        canvasFromPreset
+        intensity={1}
+      />
       <div className="container relative z-10">
-        <h1 className="max-w-5xl text-4xl font-medium tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
-          {headingMuted ? (
-            <>
-              <DecryptText
-                text={headingMuted}
-                trigger="mount"
-                seed={3}
-                className="text-muted-foreground"
-              />{" "}
-              <DecryptText
-                text={headingPrimary}
-                trigger="mount"
-                seed={5}
-                className="block text-foreground"
-              />
-            </>
-          ) : (
-            <DecryptText
-              text={headingPrimary}
-              trigger="mount"
-              seed={5}
-              className="text-foreground"
-            />
-          )}
+        <h1 className="text-5xl leading-[0.92] font-medium tracking-tight text-balance sm:text-6xl md:text-7xl lg:text-[7.5rem]">
+          <DecryptText
+            text={headingMuted}
+            trigger="mount"
+            seed={3}
+            className="block text-[#110f10]/70"
+          />
+          <DecryptText
+            text={headingPrimary}
+            trigger="mount"
+            seed={5}
+            className="mt-2 block text-[#110f10] md:mt-4"
+          />
         </h1>
 
-        <div className="mt-12 flex flex-col justify-between gap-10 lg:mt-16 lg:flex-row lg:items-start">
-          <div data-reveal="" data-reveal-delay={80}>
-            <div className="flex flex-wrap items-center gap-3">
-              {primaryCta && (
-                <Button size="lg" asChild>
-                  <Link href={primaryCta.href}>{primaryCta.label}</Link>
-                </Button>
-              )}
-              {secondaryCta && (
-                <Button variant="neutral" size="lg" asChild>
-                  <Link href={secondaryCta.href} className="group">
-                    {secondaryCta.label}
-                    <ArrowRight className="ml-1 size-4 transition-transform duration-200 ease-out group-hover:translate-x-1" />
-                  </Link>
-                </Button>
-              )}
-            </div>
-            {footnote && (
-              <p className="mt-3 text-xs text-muted-foreground">{footnote}</p>
-            )}
-          </div>
-
-          <p
-            data-reveal=""
-            data-reveal-delay={140}
-            className="max-w-lg text-base leading-[1.75] text-muted-foreground md:text-lg"
-          >
-            {descriptionLead}
-            {descriptionStrong && (
-              <strong className="font-semibold text-foreground">
-                {descriptionStrong}
-              </strong>
-            )}
-          </p>
+        <div
+          data-reveal=""
+          data-reveal-delay={120}
+          className="mt-10 flex flex-wrap items-center gap-3 md:mt-14"
+        >
+          {primaryCta && (
+            <Button size="lg" asChild>
+              <Link href={primaryCta.href}>{primaryCta.label}</Link>
+            </Button>
+          )}
+          {secondaryCta && (
+            <Button
+              variant="neutral"
+              size="lg"
+              asChild
+              className="bg-[#2b292a] text-[#eeeeee] hover:bg-[#3a3838]"
+            >
+              <Link href={secondaryCta.href} className="group">
+                {secondaryCta.label}
+                <ArrowRight className="ml-1 size-4 transition-transform duration-200 ease-out group-hover:translate-x-1" />
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
-
-      {showMediaStage && (
-        <div data-reveal="" data-reveal-delay={180} className="relative mt-14 md:mt-20">
-          {/*
-            Полоса света во всю ширину вместо «коробки» с отступами и рамкой:
-            у сцены нет прямоугольного края, она растворяется в фоне маской.
-            Так первый экран читается как воздух и типографика, а не как
-            медиа-карточка.
-          */}
-          <div
-            className="relative w-full overflow-hidden"
-            style={{
-              maskImage:
-                "linear-gradient(to bottom, transparent 0%, #000 12%, #000 90%, transparent 100%), radial-gradient(130% 175% at 50% 45%, #000 52%, rgba(0,0,0,0.55) 80%, transparent 98%)",
-              WebkitMaskImage:
-                "linear-gradient(to bottom, transparent 0%, #000 12%, #000 90%, transparent 100%), radial-gradient(130% 175% at 50% 45%, #000 52%, rgba(0,0,0,0.55) 80%, transparent 98%)",
-              maskComposite: "intersect",
-              WebkitMaskComposite: "source-in",
-            }}
-          >
-            {image?.src ? (
-              <img
-                src={image.src}
-                alt={image.alt}
-                className="size-full object-cover object-center"
-              />
-            ) : stageMedia ? (
-              <div className="size-full">{stageMedia}</div>
-            ) : (
-              <MediaPlaceholder className="size-full" markClassName="h-16 sm:h-20" />
-            )}
-          </div>
-        </div>
-      )}
     </section>
   );
 };

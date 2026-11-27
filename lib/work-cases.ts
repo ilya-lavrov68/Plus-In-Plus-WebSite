@@ -89,7 +89,7 @@ export const WORK_CASES: WorkCase[] = [
           "Собственный продукт студии. Мы проектируем интерфейс и собираем его: от первого экрана до профиля игрока и настроек запуска. Продукт развивается публично — версия, стек и экраны можно проверить в репозитории.",
         facts: [
           { label: "Роль", value: "Дизайн интерфейса и фронтенд" },
-          { label: "Платформы", value: "Windows · macOS · Linux" },
+          { label: "Платформы", value: "Windows | Linux" },
           { label: "Стек", value: "Tauri 2.12, Rust, React 19" },
           { label: "Статус", value: "0.15.4, в разработке" },
         ],
@@ -126,7 +126,7 @@ export const WORK_CASES: WorkCase[] = [
           "The studio's own product. We design the interface and build it — from the first screen to the player profile and launch settings. The product is developed in public: version, stack and screens can be checked in the repository.",
         facts: [
           { label: "Role", value: "Interface design and frontend" },
-          { label: "Platforms", value: "Windows · macOS · Linux" },
+          { label: "Platforms", value: "Windows | Linux" },
           { label: "Stack", value: "Tauri 2.12, Rust, React 19" },
           { label: "Status", value: "0.15.4, in development" },
         ],
@@ -180,7 +180,7 @@ export const WORK_CASES: WorkCase[] = [
           "Собственная айдентика — это тоже работа, которую можно показать. Мы собрали её как систему: знак, четыре цвета, один гротеск и правила, по которым они живут на вывеске, в интерфейсе и в печати.",
         facts: [
           { label: "Роль", value: "Айдентика и дизайн-система" },
-          { label: "Палитра", value: "#EEEEEE · #FF5F01 · #110F10 · #2B292A" },
+          { label: "Палитра", value: "#EEEEEE | #FF5F01 | #110F10 | #2B292A" },
           { label: "Знак", value: "Плюс в сетке 6×6" },
           { label: "Носители", value: "Сайт, документы, вывеска" },
         ],
@@ -216,7 +216,7 @@ export const WORK_CASES: WorkCase[] = [
           "Our own identity is work we can show. We built it as a system: one mark, four colours, one grotesque and the rules that let them live on a sign, in an interface and in print.",
         facts: [
           { label: "Role", value: "Identity and design system" },
-          { label: "Palette", value: "#EEEEEE · #FF5F01 · #110F10 · #2B292A" },
+          { label: "Palette", value: "#EEEEEE | #FF5F01 | #110F10 | #2B292A" },
           { label: "Mark", value: "A plus on a 6×6 grid" },
           { label: "Surfaces", value: "Website, documents, signage" },
         ],

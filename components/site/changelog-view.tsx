@@ -33,10 +33,7 @@ export async function ChangelogView() {
           {t("backToProduct")}
         </Link>
 
-        <p className="mt-8 text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
-          {t("eyebrow")}
-        </p>
-        <h1 className="mt-4 max-w-3xl text-4xl font-medium tracking-tight sm:text-5xl">
+        <h1 className="mt-10 max-w-3xl text-4xl font-medium tracking-tight sm:text-5xl">
           {t("title")}
         </h1>
         <p className="mt-5 max-w-3xl text-base leading-[1.75] text-muted-foreground md:text-lg">
@@ -44,11 +41,9 @@ export async function ChangelogView() {
         </p>
 
         {data ? (
-          // Сводка — обычная строка данных: без плашки и лишнего контраста.
-          <div className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+          <div className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-3 text-sm">
             {data.latestVersion ? (
-              <span className="inline-flex items-center gap-2 font-medium text-foreground">
-                <span aria-hidden="true" className="size-1.5 rounded-full bg-signal" />
+              <span className="rounded-full bg-[var(--pip-accent-neutral)] px-3 py-1 font-medium text-[var(--pip-ink-light)]">
                 {t("latestBadge", { version: data.latestVersion })}
               </span>
             ) : null}
@@ -100,7 +95,7 @@ export async function ChangelogView() {
             showRussianNotice={locale !== "ru"}
           />
         ) : (
-          <div className="max-w-2xl">
+          <div className="rounded-2xl bg-white/[0.045] p-8 md:p-10">
             <h2 className="text-xl font-medium">{t("unavailable.title")}</h2>
             <p className="measure mt-3 text-sm leading-relaxed text-muted-foreground">
               {t("unavailable.description")}

@@ -26,13 +26,20 @@ import puppeteer from "puppeteer-core";
 import { resolveBrowser } from "./visual-browser.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const nextBin = process.env.PIP_NEXT_BIN ?? path.join(root, "node_modules", "next", "dist", "bin", "next");
+const nextBin =
+  process.env.PIP_NEXT_BIN ??
+  path.join(root, "node_modules", "next", "dist", "bin", "next");
 const outputDir = path.join(root, "docs", "redesign", "screens");
 
 const cli = parseArgs(process.argv.slice(2));
 const baseUrl = cli.baseUrl ?? process.env.BASE_URL ?? null;
 
-const DESKTOP = { name: "desktop", width: 1440, height: 900, deviceScaleFactor: 1 };
+const DESKTOP = {
+  name: "desktop",
+  width: 1440,
+  height: 900,
+  deviceScaleFactor: 1,
+};
 const MOBILE = {
   name: "mobile",
   width: 390,
@@ -102,24 +109,32 @@ async function startPreview() {
   const buildId = path.join(root, ".next", "BUILD_ID");
   if (!cli.noBuild || !existsSync(buildId)) {
     console.log("[screenshots] сборка прод-версии…");
-    const build = spawnSync(process.execPath, [nextBin, "build"], { cwd: root, stdio: "inherit" });
+    const build = spawnSync(process.execPath, [nextBin, "build"], {
+      cwd: root,
+      stdio: "inherit",
+    });
     if (build.status !== 0) throw new Error("next build завершился с ошибкой");
   }
   const port = cli.port ?? (await freePort());
   // Слушаем все интерфейсы: middleware переписывает запрос на собственный
   // origin через `localhost`, а привязка только к 127.0.0.1 оставляет IPv6
   // (::1) без слушателя и внутренний прокси получает socket hang up.
-  const child = spawn(process.execPath, [nextBin, "start", "-p", String(port), "-H", "0.0.0.0"], {
-    cwd: root,
-    stdio: ["ignore", "pipe", "pipe"],
-    env: {
-      ...process.env,
-      // Без секрета сессии `/api/auth/*` отвечает 500, и каждая страница
-      // логирует ошибку сервера. Для вёрстки секрет не нужен — подставляем
-      // детерминированную заглушку, если в окружении его нет.
-      AUTH_SECRET: process.env.AUTH_SECRET ?? "screenshots-only-not-a-real-secret",
+  const child = spawn(
+    process.execPath,
+    [nextBin, "start", "-p", String(port), "-H", "0.0.0.0"],
+    {
+      cwd: root,
+      stdio: ["ignore", "pipe", "pipe"],
+      env: {
+        ...process.env,
+        // Без секрета сессии `/api/auth/*` отвечает 500, и каждая страница
+        // логирует ошибку сервера. Для вёрстки секрет не нужен — подставляем
+        // детерминированную заглушку, если в окружении его нет.
+        AUTH_SECRET:
+          process.env.AUTH_SECRET ?? "screenshots-only-not-a-real-secret",
+      },
     },
-  });
+  );
   child.stdout.on("data", (chunk) => process.stdout.write(`[next] ${chunk}`));
   child.stderr.on("data", (chunk) => process.stderr.write(`[next] ${chunk}`));
   const url = `http://127.0.0.1:${port}`;
@@ -144,7 +159,10 @@ async function prepare(page, origin = target) {
   // отвечает SSL-ошибкой. На реальном домене сайт уже https, так что правим
   // только локальный адрес стенда и только в этом месте.
   const localOrigin = new URL(origin);
-  if (localOrigin.protocol === "http:" && /^(127\.0\.0\.1|localhost)$/.test(localOrigin.hostname)) {
+  if (
+    localOrigin.protocol === "http:" &&
+    /^(127\.0\.0\.1|localhost)$/.test(localOrigin.hostname)
+  ) {
     await page.setRequestInterception(true);
     page.on("request", (request) => {
       const url = request.url();
@@ -172,18 +190,26 @@ async function prepare(page, origin = target) {
       // Приватный режим: баннер просто попадёт в кадр, съёмка не падает.
     }
 
-    const desktopRenderer = "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 Direct3D11 vs_5_0 ps_5_0, D3D11)";
-    for (const proto of [window.WebGL2RenderingContext?.prototype, window.WebGLRenderingContext?.prototype]) {
+    const desktopRenderer =
+      "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 Direct3D11 vs_5_0 ps_5_0, D3D11)";
+    for (const proto of [
+      window.WebGL2RenderingContext?.prototype,
+      window.WebGLRenderingContext?.prototype,
+    ]) {
       if (!proto) continue;
       const original = proto.getParameter;
       proto.getParameter = function patched(parameter) {
         // GL_RENDERER и UNMASKED_RENDERER_WEBGL из WEBGL_debug_renderer_info.
-        if (parameter === 0x1f01 || parameter === 0x9246) return desktopRenderer;
+        if (parameter === 0x1f01 || parameter === 0x9246)
+          return desktopRenderer;
         return original.call(this, parameter);
       };
     }
     const originalGetContext = HTMLCanvasElement.prototype.getContext;
-    HTMLCanvasElement.prototype.getContext = function patchedContext(type, attributes) {
+    HTMLCanvasElement.prototype.getContext = function patchedContext(
+      type,
+      attributes,
+    ) {
       if (attributes?.failIfMajorPerformanceCaveat) {
         attributes = { ...attributes, failIfMajorPerformanceCaveat: false };
       }
@@ -203,25 +229,31 @@ async function waitForHydration(page, label) {
       { timeout: 30_000, polling: 250 },
     );
   } catch {
-    throw new Error(`${label}: страница не гидрировалась за 30 с — клиентский JS не запустился`);
+    throw new Error(
+      `${label}: страница не гидрировалась за 30 с — клиентский JS не запустился`,
+    );
   }
 }
 
 /** Hazeglow раскрывает canvas после первого кадра; ждём, но не считаем это ошибкой. */
 async function waitForStage(page, label) {
-  const hasStage = await page.evaluate(() => Boolean(document.querySelector("[data-hazeglow]")));
+  const hasStage = await page.evaluate(() =>
+    Boolean(document.querySelector("[data-hazeglow]")),
+  );
   if (!hasStage) return;
   try {
     await page.waitForFunction(
       () => {
-        const canvas = document.querySelector('[data-hazeglow] canvas');
+        const canvas = document.querySelector("[data-hazeglow] canvas");
         if (!canvas) return true; // резервная сцена без WebGL — тоже валидный кадр
         return Number.parseFloat(getComputedStyle(canvas).opacity) > 0.99;
       },
       { timeout: 20_000, polling: 250 },
     );
   } catch {
-    console.warn(`[screenshots] ${label}: сцена не раскрылась за 20 с, снимаем как есть`);
+    console.warn(
+      `[screenshots] ${label}: сцена не раскрылась за 20 с, снимаем как есть`,
+    );
   }
 }
 
@@ -250,11 +282,9 @@ async function settle(page) {
   // (ленивый smooth-scroll конкурирует с программной прокруткой), дожимаем его
   // до конечного состояния, иначе в кадре будет пустая секция.
   await page.evaluate(() => {
-    document
-      .querySelectorAll('[data-reveal="pending"]')
-      .forEach((element) => {
-        element.dataset.reveal = "visible";
-      });
+    document.querySelectorAll('[data-reveal="pending"]').forEach((element) => {
+      element.dataset.reveal = "visible";
+    });
   });
   // Даём DecryptText и reveal-анимациям доиграть до конечного кадра.
   await sleep(900);
@@ -270,7 +300,9 @@ async function capture(browser, route, viewport) {
   page.on("pageerror", (error) => errors.push(String(error)));
   // Без URL ошибка «Failed to load resource» ничего не говорит о причине.
   page.on("requestfailed", (request) => {
-    errors.push(`${request.failure()?.errorText ?? "request failed"} ${request.url()}`);
+    errors.push(
+      `${request.failure()?.errorText ?? "request failed"} ${request.url()}`,
+    );
   });
   page.on("response", (response) => {
     if (response.status() < 400) return;
@@ -285,13 +317,23 @@ async function capture(browser, route, viewport) {
 
   await prepare(page, target);
   await page.setViewport(viewport);
-  await page.goto(`${target}${route.path}`, { waitUntil: "domcontentloaded", timeout: 90_000 });
+  // `glow=full` разворачивает общий фон страницы на всю её высоту: на полном
+  // кадре закреплённый по вьюпорту слой иначе виден только в первом экране.
+  await page.goto(`${target}${route.path}?glow=full`, {
+    waitUntil: "domcontentloaded",
+    timeout: 90_000,
+  });
   await waitForHydration(page, label);
   await waitForStage(page, label);
   await settle(page);
 
   const file = path.join(outputDir, `${route.name}-${viewport.name}.webp`);
-  await page.screenshot({ path: file, type: "webp", quality: 78, fullPage: true });
+  await page.screenshot({
+    path: file,
+    type: "webp",
+    quality: 92,
+    fullPage: true,
+  });
   const title = await page.title();
   await page.close();
 
@@ -307,20 +349,32 @@ async function captureReducedMotion(browser) {
   const label = "home-ru/reduced-motion";
   await prepare(page, target);
   await page.setViewport(DESKTOP);
-  await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "reduce" }]);
-  await page.goto(`${target}/ru`, { waitUntil: "domcontentloaded", timeout: 90_000 });
+  await page.emulateMediaFeatures([
+    { name: "prefers-reduced-motion", value: "reduce" },
+  ]);
+  await page.goto(`${target}/ru`, {
+    waitUntil: "domcontentloaded",
+    timeout: 90_000,
+  });
   await waitForHydration(page, label);
   await waitForStage(page, label);
   await settle(page);
 
   const file = path.join(outputDir, "home-ru-reduced-motion.webp");
-  await page.screenshot({ path: file, type: "webp", quality: 78, fullPage: true });
+  await page.screenshot({
+    path: file,
+    type: "webp",
+    quality: 92,
+    fullPage: true,
+  });
   await page.close();
   return file;
 }
 
 const browser = await resolveBrowser();
-console.log(`[screenshots] Chromium: ${browser.path} (${browser.version}; ${browser.source})`);
+console.log(
+  `[screenshots] Chromium: ${browser.path} (${browser.version}; ${browser.source})`,
+);
 
 mkdirSync(outputDir, { recursive: true });
 
@@ -328,7 +382,9 @@ const preview = baseUrl ? null : await startPreview();
 const target = baseUrl ?? preview.url;
 if (preview) console.log(`[screenshots] снимаем ${target}`);
 
-const routes = cli.only ? ROUTES.filter((route) => route.name.includes(cli.only)) : ROUTES;
+const routes = cli.only
+  ? ROUTES.filter((route) => route.name.includes(cli.only))
+  : ROUTES;
 
 const instance = await puppeteer.launch({
   executablePath: browser.path,
@@ -363,7 +419,9 @@ try {
         title: shot.title,
         file: path.relative(root, shot.file).split(path.sep).join("/"),
       });
-      console.log(`[screenshots] ${route.name}/${viewport.name} → ${path.relative(root, shot.file)}`);
+      console.log(
+        `[screenshots] ${route.name}/${viewport.name} → ${path.relative(root, shot.file)}`,
+      );
     }
   }
 
@@ -376,7 +434,9 @@ try {
       title: "reduced motion",
       file: path.relative(root, reduced).split(path.sep).join("/"),
     });
-    console.log(`[screenshots] home-ru/reduced-motion → ${path.relative(root, reduced)}`);
+    console.log(
+      `[screenshots] home-ru/reduced-motion → ${path.relative(root, reduced)}`,
+    );
   }
 } finally {
   await instance.close();
@@ -386,22 +446,33 @@ try {
 const previous = existsSync(path.join(outputDir, "manifest.json"))
   ? JSON.parse(readFileSync(path.join(outputDir, "manifest.json"), "utf8"))
   : null;
-const shots = cli.only && previous ? mergeShots(previous.shots, manifest) : manifest;
+const shots =
+  cli.only && previous ? mergeShots(previous.shots, manifest) : manifest;
 
 writeFileSync(
   path.join(outputDir, "manifest.json"),
   `${JSON.stringify(
-    { generatedAt: new Date().toISOString(), baseUrl: target, mode: "production", shots },
+    {
+      generatedAt: new Date().toISOString(),
+      baseUrl: target,
+      mode: "production",
+      shots,
+    },
     null,
     2,
   )}\n`,
 );
 
-console.log(`[screenshots] готово: ${manifest.length} снимков в docs/redesign/screens/`);
+console.log(
+  `[screenshots] готово: ${manifest.length} снимков в docs/redesign/screens/`,
+);
 
 /** Частичная съёмка (`--only`) не должна терять записи о прежних кадрах. */
 function mergeShots(previousShots, fresh) {
   const key = (shot) => `${shot.route}|${shot.viewport}|${shot.title}`;
   const freshKeys = new Set(fresh.map(key));
-  return [...previousShots.filter((shot) => !freshKeys.has(key(shot))), ...fresh];
+  return [
+    ...previousShots.filter((shot) => !freshKeys.has(key(shot))),
+    ...fresh,
+  ];
 }
