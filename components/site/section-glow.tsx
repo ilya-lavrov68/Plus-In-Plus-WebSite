@@ -110,6 +110,8 @@ export function SectionGlow({
 }: SectionGlowProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const [effectSize, setEffectSize] = useState(() => effectSizeFor(720, cell));
+  // Присланный градиент не обрезается маской: фон идёт во всю секцию.
+  const hasPreset = presetConfig(preset) !== null;
 
   useEffect(() => {
     const host = hostRef.current;
@@ -141,7 +143,7 @@ export function SectionGlow({
       <div
         className="size-full"
         style={
-          mask
+          mask && !hasPreset
             ? {
                 maskImage:
                   "radial-gradient(125% 130% at 54% 36%, #000 0%, #000 40%, rgba(0,0,0,0.72) 66%, rgba(0,0,0,0.22) 86%, transparent 97%)",

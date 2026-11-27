@@ -101,10 +101,9 @@ export function HoverGlow({ className, intensity = 0.4 }: HoverGlowProps) {
     angle: 118,
     warp: 0.05,
     warpScale: 1.2,
-    palette: PALETTE,
-    background: "#110f10",
+    palette: preset?.palette ?? PALETTE,
+    background: preset?.background ?? "#110f10",
     mesh: [],
-    grain: 0.04,
     // Статичный кадр: ни движения, ни перерисовки — даже если градиент
     // прислан с анимацией.
     motion: "none",
@@ -112,9 +111,10 @@ export function HoverGlow({ className, intensity = 0.4 }: HoverGlowProps) {
     loop: 0,
     hover: 0,
     hoverMode: "pull",
-    effect: "dither",
-    effectSize,
-    effectAmount: 0.9,
+    effect: preset?.effect ?? "dither",
+    effectSize: preset?.effectSize ?? effectSize,
+    effectAmount: preset?.effectAmount ?? 0.9,
+    grain: preset?.grain ?? 0.04,
   };
 
   return (

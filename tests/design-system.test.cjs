@@ -596,7 +596,14 @@ test("Hazeglow: крупная ячейка, dither и ascii по типу ст�
   assert.match(
     section,
     /effect: ascii \? "ascii" : "dither"/,
-    "dither на сайте, ascii на софте",
+    "dither на сайте, ascii на софте — для фона без присланного градиента",
+  );
+  // Присланный градиент идёт на сайт ровно как в редакторе: без пересчёта
+  // клетки, ступеней и зерна.
+  assert.match(
+    section,
+    /if \(!colors\) return builtIn;[\s\S]{0,400}return colors;/,
+    "пресет владельца применяется целиком, без проектных поправок",
   );
   assert.match(section, /palette: PALETTE/, "палитра вынесена в константу");
   assert.match(
@@ -617,11 +624,16 @@ test("Hazeglow: крупная ячейка, dither и ascii по типу ст�
   );
   assert.match(
     pageGlow,
-    /effect: variant === "ascii" \? "ascii" : "dither"/,
-    "тип эффекта проектный",
+    /const config: GradientConfig = colors \?\? \{/,
+    "общий фон тоже берёт присланный конфиг как есть",
   );
   assert.match(section, /#ff5f01/, "фирменный оранжевый участвует как акцент");
-  assert.match(section, /maskImage/, "края фона гасятся маской");
+  assert.match(section, /maskImage/, "маска по краям объявлена");
+  assert.match(
+    section,
+    /mask && !hasPreset/,
+    "присланный градиент не обрезается маской",
+  );
   assert.match(section, /motion: "flow"/, "фон секции анимирован");
   assert.equal(
     (section.match(/#[0-9a-f]{6}/gi) ?? []).filter(
@@ -639,7 +651,11 @@ test("Hazeglow: крупная ячейка, dither и ascii по типу ст�
   const hover = read("components/site/hover-glow.tsx");
   assert.match(hover, /motion: "none"/, "hover показывает статичный кадр");
   assert.match(hover, /speed: 0/, "hover не анимируется");
-  assert.match(hover, /effect: "dither"/, "наведение использует тот же dither");
+  assert.match(
+    hover,
+    /effect: preset\?\.effect \?\? "dither"/,
+    "наведение использует эффект присланного градиента",
+  );
   assert.match(hover, /maskImage/, "у подсветки тоже есть маска по краям");
   const hoverAmounts = [...hover.matchAll(/effectAmount: ([\d.]+)/g)].map(
     (match) => Number(match[1]),
