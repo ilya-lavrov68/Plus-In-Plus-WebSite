@@ -27,8 +27,8 @@ export function WorkCard({ item, openLabel, featured = false, className }: WorkC
     >
       <div
         className={cn(
-          "relative overflow-hidden rounded-2xl bg-white/[0.055] p-1.5 [--pip-nest-gap:6px] [--pip-radius-outer:var(--radius-2xl)]",
-          featured && "p-2 [--pip-nest-gap:8px]",
+          "relative overflow-hidden bg-white/[0.055] p-1.5",
+          featured && "p-2",
         )}
       >
         <img
@@ -37,7 +37,7 @@ export function WorkCard({ item, openLabel, featured = false, className }: WorkC
           loading="lazy"
           decoding="async"
           className={cn(
-            "nested-radius w-full object-cover object-top",
+            "w-full object-contain",
             featured ? "aspect-[16/9]" : "aspect-[16/10]",
           )}
         />

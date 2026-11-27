@@ -77,14 +77,14 @@ export async function WorkIndex({
             <Link
               href={`/work/${featured.slug}`}
               aria-label={featured.title}
-              className="group relative block overflow-hidden rounded-xl bg-white/[0.045] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+              className="group relative block overflow-hidden bg-white/[0.045] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
             >
               <img
                 src={featured.cover}
                 alt={featured.coverAlt}
                 loading={compact ? "lazy" : "eager"}
                 decoding="async"
-                className="aspect-[16/10] w-full object-cover object-top opacity-95 transition-opacity duration-500 ease-out group-hover:opacity-100"
+                className="aspect-[16/10] w-full object-contain opacity-95 transition-opacity duration-500 ease-out group-hover:opacity-100"
               />
               <HoverGlow intensity={0.4} />
             </Link>
@@ -142,14 +142,14 @@ function WorkRow({ item, openLabel }: { item: LocalizedWorkCase; openLabel: stri
         href={`/work/${item.slug}`}
         className="group flex items-center gap-5 py-5 transition-colors hover:bg-white/[0.035] focus-visible:bg-white/[0.05] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:gap-8 sm:py-6"
       >
-        <span className="relative block w-20 shrink-0 overflow-hidden rounded-md bg-white/[0.05] sm:w-28">
+        <span className="relative block w-20 shrink-0 overflow-hidden bg-white/[0.05] sm:w-28">
           <img
             src={item.cover}
             alt=""
             aria-hidden="true"
             loading="lazy"
             decoding="async"
-            className="aspect-[16/10] w-full object-cover object-top opacity-90 transition-opacity duration-300 ease-out group-hover:opacity-100"
+            className="aspect-[16/10] w-full object-contain opacity-90 transition-opacity duration-300 ease-out group-hover:opacity-100"
           />
         </span>
 

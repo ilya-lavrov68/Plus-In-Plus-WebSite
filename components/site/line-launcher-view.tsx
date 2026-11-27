@@ -131,7 +131,7 @@ export async function LineLauncherView() {
                   width={1600}
                   height={900}
                   sizes="(min-width: 1280px) 600px, 100vw"
-                  className="nested-radius w-full object-cover"
+                  className="block w-full"
                 />
               </div>
               <p className="mt-4 max-w-[26rem] bg-card px-4 py-3 text-sm leading-relaxed text-muted-foreground">
@@ -210,7 +210,7 @@ export async function LineLauncherView() {
                 width={1600}
                 height={900}
                 sizes="(min-width: 1280px) 1200px, 100vw"
-                className="nested-radius w-full object-cover"
+                className="block w-full"
               />
             </div>
           </div>
