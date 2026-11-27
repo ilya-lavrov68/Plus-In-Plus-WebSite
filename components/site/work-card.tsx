@@ -39,7 +39,7 @@ export function WorkCard({ item, openLabel, featured = false, className }: WorkC
           loading="lazy"
           decoding="async"
           className={cn(
-            "aspect-[16/10] w-full object-cover object-top",
+            "aspect-video w-full object-contain",
           )}
         />
       </div>

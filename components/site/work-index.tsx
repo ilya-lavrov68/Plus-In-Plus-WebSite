@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
-import { HoverGlow } from "@/components/site/hover-glow";
+import { WorkCard } from "@/components/site/work-card";
 import { Button } from "@/components/ui/button";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getRequestTranslations } from "@/lib/server-i18n";
-import { localizeWorkCases, WORK_CASES, type LocalizedWorkCase } from "@/lib/work-cases";
+import { localizeWorkCases, WORK_CASES } from "@/lib/work-cases";
 import { cn } from "@/lib/utils";
 
 interface WorkIndexProps {
@@ -42,7 +42,6 @@ export async function WorkIndex({
   ]);
   const workLocale = locale === "ru" ? "ru" : "en";
   const items = localizeWorkCases(WORK_CASES, workLocale).slice(0, limit ?? WORK_CASES.length);
-  const [featured, ...rest] = items;
   const Heading = compact ? "h2" : "h1";
 
   return (
@@ -72,103 +71,22 @@ export async function WorkIndex({
           ) : null}
         </div>
 
-        {featured ? (
-          <div className="mt-12 grid gap-8 lg:mt-14 lg:grid-cols-[1.35fr_0.65fr] lg:items-end lg:gap-14">
-            <Link
-              href={`/work/${featured.slug}`}
-              aria-label={featured.title}
-              className="group relative block overflow-hidden bg-white/[0.045] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
-            >
-              <img
-                src={featured.cover}
-                alt={featured.coverAlt}
-                loading={compact ? "lazy" : "eager"}
-                decoding="async"
-                className="aspect-[16/10] w-full object-cover object-top opacity-95 transition-opacity duration-500 ease-out group-hover:opacity-100"
-              />
-            </Link>
-
-            <div className="relative flex flex-col gap-4 overflow-hidden lg:pb-2">
-              <HoverGlow pattern={`work:${featured.slug}`} intensity={0.4} />
-              <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase">
-                <span>{featured.discipline}</span>
-                <span className="tracking-normal normal-case">{featured.year}</span>
-              </p>
-              <h3 className="text-2xl font-medium tracking-tight text-balance md:text-3xl">
-                <Link
-                  href={`/work/${featured.slug}`}
-                  className="transition-colors hover:text-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
-                >
-                  {featured.title}
-                </Link>
-              </h3>
-              <p className="text-sm leading-[1.75] text-muted-foreground md:text-base">
-                {featured.summary}
-              </p>
-              <Link
-                href={`/work/${featured.slug}`}
-                className="group/open mt-1 inline-flex items-center gap-2 text-sm font-medium text-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
-              >
-                {t("open")}
-                <ArrowUpRight
-                  aria-hidden="true"
-                  className="size-4 transition-[transform,color] duration-200 group-hover/open:-translate-y-0.5 group-hover/open:translate-x-0.5"
-                />
-              </Link>
-            </div>
-          </div>
-        ) : null}
-
-        {rest.length > 0 ? (
-          <ul className="mt-12 divide-y divide-white/[0.08]">
-            {rest.map((item) => (
-              <WorkRow key={item.slug} item={item} openLabel={t("open")} />
-            ))}
-          </ul>
-        ) : null}
+        {/* Сетка как у JetBrains: одинаковые карточки, один шаг между ними.
+            Кадр показывается целиком (object-contain) — ничего не режется по
+            краям, а подложка карточки держит общий фон под ним. */}
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:mt-14 lg:gap-8">
+          {items.map((item, index) => (
+            <WorkCard
+              key={item.slug}
+              item={item}
+              openLabel={t("open")}
+              featured={!compact && index === 0}
+              className={!compact && index === 0 ? "sm:col-span-2" : undefined}
+            />
+          ))}
+        </div>
       </div>
     </section>
   );
 }
 
-/**
- * Строка портфолио: миниатюра, дисциплина и название. Без карточной
- * подложки — разделители держат ритм, а ссылка реагирует фоном и стрелкой.
- */
-function WorkRow({ item, openLabel }: { item: LocalizedWorkCase; openLabel: string }) {
-  return (
-    <li>
-      <Link
-        href={`/work/${item.slug}`}
-        className="group flex items-center gap-5 py-5 transition-colors hover:bg-white/[0.035] focus-visible:bg-white/[0.05] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:gap-8 sm:py-6"
-      >
-        <span className="relative block w-20 shrink-0 overflow-hidden bg-white/[0.05] sm:w-28">
-          <img
-            src={item.cover}
-            alt=""
-            aria-hidden="true"
-            loading="lazy"
-            decoding="async"
-            className="aspect-[16/10] w-full object-cover object-top opacity-90 transition-opacity duration-300 ease-out group-hover:opacity-100"
-          />
-        </span>
-
-        <span className="min-w-0 flex-1">
-          <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-            <span className="tracking-[0.12em] uppercase">{item.discipline}</span>
-            <span>{item.year}</span>
-          </span>
-          <span className="mt-1.5 block truncate text-lg font-medium tracking-tight sm:text-xl">
-            {item.title}
-          </span>
-          <span className="sr-only">{openLabel}</span>
-        </span>
-
-        <ArrowUpRight
-          aria-hidden="true"
-          className="size-4 shrink-0 text-muted-foreground transition-[transform,color] duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground"
-        />
-      </Link>
-    </li>
-  );
-}

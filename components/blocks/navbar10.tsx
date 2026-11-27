@@ -241,15 +241,15 @@ const Navbar10 = () => {
         */}
         <div
           aria-hidden="true"
-          className="site-header-glass pointer-events-none absolute inset-0"
+          className="pointer-events-none absolute inset-0 bg-background [background-image:linear-gradient(to_right,rgba(255,255,255,0.14),rgba(255,255,255,0.14))] [background-position:bottom] [background-repeat:no-repeat] [background-size:100%_1px]"
         />
         <NavigationMenu
           value={openSection}
           onValueChange={setOpenSection}
           onPointerLeave={closeSectionDeferred}
-          className="h-20 max-w-full after:absolute after:inset-0 after:z-40 after:block after:size-full after:bg-transparent after:content-[''] [&>div:last-child>div]:mt-0 [&>div:last-child>div]:rounded-none [&>div:last-child>div]:border-0 [&>div:last-child>div]:border-b-0"
+          className="h-16 max-w-full after:absolute after:inset-0 after:z-40 after:block after:size-full after:bg-transparent after:content-[''] [&>div:last-child>div]:mt-0 [&>div:last-child>div]:rounded-none [&>div:last-child>div]:border-0 [&>div:last-child>div]:border-b-0"
         >
-          <div className="container relative z-50 grid w-full grid-cols-2 items-center justify-between gap-4 lg:grid-cols-3 lg:gap-8">
+          <div className="container relative z-50 flex w-full items-center gap-4 lg:gap-10">
             <Link
               href="/"
               onClick={() => setOpen(false)}
@@ -258,7 +258,7 @@ const Navbar10 = () => {
               <HeaderWordmarkLogo />
             </Link>
 
-            <div className="hidden justify-self-center lg:flex">
+            <div className="hidden lg:flex">
               <NavigationMenuList>
                 {navigation.map((item, index) => (
                   <DesktopMenuItem
@@ -273,7 +273,7 @@ const Navbar10 = () => {
               </NavigationMenuList>
             </div>
 
-            <div className="justify-self-end">
+            <div className="ml-auto">
               <div className="hidden items-center gap-2.5 lg:flex">
                 <LanguageSwitcher />
                 {session?.user ? <CartIcon count={cartCount} /> : null}

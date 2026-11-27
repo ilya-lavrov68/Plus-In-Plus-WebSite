@@ -109,16 +109,15 @@ export async function LineLauncherView() {
                 </p>
               </div>
 
-              <dl className="mt-10 flex flex-wrap gap-x-8 gap-y-3 text-sm">
+              {/* Метаданные продукта — только значения, без служебных подписей
+                  вроде «платформы» или «стек»: они дублировали смысл. */}
+              <ul className="mt-10 flex flex-wrap gap-x-8 gap-y-2 text-sm">
                 {facts.map((fact) => (
-                  <div key={fact.label} className="flex items-baseline gap-2">
-                    <dt className="text-xs tracking-[0.14em] text-muted-foreground uppercase">
-                      {fact.label}
-                    </dt>
-                    <dd className="font-medium">{fact.value}</dd>
-                  </div>
+                  <li key={fact.value} className="font-medium">
+                    {fact.value}
+                  </li>
                 ))}
-              </dl>
+              </ul>
             </div>
 
             <div>
