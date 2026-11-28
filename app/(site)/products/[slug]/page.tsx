@@ -21,7 +21,7 @@ interface ProductPageProps {
  */
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
   const [{ slug }, locale] = await Promise.all([params, getRequestLocale()]);
-  const product = await getStudioProductBySlug(slug);
+  const product = await getStudioProductBySlug(slug).catch(() => null);
 
   if (!product || !product.published) {
     // Продукт снят с публикации или не создан — поисковику здесь делать нечего.
@@ -40,7 +40,10 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { slug } = await params;
-  const product = await getStudioProductBySlug(slug);
+
+  // Витрина не должна ронять сайт: нет таблицы, база только на чтение или
+  // продукт снят с публикации — для посетителя это одинаковый 404.
+  const product = await getStudioProductBySlug(slug).catch(() => null);
 
   if (!product || !product.published) notFound();
 

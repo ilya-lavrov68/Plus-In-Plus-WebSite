@@ -4,6 +4,7 @@ import { adminLabels } from "@/components/admin/labels";
 import {
   AdminChip,
   AdminPageHeader,
+  AdminStatus,
   adminFilledButtonClass,
   adminTonalButtonClass,
 } from "@/components/admin/ui";
@@ -33,13 +34,19 @@ export default async function AdminStudioProductsPage({
   searchParams: Promise<{ ok?: string }>;
 }) {
   const staff = await requireStaff();
-  const [locale, query, products] = await Promise.all([
-    getRequestLocale(),
-    searchParams,
-    listStudioProducts(),
-  ]);
+  const [locale, query] = await Promise.all([getRequestLocale(), searchParams]);
   const t = adminLabels(locale);
   const copy = t.studioProduct;
+
+  // Таблица обычно создаётся сама (lib/studio-products-schema.ts). Ошибка тут
+  // означает базу только на чтение — показываем текст, а не стектрейс.
+  let products: Awaited<ReturnType<typeof listStudioProducts>> = [];
+  let schemaError: string | null = null;
+  try {
+    products = await listStudioProducts();
+  } catch (error) {
+    schemaError = error instanceof Error ? error.message : "Не удалось прочитать продукты.";
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -54,6 +61,8 @@ export default async function AdminStudioProductsPage({
           ) : null
         }
       />
+
+      {schemaError ? <AdminStatus tone="error">{schemaError}</AdminStatus> : null}
 
       {query.ok ? (
         <p className="text-sm text-on-surface-variant">{copy.saved}</p>

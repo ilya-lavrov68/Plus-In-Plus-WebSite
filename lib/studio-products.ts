@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { row, rows, run } from "@/lib/db";
+import { ensureStudioProductsSchema } from "@/lib/studio-products-schema";
 
 /**
  * Продукты студии (Line Launcher и всё, что появится после него).
@@ -112,6 +113,7 @@ function safeJson(value: unknown): unknown | null {
 
 /** Все продукты — для админки. */
 export async function listStudioProducts(): Promise<StudioProduct[]> {
+  await ensureStudioProductsSchema();
   const records = await rows<Record<string, unknown>>(
     `select ${SELECT_COLUMNS} from studio_products order by sort_order asc, name asc`,
   );
@@ -120,6 +122,7 @@ export async function listStudioProducts(): Promise<StudioProduct[]> {
 
 /** Только опубликованные — для сайта и меню в шапке. */
 export async function listPublishedStudioProducts(): Promise<StudioProduct[]> {
+  await ensureStudioProductsSchema();
   const records = await rows<Record<string, unknown>>(
     `select ${SELECT_COLUMNS} from studio_products where is_published = 1 order by sort_order asc, name asc`,
   );
@@ -127,6 +130,7 @@ export async function listPublishedStudioProducts(): Promise<StudioProduct[]> {
 }
 
 export async function getStudioProductBySlug(slug: string): Promise<StudioProduct | null> {
+  await ensureStudioProductsSchema();
   const record = await row<Record<string, unknown>>(
     `select ${SELECT_COLUMNS} from studio_products where slug = ? limit 1`,
     [slug],
@@ -135,6 +139,7 @@ export async function getStudioProductBySlug(slug: string): Promise<StudioProduc
 }
 
 export async function getStudioProductById(id: string): Promise<StudioProduct | null> {
+  await ensureStudioProductsSchema();
   const record = await row<Record<string, unknown>>(
     `select ${SELECT_COLUMNS} from studio_products where id = ? limit 1`,
     [id],
@@ -172,6 +177,7 @@ export function studioProductValues(input: StudioProductInput) {
 }
 
 export async function createStudioProduct(input: StudioProductInput): Promise<string> {
+  await ensureStudioProductsSchema();
   const id = randomUUID();
   await run(
     `insert into studio_products
@@ -184,6 +190,7 @@ export async function createStudioProduct(input: StudioProductInput): Promise<st
 }
 
 export async function updateStudioProduct(id: string, input: StudioProductInput): Promise<void> {
+  await ensureStudioProductsSchema();
   await run(
     `update studio_products set
       slug = ?, name = ?, tagline_ru = ?, tagline_en = ?, summary_ru = ?, summary_en = ?,
@@ -196,6 +203,7 @@ export async function updateStudioProduct(id: string, input: StudioProductInput)
 }
 
 export async function setStudioProductPublished(id: string, published: boolean): Promise<void> {
+  await ensureStudioProductsSchema();
   await run(
     `update studio_products
        set is_published = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
@@ -208,6 +216,7 @@ export async function saveStudioProductChangelog(
   id: string,
   changelog: unknown,
 ): Promise<void> {
+  await ensureStudioProductsSchema();
   await run(
     `update studio_products
        set changelog_json = ?, changelog_synced_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
@@ -225,5 +234,6 @@ export function studioProductPath(product: StudioProduct): string {
 }
 
 export async function deleteStudioProduct(id: string): Promise<void> {
+  await ensureStudioProductsSchema();
   await run("delete from studio_products where id = ?", [id]);
 }
