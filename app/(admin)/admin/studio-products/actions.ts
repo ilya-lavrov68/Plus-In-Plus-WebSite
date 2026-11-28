@@ -11,6 +11,7 @@ import {
   getStudioProductById,
   normalizeSlug,
   saveStudioProductChangelog,
+  saveStudioProductDownloads,
   setStudioProductPublished,
   updateStudioProduct,
   type StudioProductInput,
@@ -37,7 +38,13 @@ function inputFrom(formData: FormData): StudioProductInput {
     statusLabel: field(formData, "statusLabel"),
     repoUrl: field(formData, "repoUrl"),
     changelogPath: field(formData, "changelogPath") || "CHANGELOG.md",
-    downloadUrl: field(formData, "downloadUrl"),
+    downloadUrl: "",
+    // Строки «платформа | формат | ссылка»: столько, сколько файлов у релиза.
+    downloads: field(formData, "downloads")
+      .split("\n")
+      .map((line) => line.split("|").map((part) => part.trim()))
+      .filter((parts) => parts.length >= 3 && parts[2].length > 0)
+      .map(([platform, format, url]) => ({ platform, format, url })),
     pagePath: field(formData, "pagePath"),
     facts: field(formData, "facts")
       .split("\n")
@@ -174,11 +181,12 @@ export async function syncStudioProductChangelogAction(formData: FormData): Prom
   }
 
   try {
-    const { data, entriesCount } = await fetchStudioChangelog({
+    const { data, entriesCount, downloads } = await fetchStudioChangelog({
       repoUrl: product.repoUrl,
       changelogPath: product.changelogPath,
     });
     await saveStudioProductChangelog(id, data);
+    await saveStudioProductDownloads(id, downloads);
     await logAdminAction({
       action: "studioProduct.changelogSynced",
       entityType: "studioProduct",

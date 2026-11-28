@@ -1,8 +1,7 @@
 import { BlogSection } from "@/components/site/blog-section";
-import { BrandDirections } from "@/components/site/brand-directions";
-import { Community } from "@/components/site/community";
 import { CtaSection } from "@/components/site/cta-section";
 import { Hero } from "@/components/site/hero";
+import { HomeProduct } from "@/components/site/home-product";
 import { ProcessSection } from "@/components/site/process-section";
 import { WorkIndex } from "@/components/site/work-index";
 import { localizeBlogPosts } from "@/lib/blog-localization";
@@ -26,10 +25,18 @@ export default async function HomePage() {
   return (
     <>
       <Hero />
-      <WorkIndex compact limit={3} allHref="/work" heading={tHome("workTitle")} lead={tHome("workLead")} />
-      <BrandDirections />
+      {/* После первого экрана — продукт, как на продуктовой странице: имя,
+          одна строка, действия. Дальше доказательства и процесс. */}
+      <HomeProduct />
+      <WorkIndex
+        compact
+        limit={3}
+        allHref="/work"
+        heading={tHome("workTitle")}
+        lead={tHome("workLead")}
+        className="section-y-tight"
+      />
       <ProcessSection />
-      <Community />
       <BlogSection
         id="news"
         heading={t("title")}

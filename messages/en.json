@@ -1366,7 +1366,8 @@
     "pipDescription": "Plus In Plus design studio: identity, digital layouts, signage and event collateral.",
     "tsConnectDescription": "Regional IT engineering and digital infrastructure partner in Tambov.",
     "workTitle": "Selected work",
-    "workLead": "Three projects that show how we think and what we can make by hand."
+    "workLead": "Three projects that show how we think and what we can make by hand.",
+    "heroLine": "We design identities and websites for brands that need to speak clearly."
   },
   "navigation": {
     "orderDesign": "Order a design",
@@ -1809,6 +1810,7 @@
     "allVersions": "All versions",
     "emptyChangelog": "Version history appears here after the first sync with the repository.",
     "releases": "Releases",
-    "status": "Status"
+    "status": "Status",
+    "openProduct": "View product"
   }
 }

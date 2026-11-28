@@ -508,6 +508,10 @@ export function adminLabels(locale: RequestLocale) {
       repoUrl: ru ? "Ссылка на репозиторий" : "Repository URL",
       changelogPath: ru ? "Файл истории версий" : "Changelog file",
       downloadUrl: ru ? "Ссылка на загрузку" : "Download URL",
+      downloads: ru ? "Сборки: платформа | формат | ссылка" : "Builds: platform | format | link",
+      downloadsHint: ru
+        ? "Одна строка на файл — платформа, формат и ссылка через |. При синхронизации строки заполняются файлами последнего релиза, вручную можно поправить любую."
+        : "One line per file — platform, format and link separated by |. Sync fills the rows from the latest release; any row can be edited by hand.",
       pagePath: ru ? "Свой адрес страницы" : "Custom page path",
       pagePathHint: ru
         ? "Пусто — продукт живёт по шаблону /products/<slug>. Если у продукта уже есть своя страница (например /line-launcher), укажите её."

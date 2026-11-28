@@ -16,6 +16,19 @@ export interface StudioProductFact {
   value: string;
 }
 
+/**
+ * Одна сборка продукта.
+ *
+ * У продукта не один файл, а матрица «платформа × формат»: на Windows это
+ * `.msi` и `.exe`, на Linux — `.AppImage` и `.deb`. Поэтому вместо одной ссылки
+ * хранится список сборок, и страница показывает панель загрузки по платформам.
+ */
+export interface StudioProductDownload {
+  platform: string;
+  format: string;
+  url: string;
+}
+
 export interface StudioProduct {
   id: string;
   slug: string;
@@ -28,7 +41,9 @@ export interface StudioProduct {
   statusLabel: string;
   repoUrl: string;
   changelogPath: string;
+  /** Старое одиночное поле: остаётся для совместимости, в вёрстке не используется. */
   downloadUrl: string;
+  downloads: StudioProductDownload[];
   /** Свой адрес страницы; пусто — шаблон `/products/[slug]`. */
   pagePath: string;
   facts: StudioProductFact[];
@@ -51,6 +66,7 @@ export interface StudioProductInput {
   repoUrl: string;
   changelogPath: string;
   downloadUrl: string;
+  downloads: StudioProductDownload[];
   pagePath: string;
   facts: string[];
   published: boolean;
@@ -58,7 +74,7 @@ export interface StudioProductInput {
 }
 
 const SELECT_COLUMNS = `id, slug, name, tagline_ru, tagline_en, summary_ru, summary_en,
-  version, status_label, repo_url, changelog_path, download_url, page_path, facts,
+  version, status_label, repo_url, changelog_path, download_url, downloads, page_path, facts,
   is_published, sort_order, changelog_json, changelog_synced_at`;
 
 function text(value: unknown): string {
@@ -79,6 +95,30 @@ function parseFacts(value: unknown): StudioProductFact[] {
   }
 }
 
+function parseDownloads(value: unknown): StudioProductDownload[] {
+  if (typeof value !== "string" || !value.trim()) return [];
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((item) => item as Partial<StudioProductDownload>)
+      .filter(
+        (item): item is StudioProductDownload =>
+          typeof item?.platform === "string" &&
+          typeof item?.format === "string" &&
+          typeof item?.url === "string" &&
+          item.url.trim().length > 0,
+      )
+      .map((item) => ({
+        platform: item.platform.trim(),
+        format: item.format.trim(),
+        url: item.url.trim(),
+      }));
+  } catch {
+    return [];
+  }
+}
+
 function mapProduct(record: Record<string, unknown>): StudioProduct {
   return {
     id: text(record.id),
@@ -93,6 +133,7 @@ function mapProduct(record: Record<string, unknown>): StudioProduct {
     repoUrl: text(record.repo_url),
     changelogPath: text(record.changelog_path) || "CHANGELOG.md",
     downloadUrl: text(record.download_url),
+    downloads: parseDownloads(record.downloads),
     pagePath: text(record.page_path),
     facts: parseFacts(record.facts),
     published: Number(record.is_published) === 1,
@@ -169,6 +210,7 @@ export function studioProductValues(input: StudioProductInput) {
     input.repoUrl.trim(),
     input.changelogPath.trim() || "CHANGELOG.md",
     input.downloadUrl.trim(),
+    JSON.stringify(input.downloads.filter((row) => row.url && row.platform && row.format)),
     input.pagePath.trim(),
     JSON.stringify(input.facts.filter(Boolean).map((value) => ({ value }))),
     input.published ? 1 : 0,
@@ -182,8 +224,9 @@ export async function createStudioProduct(input: StudioProductInput): Promise<st
   await run(
     `insert into studio_products
       (id, slug, name, tagline_ru, tagline_en, summary_ru, summary_en, version,
-       status_label, repo_url, changelog_path, download_url, page_path, facts, is_published, sort_order)
-     values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       status_label, repo_url, changelog_path, download_url, downloads, page_path, facts,
+       is_published, sort_order)
+     values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [id, ...studioProductValues(input)],
   );
   return id;
@@ -195,7 +238,7 @@ export async function updateStudioProduct(id: string, input: StudioProductInput)
     `update studio_products set
       slug = ?, name = ?, tagline_ru = ?, tagline_en = ?, summary_ru = ?, summary_en = ?,
       version = ?, status_label = ?, repo_url = ?, changelog_path = ?, download_url = ?,
-      page_path = ?, facts = ?, is_published = ?, sort_order = ?,
+      downloads = ?, page_path = ?, facts = ?, is_published = ?, sort_order = ?,
       updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
      where id = ?`,
     [...studioProductValues(input), id],
@@ -226,11 +269,43 @@ export async function saveStudioProductChangelog(
   );
 }
 
+/** Сборки, сгруппированные по платформам — в порядке появления в списке. */
+export function groupDownloads(
+  downloads: StudioProductDownload[],
+): Array<{ platform: string; items: StudioProductDownload[] }> {
+  const groups = new Map<string, StudioProductDownload[]>();
+  for (const row of downloads) {
+    const key = row.platform || "Другое";
+    groups.set(key, [...(groups.get(key) ?? []), row]);
+  }
+  return [...groups.entries()].map(([platform, items]) => ({ platform, items }));
+}
+
 /** Адрес страницы продукта: свой, если задан, иначе шаблон. */
 export function studioProductPath(product: StudioProduct): string {
   const custom = product.pagePath.trim();
   if (!custom) return `/products/${product.slug}`;
   return custom.startsWith("/") ? custom : `/${custom}`;
+}
+
+/**
+ * Обновляет сборки после синхронизации.
+ *
+ * Перезаписываем только когда из релиза действительно пришли файлы: иначе
+ * ручная таблица, заполненная для сборок вне GitHub, осталась бы целой.
+ */
+export async function saveStudioProductDownloads(
+  id: string,
+  downloads: StudioProductDownload[],
+): Promise<void> {
+  if (downloads.length === 0) return;
+  await ensureStudioProductsSchema();
+  await run(
+    `update studio_products
+       set downloads = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+     where id = ?`,
+    [JSON.stringify(downloads), id],
+  );
 }
 
 export async function deleteStudioProduct(id: string): Promise<void> {

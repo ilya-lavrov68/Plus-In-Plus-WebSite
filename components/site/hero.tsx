@@ -14,6 +14,7 @@ export async function Hero() {
     <Hero138
       headingMuted={t("heroMuted")}
       headingPrimary={t("heroPrimary")}
+      lead={t("heroLine")}
       primaryCta={{ label: hero("startProject"), href: "/contact" }}
       secondaryCta={{ label: hero("viewWork"), href: "/work" }}
     />

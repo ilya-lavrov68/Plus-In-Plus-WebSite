@@ -191,14 +191,14 @@ test("empty CMS content shows an honest empty state rather than a preset timelin
 
 test("landing order and native protected Story global are explicit", () => {
   const page = fs.readFileSync(path.resolve(__dirname, "../app/(site)/page.tsx"), "utf8");
-  // Порядок главной фиксирован: сначала позиционирование студии, затем
-  // собственные работы, направления, процесс, сообщество, журнал и бриф.
+  // Порядок главной фиксирован: первый экран, продукт студии (как на
+  // продуктовой странице), работы, процесс, журнал и бриф. «Партнёры и соседи»
+  // с главной убраны: один партнёр не тянет отдельную секцию.
   const order = [
     "<Hero />",
+    "<HomeProduct />",
     "<WorkIndex",
-    "<BrandDirections />",
     "<ProcessSection />",
-    "<Community />",
     "<BlogSection",
     "<CtaSection />",
   ];

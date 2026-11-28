@@ -6,6 +6,9 @@ import {
   type GithubTag,
 } from "@/scripts/lib/changelog-parse.mjs";
 import type { ChangelogData } from "@/lib/changelog-format";
+import { buildsFromReleases, type StudioBuild } from "@/lib/studio-builds";
+
+export type { StudioBuild };
 
 /**
  * Подтягивание истории версий продукта из его репозитория на GitHub.
@@ -23,6 +26,8 @@ import type { ChangelogData } from "@/lib/changelog-format";
 export interface StudioChangelogResult {
   data: ChangelogData;
   entriesCount: number;
+  /** Сборки последнего релиза: платформа, формат и ссылка на файл. */
+  downloads: StudioBuild[];
 }
 
 export class StudioSyncError extends Error {}
@@ -131,5 +136,9 @@ export async function fetchStudioChangelog(options: {
     entries: enriched,
   };
 
-  return { data, entriesCount: enriched.length };
+  return {
+    data,
+    entriesCount: enriched.length,
+    downloads: buildsFromReleases(releases, data.latestVersion),
+  };
 }

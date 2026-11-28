@@ -516,6 +516,7 @@ CREATE TABLE `studio_products` (
     `changelog_path` text DEFAULT 'CHANGELOG.md',
     `download_url` text,
     `page_path` text,
+    `downloads` text,
     `facts` text,
     `is_published` integer DEFAULT false NOT NULL,
     `sort_order` integer DEFAULT 0 NOT NULL,

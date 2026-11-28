@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 export interface Hero138Props {
   headingMuted?: string;
   headingPrimary?: string;
+  /** Одна фраза о студии под заголовком — как строка о продукте. */
+  lead?: string;
   primaryCta?: {
     label: string;
     href: string;
@@ -31,6 +33,7 @@ export interface Hero138Props {
 const Hero138 = ({
   headingMuted = "Дизайн-студия",
   headingPrimary = "Plus In Plus",
+  lead,
   primaryCta = {
     label: "Обсудить проект",
     href: "/contact",
@@ -72,6 +75,16 @@ const Hero138 = ({
             className="mt-2 block text-[#110f10] md:mt-4"
           />
         </h1>
+
+        {lead ? (
+          <p
+            data-reveal=""
+            data-reveal-delay={90}
+            className="measure mt-6 max-w-2xl text-xl leading-snug font-medium text-[#110f10] md:mt-8 md:text-2xl"
+          >
+            {lead}
+          </p>
+        ) : null}
 
         <div
           data-reveal=""

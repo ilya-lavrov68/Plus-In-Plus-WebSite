@@ -79,6 +79,70 @@ test("схема витрины догоняет код сама: no such table 
   assert.match(dev, /db-migrate\.cjs/, "npm run dev сам применяет db/schema.sql");
 });
 
+test("загрузка — матрица «платформа × формат», а не одна ссылка", () => {
+  const { buildFromAsset, buildsFromReleases } = require("../lib/studio-builds.ts");
+
+  const builds = [
+    ["Line.Launcher_0.15.4_x64-setup.exe", "Windows", ".exe"],
+    ["Line.Launcher_0.15.4_x64_en-US.msi", "Windows", ".msi"],
+    ["Line.Launcher_0.15.4_amd64.AppImage", "Linux", ".AppImage"],
+    ["Line.Launcher_0.15.4_amd64.deb", "Linux", ".deb"],
+  ];
+  for (const [name, platform, format] of builds) {
+    assert.deepEqual(
+      buildFromAsset(name, "https://example.test/" + name),
+      { platform, format, url: "https://example.test/" + name },
+      `${name} разбирается в платформу и формат`,
+    );
+  }
+
+  // Служебные файлы релиза в панель загрузки не попадают.
+  assert.equal(buildFromAsset("latest.json", "https://example.test/latest.json"), null);
+  assert.equal(buildFromAsset("app.exe.sig", "https://example.test/app.exe.sig"), null);
+
+  const fromRelease = buildsFromReleases(
+    [
+      {
+        tag_name: "v0.15.4",
+        assets: [
+          ...builds.map(([name]) => ({ name, browser_download_url: "https://example.test/" + name })),
+          { name: "latest.json", browser_download_url: "https://example.test/latest.json" },
+        ],
+      },
+    ],
+    "0.15.4",
+  );
+  assert.deepEqual(
+    fromRelease.map((build) => `${build.platform} ${build.format}`),
+    ["Windows .exe", "Windows .msi", "Linux .AppImage", "Linux .deb"],
+    "из релиза собирается таблица сборок",
+  );
+
+  // Таблица строк в админке и панель на странице продукта.
+  const schema = read("lib/studio-products-schema.ts");
+  assert.match(schema, /ADD COLUMN `downloads`/, "сборки хранятся списком");
+  const form = read("components/admin/studio-product-form.tsx");
+  assert.match(form, /name="downloads"/, "в админке — строки «платформа | формат | ссылка»");
+  const view = read("components/site/product-template-view.tsx");
+  assert.match(view, /groupDownloads\(product\.downloads\)/, "на странице сборки сгруппированы по платформам");
+});
+
+test("главная: первый экран с одной фразой и блок продукта из админки", () => {
+  const page = read("app/(site)/page.tsx");
+  assert.match(page, /<HomeProduct \/>/, "после первого экрана идёт продукт студии");
+  assert.equal(page.includes("<BrandDirections />"), false, "направления бренда с главной убраны");
+  assert.equal(page.includes("<Community />"), false, "партнёры переехали в подвал");
+
+  const product = read("components/site/home-product.tsx");
+  assert.match(product, /listPublishedStudioProducts/, "продукт берётся из админки");
+  assert.match(product, /catch \{/, "падение базы не роняет главную");
+  assert.match(product, /PRODUCTS\[0\]/, "на пустой базе работает реестр");
+
+  const hero = read("components/blocks/hero138.tsx");
+  assert.match(hero, /lead\?: string/, "первый экран принимает одну фразу о студии");
+  assert.match(read("messages/ru.json"), /heroLine/, "фраза переводится");
+});
+
 test("меню шапки берёт продукты из админки, но не пустеет без базы", () => {
   const navbar = read("components/site/navbar.tsx");
   assert.match(navbar, /listPublishedStudioProducts/, "меню читает опубликованные продукты");

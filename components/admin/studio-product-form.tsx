@@ -115,16 +115,24 @@ export function StudioProductForm({ t, action, product }: StudioProductFormProps
           />
         </label>
 
-        <div className="grid gap-5 sm:grid-cols-2">
-          <label className={adminLabelClass}>
-            {copy.changelogPath}
-            <input name="changelogPath" maxLength={120} defaultValue={product?.changelogPath ?? "CHANGELOG.md"} className={adminInputClass} />
-          </label>
-          <label className={adminLabelClass}>
-            {copy.downloadUrl}
-            <input name="downloadUrl" maxLength={300} defaultValue={product?.downloadUrl ?? ""} className={adminInputClass} />
-          </label>
-        </div>
+        <label className={adminLabelClass}>
+          {copy.changelogPath}
+          <input name="changelogPath" maxLength={120} defaultValue={product?.changelogPath ?? "CHANGELOG.md"} className={adminInputClass} />
+        </label>
+
+        <label className={adminLabelClass}>
+          {copy.downloads}
+          <textarea
+            name="downloads"
+            rows={5}
+            className={adminTextareaClass}
+            defaultValue={product?.downloads
+              .map((row) => `${row.platform} | ${row.format} | ${row.url}`)
+              .join("\n") ?? ""}
+            placeholder={"Windows | .msi | https://github.com/…/app.msi\nWindows | .exe | https://github.com/…/app-setup.exe\nLinux | .AppImage | https://github.com/…/app.AppImage"}
+          />
+          <span className={adminLabelHintClass}>{copy.downloadsHint}</span>
+        </label>
 
         <label className={adminLabelClass}>
           {copy.pagePath}
