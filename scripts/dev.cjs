@@ -222,8 +222,21 @@ async function main() {
       }
       try {
         const status = await checkSchema(config);
-        if (status.ok) console.log("[dev] Schema is up to date.");
-        else console.warn(`[dev] Missing tables: ${status.missingTables.join(", ")}. Run npm run db:migrate before using the admin panel.`);
+        if (status.ok) {
+          console.log("[dev] Schema is up to date.");
+        } else {
+          // Схема догоняет код сама: без этого шага после обновления ветки
+          // админка падает с «no such table», и владельцу нужно помнить про
+          // ручной `npm run db:migrate`. Миграция идемпотентна.
+          console.warn(`[dev] Missing tables: ${status.missingTables.join(", ")}. Applying db/schema.sql…`);
+          const migrate = spawnSync(process.execPath, [path.join(__dirname, "db-migrate.cjs")], {
+            cwd: rootDir,
+            stdio: "inherit",
+            env,
+          });
+          if (migrate.status === 0) console.log("[dev] Schema migrated.");
+          else console.warn("[dev] Auto-migration failed. Run npm run db:migrate manually.");
+        }
       } catch (error) {
         console.warn(`[dev] Database check failed: ${error.message}`);
       }

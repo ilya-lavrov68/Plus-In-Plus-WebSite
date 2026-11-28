@@ -41,7 +41,7 @@ export default async function EditStudioProductPage({
     searchParams,
     getRequestLocale(),
   ]);
-  const product = await getStudioProductById(id);
+  const product = await getStudioProductById(id).catch(() => null);
   if (!product) notFound();
 
   const t = adminLabels(locale);

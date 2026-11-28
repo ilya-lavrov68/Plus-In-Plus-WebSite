@@ -55,6 +55,30 @@ test("история версий подтягивается из репозит
   assert.match(actions, /saveStudioProductChangelog/, "результат сохраняется у продукта");
 });
 
+test("схема витрины догоняет код сама: no such table не роняет страницы", () => {
+  const schema = read("lib/studio-products-schema.ts");
+  assert.match(schema, /CREATE TABLE IF NOT EXISTS/, "таблица создаётся идемпотентно");
+  assert.match(schema, /ALTER TABLE `studio_products` ADD COLUMN `page_path`/, "поздние колонки добавляются");
+  assert.match(schema, /let ensured: Promise<void> \| null = null/, "DDL выполняется один раз за процесс");
+
+  const queries = read("lib/studio-products.ts");
+  assert.match(
+    queries,
+    /export async function listStudioProducts\(\): Promise<StudioProduct\[]> \{\n  await ensureStudioProductsSchema\(\)/,
+    "каждый запрос гарантирует схему перед чтением",
+  );
+
+  // Ошибка схемы не должна превращаться в 500 на сайте и стектрейс в админке.
+  const adminPage = read("app/(admin)/admin/studio-products/page.tsx");
+  assert.match(adminPage, /catch \(error\)/, "админка показывает текст ошибки вместо падения");
+  const publicPage = read("app/(site)/products/[slug]/page.tsx");
+  assert.match(publicPage, /getStudioProductBySlug\(slug\)\.catch\(\(\) => null\)/, "публичная страница отдаёт 404");
+
+  // dev-сервер применяет схему сам — иначе после обновления ветки снова «no such table».
+  const dev = read("scripts/dev.cjs");
+  assert.match(dev, /db-migrate\.cjs/, "npm run dev сам применяет db/schema.sql");
+});
+
 test("меню шапки берёт продукты из админки, но не пустеет без базы", () => {
   const navbar = read("components/site/navbar.tsx");
   assert.match(navbar, /listPublishedStudioProducts/, "меню читает опубликованные продукты");
