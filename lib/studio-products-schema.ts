@@ -31,6 +31,7 @@ const CREATE_TABLE = `CREATE TABLE IF NOT EXISTS \`studio_products\` (
     \`changelog_path\` text DEFAULT 'CHANGELOG.md',
     \`download_url\` text,
     \`page_path\` text,
+    \`background_url\` text,
     \`downloads\` text,
     \`facts\` text,
     \`is_published\` integer DEFAULT false NOT NULL,
@@ -50,6 +51,7 @@ const CREATE_INDEXES = [
 const LATE_COLUMNS: Array<{ name: string; ddl: string }> = [
   { name: "page_path", ddl: "ALTER TABLE `studio_products` ADD COLUMN `page_path` text" },
   { name: "downloads", ddl: "ALTER TABLE `studio_products` ADD COLUMN `downloads` text" },
+  { name: "background_url", ddl: "ALTER TABLE `studio_products` ADD COLUMN `background_url` text" },
 ];
 
 export class StudioSchemaError extends Error {}

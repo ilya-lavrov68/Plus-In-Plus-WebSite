@@ -72,7 +72,12 @@ export async function LineLauncherView() {
   return (
     <div className="relative isolate bg-background">
       {/* Один фон на всю страницу: без швов между секциями и без повторов. */}
-      <PageGlow preset="software" variant="ascii" cell={HAZEGLOW_CELL.ascii} />
+      <PageGlow
+        preset="software"
+        link={product?.backgroundUrl ?? null}
+        variant="ascii"
+        cell={HAZEGLOW_CELL.ascii}
+      />
       <section className="relative border-0 pt-16 pb-20 md:pt-24 md:pb-28">
         <div className="container relative z-10">
           <div className="grid items-start gap-12 lg:grid-cols-[1.02fr_0.98fr] lg:gap-16">

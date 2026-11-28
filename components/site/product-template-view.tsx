@@ -31,7 +31,12 @@ export async function ProductTemplateView({ product }: { product: StudioProduct 
 
   return (
     <div className="relative isolate bg-background">
-      <PageGlow preset="software" variant="ascii" cell={HAZEGLOW_CELL.ascii} />
+      <PageGlow
+        preset="software"
+        link={product.backgroundUrl}
+        variant="ascii"
+        cell={HAZEGLOW_CELL.ascii}
+      />
 
       <section className="relative pt-16 pb-16 md:pt-24 md:pb-20">
         <div className="container relative z-10">

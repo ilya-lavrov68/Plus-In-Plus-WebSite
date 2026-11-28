@@ -628,9 +628,11 @@ test("Hazeglow: крупная ячейка, dither и ascii по типу ст�
     /presetConfig\(preset\)/,
     "краски берутся из пресета владельца",
   );
+  // Фон продукта выбирается в админке ссылкой и приоритетнее пресета.
+  assert.match(pageGlow, /link \? linkConfig\(link\)/, "ссылка из админки важнее пресета");
   assert.match(
     pageGlow,
-    /const config: GradientConfig = colors \?\? \{/,
+    /const config: GradientConfig = colors \?\? fallback \?\? \{/,
     "общий фон тоже берёт присланный конфиг как есть",
   );
   assert.match(section, /#ff5f01/, "фирменный оранжевый участвует как акцент");

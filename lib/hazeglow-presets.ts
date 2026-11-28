@@ -83,6 +83,17 @@ export function payloadOf(link: string): string | null {
  */
 export function presetConfig(preset: HazeglowPreset): GradientConfig | null {
   const link = HAZEGLOW_LINKS[presetFor(preset)];
+  return link ? linkConfig(link) : null;
+}
+
+/**
+ * Конфиг из произвольной ссылки редактора.
+ *
+ * Нужен там, где фон выбирает владелец в админке, а не код: у каждого продукта
+ * своя ссылка, и цвет у продуктов разный. Возвращает `null` на битой ссылке —
+ * страница тогда берёт фон по умолчанию, а не «какой-то чужой» градиент.
+ */
+export function linkConfig(link: string | null | undefined): GradientConfig | null {
   const payload = link ? payloadOf(link) : null;
   if (!payload) return null;
   const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");

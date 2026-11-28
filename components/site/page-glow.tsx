@@ -3,7 +3,7 @@
 import { Hazeglow, type GradientConfig } from "hazeglow";
 import { useEffect, useState } from "react";
 
-import { presetConfig, type HazeglowPreset } from "@/lib/hazeglow-presets";
+import { linkConfig, presetConfig, type HazeglowPreset } from "@/lib/hazeglow-presets";
 import { effectSizeFor, HAZEGLOW_CELL } from "@/lib/hazeglow-scale";
 import { cn } from "@/lib/utils";
 
@@ -19,11 +19,14 @@ import { cn } from "@/lib/utils";
  */
 export function PageGlow({
   preset,
+  link = null,
   variant = "ascii",
   cell = HAZEGLOW_CELL.ascii,
   className,
 }: {
   preset: HazeglowPreset;
+  /** Ссылка на фон из админки продукта: приоритетнее пресета. */
+  link?: string | null;
   variant?: "dither" | "ascii";
   cell?: number;
   className?: string;
@@ -48,11 +51,14 @@ export function PageGlow({
     return () => window.removeEventListener("resize", measure);
   }, [cell]);
 
-  const colors = presetConfig(preset);
+  // Фон продукта выбирается в админке ссылкой: у каждого продукта свой цвет.
+  // Битая ссылка не ломает страницу — остаётся пресет.
+  const colors = link ? linkConfig(link) : null;
+  const fallback = colors ? null : presetConfig(preset);
   // Присланный градиент применяется как есть: масштаб растра, движение и база
   // холста — из ссылки. Пересчёт клетки под размер блока делал рисунок крупнее,
   // чем в редакторе, и он читался как сетка пикселей.
-  const config: GradientConfig = colors ?? {
+  const config: GradientConfig = colors ?? fallback ?? {
     version: 1,
     seed: 3,
     shape: "pill",

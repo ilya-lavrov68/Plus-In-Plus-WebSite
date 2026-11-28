@@ -49,6 +49,8 @@ export interface StudioProduct {
   /** Старое одиночное поле: остаётся для совместимости, в вёрстке не используется. */
   downloadUrl: string;
   downloads: StudioProductDownload[];
+  /** Ссылка на фон из редактора hazeglow; пусто — фирменный фон софта. */
+  backgroundUrl: string;
   /** Свой адрес страницы; пусто — шаблон `/products/[slug]`. */
   pagePath: string;
   facts: StudioProductFact[];
@@ -73,13 +75,15 @@ export interface StudioProductInput {
   downloadUrl: string;
   downloads: StudioProductDownload[];
   pagePath: string;
+  backgroundUrl: string;
   facts: string[];
   published: boolean;
   sortOrder: number;
 }
 
 const SELECT_COLUMNS = `id, slug, name, tagline_ru, tagline_en, summary_ru, summary_en,
-  version, status_label, repo_url, changelog_path, download_url, downloads, page_path, facts,
+  version, status_label, repo_url, changelog_path, download_url, downloads, page_path,
+  background_url, facts,
   is_published, sort_order, changelog_json, changelog_synced_at`;
 
 function text(value: unknown): string {
@@ -145,6 +149,7 @@ function mapProduct(record: Record<string, unknown>): StudioProduct {
     downloadUrl: text(record.download_url),
     downloads: parseDownloads(record.downloads),
     pagePath: text(record.page_path),
+    backgroundUrl: text(record.background_url),
     facts: parseFacts(record.facts),
     published: Number(record.is_published) === 1,
     sortOrder: Number(record.sort_order) || 0,
@@ -222,6 +227,7 @@ export function studioProductValues(input: StudioProductInput) {
     input.downloadUrl.trim(),
     JSON.stringify(input.downloads.filter((row) => row.url && row.platform && row.format)),
     input.pagePath.trim(),
+    input.backgroundUrl.trim(),
     JSON.stringify(input.facts.filter(Boolean).map((value) => ({ value }))),
     input.published ? 1 : 0,
     Number.isFinite(input.sortOrder) ? Math.trunc(input.sortOrder) : 0,
@@ -234,9 +240,9 @@ export async function createStudioProduct(input: StudioProductInput): Promise<st
   await run(
     `insert into studio_products
       (id, slug, name, tagline_ru, tagline_en, summary_ru, summary_en, version,
-       status_label, repo_url, changelog_path, download_url, downloads, page_path, facts,
-       is_published, sort_order)
-     values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       status_label, repo_url, changelog_path, download_url, downloads, page_path,
+       background_url, facts, is_published, sort_order)
+     values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [id, ...studioProductValues(input)],
   );
   return id;
@@ -248,7 +254,7 @@ export async function updateStudioProduct(id: string, input: StudioProductInput)
     `update studio_products set
       slug = ?, name = ?, tagline_ru = ?, tagline_en = ?, summary_ru = ?, summary_en = ?,
       version = ?, status_label = ?, repo_url = ?, changelog_path = ?, download_url = ?,
-      downloads = ?, page_path = ?, facts = ?, is_published = ?, sort_order = ?,
+      downloads = ?, page_path = ?, background_url = ?, facts = ?, is_published = ?, sort_order = ?,
       updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
      where id = ?`,
     [...studioProductValues(input), id],

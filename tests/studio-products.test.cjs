@@ -39,7 +39,8 @@ test("страница продукта — шаблон, а не отдельн
   for (const section of ["contactCta", "whatsNew", "aboutTitle"]) {
     assert.ok(view.includes(section), `в шаблоне есть секция ${section}`);
   }
-  assert.match(view, /PageGlow preset="software"/, "фон шаблона — тот же, что у Line Launcher");
+  assert.match(view, /preset="software"/, "фон шаблона — тот же, что у Line Launcher");
+  assert.match(view, /link=\{product\.backgroundUrl\}/, "цвет фона приходит из админки");
 });
 
 test("история версий подтягивается из репозитория продукта", () => {
@@ -156,6 +157,40 @@ test("главная: первый экран с одной фразой и бл
   const hero = read("components/blocks/hero138.tsx");
   assert.match(hero, /lead\?: string/, "первый экран принимает одну фразу о студии");
   assert.match(read("messages/ru.json"), /heroLine/, "фраза переводится");
+});
+
+test("фон продукта выбирается в админке ссылкой", () => {
+  const { linkConfig, HAZEGLOW_LINKS } = require("../lib/hazeglow-presets.ts");
+
+  const fromLink = linkConfig(HAZEGLOW_LINKS.software);
+  assert.ok(fromLink, "ссылка из редактора разбирается в конфиг");
+  assert.ok(fromLink.palette.length > 0, "палитра берётся из ссылки, а не из кода");
+  assert.equal(linkConfig("https://hazeglow.dev/generator#c=broken"), null, "битая ссылка не применяется");
+  assert.equal(linkConfig(""), null, "пустая ссылка означает фон по умолчанию");
+
+  const schema = read("lib/studio-products-schema.ts");
+  assert.match(schema, /ADD COLUMN `background_url`/, "у продукта своя колонка под фон");
+
+  const form = read("components/admin/studio-product-form.tsx");
+  assert.match(form, /name="backgroundUrl"/, "в админке есть поле ссылки на фон");
+
+  const actions = read("app/(admin)/admin/studio-products/actions.ts");
+  assert.match(actions, /!linkConfig\(input\.backgroundUrl\)/, "битая ссылка не сохраняется");
+
+  const pageGlow = read("components/site/page-glow.tsx");
+  assert.match(pageGlow, /link\?: string \| null/, "слой фона принимает ссылку");
+  assert.match(pageGlow, /link \? linkConfig\(link\)/, "ссылка приоритетнее пресета");
+
+  assert.match(
+    read("components/site/product-template-view.tsx"),
+    /link=\{product\.backgroundUrl\}/,
+    "шаблон продукта берёт фон продукта",
+  );
+  assert.match(
+    read("components/site/line-launcher-view.tsx"),
+    /link=\{product\?\.backgroundUrl \?\? null\}/,
+    "страница лаунчера тоже берёт фон из админки",
+  );
 });
 
 test("меню шапки берёт продукты из админки, но не пустеет без базы", () => {

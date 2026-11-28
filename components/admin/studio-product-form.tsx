@@ -168,6 +168,18 @@ export function StudioProductForm({ t, action, product }: StudioProductFormProps
         </div>
 
         <label className={adminLabelClass}>
+          {copy.backgroundUrl}
+          <input
+            name="backgroundUrl"
+            maxLength={4000}
+            defaultValue={product?.backgroundUrl ?? ""}
+            placeholder="https://hazeglow.dev/generator#c=…"
+            className={adminInputClass}
+          />
+          <span className={adminLabelHintClass}>{copy.backgroundUrlHint}</span>
+        </label>
+
+        <label className={adminLabelClass}>
           {copy.pagePath}
           <input name="pagePath" maxLength={200} defaultValue={product?.pagePath ?? ""} placeholder="/line-launcher" className={adminInputClass} />
           <span className={adminLabelHintClass}>{copy.pagePathHint}</span>

@@ -16,6 +16,7 @@ import {
   updateStudioProduct,
   type StudioProductInput,
 } from "@/lib/studio-products";
+import { linkConfig } from "@/lib/hazeglow-presets";
 import { fetchStudioChangelog, StudioSyncError } from "@/lib/studio-product-sync";
 
 function field(formData: FormData, name: string): string {
@@ -72,6 +73,7 @@ function inputFrom(formData: FormData): StudioProductInput {
       ...parseDownloads(field(formData, "downloadsInstallers"), "installer"),
     ],
     pagePath: field(formData, "pagePath"),
+    backgroundUrl: field(formData, "backgroundUrl"),
     facts: field(formData, "facts")
       .split("\n")
       .map((line) => line.trim())
@@ -96,6 +98,12 @@ export async function createStudioProductAction(formData: FormData): Promise<voi
   if (!admin) return;
 
   const input = inputFrom(formData);
+  if (input.backgroundUrl && !linkConfig(input.backgroundUrl)) {
+    fail(
+      "/admin/studio-products/new",
+      "Ссылка на фон не разобралась: скопируйте адрес из редактора hazeglow целиком.",
+    );
+  }
   if (input.name.length < 2) fail("/admin/studio-products/new", "Название: минимум 2 символа.");
   if (!input.slug) fail("/admin/studio-products/new", "Slug: латиница, цифры и дефис.");
 
@@ -123,6 +131,9 @@ export async function saveStudioProductAction(formData: FormData): Promise<void>
 
   const path = `/admin/studio-products/${id}`;
   const input = inputFrom(formData);
+  if (input.backgroundUrl && !linkConfig(input.backgroundUrl)) {
+    fail(path, "Ссылка на фон не разобралась: скопируйте адрес из редактора hazeglow целиком.");
+  }
   if (input.name.length < 2) fail(path, "Название: минимум 2 символа.");
   if (!input.slug) fail(path, "Slug: латиница, цифры и дефис.");
 

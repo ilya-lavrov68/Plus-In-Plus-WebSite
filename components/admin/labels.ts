@@ -515,6 +515,10 @@ export function adminLabels(locale: RequestLocale) {
       downloadsSource: ru ? "Архив с кодом: формат | ссылка" : "Source archive: format | link",
       downloadsFiles: ru ? "Файлы: формат | ссылка" : "Files: format | link",
       downloadsInstallers: ru ? "Установщики: платформа | формат | ссылка" : "Installers: platform | format | link",
+      backgroundUrl: ru ? "Ссылка на фон (hazeglow)" : "Background link (hazeglow)",
+      backgroundUrlHint: ru
+        ? "Скопируйте ссылку из редактора целиком. У каждого продукта свой цвет: пусто — фирменный фон софта."
+        : "Copy the link from the editor as a whole. Every product gets its own colour: empty means the software background.",
       pagePath: ru ? "Свой адрес страницы" : "Custom page path",
       pagePathHint: ru
         ? "Пусто — продукт живёт по шаблону /products/<slug>. Если у продукта уже есть своя страница (например /line-launcher), укажите её."
