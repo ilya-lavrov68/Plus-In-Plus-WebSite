@@ -107,7 +107,8 @@
     "services": "Услуги",
     "studio": "Студия",
     "journal": "Журнал",
-    "startProject": "Обсудить проект"
+    "startProject": "Обсудить проект",
+    "products": "Продукты"
   },
   "announcement": {
     "message": "Plus In Plus — дизайн-студия нового поколения",
@@ -1568,14 +1569,22 @@
       "versionLabel": "Версия",
       "platformLabel": "Платформа",
       "formatLabel": "Формат",
-      "versions": ["0.15.4 — в разработке"],
+      "versions": [
+        "0.15.4 — в разработке"
+      ],
       "platforms": {
         "windows": "Windows",
         "linux": "Linux"
       },
       "formats": {
-        "windows": [".exe — установщик", ".msi — установщик"],
-        "linux": [".AppImage", ".deb — пакет"]
+        "windows": [
+          ".exe — установщик",
+          ".msi — установщик"
+        ],
+        "linux": [
+          ".AppImage",
+          ".deb — пакет"
+        ]
       },
       "action": "Скачать",
       "unavailable": "Публичных сборок пока нет — файлы появятся после первого релиза",
@@ -1790,5 +1799,16 @@
     "productBody": "Собственный лаунчер Minecraft: игрок открывает приложение и нажимает «Играть», без ручной настройки серверов и Java.",
     "productAction": "Страница продукта",
     "processAll": "О студии"
+  },
+  "productPage": {
+    "contactCta": "Обсудить проект",
+    "repoCta": "Репозиторий на GitHub",
+    "downloadCta": "Скачать",
+    "whatsNew": "Что нового",
+    "aboutTitle": "Что это",
+    "allVersions": "Все версии",
+    "emptyChangelog": "История версий появится здесь после первой синхронизации с репозиторием.",
+    "releases": "Релизы",
+    "status": "Статус"
   }
 }

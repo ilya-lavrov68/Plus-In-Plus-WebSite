@@ -235,8 +235,13 @@ test("состояние читается подложкой, а не рамко
 test("меню шапки — нейтральный текст без чипов и рамок", () => {
   const navbar = read("components/blocks/navbar10.tsx");
   assert.ok(
+    navbar.includes("bg-background [background-image:linear-gradient"),
+    "шапка сайта — плотная панель с линией снизу, без стекла",
+  );
+  assert.equal(
     navbar.includes("site-header-glass"),
-    "шапка остаётся полупрозрачным стеклом с заметным блюром",
+    false,
+    "стекло из шапки сайта убрано: на светлом фоне оно мылит текст",
   );
   assert.ok(
     navbar.includes("text-foreground/75 hover:text-foreground"),
@@ -339,11 +344,12 @@ test("плавающие панели остаются стеклянными", 
   assert.ok(header.includes("sticky"), "панель не уезжает при прокрутке");
 
   const navbar = read("components/blocks/navbar10.tsx");
-  assert.ok(
-    navbar.includes("site-header-glass"),
-    "шапка сайта держит стекло на отдельном слое",
+  assert.match(
+    navbar,
+    /className="h-16 max-w-full/,
+    "шапка сайта плотная и низкая, как у продуктовых сайтов",
   );
-  assert.match(globals, /site-header-glass/, "стекло шапки объявлено в теме");
+  assert.match(globals, /site-header-glass/, "утилита стекла остаётся в теме");
   assert.match(
     globals,
     /backdrop-filter: blur\(24px\) saturate\(140%\)/,

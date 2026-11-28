@@ -187,6 +187,7 @@ Module._load = function (name, parent, isMain) {
 
 const { Hero138 } = require("../components/blocks/hero138.tsx");
 const { Navbar10, buildNavigation } = require("../components/blocks/navbar10.tsx");
+const { PRODUCTS } = require("../lib/products.ts");
 const { Footer7 } = require("../components/blocks/footer7.tsx");
 const { Feature314 } = require("../components/blocks/feature314.tsx");
 const { Community3 } = require("../components/blocks/community3.tsx");
@@ -343,22 +344,36 @@ test("Navbar10 and Footer7 render all required navigation items and footer colum
     "Navbar10 must use full drawn wordmark /assets/logos/npip.svg"
   );
 
+  const navigation = buildNavigation();
   assert.deepEqual(
-    buildNavigation(),
+    navigation.map(({ id, title, url }) => ({ id, title, url })),
     [
+      { id: 5, title: "Продукты", url: undefined },
       { id: 1, title: "Работы", url: "/work" },
       { id: 2, title: "Услуги", url: "/services" },
       { id: 3, title: "Студия", url: "/studio" },
       { id: 4, title: "Журнал", url: "/blog" },
     ],
-    "меню — четыре раздела: работы, услуги, студия, журнал",
+    "меню — продукты и четыре раздела: работы, услуги, студия, журнал",
   );
+
+  const products = navigation.find((item) => item.id === 5);
+  assert.deepEqual(
+    products.links.map((link) => link.url),
+    PRODUCTS.map((product) => product.href),
+    "пункт «Продукты» собирается из реестра продуктов",
+  );
+  assert.ok(
+    products.links[0].description && products.links[0].badge,
+    "у продукта в меню есть назначение и версия",
+  );
+
   const localizedNavigation = buildNavigation({ work: "Work", journal: "Journal" });
-  assert.equal(localizedNavigation[0].title, "Work");
-  assert.equal(localizedNavigation[3].title, "Journal");
+  assert.equal(localizedNavigation[1].title, "Work");
+  assert.equal(localizedNavigation[4].title, "Journal");
   assert.ok(
     buildNavigation().every((item) => !item.imageLink && !item.groupLinks),
-    "раздел верхнего меню ведёт на свою страницу и не открывает выпадающую панель",
+    "раздел верхнего меню ведёт на свою страницу или раскрывает список продуктов",
   );
   const navbarSource = fs.readFileSync(
     path.resolve(__dirname, "../components/blocks/navbar10.tsx"),

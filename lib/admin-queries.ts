@@ -246,7 +246,16 @@ export async function getContentCounts(): Promise<{ services: number; products: 
 
 export async function logAdminAction(input: {
   action: string;
-  entityType: "order" | "service" | "product" | "post" | "story" | "user" | "setting" | "media";
+  entityType:
+    | "order"
+    | "service"
+    | "product"
+    | "studioProduct"
+    | "post"
+    | "story"
+    | "user"
+    | "setting"
+    | "media";
   entityId: string;
   title: string;
   actorId: string | null;
