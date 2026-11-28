@@ -6,7 +6,12 @@ import {
   type GithubTag,
 } from "@/scripts/lib/changelog-parse.mjs";
 import type { ChangelogData } from "@/lib/changelog-format";
-import { buildsFromReleases, type StudioBuild } from "@/lib/studio-builds";
+import {
+  buildsFromReleases,
+  sourceArchives,
+  sourceRef,
+  type StudioBuild,
+} from "@/lib/studio-builds";
 
 export type { StudioBuild };
 
@@ -136,9 +141,14 @@ export async function fetchStudioChangelog(options: {
     entries: enriched,
   };
 
+  // Архив кода GitHub отдаёт для любого тега или ветки, поэтому он есть даже
+  // без релиза — это и есть штатный способ поставить продукт «в разобранном виде».
+  const ref = sourceRef(data.latestVersion, repo.default_branch);
+  const releases_ = buildsFromReleases(releases, data.latestVersion);
+
   return {
     data,
     entriesCount: enriched.length,
-    downloads: buildsFromReleases(releases, data.latestVersion),
+    downloads: [...releases_, ...(ref ? sourceArchives(repo.full_name, ref) : [])],
   };
 }

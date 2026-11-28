@@ -1,3 +1,5 @@
+import { sourceArchives } from "@/lib/studio-builds";
+import { PRODUCTS } from "@/lib/products";
 import { getDb, rows, run } from "@/lib/db";
 
 /**
@@ -54,6 +56,48 @@ export class StudioSchemaError extends Error {}
 
 let ensured: Promise<void> | null = null;
 
+/**
+ * Первый продукт на чистой базе.
+ *
+ * Line Launcher — flagship студии, и он же образец: продукт поставляется в
+ * разобранном виде, поэтому архив кода есть сразу, до первого релиза. Запись
+ * создаётся один раз: если владелец её удалит или переименует, она не вернётся.
+ */
+async function seedFirstProduct(): Promise<void> {
+  const existing = await rows<{ id?: unknown }>("select id from `studio_products` limit 1");
+  if (existing.length > 0) return;
+
+  const product = PRODUCTS[0];
+  if (!product) return;
+
+  const downloads = sourceArchives("ilya-lavrov68/Line-Launcher", "heads/main");
+
+  await run(
+    `insert into \`studio_products\`
+      (id, slug, name, tagline_ru, tagline_en, summary_ru, summary_en, version,
+       status_label, repo_url, changelog_path, downloads, page_path, facts, is_published, sort_order)
+     values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      "line-launcher",
+      "line-launcher",
+      product.name,
+      product.tagline.ru,
+      product.tagline.en,
+      "Минималистичный Minecraft-лаунчер для игровых проектов: один провайдер — один лаунчер. Поставляется в разобранном виде — соберите под свой проект.",
+      "A minimal Minecraft launcher for game projects: one provider, one launcher. Ships as source — build it for your own project.",
+      product.badge ?? "",
+      "В разработке",
+      "https://github.com/ilya-lavrov68/Line-Launcher",
+      "CHANGELOG.md",
+      JSON.stringify(downloads),
+      "/line-launcher",
+      JSON.stringify([{ value: "Windows | Linux" }, { value: "Tauri 2.12 | Rust | React 19" }]),
+      1,
+      0,
+    ],
+  );
+}
+
 async function applySchema(): Promise<void> {
   await run(CREATE_TABLE);
   for (const statement of CREATE_INDEXES) await run(statement);
@@ -63,6 +107,8 @@ async function applySchema(): Promise<void> {
   for (const column of LATE_COLUMNS) {
     if (!present.has(column.name)) await run(column.ddl);
   }
+
+  await seedFirstProduct();
 }
 
 /**

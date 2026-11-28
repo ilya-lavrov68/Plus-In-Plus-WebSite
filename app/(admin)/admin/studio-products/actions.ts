@@ -26,6 +26,31 @@ function checkbox(formData: FormData, name: string): boolean {
   return formData.get(name) === "on" || formData.get(name) === "true";
 }
 
+/**
+ * Строки сборок из текстового поля.
+ *
+ * Два формата, потому что у видов разная природа:
+ * `формат | ссылка` для архива кода и файлов, `платформа | формат | ссылка`
+ * для установщиков. Лишние пробелы и пустые строки просто отбрасываются.
+ */
+function parseDownloads(
+  value: string,
+  kind: "source" | "file" | "installer",
+): StudioProductInput["downloads"] {
+  return value
+    .split("\n")
+    .map((line) => line.split("|").map((part) => part.trim()))
+    .map((parts) => {
+      if (kind === "installer") {
+        const [platform, format, url] = parts;
+        return platform && format && url ? { kind, platform, format, url } : null;
+      }
+      const [format, url] = parts;
+      return format && url ? { kind, platform: "", format, url } : null;
+    })
+    .filter((row): row is NonNullable<typeof row> => row !== null);
+}
+
 function inputFrom(formData: FormData): StudioProductInput {
   return {
     slug: normalizeSlug(field(formData, "slug") || field(formData, "name")),
@@ -39,12 +64,13 @@ function inputFrom(formData: FormData): StudioProductInput {
     repoUrl: field(formData, "repoUrl"),
     changelogPath: field(formData, "changelogPath") || "CHANGELOG.md",
     downloadUrl: "",
-    // Строки «платформа | формат | ссылка»: столько, сколько файлов у релиза.
-    downloads: field(formData, "downloads")
-      .split("\n")
-      .map((line) => line.split("|").map((part) => part.trim()))
-      .filter((parts) => parts.length >= 3 && parts[2].length > 0)
-      .map(([platform, format, url]) => ({ platform, format, url })),
+    // Три вида загрузки живут в трёх полях, чтобы их нельзя было перепутать.
+    // Архивы кода и файлы: «формат | ссылка». Установщики: «платформа | формат | ссылка».
+    downloads: [
+      ...parseDownloads(field(formData, "downloadsSource"), "source"),
+      ...parseDownloads(field(formData, "downloadsFiles"), "file"),
+      ...parseDownloads(field(formData, "downloadsInstallers"), "installer"),
+    ],
     pagePath: field(formData, "pagePath"),
     facts: field(formData, "facts")
       .split("\n")

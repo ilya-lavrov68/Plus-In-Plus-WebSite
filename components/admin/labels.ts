@@ -508,10 +508,13 @@ export function adminLabels(locale: RequestLocale) {
       repoUrl: ru ? "Ссылка на репозиторий" : "Repository URL",
       changelogPath: ru ? "Файл истории версий" : "Changelog file",
       downloadUrl: ru ? "Ссылка на загрузку" : "Download URL",
-      downloads: ru ? "Сборки: платформа | формат | ссылка" : "Builds: platform | format | link",
+      downloads: ru ? "Загрузка" : "Downloads",
       downloadsHint: ru
-        ? "Одна строка на файл — платформа, формат и ссылка через |. При синхронизации строки заполняются файлами последнего релиза, вручную можно поправить любую."
-        : "One line per file — platform, format and link separated by |. Sync fills the rows from the latest release; any row can be edited by hand.",
+        ? "Три вида загрузки: архив с кодом, одиночные файлы и установщики под платформы. Строка — это один файл, поля разделяются |. При синхронизации всё заполняется из последнего релиза, а архив кода GitHub отдаёт всегда."
+        : "Three kinds of download: source archive, single files and per-platform installers. One line is one file, fields separated by |. Sync fills installers from the latest release; GitHub always provides the source archive.",
+      downloadsSource: ru ? "Архив с кодом: формат | ссылка" : "Source archive: format | link",
+      downloadsFiles: ru ? "Файлы: формат | ссылка" : "Files: format | link",
+      downloadsInstallers: ru ? "Установщики: платформа | формат | ссылка" : "Installers: platform | format | link",
       pagePath: ru ? "Свой адрес страницы" : "Custom page path",
       pagePathHint: ru
         ? "Пусто — продукт живёт по шаблону /products/<slug>. Если у продукта уже есть своя страница (например /line-launcher), укажите её."

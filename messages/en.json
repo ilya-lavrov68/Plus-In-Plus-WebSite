@@ -1546,7 +1546,7 @@
     "status": "In development | 0.15.4",
     "repoCta": "GitHub repository",
     "contactCta": "Discuss a project",
-    "releaseNote": "There are no public releases yet: the build lives in the open repository. Installers will appear here only after the project owner publishes them.",
+    "releaseNote": "No public releases yet — installers arrive with the first release. The source archive is available now to build for your own project.",
     "facts": [
       {
         "label": "Platforms",

@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
 
 import { row, rows, run } from "@/lib/db";
-import { ensureStudioProductsSchema } from "@/lib/studio-products-schema";
+import {
+  ensureStudioProductsSchema,
+} from "@/lib/studio-products-schema";
+import type { StudioDownloadKind } from "@/lib/studio-builds";
 
 /**
  * Продукты студии (Line Launcher и всё, что появится после него).
@@ -24,6 +27,8 @@ export interface StudioProductFact {
  * хранится список сборок, и страница показывает панель загрузки по платформам.
  */
 export interface StudioProductDownload {
+  /** Архив кода, одиночный файл или установщик под платформу. */
+  kind: StudioDownloadKind;
   platform: string;
   format: string;
   url: string;
@@ -104,19 +109,24 @@ function parseDownloads(value: unknown): StudioProductDownload[] {
       .map((item) => item as Partial<StudioProductDownload>)
       .filter(
         (item): item is StudioProductDownload =>
-          typeof item?.platform === "string" &&
           typeof item?.format === "string" &&
           typeof item?.url === "string" &&
           item.url.trim().length > 0,
       )
       .map((item) => ({
-        platform: item.platform.trim(),
+        // Старые строки без вида считаем установщиками: так они выглядели раньше.
+        kind: normalizeKind(item.kind),
+        platform: typeof item.platform === "string" ? item.platform.trim() : "",
         format: item.format.trim(),
         url: item.url.trim(),
       }));
   } catch {
     return [];
   }
+}
+
+function normalizeKind(value: unknown): StudioDownloadKind {
+  return value === "source" || value === "file" ? value : "installer";
 }
 
 function mapProduct(record: Record<string, unknown>): StudioProduct {
@@ -269,16 +279,33 @@ export async function saveStudioProductChangelog(
   );
 }
 
-/** Сборки, сгруппированные по платформам — в порядке появления в списке. */
-export function groupDownloads(
-  downloads: StudioProductDownload[],
-): Array<{ platform: string; items: StudioProductDownload[] }> {
-  const groups = new Map<string, StudioProductDownload[]>();
-  for (const row of downloads) {
-    const key = row.platform || "Другое";
-    groups.set(key, [...(groups.get(key) ?? []), row]);
-  }
-  return [...groups.entries()].map(([platform, items]) => ({ platform, items }));
+/**
+ * Сборки по видам, а внутри установщиков — по платформам.
+ *
+ * Порядок видов фиксирован: архив кода → файлы → установщики. Пустые виды
+ * просто не попадают в результат, поэтому страница не показывает пустых блоков.
+ */
+export function groupDownloads(downloads: StudioProductDownload[]): Array<{
+  kind: StudioDownloadKind;
+  items: StudioProductDownload[];
+  platforms: Array<{ platform: string; items: StudioProductDownload[] }>;
+}> {
+  const order: StudioDownloadKind[] = ["source", "file", "installer"];
+  return order
+    .map((kind) => {
+      const items = downloads.filter((row) => row.kind === kind);
+      const platforms = new Map<string, StudioProductDownload[]>();
+      for (const row of items) {
+        const key = row.platform || "Все платформы";
+        platforms.set(key, [...(platforms.get(key) ?? []), row]);
+      }
+      return {
+        kind,
+        items,
+        platforms: [...platforms.entries()].map(([platform, rows]) => ({ platform, items: rows })),
+      };
+    })
+    .filter((group) => group.items.length > 0);
 }
 
 /** Адрес страницы продукта: свой, если задан, иначе шаблон. */

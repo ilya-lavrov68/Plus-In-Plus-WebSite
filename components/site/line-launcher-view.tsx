@@ -8,12 +8,14 @@ import {
 } from "@/components/site/line-launcher-download";
 import { InlineMarkdown } from "@/components/site/inline-markdown";
 import { PageGlow } from "@/components/site/page-glow";
+import { ProductDownloads } from "@/components/site/product-downloads";
 import { Button } from "@/components/ui/button";
 import { formatChangelogDate } from "@/lib/changelog-format";
 import { getChangelog } from "@/lib/changelog";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getRequestTranslations } from "@/lib/server-i18n";
 import { HAZEGLOW_CELL } from "@/lib/hazeglow-scale";
+import { getStudioProductBySlug } from "@/lib/studio-products";
 
 const REPOSITORY_URL = "https://github.com/ilya-lavrov68/Line-Launcher";
 const SCREENSHOT_DIR = "/assets/line-launcher";
@@ -61,6 +63,11 @@ export async function LineLauncherView() {
   // Блок краткий и честный: записи берутся из той же истории версий, что и
   // страница changelog. Нет данных — нет и блока.
   const recent = getChangelog()?.entries.slice(0, 3) ?? [];
+
+  // Загрузки приходят из админки: архив кода есть всегда, установщики появятся
+  // после релиза. Если записи продукта нет (база только на чтение), остаётся
+  // прежняя панель «версия × платформа × формат».
+  const product = await getStudioProductBySlug("line-launcher").catch(() => null);
 
   return (
     <div className="relative isolate bg-background">
@@ -143,7 +150,16 @@ export async function LineLauncherView() {
 
       <section className="relative pb-16 md:pb-20">
         <div className="container relative z-10">
-          <LineLauncherDownload copy={download} />
+          {product && product.downloads.length > 0 ? (
+            <ProductDownloads
+              downloads={product.downloads}
+              title={download.title}
+              version={product.version}
+              locale={locale}
+            />
+          ) : (
+            <LineLauncherDownload copy={download} />
+          )}
         </div>
       </section>
 

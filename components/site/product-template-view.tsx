@@ -1,13 +1,14 @@
 import Link from "next/link";
-import { ArrowUpRight, Download, ExternalLink } from "lucide-react";
+import { ArrowUpRight, ExternalLink } from "lucide-react";
 
 import { PageGlow } from "@/components/site/page-glow";
+import { ProductDownloads } from "@/components/site/product-downloads";
 import { Button } from "@/components/ui/button";
 import { formatChangelogDate, type ChangelogData } from "@/lib/changelog-format";
 import { HAZEGLOW_CELL } from "@/lib/hazeglow-scale";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getRequestTranslations } from "@/lib/server-i18n";
-import { groupDownloads, type StudioProduct } from "@/lib/studio-products";
+import type { StudioProduct } from "@/lib/studio-products";
 
 /**
  * Страница продукта по шаблону Line Launcher.
@@ -84,38 +85,13 @@ export async function ProductTemplateView({ product }: { product: StudioProduct 
 
       {product.downloads.length > 0 ? (
         <section className="relative pb-16 md:pb-20">
-          <div className="container relative z-10 bg-card px-6 py-8 md:px-10 md:py-10">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
-              <h2 className="text-2xl font-medium tracking-tight sm:text-3xl">
-                {t("downloadCta")}
-              </h2>
-              {product.version ? (
-                <p className="text-sm text-muted-foreground tabular-nums">{product.version}</p>
-              ) : null}
-            </div>
-
-            {/* Панель загрузки: платформа → форматы. Одна кнопка на файл, потому
-                что у сборки их несколько и подменять их одной ссылкой нельзя. */}
-            <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {groupDownloads(product.downloads).map((group) => (
-                <li key={group.platform}>
-                  <p className="text-sm font-medium">{group.platform}</p>
-                  <ul className="mt-3 flex flex-col gap-2">
-                    {group.items.map((item) => (
-                      <li key={`${item.platform}-${item.format}-${item.url}`}>
-                        <a
-                          href={item.url}
-                          className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-                        >
-                          <Download aria-hidden="true" className="size-3.5" />
-                          {item.format}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              ))}
-            </ul>
+          <div className="container relative z-10">
+            <ProductDownloads
+              downloads={product.downloads}
+              title={t("downloadCta")}
+              version={product.version}
+              locale={locale}
+            />
           </div>
         </section>
       ) : null}

@@ -120,19 +120,52 @@ export function StudioProductForm({ t, action, product }: StudioProductFormProps
           <input name="changelogPath" maxLength={120} defaultValue={product?.changelogPath ?? "CHANGELOG.md"} className={adminInputClass} />
         </label>
 
-        <label className={adminLabelClass}>
-          {copy.downloads}
-          <textarea
-            name="downloads"
-            rows={5}
-            className={adminTextareaClass}
-            defaultValue={product?.downloads
-              .map((row) => `${row.platform} | ${row.format} | ${row.url}`)
-              .join("\n") ?? ""}
-            placeholder={"Windows | .msi | https://github.com/…/app.msi\nWindows | .exe | https://github.com/…/app-setup.exe\nLinux | .AppImage | https://github.com/…/app.AppImage"}
-          />
-          <span className={adminLabelHintClass}>{copy.downloadsHint}</span>
-        </label>
+        <div className="flex flex-col gap-5">
+          <p className="text-sm font-medium text-on-surface">{copy.downloads}</p>
+          <p className={adminLabelHintClass}>{copy.downloadsHint}</p>
+
+          <label className={adminLabelClass}>
+            {copy.downloadsSource}
+            <textarea
+              name="downloadsSource"
+              rows={2}
+              className={adminTextareaClass}
+              defaultValue={(product?.downloads ?? [])
+                .filter((row) => row.kind === "source")
+                .map((row) => `${row.format} | ${row.url}`)
+                .join("\n")}
+              placeholder={".zip | https://github.com/…/archive/refs/heads/main.zip"}
+            />
+          </label>
+
+          <label className={adminLabelClass}>
+            {copy.downloadsFiles}
+            <textarea
+              name="downloadsFiles"
+              rows={2}
+              className={adminTextareaClass}
+              defaultValue={(product?.downloads ?? [])
+                .filter((row) => row.kind === "file")
+                .map((row) => `${row.format} | ${row.url}`)
+                .join("\n")}
+              placeholder={".jar | https://github.com/…/plugin.jar"}
+            />
+          </label>
+
+          <label className={adminLabelClass}>
+            {copy.downloadsInstallers}
+            <textarea
+              name="downloadsInstallers"
+              rows={4}
+              className={adminTextareaClass}
+              defaultValue={(product?.downloads ?? [])
+                .filter((row) => row.kind === "installer")
+                .map((row) => `${row.platform} | ${row.format} | ${row.url}`)
+                .join("\n")}
+              placeholder={"Windows | .msi | https://github.com/…/app.msi\nLinux | .AppImage | https://github.com/…/app.AppImage"}
+            />
+          </label>
+        </div>
 
         <label className={adminLabelClass}>
           {copy.pagePath}

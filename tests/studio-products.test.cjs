@@ -80,7 +80,7 @@ test("схема витрины догоняет код сама: no such table 
 });
 
 test("загрузка — матрица «платформа × формат», а не одна ссылка", () => {
-  const { buildFromAsset, buildsFromReleases } = require("../lib/studio-builds.ts");
+  const { buildFromAsset, buildsFromReleases, sourceArchives, sourceRef } = require("../lib/studio-builds.ts");
 
   const builds = [
     ["Line.Launcher_0.15.4_x64-setup.exe", "Windows", ".exe"],
@@ -91,10 +91,13 @@ test("загрузка — матрица «платформа × формат»
   for (const [name, platform, format] of builds) {
     assert.deepEqual(
       buildFromAsset(name, "https://example.test/" + name),
-      { platform, format, url: "https://example.test/" + name },
-      `${name} разбирается в платформу и формат`,
+      { kind: "installer", platform, format, url: "https://example.test/" + name },
+      `${name} разбирается в установщик платформы`,
     );
   }
+
+  // Плагин или мод — одиночный файл, а не установщик.
+  assert.equal(buildFromAsset("survival-plugin.jar", "https://example.test/p.jar").kind, "file");
 
   // Служебные файлы релиза в панель загрузки не попадают.
   assert.equal(buildFromAsset("latest.json", "https://example.test/latest.json"), null);
@@ -118,13 +121,25 @@ test("загрузка — матрица «платформа × формат»
     "из релиза собирается таблица сборок",
   );
 
-  // Таблица строк в админке и панель на странице продукта.
-  const schema = read("lib/studio-products-schema.ts");
-  assert.match(schema, /ADD COLUMN `downloads`/, "сборки хранятся списком");
+  // Архив с кодом: GitHub отдаёт его сам, поэтому он есть ещё до релиза.
+  const source = sourceArchives("owner/repo", "heads/main");
+  assert.deepEqual(
+    source.map((item) => `${item.kind} ${item.format}`),
+    ["source .zip", "source .tar.gz"],
+  );
+  assert.equal(source[0].url, "https://github.com/owner/repo/archive/refs/heads/main.zip");
+  assert.equal(sourceRef("0.15.4", "main"), "tags/v0.15.4");
+  assert.equal(sourceRef(null, "main"), "heads/main");
+
+  // Форма админки: три вида загрузки в трёх полях — их нельзя перепутать.
   const form = read("components/admin/studio-product-form.tsx");
-  assert.match(form, /name="downloads"/, "в админке — строки «платформа | формат | ссылка»");
-  const view = read("components/site/product-template-view.tsx");
-  assert.match(view, /groupDownloads\(product\.downloads\)/, "на странице сборки сгруппированы по платформам");
+  for (const field of ["downloadsSource", "downloadsFiles", "downloadsInstallers"]) {
+    assert.match(form, new RegExp(`name="${field}"`), `в админке есть поле ${field}`);
+  }
+  const view = read("components/site/product-downloads.tsx");
+  assert.match(view, /groupDownloads\(downloads\)/, "панель группирует сборки по видам");
+  assert.match(view, /source: \{ ru: "Архив с кодом"/, "архив кода подписан отдельно");
+  assert.match(read("components/site/line-launcher-view.tsx"), /ProductDownloads/, "страница лаунчера берёт загрузки из админки");
 });
 
 test("главная: первый экран с одной фразой и блок продукта из админки", () => {
